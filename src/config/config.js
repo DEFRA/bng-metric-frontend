@@ -12,6 +12,7 @@ const oneWeekMs = 604800000
 const isProduction = process.env.NODE_ENV === 'production'
 const isTest = process.env.NODE_ENV === 'test'
 const isDevelopment = process.env.NODE_ENV === 'development'
+const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:3001'
 
 convict.addFormats(convictFormatWithValidator)
 
@@ -34,6 +35,10 @@ export const config = convict({
     format: 'port',
     default: 3000,
     env: 'PORT'
+  },
+  backend: {
+    doc: 'The backend address to bind',
+    url: backendUrl
   },
   staticCacheTimeout: {
     doc: 'Static cache timeout in milliseconds',
