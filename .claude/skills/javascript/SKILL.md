@@ -3,13 +3,16 @@ description: Javascript in Defra
 globs: *.js
 alwaysApply: true
 ---
+
 # JavaScript in Defra
 
 ## Language
+
 - JavaScript
 - TypeScript (for type checking only)
 
 ## Tech Stack
+
 - Node.js + Hapi.js (do NOT use Express)
 - govuk-frontend npm library
 - Nunjucks templates npm library
@@ -18,6 +21,7 @@ alwaysApply: true
 - SCSS + PostCSS + Stylelint
 
 ## Code Standards
+
 - Use vanilla JavaScript (no TypeScript files)
 - Use JSDoc for type annotations
 - Use TypeScript for type checking only
@@ -31,6 +35,7 @@ alwaysApply: true
 - Only use comments to clarify complex or non-obvious logic
 
 ## Project Structure
+
 - /src/config/ - Configuration and setup
   - /nunjucks/ - Template engine setup
     - /filters/ - Custom Nunjucks filters
@@ -48,6 +53,7 @@ alwaysApply: true
   - index.js - Server setup and plugins
 
 ## Controller Patterns
+
 - Export named functions
 - Use JSDoc to document parameters
 - Standard parameters: (request, h)
@@ -59,6 +65,7 @@ alwaysApply: true
 - Use h.redirect for navigation
 
 ## API Integration
+
 - Use Hapi/Wreck for API calls
 - Base URL from config
 - JSON content type
@@ -67,12 +74,14 @@ alwaysApply: true
 - Consistent error handling
 
 ## Configuration
+
 - Use config module for settings
 - Environment-based configuration
 - Consistent config access pattern
 - Type-safe config values
 
 ## Markdown Parsing
+
 - Use marked library for parsing markdown
 - Configure marked options to match GDS styling
 - Always sanitize markdown output
@@ -82,6 +91,7 @@ alwaysApply: true
   - Help text
 
 ## Testing
+
 - Write comprehensive vitest tests
 - Test functionality, not implementation
   - End-to-end coverage
@@ -91,8 +101,8 @@ alwaysApply: true
 - Mock external dependencies
 - Unit test files should be in the same folder as the main code they are testing
 
-
 ## Template Handling
+
 - Configure Nunjucks search paths in nunjucks.js:
   - govuk-frontend templates
   - project views directory
@@ -104,5 +114,6 @@ alwaysApply: true
 - Keep templates close to their feature modules
 
 ## SonarQube
+
 - do not assign to undefined; use null
-- function names must follow regex: ^[a-z][a-zA-Z0-9]*$ (start with lowercase, camelCase)
+- function names must follow regex: ^[a-z][a-zA-Z0-9]\*$ (start with lowercase, camelCase)

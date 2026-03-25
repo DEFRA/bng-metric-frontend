@@ -1,0 +1,14 @@
+{% extends 'layouts/page.njk' %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: "End-to-end: Frontend → Backend → Postgres"
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <pre class="govuk-body" data-testid="db-info-output">{{ dbInfo }}</pre>
+    </div>
+  </div>
+{% endblock %}

@@ -5,13 +5,23 @@ import { Cluster, Redis } from 'ioredis'
 import { config } from '../../../config/config.js'
 import { buildRedisClient } from './redis-client.js'
 
+const eventHandlers = {}
+
 vi.mock('ioredis', () => ({
   ...vi.importActual('ioredis'),
   Cluster: vi.fn(function () {
-    return { on: () => ({}) }
+    return {
+      on: (event, handler) => {
+        eventHandlers[event] = handler
+      }
+    }
   }),
   Redis: vi.fn(function () {
-    return { on: () => ({}) }
+    return {
+      on: (event, handler) => {
+        eventHandlers[event] = handler
+      }
+    }
   })
 }))
 
@@ -28,6 +38,16 @@ describe('#buildRedisClient', () => {
         keyPrefix: 'bng-metric-frontend:',
         port: 6379
       })
+    })
+
+    test('Should log on connect', () => {
+      expect(eventHandlers.connect).toBeDefined()
+      eventHandlers.connect()
+    })
+
+    test('Should log on error', () => {
+      expect(eventHandlers.error).toBeDefined()
+      eventHandlers.error(new Error('connection refused'))
     })
   })
 
@@ -52,6 +72,15 @@ describe('#buildRedisClient', () => {
           slotsRefreshTimeout: 10000
         }
       )
+    })
+
+    test('Should resolve dnsLookup with the address', () => {
+      const clusterOptions = Cluster.mock.calls[0][1]
+      const callback = vi.fn()
+
+      clusterOptions.dnsLookup('redis.example.com', callback)
+
+      expect(callback).toHaveBeenCalledWith(null, 'redis.example.com')
     })
   })
 })

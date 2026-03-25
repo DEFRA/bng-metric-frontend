@@ -3,6 +3,20 @@ import { renderComponent } from '../../test-helpers/component-helpers.js'
 describe('Heading Component', () => {
   let $heading
 
+  describe('With callBlock', () => {
+    beforeEach(() => {
+      $heading = renderComponent(
+        'heading',
+        { text: 'Title' },
+        '<p>Extra content</p>'
+      )
+    })
+
+    test('Should render with call block content', () => {
+      expect($heading('[data-testid="app-heading"]')).toHaveLength(1)
+    })
+  })
+
   describe('With caption', () => {
     beforeEach(() => {
       $heading = renderComponent('heading', {

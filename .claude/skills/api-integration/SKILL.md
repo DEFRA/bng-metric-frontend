@@ -2,16 +2,20 @@
 description: API Integration Standards
 globs: src/**/*.js
 ---
+
 # API Integration Standards
 
 ## Configuration
+
 - Use apiServer from config for base URL:
+
 ```javascript
 import { config } from '~/src/config/config.js'
 const baseUrl = config.get('apiServer')
 ```
 
 ## Making API Calls
+
 - Use native Hapi/Wreck for HTTP requests (do not use Axios or other HTTP clients)
 - Always include error handling
 - Use JSON content type by default
@@ -43,8 +47,8 @@ throw error
 }
 ```
 
-
 ## Error Handling
+
 - Check response.ok status
 - Log errors with request.logger
 - Use statusCodes constants for response codes
@@ -52,12 +56,14 @@ throw error
 - Propagate errors up for handling
 
 ## Response Processing
+
 - Parse JSON responses
 - Validate response data structure
 - Handle empty responses appropriately
 - Use TypeScript-style JSDoc for type annotations
 
 ## Security
+
 - Use HTTPS in production
 - Include authorization headers when required
 - Redact sensitive data in logs
