@@ -1,6 +1,6 @@
 import { config } from '../../config/config.js'
 
-const backendUrl = config.get('backend').url
+const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
 export const dbInfoController = {
   async handler(_request, h) {
