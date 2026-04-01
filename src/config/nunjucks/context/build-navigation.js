@@ -6,6 +6,11 @@ export function buildNavigation(request) {
       current: request?.path === '/'
     },
     {
+      text: 'Projects',
+      href: '/projects',
+      current: request?.path?.startsWith('/projects')
+    },
+    {
       text: 'About',
       href: '/about',
       current: request?.path === '/about'
