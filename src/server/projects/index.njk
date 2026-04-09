@@ -2,8 +2,7 @@
 
 {% block content %}
   {{ appHeading({
-    text: heading,
-    caption: "BNG Metric"
+    text: heading
   }) }}
 
   <div class="govuk-grid-row">
@@ -17,7 +16,7 @@
           {% endfor %}
         </ul>
       {% else %}
-        <p class="govuk-body" data-testid="no-projects">No projects found.</p>
+        <p class="govuk-body-l govuk-!-font-weight-bold" data-testid="no-projects">No projects started.</p>
       {% endif %}
     </div>
   </div>

@@ -5,3 +5,16 @@
 .app-header {
   border-bottom-color: $app-light-grey;
 }
+
+.govuk-service-navigation__service-name {
+  .govuk-service-navigation__link,
+  .govuk-service-navigation__text {
+    font-weight: bold;
+  }
+}
+
+// Remove the undelring (bottom border and left border) from the active item
+.govuk-service-navigation__item--active {
+  border-bottom-width: 0;
+  border-left-width: 0;
+}

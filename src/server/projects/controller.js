@@ -4,13 +4,10 @@ const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
 export const projectsListController = {
   async handler(_request, h) {
-    const response = await fetch(`${backendUrl}/projects`)
-    const projects = await response.json()
-
     return h.view('projects/index', {
       pageTitle: 'Projects',
       heading: 'Projects',
-      projects
+      projects: []
     })
   }
 }
