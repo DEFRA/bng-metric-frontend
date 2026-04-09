@@ -49,7 +49,7 @@ export const config = convict({
   serviceName: {
     doc: 'Applications Service Name',
     format: String,
-    default: 'bng-metric-frontend'
+    default: 'Biodiversity Net Gain'
   },
   root: {
     doc: 'Project root',
