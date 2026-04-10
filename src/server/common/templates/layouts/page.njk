@@ -23,10 +23,19 @@
     useTudorCrown: true
   }) }}
 
+  {% set navItems = navigation %}
+  {% if isAuthenticated %}
+    {% set navItems = navItems.concat([{
+      text: "Sign out",
+      href: "/auth/logout",
+      current: false
+    }]) %}
+  {% endif %}
+
   {{ govukServiceNavigation({
     serviceName: serviceName,
     serviceUrl: serviceUrl,
-    navigation: navigation
+    navigation: navItems
   }) }}
 {% endblock %}
 

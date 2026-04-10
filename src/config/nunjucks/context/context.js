@@ -23,12 +23,21 @@ export function context(request) {
     }
   }
 
+  let user = null
+  try {
+    user = request?.yar?.get('auth')?.user ?? null
+  } catch {
+    user = null
+  }
+
   return {
     assetPath: `${assetPath}/assets`,
     serviceName: config.get('serviceName'),
     serviceUrl: '/',
     breadcrumbs: [],
     navigation: buildNavigation(request),
+    user,
+    isAuthenticated: Boolean(user),
     getAssetPath(asset) {
       const webpackAssetPath = webpackManifest?.[asset]
       return `${assetPath}/${webpackAssetPath ?? asset}`

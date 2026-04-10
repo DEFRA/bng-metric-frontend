@@ -2,6 +2,12 @@ import {
   defineProjectNameController,
   defineProjectNamePostController
 } from './controller.js'
+import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
+
+const protectedRouteOptions = {
+  auth: 'session',
+  pre: [requireBngCompleterRole]
+}
 
 export const defineProjectName = {
   plugin: {
@@ -11,12 +17,20 @@ export const defineProjectName = {
         {
           method: 'GET',
           path: '/define-project-name',
-          ...defineProjectNameController
+          ...defineProjectNameController,
+          options: {
+            ...defineProjectNameController.options,
+            ...protectedRouteOptions
+          }
         },
         {
           method: 'POST',
           path: '/define-project-name',
-          ...defineProjectNamePostController
+          ...defineProjectNamePostController,
+          options: {
+            ...defineProjectNamePostController.options,
+            ...protectedRouteOptions
+          }
         }
       ])
     }
