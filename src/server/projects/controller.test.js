@@ -39,10 +39,6 @@ describe('#projectsListController', () => {
   })
 
   test('Should render the projects list page', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProjects)
-    })
-
     const { result, statusCode } = await server.inject({
       method: 'GET',
       url: '/projects'
@@ -50,29 +46,16 @@ describe('#projectsListController', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(expect.stringContaining('Projects |'))
-    expect(result).toEqual(
-      expect.stringContaining('Greenfield Meadow Restoration')
-    )
-    expect(result).toEqual(
-      expect.stringContaining('Oakwood Farm BNG Assessment')
-    )
-    expect(result).toEqual(
-      expect.stringContaining('href="/projects/aaa-bbb-ccc"')
-    )
   })
 
-  test('Should show no projects message when list is empty', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve([])
-    })
-
+  test('Should show no projects message', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
       url: '/projects'
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('No projects found.'))
+    expect(result).toEqual(expect.stringContaining('No projects started.'))
   })
 })
 

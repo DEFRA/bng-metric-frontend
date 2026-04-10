@@ -50,22 +50,12 @@ describe('context and cache', () => {
           getAssetPath: expect.any(Function),
           navigation: [
             {
-              current: true,
-              text: 'Home',
-              href: '/'
-            },
-            {
               current: false,
               text: 'Projects',
               href: '/projects'
-            },
-            {
-              current: false,
-              text: 'About',
-              href: '/about'
             }
           ],
-          serviceName: 'bng-metric-frontend',
+          serviceName: 'Biodiversity Net Gain',
           serviceUrl: '/'
         })
       })
@@ -144,22 +134,12 @@ describe('context and cache', () => {
           getAssetPath: expect.any(Function),
           navigation: [
             {
-              current: true,
-              text: 'Home',
-              href: '/'
-            },
-            {
               current: false,
               text: 'Projects',
               href: '/projects'
-            },
-            {
-              current: false,
-              text: 'About',
-              href: '/about'
             }
           ],
-          serviceName: 'bng-metric-frontend',
+          serviceName: 'Biodiversity Net Gain',
           serviceUrl: '/'
         })
       })
