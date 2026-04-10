@@ -1,6 +1,17 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 
+const authCredentials = {
+  sub: 'test-user',
+  email: 'test@example.com',
+  roles: ['aaa-bbb:bng completer:1']
+}
+
+const authedAuth = {
+  strategy: 'session',
+  credentials: authCredentials
+}
+
 const mockProjects = [
   {
     id: 'aaa-bbb-ccc',
@@ -41,7 +52,8 @@ describe('#projectsListController', () => {
   test('Should render the projects list page', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard'
+      url: '/project-dashboard',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -51,7 +63,8 @@ describe('#projectsListController', () => {
   test('Should show no projects message', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard'
+      url: '/project-dashboard',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -78,7 +91,8 @@ describe('#projectDetailController', () => {
 
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard/aaa-bbb-ccc'
+      url: '/project-dashboard/aaa-bbb-ccc',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)

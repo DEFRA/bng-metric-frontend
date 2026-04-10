@@ -2,6 +2,7 @@ import inert from '@hapi/inert'
 
 import { home } from './home/index.js'
 import { about } from './about/index.js'
+import { auth } from './auth/index.js'
 import { dbInfo } from './db-info/index.js'
 import { projects } from './projects/index.js'
 import { defineProjectName } from './define-project-name/index.js'
@@ -15,13 +16,14 @@ export const router = {
     async register(server) {
       await server.register([inert])
 
-      // Health-check route. Used by platform to check if service is running, do not remove!
+      // Health check route. Used by platform to check if service is running, do not remove!
       await server.register([health])
 
       // Application specific routes, add your own routes here
       await server.register([
         home,
         about,
+        auth,
         dbInfo,
         projects,
         defineProjectName,

@@ -218,6 +218,52 @@ export const config = convict({
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
     }
+  },
+  oidc: {
+    discoveryUrl: {
+      doc: 'OIDC provider discovery URL (.well-known/openid-configuration)',
+      format: String,
+      default:
+        'http://localhost:3200/cdp-defra-id-stub/.well-known/openid-configuration',
+      env: 'OIDC_DISCOVERY_URL'
+    },
+    clientId: {
+      doc: 'OIDC client ID registered with the provider',
+      format: String,
+      default: '63983fc2-cfff-45bb-8ec2-959e21062b9a',
+      env: 'OIDC_CLIENT_ID'
+    },
+    clientSecret: {
+      doc: 'OIDC client secret',
+      format: String,
+      default: 'test_value',
+      env: 'OIDC_CLIENT_SECRET',
+      sensitive: true
+    },
+    redirectUri: {
+      doc: 'OIDC redirect URI registered with the provider',
+      format: String,
+      default: 'http://localhost:3000/auth/callback',
+      env: 'OIDC_REDIRECT_URI'
+    },
+    postLogoutRedirectUri: {
+      doc: 'Post-logout landing URL sent to the provider end-session endpoint',
+      format: String,
+      default: 'http://localhost:3000/auth/signed-out',
+      env: 'OIDC_POST_LOGOUT_REDIRECT_URI'
+    },
+    scopes: {
+      doc: 'Space-separated OIDC scopes to request',
+      format: String,
+      default: 'openid profile email offline_access',
+      env: 'OIDC_SCOPES'
+    },
+    serviceId: {
+      doc: 'Defra ID service identifier passed in the authorization request',
+      format: String,
+      default: '',
+      env: 'OIDC_SERVICE_ID'
+    }
   }
 })
 

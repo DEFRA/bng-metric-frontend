@@ -1,9 +1,49 @@
 {% extends 'layouts/page.njk' %}
 
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+{% block header %}
+  {{ govukHeader({
+    homepageUrl: "https://www.gov.uk/",
+    classes: "app-header",
+    containerClasses: "govuk-width-container",
+    useTudorCrown: true
+  }) }}
+
+  {{ govukServiceNavigation({
+    serviceName: serviceName,
+    serviceUrl: serviceUrl
+  }) }}
+{% endblock %}
+
 {% block content %}
   {{ appHeading({
     text: heading
   }) }}
 
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <div class="govuk-body" data-testid="app-page-body">
+        {% if isAuthenticated %}
+          <p class="govuk-body" data-testid="signed-in-as">
+            Signed in as <strong>{{ user.email or user.preferred_username or user.sub }}</strong>
+          </p>
+          <p>
+            <a class="govuk-link" href="/project-dashboard">View all projects</a>
+          </p>
+        {% else %}
+          <p>
+            Sign in with your Defra account to view and manage BNG projects.
+          </p>
+          {{ govukButton({
+            text: "Sign in",
+            href: "/auth/login",
+            isStartButton: true,
+            attributes: { "data-testid": "sign-in-button" }
+          }) }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
 {% endblock %}

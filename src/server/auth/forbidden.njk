@@ -1,0 +1,37 @@
+{% extends 'layouts/page.njk' %}
+
+{% block header %}
+  {{ govukHeader({
+    homepageUrl: "https://www.gov.uk/",
+    classes: "app-header",
+    containerClasses: "govuk-width-container",
+    useTudorCrown: true
+  }) }}
+
+  {{ govukServiceNavigation({
+    serviceName: serviceName,
+    serviceUrl: serviceUrl
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: "bng-metric-frontend"
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <p class="govuk-body" data-testid="forbidden-body">
+        You do not have permission to view this page.
+      </p>
+      <p class="govuk-body">
+        Access is limited to users with the <strong>BNG completer</strong> role.
+        If you think this is wrong, contact your Defra administrator.
+      </p>
+      <p class="govuk-body">
+        <a class="govuk-link" href="/">Return to the home page</a>
+      </p>
+    </div>
+  </div>
+{% endblock %}

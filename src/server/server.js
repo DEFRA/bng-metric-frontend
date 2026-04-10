@@ -12,6 +12,7 @@ import { requestTracing } from './common/helpers/request-tracing.js'
 import { requestLogger } from './common/helpers/logging/request-logger.js'
 import { sessionCache } from './common/helpers/session-cache/session-cache.js'
 import { getCacheEngine } from './common/helpers/session-cache/cache-engine.js'
+import { authScheme } from './common/helpers/auth/auth-scheme.js'
 import { secureContext } from '@defra/hapi-secure-context'
 import { contentSecurityPolicy } from './common/helpers/content-security-policy.js'
 import { metrics } from '@defra/cdp-metrics'
@@ -61,6 +62,7 @@ export async function createServer() {
     secureContext,
     pulse,
     sessionCache,
+    authScheme,
     nunjucksConfig,
     Scooter,
     contentSecurityPolicy,

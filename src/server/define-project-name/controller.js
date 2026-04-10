@@ -67,7 +67,7 @@ export const defineProjectNamePostController = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         project: { name: projectName },
-        userId: 'test-user-003'
+        userId: request.auth.credentials.sub
       })
     })
 

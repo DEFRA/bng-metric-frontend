@@ -1,6 +1,17 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 
+const authCredentials = {
+  sub: 'test-user-123',
+  email: 'test@example.com',
+  roles: ['aaa-bbb:bng completer:1']
+}
+
+const authedAuth = {
+  strategy: 'session',
+  credentials: authCredentials
+}
+
 describe('#defineProjectNameController', () => {
   let server
 
@@ -16,7 +27,8 @@ describe('#defineProjectNameController', () => {
   test('Should render the define project name page', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name'
+      url: '/define-project-name',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -28,7 +40,8 @@ describe('#defineProjectNameController', () => {
   test('Should render the Project Name heading', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name'
+      url: '/define-project-name',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -38,7 +51,8 @@ describe('#defineProjectNameController', () => {
   test('Should render the hint text', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name'
+      url: '/define-project-name',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -52,7 +66,8 @@ describe('#defineProjectNameController', () => {
   test('Should render the Save and continue button', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name'
+      url: '/define-project-name',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -62,7 +77,8 @@ describe('#defineProjectNameController', () => {
   test('Should render a back link to the project dashboard', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name'
+      url: '/define-project-name',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -73,7 +89,8 @@ describe('#defineProjectNameController', () => {
   test('Should render an input with maxlength of 1000', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name'
+      url: '/define-project-name',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -106,7 +123,8 @@ describe('#defineProjectNamePostController', () => {
     await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Valid Project' }
+      payload: { projectName: 'My Valid Project' },
+      auth: authedAuth
     })
 
     expect(fetch).toHaveBeenCalledOnce()
@@ -118,14 +136,15 @@ describe('#defineProjectNamePostController', () => {
     expect(options.method).toBe('POST')
     expect(options.headers['Content-Type']).toBe('application/json')
     expect(body.project).toEqual({ name: 'My Valid Project' })
-    expect(body.userId).toBe('test-user-003')
+    expect(body.userId).toBe('test-user-123')
   })
 
   test('Should redirect to project dashboard on valid input', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Valid Project' }
+      payload: { projectName: 'My Valid Project' },
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(302)
@@ -138,7 +157,8 @@ describe('#defineProjectNamePostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Valid Project' }
+      payload: { projectName: 'My Valid Project' },
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(502)
@@ -148,7 +168,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: '' }
+      payload: { projectName: '' },
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -166,7 +187,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'a'.repeat(1001) }
+      payload: { projectName: 'a'.repeat(1001) },
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -181,7 +203,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'Invalid\x00Name' }
+      payload: { projectName: 'Invalid\x00Name' },
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -196,7 +219,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: '' }
+      payload: { projectName: '' },
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -208,7 +232,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Project\x01' }
+      payload: { projectName: 'My Project\x01' },
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
