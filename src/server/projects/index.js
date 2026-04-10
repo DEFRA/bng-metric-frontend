@@ -2,6 +2,12 @@ import {
   projectsListController,
   projectDetailController
 } from './controller.js'
+import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
+
+const protectedRouteOptions = {
+  auth: 'session',
+  pre: [requireBngCompleterRole]
+}
 
 export const projects = {
   plugin: {
@@ -11,12 +17,20 @@ export const projects = {
         {
           method: 'GET',
           path: '/projects',
-          ...projectsListController
+          ...projectsListController,
+          options: {
+            ...projectsListController.options,
+            ...protectedRouteOptions
+          }
         },
         {
           method: 'GET',
           path: '/projects/{id}',
-          ...projectDetailController
+          ...projectDetailController,
+          options: {
+            ...projectDetailController.options,
+            ...protectedRouteOptions
+          }
         }
       ])
     }

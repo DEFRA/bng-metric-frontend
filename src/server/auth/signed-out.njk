@@ -1,0 +1,19 @@
+{% extends 'layouts/page.njk' %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: "bng-metric-frontend"
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <p class="govuk-body" data-testid="signed-out-body">
+        You have been signed out of the BNG metric service.
+      </p>
+      <p class="govuk-body">
+        <a class="govuk-link" href="/">Return to the home page</a>
+      </p>
+    </div>
+  </div>
+{% endblock %}

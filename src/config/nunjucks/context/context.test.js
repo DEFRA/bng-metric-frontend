@@ -66,7 +66,9 @@ describe('context and cache', () => {
             }
           ],
           serviceName: 'bng-metric-frontend',
-          serviceUrl: '/'
+          serviceUrl: '/',
+          user: null,
+          isAuthenticated: false
         })
       })
 
@@ -160,7 +162,9 @@ describe('context and cache', () => {
             }
           ],
           serviceName: 'bng-metric-frontend',
-          serviceUrl: '/'
+          serviceUrl: '/',
+          user: null,
+          isAuthenticated: false
         })
       })
     })

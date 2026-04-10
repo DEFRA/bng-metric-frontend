@@ -1,6 +1,17 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants/status-codes.js'
 
+const authCredentials = {
+  sub: 'test-user',
+  email: 'test@example.com',
+  relationships: [{ roleName: 'bng completer' }]
+}
+
+const authedAuth = {
+  strategy: 'session',
+  credentials: authCredentials
+}
+
 const mockProjects = [
   {
     id: 'aaa-bbb-ccc',
@@ -45,7 +56,8 @@ describe('#projectsListController', () => {
 
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects'
+      url: '/projects',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -68,7 +80,8 @@ describe('#projectsListController', () => {
 
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects'
+      url: '/projects',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -95,7 +108,8 @@ describe('#projectDetailController', () => {
 
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects/aaa-bbb-ccc'
+      url: '/projects/aaa-bbb-ccc',
+      auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
