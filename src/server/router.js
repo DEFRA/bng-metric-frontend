@@ -4,6 +4,7 @@ import { home } from './home/index.js'
 import { about } from './about/index.js'
 import { dbInfo } from './db-info/index.js'
 import { projects } from './projects/index.js'
+import { defineProjectName } from './define-project-name/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 
@@ -17,7 +18,7 @@ export const router = {
       await server.register([health])
 
       // Application specific routes, add your own routes here
-      await server.register([home, about, dbInfo, projects])
+      await server.register([home, about, dbInfo, projects, defineProjectName])
 
       // Static assets
       await server.register([serveStaticFiles])
