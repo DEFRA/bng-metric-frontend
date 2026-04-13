@@ -41,7 +41,7 @@ describe('#projectsListController', () => {
   test('Should render the projects list page', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects'
+      url: '/project-dashboard'
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -51,7 +51,7 @@ describe('#projectsListController', () => {
   test('Should show no projects message', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects'
+      url: '/project-dashboard'
     })
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -78,7 +78,7 @@ describe('#projectDetailController', () => {
 
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects/aaa-bbb-ccc'
+      url: '/project-dashboard/aaa-bbb-ccc'
     })
 
     expect(statusCode).toBe(statusCodes.ok)

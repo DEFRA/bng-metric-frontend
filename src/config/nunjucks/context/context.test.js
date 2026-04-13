@@ -52,7 +52,7 @@ describe('context and cache', () => {
             {
               current: false,
               text: 'Projects',
-              href: '/projects'
+              href: '/project-dashboard'
             }
           ],
           serviceName: 'Biodiversity Net Gain',
@@ -136,7 +136,7 @@ describe('context and cache', () => {
             {
               current: false,
               text: 'Projects',
-              href: '/projects'
+              href: '/project-dashboard'
             }
           ],
           serviceName: 'Biodiversity Net Gain',

@@ -10,12 +10,12 @@ export const projects = {
       server.route([
         {
           method: 'GET',
-          path: '/projects',
+          path: '/project-dashboard',
           ...projectsListController
         },
         {
           method: 'GET',
-          path: '/projects/{id}',
+          path: '/project-dashboard/{id}',
           ...projectDetailController
         }
       ])
