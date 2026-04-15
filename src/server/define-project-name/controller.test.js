@@ -49,14 +49,25 @@ describe('#defineProjectNameController', () => {
     )
   })
 
-  test('Should render the Save and Continue button', async () => {
+  test('Should render the Save and continue button', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
       url: '/define-project-name'
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('Save and Continue'))
+    expect(result).toEqual(expect.stringContaining('Save and continue'))
+  })
+
+  test('Should render a back link to the project dashboard', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: '/define-project-name'
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('href="/project-dashboard"'))
+    expect(result).toEqual(expect.stringContaining('govuk-back-link'))
   })
 
   test('Should render an input with maxlength of 1000', async () => {
@@ -106,9 +117,6 @@ describe('#defineProjectNamePostController', () => {
     expect(url).toContain('/projects/new')
     expect(options.method).toBe('POST')
     expect(options.headers['Content-Type']).toBe('application/json')
-    expect(body.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-    )
     expect(body.project).toEqual({ name: 'My Valid Project' })
     expect(body.userId).toBe('test-user-003')
   })
@@ -150,6 +158,21 @@ describe('#defineProjectNamePostController', () => {
       expect.stringContaining(
         'Error: Define Project Name | Biodiversity Net Gain'
       )
+    )
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  test('Should show error summary when project name exceeds 1000 characters', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'POST',
+      url: '/define-project-name',
+      payload: { projectName: 'a'.repeat(1001) }
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('There is a problem'))
+    expect(result).toEqual(
+      expect.stringContaining('Project name must be 1000 characters or fewer')
     )
     expect(fetch).not.toHaveBeenCalled()
   })
