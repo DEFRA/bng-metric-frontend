@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import Boom from '@hapi/boom'
 
 import { config } from '../../config/config.js'
@@ -23,6 +21,11 @@ function validateProjectName(projectName) {
   if (!projectName || projectName.trim() === '') {
     errors.push({
       text: 'Enter a project name',
+      href: '#project-name'
+    })
+  } else if (projectName.length > 1000) {
+    errors.push({
+      text: 'Project name must be 1000 characters or fewer',
       href: '#project-name'
     })
   } else if (hasInvalidChars(projectName)) {
@@ -63,7 +66,6 @@ export const defineProjectNamePostController = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id: randomUUID(),
         project: { name: projectName },
         userId: 'test-user-003'
       })

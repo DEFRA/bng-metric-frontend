@@ -1,10 +1,15 @@
 {% extends 'layouts/page.njk' %}
 
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 
 {% block beforeContent %}
   {{ super() }}
+  {{ govukBackLink({
+    text: "Back",
+    href: "/project-dashboard"
+  }) }}
 {% endblock %}
 
 {% block content %}
@@ -45,7 +50,7 @@
         </div>
 
         {{ govukButton({
-          text: "Save and Continue"
+          text: "Save and continue"
         }) }}
       </form>
     </div>
