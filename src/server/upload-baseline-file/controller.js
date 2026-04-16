@@ -1,18 +1,17 @@
+import { initiateUpload } from '../common/services/uploader.js'
 import { config } from '../../config/config.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
+const appBaseUrl = config.get('cdpUploader.url')
+  ? `http://localhost:${config.get('port')}`
+  : ''
 
-// TODO: Handle project fetch failure — currently falls back silently to 'Project'.
-// Should display an error on the page (e.g. "Project could not be loaded") or
-// redirect to an error page if the project doesn't exist or the backend is unavailable.
 async function fetchProjectName(id) {
   try {
     const response = await fetch(`${backendUrl}/projects/${id}`)
-    // TODO: Check response.ok and handle non-200 responses (e.g. 404, 500)
     const data = await response.json()
     return data.project?.name ?? 'Project'
   } catch {
-    // TODO: Distinguish between network errors and missing projects
     return 'Project'
   }
 }
@@ -35,34 +34,25 @@ export const getController = {
     const { id } = request.params
     const projectName = await fetchProjectName(id)
 
-    return h.view(
-      'upload-baseline-file/upload-baseline-file',
-      viewData(id, projectName)
-    )
-  }
-}
+    const uploadSession = await initiateUpload({
+      redirect: `${appBaseUrl}/projects/${id}/upload-received`,
+      s3Bucket: config.get('cdpUploader.bucket'),
+      s3Path: config.get('cdpUploader.s3Path'),
+      metadata: { projectId: id }
+    })
 
-export const postController = {
-  async handler(request, h) {
-    const { id } = request.params
-    const file = request.payload?.file
-    const hasFile = file && file.hapi && file.hapi.filename
-
-    if (!hasFile) {
-      const projectName = await fetchProjectName(id)
-
-      return h
-        .view('upload-baseline-file/upload-baseline-file', {
-          ...viewData(id, projectName),
-          error: {
-            text: 'The selected file must be a GeoPackage (.gpkg)',
-            href: '#file'
-          }
-        })
-        .code(400)
+    if (uploadSession.error) {
+      return h.view('upload-baseline-file/upload-baseline-file', {
+        ...viewData(id, projectName),
+        uploadError: uploadSession.error
+      })
     }
 
-    // File processing deferred to BMD-343
-    return h.redirect(`/projects/${id}`)
+    request.yar.set('pendingUploadId', uploadSession.uploadId)
+
+    return h.view('upload-baseline-file/upload-baseline-file', {
+      ...viewData(id, projectName),
+      uploadUrl: uploadSession.uploadUrl
+    })
   }
 }

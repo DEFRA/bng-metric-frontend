@@ -47,6 +47,7 @@
     "@hapi/inert": "7.1.0",
     "@hapi/scooter": "8.0.0",
     "@hapi/vision": "7.0.3",
+    "@hapi/wreck": "18.1.0",
     "@hapi/yar": "11.0.3",
     "blankie": "5.0.0",
     "convict": "6.2.5",

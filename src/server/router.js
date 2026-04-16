@@ -7,6 +7,8 @@ import { dbInfo } from './db-info/index.js'
 import { projects } from './projects/index.js'
 import { defineProjectName } from './define-project-name/index.js'
 import { uploadBaselineFile } from './upload-baseline-file/index.js'
+import { uploadReceived } from './upload-received/index.js'
+import { uploadResult } from './upload-result/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 
@@ -27,7 +29,9 @@ export const router = {
         dbInfo,
         projects,
         defineProjectName,
-        uploadBaselineFile
+        uploadBaselineFile,
+        uploadReceived,
+        uploadResult
       ])
 
       // Static assets

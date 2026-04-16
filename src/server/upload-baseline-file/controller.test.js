@@ -1,234 +1,117 @@
-import { createServer } from '../server.js'
-import { statusCodes } from '../common/constants.js'
+import { initiateUpload } from '../common/services/uploader.js'
 
-const mockProject = {
-  project: {
-    name: 'Greenfield Meadow Restoration'
+vi.mock('../common/services/uploader.js')
+
+global.fetch = vi.fn()
+
+const { getController } = await import('./controller.js')
+
+const createMockH = () => ({
+  view: vi.fn().mockReturnThis(),
+  redirect: vi.fn().mockReturnThis()
+})
+
+const createMockRequest = (projectId = 'proj-123') => ({
+  params: { id: projectId },
+  yar: {
+    set: vi.fn(),
+    get: vi.fn(),
+    clear: vi.fn()
   }
-}
-
-const projectId = 'aaa-bbb-ccc'
-const url = `/projects/${projectId}/upload-baseline-file`
-
-describe('#uploadBaselineFile - GET', () => {
-  let server
-
-  beforeAll(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-  })
-
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProject)
-    })
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  test('Should render the page with correct title', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'GET',
-      url
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(
-      expect.stringContaining('Biodiversity Net Gain - Upload Baseline File')
-    )
-  })
-
-  test('Should show the page heading', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url
-    })
-
-    expect(result).toEqual(expect.stringContaining('Upload a GeoPackage file'))
-  })
-
-  test('Should show the project name as caption', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining('Greenfield Meadow Restoration')
-    )
-  })
-
-  test('Should render the file upload component with .gpkg accept', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url
-    })
-
-    expect(result).toEqual(expect.stringContaining('accept=".gpkg"'))
-    expect(result).toEqual(expect.stringContaining('id="file"'))
-  })
-
-  test('Should show the back link to the project', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining(`href="/projects/${projectId}"`)
-    )
-    expect(result).toEqual(expect.stringContaining('Back'))
-  })
-
-  test('Should show the cancel link to the project', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url
-    })
-
-    expect(result).toEqual(expect.stringContaining('Cancel'))
-  })
-
-  test('Should show the details component', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining('What layers should my file contain?')
-    )
-  })
 })
 
-describe('#uploadBaselineFile - POST without file', () => {
-  let server
-
-  beforeAll(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-  })
-
+describe('upload-baseline-file controller', () => {
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProject)
+    vi.mocked(fetch).mockResolvedValue({
+      json: () => Promise.resolve({ project: { name: 'Test Project' } })
     })
   })
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  test('Should return 400 with error message when no file is uploaded', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      headers: {
-        'content-type': 'multipart/form-data; boundary=boundary'
-      },
-      payload:
-        '--boundary\r\n' +
-        'Content-Disposition: form-data; name="file"; filename=""\r\n' +
-        'Content-Type: application/octet-stream\r\n\r\n' +
-        '\r\n' +
-        '--boundary--\r\n'
+  it('should render form with uploadUrl on successful initiation', async () => {
+    vi.mocked(initiateUpload).mockResolvedValue({
+      uploadId: 'abc-123',
+      uploadUrl: '/upload-and-scan/abc-123'
     })
 
-    expect(statusCode).toBe(statusCodes.badRequest)
-    expect(result).toEqual(
-      expect.stringContaining('The selected file must be a GeoPackage (.gpkg)')
+    const h = createMockH()
+    const request = createMockRequest()
+
+    await getController.handler(request, h)
+
+    expect(initiateUpload).toHaveBeenCalledWith({
+      redirect: '/projects/proj-123/upload-received',
+      s3Bucket: 'baseline-files',
+      s3Path: 'baseline/',
+      metadata: { projectId: 'proj-123' }
+    })
+    expect(request.yar.set).toHaveBeenCalledWith('pendingUploadId', 'abc-123')
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-baseline-file/upload-baseline-file',
+      expect.objectContaining({
+        uploadUrl: '/upload-and-scan/abc-123',
+        heading: 'Upload a GeoPackage file'
+      })
     )
   })
 
-  test('Should show error summary when no file is uploaded', async () => {
-    const { result } = await server.inject({
-      method: 'POST',
-      url,
-      headers: {
-        'content-type': 'multipart/form-data; boundary=boundary'
-      },
-      payload:
-        '--boundary\r\n' +
-        'Content-Disposition: form-data; name="file"; filename=""\r\n' +
-        'Content-Type: application/octet-stream\r\n\r\n' +
-        '\r\n' +
-        '--boundary--\r\n'
+  it('should render form with uploadError when initiation fails', async () => {
+    vi.mocked(initiateUpload).mockResolvedValue({
+      error: 'Unable to initiate upload'
     })
 
-    expect(result).toEqual(expect.stringContaining('There is a problem'))
-  })
+    const h = createMockH()
+    const request = createMockRequest()
 
-  test('Should prefix page title with Error when validation fails', async () => {
-    const { result } = await server.inject({
-      method: 'POST',
-      url,
-      headers: {
-        'content-type': 'multipart/form-data; boundary=boundary'
-      },
-      payload:
-        '--boundary\r\n' +
-        'Content-Disposition: form-data; name="file"; filename=""\r\n' +
-        'Content-Type: application/octet-stream\r\n\r\n' +
-        '\r\n' +
-        '--boundary--\r\n'
-    })
+    await getController.handler(request, h)
 
-    expect(result).toEqual(
-      expect.stringContaining(
-        'Error: Biodiversity Net Gain - Upload Baseline File'
-      )
+    expect(request.yar.set).not.toHaveBeenCalled()
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-baseline-file/upload-baseline-file',
+      expect.objectContaining({
+        uploadError: 'Unable to initiate upload'
+      })
     )
   })
-})
 
-describe('#uploadBaselineFile - POST with file', () => {
-  let server
-
-  beforeAll(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-  })
-
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProject)
+  it('should use project name from backend', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      json: () => Promise.resolve({ project: { name: 'My BNG Project' } })
     })
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  test('Should redirect when a file is provided', async () => {
-    const { statusCode, headers } = await server.inject({
-      method: 'POST',
-      url,
-      headers: {
-        'content-type': 'multipart/form-data; boundary=boundary'
-      },
-      payload:
-        '--boundary\r\n' +
-        'Content-Disposition: form-data; name="file"; filename="test.gpkg"\r\n' +
-        'Content-Type: application/octet-stream\r\n\r\n' +
-        'fakecontent\r\n' +
-        '--boundary--\r\n'
+    vi.mocked(initiateUpload).mockResolvedValue({
+      uploadId: 'abc-123',
+      uploadUrl: '/upload-and-scan/abc-123'
     })
 
-    expect(statusCode).toBe(302)
-    expect(headers.location).toBe(`/projects/${projectId}`)
+    const h = createMockH()
+    const request = createMockRequest()
+
+    await getController.handler(request, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-baseline-file/upload-baseline-file',
+      expect.objectContaining({
+        caption: 'My BNG Project'
+      })
+    )
+  })
+
+  it('should fall back to "Project" when fetch fails', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('Network error'))
+    vi.mocked(initiateUpload).mockResolvedValue({
+      uploadId: 'abc-123',
+      uploadUrl: '/upload-and-scan/abc-123'
+    })
+
+    const h = createMockH()
+    const request = createMockRequest()
+
+    await getController.handler(request, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-baseline-file/upload-baseline-file',
+      expect.objectContaining({
+        caption: 'Project'
+      })
+    )
   })
 })

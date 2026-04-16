@@ -1,13 +1,13 @@
 import { getController } from './controller.js'
 
-export const uploadBaselineFile = {
+export const uploadReceived = {
   plugin: {
-    name: 'upload-baseline-file',
+    name: 'upload-received',
     register(server) {
       server.route([
         {
           method: 'GET',
-          path: '/projects/{id}/upload-baseline-file',
+          path: '/projects/{id}/upload-received',
           ...getController
         }
       ])
