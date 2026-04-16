@@ -1,0 +1,74 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/file-upload/macro.njk" import govukFileUpload %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+
+{% block beforeContent %}
+  {{ super() }}
+  <nav>
+    <a class="govuk-back-link" href="/projects/{{ projectId }}">Back</a>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  {% if error %}
+    {{ govukErrorSummary({
+      titleText: "There is a problem",
+      errorList: [
+        {
+          text: error.text,
+          href: error.href
+        }
+      ]
+    }) }}
+  {% endif %}
+
+  {{ appHeading({
+    text: heading,
+    caption: caption
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <p class="govuk-body">{{ instructionText }}</p>
+      <p class="govuk-body">{{ secondaryText }}</p>
+
+      {{ govukDetails({
+        summaryText: "What layers should my file contain?",
+        html: '<p class="govuk-body">Your GeoPackage file should contain layers for:</p>
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Red line boundary</li>
+          <li>Baseline habitat parcels</li>
+        </ul>'
+      }) }}
+
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {{ govukFileUpload({
+          id: "file",
+          name: "file",
+          label: {
+            text: "Upload a file"
+          },
+          attributes: {
+            accept: ".gpkg"
+          },
+          javascript: true,
+          chooseFilesButtonText: "Choose file",
+          dropzoneText: "or drop file",
+          noFileChosenText: "No file chosen",
+          errorMessage: { text: error.text } if error else undefined
+        }) }}
+
+        <div class="govuk-button-group">
+          {{ govukButton({
+            text: "Continue"
+          }) }}
+
+          <a class="govuk-link" href="/projects/{{ projectId }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
