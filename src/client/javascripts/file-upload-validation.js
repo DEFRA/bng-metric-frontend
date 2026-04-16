@@ -14,10 +14,6 @@ export function initFileUploadValidation() {
     return
   }
 
-  console.log(
-    `Max allowed file size: ${MAX_FILE_SIZE_LABEL} (${MAX_FILE_SIZE_BYTES} bytes)`
-  )
-
   const fileInput = form.querySelector('input[type="file"]')
 
   if (!fileInput) {
@@ -33,11 +29,11 @@ export function initFileUploadValidation() {
       return
     }
 
-    const error = validateFile(file)
+    const errors = validateFile(file)
 
-    if (error) {
+    if (errors.length) {
       fileInput.value = ''
-      showError(form, fileInput, error)
+      showErrors(form, fileInput, errors)
     }
   })
 
@@ -45,40 +41,45 @@ export function initFileUploadValidation() {
     clearErrors(form, fileInput)
 
     const file = fileInput.files[0]
-    const error = validateFile(file)
+    const errors = validateFile(file)
 
-    if (error) {
+    if (errors.length) {
       event.preventDefault()
-      showError(form, fileInput, error)
+      showErrors(form, fileInput, errors)
     }
   })
 }
 
 function validateFile(file) {
   if (!file) {
-    return 'Select a GeoPackage (.gpkg) file'
+    return ['Select a GeoPackage (.gpkg) file']
   }
 
+  const errors = []
+
   if (!file.name.toLowerCase().endsWith(ALLOWED_EXTENSION)) {
-    return 'The selected file must be a GeoPackage (.gpkg)'
+    errors.push('The selected file must be a GeoPackage (.gpkg)')
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return `The selected file must be smaller than ${MAX_FILE_SIZE_LABEL}`
+    errors.push(`The selected file must be smaller than ${MAX_FILE_SIZE_LABEL}`)
   }
 
-  return null
+  return errors
 }
 
-function showError(form, fileInput, errorText) {
+function showErrors(form, fileInput, errors) {
   const formGroupId = fileInput.id
-  const errorId = `${formGroupId}-error`
 
   // Add error summary at top of form's content area
   const contentBlock = form.closest('.govuk-grid-column-two-thirds')
   const existingSummary = contentBlock?.querySelector('.govuk-error-summary')
 
   if (!existingSummary && contentBlock) {
+    const errorItems = errors
+      .map((text) => `<li><a href="#${formGroupId}">${text}</a></li>`)
+      .join('')
+
     const summary = document.createElement('div')
     summary.className = 'govuk-error-summary'
     summary.setAttribute('data-module', 'govuk-error-summary')
@@ -88,7 +89,7 @@ function showError(form, fileInput, errorText) {
         <h2 class="govuk-error-summary__title">There is a problem</h2>
         <div class="govuk-error-summary__body">
           <ul class="govuk-list govuk-error-summary__list">
-            <li><a href="#${formGroupId}">${errorText}</a></li>
+            ${errorItems}
           </ul>
         </div>
       </div>`
@@ -97,20 +98,24 @@ function showError(form, fileInput, errorText) {
     summary.focus()
   }
 
-  // Add inline error to the form group
+  // Add inline errors to the form group
   const formGroup = fileInput.closest('.govuk-form-group')
 
   if (formGroup) {
     formGroup.classList.add('govuk-form-group--error')
 
-    const errorSpan = document.createElement('p')
-    errorSpan.id = errorId
-    errorSpan.className = 'govuk-error-message'
-    errorSpan.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${errorText}`
+    const errorIds = errors.map((text, index) => {
+      const errorId = `${formGroupId}-error-${index}`
+      const errorSpan = document.createElement('p')
+      errorSpan.id = errorId
+      errorSpan.className = 'govuk-error-message'
+      errorSpan.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${text}`
+      fileInput.parentNode.insertBefore(errorSpan, fileInput)
+      return errorId
+    })
 
-    fileInput.setAttribute('aria-describedby', errorId)
+    fileInput.setAttribute('aria-describedby', errorIds.join(' '))
     fileInput.classList.add('govuk-file-upload--error')
-    fileInput.parentNode.insertBefore(errorSpan, fileInput)
   }
 
   // Update page title to indicate error
@@ -129,8 +134,9 @@ function clearErrors(form, fileInput) {
 
   if (formGroup) {
     formGroup.classList.remove('govuk-form-group--error')
-    const existingError = formGroup.querySelector('.govuk-error-message')
-    existingError?.remove()
+    formGroup
+      .querySelectorAll('.govuk-error-message')
+      .forEach((el) => el.remove())
   }
 
   fileInput.removeAttribute('aria-describedby')
