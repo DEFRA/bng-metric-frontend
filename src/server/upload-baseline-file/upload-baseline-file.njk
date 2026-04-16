@@ -1,5 +1,7 @@
 {% extends 'layouts/page.njk' %}
 
+{% block pageTitle %}{{ "Error: " if error }}Biodiversity Net Gain - Upload Baseline File{% endblock %}
+
 {% from "govuk/components/file-upload/macro.njk" import govukFileUpload %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
