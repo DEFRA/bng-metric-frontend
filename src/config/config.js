@@ -264,6 +264,27 @@ export const config = convict({
       default: '',
       env: 'OIDC_SERVICE_ID'
     }
+  },
+  cdpUploader: {
+    url: {
+      doc: 'Browser-facing base URL for the CDP uploader. Required locally, not needed in CDP cloud.',
+      format: String,
+      default: null,
+      nullable: true,
+      env: 'CDP_UPLOADER_URL'
+    },
+    bucket: {
+      doc: 'S3 bucket for file uploads',
+      format: String,
+      default: 'baseline-files',
+      env: 'CDP_UPLOADER_BUCKET'
+    },
+    s3Path: {
+      doc: 'Path prefix within the S3 bucket for uploads',
+      format: String,
+      default: 'baseline/',
+      env: 'CDP_UPLOADER_S3_PATH'
+    }
   }
 })
 
