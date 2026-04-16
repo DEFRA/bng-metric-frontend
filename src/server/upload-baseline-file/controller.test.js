@@ -8,7 +8,7 @@ const mockProject = {
 }
 
 const projectId = 'aaa-bbb-ccc'
-const url = `/projects/${projectId}/upload-baseline`
+const url = `/projects/${projectId}/upload-baseline-file`
 
 describe('#uploadBaselineFile - GET', () => {
   let server
@@ -39,7 +39,9 @@ describe('#uploadBaselineFile - GET', () => {
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('Upload Baseline File'))
+    expect(result).toEqual(
+      expect.stringContaining('Biodiversity Net Gain - Upload Baseline File')
+    )
   })
 
   test('Should show the page heading', async () => {
@@ -182,7 +184,9 @@ describe('#uploadBaselineFile - POST without file', () => {
     })
 
     expect(result).toEqual(
-      expect.stringContaining('Error: Upload Baseline File')
+      expect.stringContaining(
+        'Error: Biodiversity Net Gain - Upload Baseline File'
+      )
     )
   })
 })
