@@ -7,12 +7,12 @@ export const uploadBaselineFile = {
       server.route([
         {
           method: 'GET',
-          path: '/projects/{id}/upload-baseline-file',
+          path: '/projects/{id}/upload-baseline',
           ...getController
         },
         {
           method: 'POST',
-          path: '/projects/{id}/upload-baseline-file',
+          path: '/projects/{id}/upload-baseline',
           options: {
             payload: {
               output: 'stream',

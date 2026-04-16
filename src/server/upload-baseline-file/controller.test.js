@@ -8,7 +8,7 @@ const mockProject = {
 }
 
 const projectId = 'aaa-bbb-ccc'
-const url = `/projects/${projectId}/upload-baseline-file`
+const url = `/projects/${projectId}/upload-baseline`
 
 describe('#uploadBaselineFile - GET', () => {
   let server
