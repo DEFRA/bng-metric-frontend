@@ -82,6 +82,16 @@ export async function getUploadStatus(uploadId) {
   try {
     const { payload } = await Wreck.get(url, { json: true })
 
+    if (payload.numberOfRejectedFiles > 0) {
+      logger.info(
+        `Upload rejected - uploadId: ${uploadId}, numberOfRejectedFiles: ${payload.numberOfRejectedFiles}, errorMessage: ${payload.errorMessage}`
+      )
+      return {
+        uploadStatus: 'rejected',
+        errorMessage: payload.errorMessage
+      }
+    }
+
     return {
       uploadStatus: payload.uploadStatus ?? 'unknown'
     }

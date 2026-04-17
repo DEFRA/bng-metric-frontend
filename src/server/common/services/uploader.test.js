@@ -85,7 +85,7 @@ describe('initiateUpload', () => {
 describe('getUploadStatus', () => {
   it('should return uploadStatus from backend', async () => {
     vi.mocked(Wreck.get).mockResolvedValue({
-      payload: { uploadStatus: 'ready' }
+      payload: { uploadStatus: 'ready', numberOfRejectedFiles: 0 }
     })
 
     const result = await getUploadStatus('abc-123')
@@ -95,6 +95,23 @@ describe('getUploadStatus', () => {
       expect.stringContaining('/upload/abc-123/status'),
       { json: true }
     )
+  })
+
+  it('should return rejected with errorMessage when files are rejected', async () => {
+    vi.mocked(Wreck.get).mockResolvedValue({
+      payload: {
+        uploadStatus: 'ready',
+        numberOfRejectedFiles: 1,
+        errorMessage: 'The selected file contains a virus'
+      }
+    })
+
+    const result = await getUploadStatus('abc-123')
+
+    expect(result).toEqual({
+      uploadStatus: 'rejected',
+      errorMessage: 'The selected file contains a virus'
+    })
   })
 
   it('should return unknown when uploadStatus is missing', async () => {

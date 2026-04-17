@@ -101,11 +101,12 @@ describe('upload-received controller', () => {
     })
   })
 
-  it('should show virus error when status is rejected', async () => {
+  it('should redirect with virus error message when status is rejected', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({
-      uploadStatus: 'rejected'
+      uploadStatus: 'rejected',
+      errorMessage: 'The selected file contains a virus'
     })
 
     await getController.handler(request, h)
@@ -117,6 +118,21 @@ describe('upload-received controller', () => {
     )
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-baseline-file'
+    )
+  })
+
+  it('should use fallback error message when rejected without errorMessage', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({
+      uploadStatus: 'rejected'
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'baselineError',
+      'The selected file was rejected'
     )
   })
 
