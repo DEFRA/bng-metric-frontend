@@ -1,5 +1,5 @@
 import { createServer } from '../server.js'
-import { statusCodes } from '../common/constants/status-codes.js'
+import { statusCodes } from '../common/constants.js'
 
 describe('#dbInfoController', () => {
   let server

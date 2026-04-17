@@ -1,5 +1,5 @@
 import { config } from '../../../config/config.js'
-import { statusCodes } from '../constants/status-codes.js'
+import { statusCodes } from '../constants.js'
 
 export const serveStaticFiles = {
   plugin: {

@@ -1,4 +1,4 @@
-import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants/file-upload.js'
+import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants.js'
 
 const ALLOWED_EXTENSION = '.gpkg'
 const MAX_FILE_SIZE_LABEL = '100 MB'
