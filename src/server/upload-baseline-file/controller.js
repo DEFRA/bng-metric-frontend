@@ -33,6 +33,11 @@ export const getController = {
   async handler(request, h) {
     const { id } = request.params
     const projectName = await fetchProjectName(id)
+    const baselineError = request.yar.get('baselineError')
+
+    if (baselineError) {
+      request.yar.clear('baselineError')
+    }
 
     const uploadSession = await initiateUpload({
       redirect: `${appBaseUrl}/projects/${id}/upload-received`,
@@ -52,7 +57,8 @@ export const getController = {
 
     return h.view('upload-baseline-file/upload-baseline-file', {
       ...viewData(id, projectName),
-      uploadUrl: uploadSession.uploadUrl
+      uploadUrl: uploadSession.uploadUrl,
+      error: baselineError ? { text: baselineError } : undefined
     })
   }
 }

@@ -1,7 +1,5 @@
 {% extends 'layouts/page.njk' %}
 
-{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
-
 {% block pageTitle %}{{ pageTitle }}{% endblock %}
 
 {% block head %}
@@ -19,30 +17,13 @@
 {% endblock %}
 
 {% block content %}
-  {% if errorMessage %}
-    {{ govukErrorSummary({
-      titleText: "There is a problem",
-      errorList: [
-        {
-          text: errorMessage
-        }
-      ]
-    }) }}
-  {% endif %}
-
   {{ appHeading({
     text: heading
   }) }}
 
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      {% if isProcessing %}
-        <p class="govuk-body">Your file is being checked. This page will refresh automatically.</p>
-      {% elif errorMessage %}
-        <p class="govuk-body">
-          <a class="govuk-link" href="/projects/{{ projectId }}/upload-baseline-file">Upload a different file</a>
-        </p>
-      {% endif %}
+      <p class="govuk-body">Your file is being checked. This page will refresh automatically.</p>
     </div>
   </div>
 {% endblock %}

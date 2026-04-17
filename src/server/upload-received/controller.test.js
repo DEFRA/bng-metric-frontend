@@ -80,10 +80,7 @@ describe('upload-received controller', () => {
       pageTitle: 'Checking your file',
       heading: 'Checking your file',
       projectId: 'proj-123',
-      status: 'pending',
-      isProcessing: true,
-      refreshInterval: 5,
-      errorMessage: null
+      refreshInterval: 5
     })
   })
 
@@ -100,10 +97,7 @@ describe('upload-received controller', () => {
       pageTitle: 'Checking your file',
       heading: 'Checking your file',
       projectId: 'proj-123',
-      status: 'initiated',
-      isProcessing: true,
-      refreshInterval: 5,
-      errorMessage: null
+      refreshInterval: 5
     })
   })
 
@@ -117,18 +111,16 @@ describe('upload-received controller', () => {
     await getController.handler(request, h)
 
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
-    expect(h.view).toHaveBeenCalledWith('upload-received/upload-received', {
-      pageTitle: 'There is a problem',
-      heading: 'There is a problem',
-      projectId: 'proj-123',
-      status: 'rejected',
-      isProcessing: false,
-      refreshInterval: null,
-      errorMessage: 'The selected file contains a virus'
-    })
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'baselineError',
+      'The selected file contains a virus'
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-baseline-file'
+    )
   })
 
-  it('should show generic error when upload status returns error', async () => {
+  it('should render processing view for unrecognised status', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({
@@ -138,15 +130,11 @@ describe('upload-received controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(h.view).toHaveBeenCalledWith('upload-received/upload-received', {
-      pageTitle: 'There is a problem',
-      heading: 'There is a problem',
+      pageTitle: 'Checking your file',
+      heading: 'Checking your file',
       projectId: 'proj-123',
-      status: 'error',
-      isProcessing: false,
-      refreshInterval: null,
-      errorMessage: 'Unable to check upload status'
+      refreshInterval: 5
     })
   })
 })
