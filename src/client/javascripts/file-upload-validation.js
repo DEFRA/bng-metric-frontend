@@ -1,6 +1,7 @@
+import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants/file-upload.js'
+
 const ALLOWED_EXTENSION = '.gpkg'
-const MAX_FILE_SIZE_BYTES = 104857600
-const MAX_FILE_SIZE_LABEL = '100MB'
+const MAX_FILE_SIZE_LABEL = '100 MB'
 
 /**
  * Initialises client-side validation for the file upload form.
