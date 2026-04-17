@@ -42,7 +42,10 @@ export const getController = {
 
     if (uploadStatus === STATUS_REJECTED) {
       request.yar.clear('pendingUploadId')
-      request.yar.set('baselineError', 'The selected file contains a virus')
+      request.yar.set(
+        'baselineError',
+        response.errorMessage ?? 'The selected file was rejected'
+      )
       return h.redirect(`/projects/${id}/upload-baseline-file`)
     }
 
