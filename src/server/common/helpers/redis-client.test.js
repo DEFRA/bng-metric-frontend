@@ -1,5 +1,3 @@
-import { vi } from 'vitest'
-
 import { Cluster, Redis } from 'ioredis'
 
 import { config } from '../../../config/config.js'

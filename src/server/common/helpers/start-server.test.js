@@ -1,5 +1,3 @@
-import { vi } from 'vitest'
-
 import hapi from '@hapi/hapi'
 import { statusCodes } from '../constants.js'
 

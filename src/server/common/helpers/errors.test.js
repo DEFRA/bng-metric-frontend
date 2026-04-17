@@ -1,5 +1,3 @@
-import { vi } from 'vitest'
-
 import { catchAll } from './errors.js'
 import { createServer } from '../../server.js'
 import { statusCodes } from '../constants.js'
