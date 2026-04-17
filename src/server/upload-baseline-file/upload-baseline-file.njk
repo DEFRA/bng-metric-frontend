@@ -46,6 +46,21 @@
         </ul>'
       }) }}
 
+      <template id="tpl-error-summary">
+        {{ govukErrorSummary({
+          titleText: "There is a problem",
+          errorList: [],
+          attributes: { "data-client-error": "true" }
+        }) }}
+      </template>
+
+      <template id="tpl-error-message">
+        <p class="govuk-error-message">
+          <span class="govuk-visually-hidden">Error:</span>
+          <span data-error-text></span>
+        </p>
+      </template>
+
       <form method="post" enctype="multipart/form-data" novalidate>
         {{ govukFileUpload({
           id: "file",

@@ -3,6 +3,22 @@ import { initFileUploadValidation } from './file-upload-validation.js'
 
 function createUploadForm() {
   document.body.innerHTML = `
+    <template id="tpl-error-summary">
+      <div class="govuk-error-summary" data-module="govuk-error-summary" data-client-error="true">
+        <div role="alert">
+          <h2 class="govuk-error-summary__title">There is a problem</h2>
+          <div class="govuk-error-summary__body">
+            <ul class="govuk-list govuk-error-summary__list"></ul>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template id="tpl-error-message">
+      <p class="govuk-error-message">
+        <span class="govuk-visually-hidden">Error:</span>
+        <span data-error-text></span>
+      </p>
+    </template>
     <div class="govuk-grid-column-two-thirds">
       <form enctype="multipart/form-data">
         <div class="govuk-form-group">
