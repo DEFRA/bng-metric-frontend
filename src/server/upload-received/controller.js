@@ -4,9 +4,7 @@ import { createLogger } from '../common/helpers/logging/logger.js'
 
 const logger = createLogger()
 const REFRESH_INTERVAL_SECONDS = 5
-const STATUS_PENDING = 'pending'
 const STATUS_READY = 'ready'
-const STATUS_INITIATED = 'initiated'
 const STATUS_REJECTED = 'rejected'
 
 export const getController = {
@@ -42,26 +40,17 @@ export const getController = {
       return h.redirect(`/projects/${id}/upload-result`)
     }
 
-    const isProcessing =
-      uploadStatus === STATUS_PENDING || uploadStatus === STATUS_INITIATED
-
-    const isVirusError = uploadStatus === STATUS_REJECTED
-    const errorMessage = isVirusError
-      ? 'The selected file contains a virus'
-      : response.error || null
-
-    if (errorMessage) {
+    if (uploadStatus === STATUS_REJECTED) {
       request.yar.clear('pendingUploadId')
+      request.yar.set('baselineError', 'The selected file contains a virus')
+      return h.redirect(`/projects/${id}/upload-baseline-file`)
     }
 
     return h.view('upload-received/upload-received', {
-      pageTitle: isProcessing ? 'Checking your file' : 'There is a problem',
-      heading: isProcessing ? 'Checking your file' : 'There is a problem',
+      pageTitle: 'Checking your file',
+      heading: 'Checking your file',
       projectId: id,
-      status: uploadStatus,
-      isProcessing,
-      refreshInterval: isProcessing ? REFRESH_INTERVAL_SECONDS : null,
-      errorMessage
+      refreshInterval: REFRESH_INTERVAL_SECONDS
     })
   }
 }

@@ -15,12 +15,12 @@
 {% endblock %}
 
 {% block content %}
-  {% if uploadError %}
+  {% if uploadError or error %}
     {{ govukErrorSummary({
       titleText: "There is a problem",
       errorList: [
         {
-          text: uploadError,
+          text: error.text if error else uploadError,
           href: "#file"
         }
       ]
