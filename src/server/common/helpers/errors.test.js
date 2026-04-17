@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 
 import { catchAll } from './errors.js'
 import { createServer } from '../../server.js'
-import { statusCodes } from '../constants/status-codes.js'
+import { statusCodes } from '../constants.js'
 
 describe('#errors', () => {
   let server

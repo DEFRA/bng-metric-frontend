@@ -1,5 +1,5 @@
 import { getController, postController } from './controller.js'
-import { MAX_FILE_SIZE_BYTES } from '../common/constants/file-upload.js'
+import { MAX_FILE_SIZE_BYTES } from '../common/constants.js'
 
 export const uploadBaselineFile = {
   plugin: {

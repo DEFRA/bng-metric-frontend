@@ -1,1 +1,0 @@
-export const MAX_FILE_SIZE_BYTES = 104857600 // 100 MB
