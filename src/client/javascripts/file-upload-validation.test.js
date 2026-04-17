@@ -61,7 +61,7 @@ describe('initFileUploadValidation', () => {
       input.dispatchEvent(new Event('change'))
 
       expect(document.body.innerHTML).toContain(
-        'The selected file must be a GeoPackage (.gpkg)'
+        'Select a GeoPackage (.gpkg) file'
       )
     })
 
@@ -87,7 +87,7 @@ describe('initFileUploadValidation', () => {
       input.dispatchEvent(new Event('change'))
 
       expect(document.body.innerHTML).toContain(
-        'The selected file must be a GeoPackage (.gpkg)'
+        'Select a GeoPackage (.gpkg) file'
       )
       expect(document.body.innerHTML).toContain(
         'The selected file must be smaller than 100 MB'
