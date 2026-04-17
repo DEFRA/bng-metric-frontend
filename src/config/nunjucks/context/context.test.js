@@ -1,5 +1,3 @@
-import { vi } from 'vitest'
-
 const mockReadFileSync = vi.fn()
 const mockLoggerError = vi.fn()
 

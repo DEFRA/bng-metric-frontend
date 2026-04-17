@@ -1,5 +1,3 @@
-import { vi } from 'vitest'
-
 import { formatDate } from './format-date.js'
 
 describe('#formatDate', () => {

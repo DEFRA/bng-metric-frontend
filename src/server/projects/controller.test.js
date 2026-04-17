@@ -1,5 +1,3 @@
-import { vi } from 'vitest'
-
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 
@@ -85,7 +83,8 @@ describe('#projectsListController', () => {
     })
 
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining(`/users/${authCredentials.sub}/projects`)
+      expect.stringContaining(`/users/${authCredentials.sub}/projects`),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     )
   })
 
@@ -109,19 +108,6 @@ describe('#projectsListController', () => {
     )
     expect(result).toEqual(expect.stringContaining('15 January 2024'))
     expect(result).toEqual(expect.stringContaining('20 March 2024 at 12:00am'))
-  })
-
-  test('Should display projects sorted by last modified date descending', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'GET',
-      url: '/project-dashboard',
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    const oakwoodIndex = result.indexOf('Oakwood Farm BNG Assessment')
-    const greenfieldIndex = result.indexOf('Greenfield Meadow Restoration')
-    expect(oakwoodIndex).toBeLessThan(greenfieldIndex)
   })
 
   test('Should show no projects message when backend returns empty array', async () => {
@@ -148,11 +134,51 @@ describe('#projectsListController', () => {
 
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: `/project-dashboard/${mockProjects[0].id}`,
+      url: '/project-dashboard',
       auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.badGateway)
+  })
+
+  test('Should return 500 when fetch throws an unexpected error', async () => {
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('Network failure'))
+
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/project-dashboard',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.internalServerError)
+  })
+
+  test('Should return 504 when backend request times out', async () => {
+    vi.useFakeTimers()
+
+    vi.spyOn(global, 'fetch').mockImplementation((_url, { signal }) => {
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => {
+          const err = new Error('The operation was aborted')
+          err.name = 'AbortError'
+          reject(err)
+        })
+      })
+    })
+
+    const injectPromise = server.inject({
+      method: 'GET',
+      url: '/project-dashboard',
+      auth: authedAuth
+    })
+
+    await vi.advanceTimersByTimeAsync(5000)
+
+    const { statusCode } = await injectPromise
+
+    vi.useRealTimers()
+
+    expect(statusCode).toBe(statusCodes.gatewayTimeout)
   })
 })
 

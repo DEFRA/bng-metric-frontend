@@ -8,7 +8,22 @@ const BACKEND_TIMEOUT_MS = 5000
 export const projectsListController = {
   async handler(request, h) {
     const userId = request.auth.credentials.sub
-    const response = await fetch(`${backendUrl}/users/${userId}/projects`)
+    const abort = new AbortController()
+    const timeout = setTimeout(() => abort.abort(), BACKEND_TIMEOUT_MS)
+
+    let response
+    try {
+      response = await fetch(`${backendUrl}/users/${userId}/projects`, {
+        signal: abort.signal
+      })
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw Boom.gatewayTimeout('Backend request timed out')
+      }
+      throw err
+    } finally {
+      clearTimeout(timeout)
+    }
 
     if (!response.ok) {
       throw Boom.badGateway('Failed to fetch projects')
@@ -16,16 +31,10 @@ export const projectsListController = {
 
     const projects = await response.json()
 
-    const sortedProjects = projects.slice().sort((a, b) => {
-      const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0)
-      const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0)
-      return dateB - dateA
-    })
-
     return h.view('projects/index', {
       pageTitle: 'Projects',
       heading: 'Projects',
-      projects: []
+      projects
     })
   }
 }
