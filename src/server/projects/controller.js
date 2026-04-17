@@ -6,7 +6,22 @@ const backendUrl = config.get('backend').url
 const BACKEND_TIMEOUT_MS = 5000
 
 export const projectsListController = {
-  async handler(_request, h) {
+  async handler(request, h) {
+    const userId = request.auth.credentials.sub
+    const response = await fetch(`${backendUrl}/users/${userId}/projects`)
+
+    if (!response.ok) {
+      throw Boom.badGateway('Failed to fetch projects')
+    }
+
+    const projects = await response.json()
+
+    const sortedProjects = projects.slice().sort((a, b) => {
+      const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0)
+      const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0)
+      return dateB - dateA
+    })
+
     return h.view('projects/index', {
       pageTitle: 'Projects',
       heading: 'Projects',

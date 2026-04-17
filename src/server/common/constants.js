@@ -7,7 +7,8 @@ export const statusCodes = {
   forbidden: 403,
   notFound: 404,
   imATeapot: 418,
-  internalServerError: 500
+  internalServerError: 500,
+  badGateway: 502
 }
 
 export const MAX_FILE_SIZE_BYTES = 104857600 // 100 MB
