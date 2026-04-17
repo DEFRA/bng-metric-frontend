@@ -77,23 +77,18 @@ function showErrors(form, fileInput, errors) {
   const existingSummary = contentBlock?.querySelector('.govuk-error-summary')
 
   if (!existingSummary && contentBlock) {
-    const errorItems = errors
-      .map((text) => `<li><a href="#${formGroupId}">${text}</a></li>`)
-      .join('')
+    const summaryTemplate = document.querySelector('#tpl-error-summary')
+    const summary = summaryTemplate.content.firstElementChild.cloneNode(true)
+    const errorList = summary.querySelector('.govuk-error-summary__list')
 
-    const summary = document.createElement('div')
-    summary.className = 'govuk-error-summary'
-    summary.setAttribute('data-module', 'govuk-error-summary')
-    summary.setAttribute('data-client-error', 'true')
-    summary.innerHTML = `
-      <div role="alert">
-        <h2 class="govuk-error-summary__title">There is a problem</h2>
-        <div class="govuk-error-summary__body">
-          <ul class="govuk-list govuk-error-summary__list">
-            ${errorItems}
-          </ul>
-        </div>
-      </div>`
+    errors.forEach((text) => {
+      const li = document.createElement('li')
+      const link = document.createElement('a')
+      link.href = `#${formGroupId}`
+      link.textContent = text
+      li.appendChild(link)
+      errorList.appendChild(li)
+    })
 
     contentBlock.insertBefore(summary, contentBlock.firstChild)
     summary.focus()
@@ -105,13 +100,15 @@ function showErrors(form, fileInput, errors) {
   if (formGroup) {
     formGroup.classList.add('govuk-form-group--error')
 
+    const errorMessageTemplate = document.querySelector('#tpl-error-message')
+
     const errorIds = errors.map((text, index) => {
       const errorId = `${formGroupId}-error-${index}`
-      const errorSpan = document.createElement('p')
-      errorSpan.id = errorId
-      errorSpan.className = 'govuk-error-message'
-      errorSpan.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${text}`
-      fileInput.parentNode.insertBefore(errorSpan, fileInput)
+      const errorMessage =
+        errorMessageTemplate.content.firstElementChild.cloneNode(true)
+      errorMessage.id = errorId
+      errorMessage.querySelector('[data-error-text]').textContent = text
+      fileInput.parentNode.insertBefore(errorMessage, fileInput)
       return errorId
     })
 
