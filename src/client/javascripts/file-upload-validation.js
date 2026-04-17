@@ -79,7 +79,10 @@ function showErrors(form, fileInput, errors) {
   if (!existingSummary && contentBlock) {
     const summaryTemplate = document.querySelector('#tpl-error-summary')
     const summary = summaryTemplate.content.firstElementChild.cloneNode(true)
-    const errorList = summary.querySelector('.govuk-error-summary__list')
+    const summaryBody = summary.querySelector('.govuk-error-summary__body')
+    const errorList = document.createElement('ul')
+    errorList.className = 'govuk-list govuk-error-summary__list'
+    summaryBody.appendChild(errorList)
 
     errors.forEach((text) => {
       const li = document.createElement('li')
