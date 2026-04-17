@@ -19,15 +19,32 @@
   </div>
 
   <div class="govuk-grid-row">
-    <div class="govuk-grid-column-two-thirds">
+    <div class="govuk-grid-column-full">
       {% if projects | length %}
-        <ul class="govuk-list" data-testid="projects-list">
-          {% for item in projects %}
-            <li>
-              <a class="govuk-link" href="/projects/{{ item.id }}">{{ item.project.name }}</a>
-            </li>
-          {% endfor %}
-        </ul>
+        <table class="govuk-table" data-testid="projects-table">
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Project name</th>
+              <th scope="col" class="govuk-table__header">Last modified</th>
+              <th scope="col" class="govuk-table__header">Date created</th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for item in projects %}
+              <tr class="govuk-table__row">
+                <td class="govuk-table__cell">
+                  <a class="govuk-link" href="#">{{ item.project.name }}</a>
+                </td>
+                <td class="govuk-table__cell">
+                  {{ item.updatedAt | formatDate("d MMMM yyyy 'at' h:mmaaa") if item.updatedAt else '—' }}
+                </td>
+                <td class="govuk-table__cell">
+                  {{ item.createdAt | formatDate('d MMMM yyyy') if item.createdAt else '—' }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
         <p class="govuk-body-l govuk-!-font-weight-bold" data-testid="no-projects">No projects started.</p>
       {% endif %}

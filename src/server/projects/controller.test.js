@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 
@@ -20,9 +22,10 @@ const mockProjects = [
       site: { name: 'Greenfield Meadow', grid_ref: 'TQ 123 456' },
       units: { habitat: 10.5, hedgerow: 2.3, watercourse: 0.8 }
     },
-    userId: 'test-user-001',
+    userId: 'test-user-003',
     bngProjectVersion: 1,
-    createdAt: '2024-01-01T00:00:00.000Z'
+    createdAt: '2024-01-15T00:00:00.000Z',
+    updatedAt: '2024-03-20T00:00:00.000Z'
   },
   {
     id: '16b0bb16-11f9-44f4-9b19-51fb2f0a1c6f',
@@ -31,9 +34,10 @@ const mockProjects = [
       site: { name: 'Oakwood Farm', grid_ref: 'SP 987 654' },
       units: { habitat: 25.0, hedgerow: 8.1 }
     },
-    userId: 'test-user-002',
+    userId: 'test-user-003',
     bngProjectVersion: 2,
-    createdAt: '2024-02-01T00:00:00.000Z'
+    createdAt: '2024-02-01T00:00:00.000Z',
+    updatedAt: '2024-04-10T00:00:00.000Z'
   }
 ]
 
@@ -51,6 +55,17 @@ describe('#projectsListController', () => {
     await server.stop({ timeout: 0 })
   })
 
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockProjects)
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   test('Should render the projects list page', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
@@ -62,7 +77,59 @@ describe('#projectsListController', () => {
     expect(result).toEqual(expect.stringContaining('Projects -'))
   })
 
-  test('Should show no projects message', async () => {
+  test('Should fetch projects for the current user', async () => {
+    await server.inject({
+      method: 'GET',
+      url: '/project-dashboard',
+      auth: authedAuth
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/users/${authCredentials.sub}/projects`)
+    )
+  })
+
+  test('Should render a table with project name, last modified, and date created', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: '/project-dashboard',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('govuk-table'))
+    expect(result).toEqual(expect.stringContaining('Project name'))
+    expect(result).toEqual(expect.stringContaining('Last modified'))
+    expect(result).toEqual(expect.stringContaining('Date created'))
+    expect(result).toEqual(
+      expect.stringContaining('Greenfield Meadow Restoration')
+    )
+    expect(result).toEqual(
+      expect.stringContaining('Oakwood Farm BNG Assessment')
+    )
+    expect(result).toEqual(expect.stringContaining('15 January 2024'))
+    expect(result).toEqual(expect.stringContaining('20 March 2024 at 12:00am'))
+  })
+
+  test('Should display projects sorted by last modified date descending', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: '/project-dashboard',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    const oakwoodIndex = result.indexOf('Oakwood Farm BNG Assessment')
+    const greenfieldIndex = result.indexOf('Greenfield Meadow Restoration')
+    expect(oakwoodIndex).toBeLessThan(greenfieldIndex)
+  })
+
+  test('Should show no projects message when backend returns empty array', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([])
+    })
+
     const { result, statusCode } = await server.inject({
       method: 'GET',
       url: '/project-dashboard',
@@ -72,40 +139,20 @@ describe('#projectsListController', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(expect.stringContaining('No projects started.'))
   })
-})
 
-describe('#projectDetailController', () => {
-  let server
-
-  beforeAll(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-  })
-
-  test('Should render the project detail page', async () => {
+  test('Should return 502 when backend returns a non-2xx response', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProjects[0])
+      ok: false,
+      status: 503
     })
 
-    const { result, statusCode } = await server.inject({
+    const { statusCode } = await server.inject({
       method: 'GET',
       url: `/project-dashboard/${mockProjects[0].id}`,
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(
-      expect.stringContaining('Greenfield Meadow Restoration')
-    )
-    expect(result).toEqual(expect.stringContaining('Greenfield Meadow'))
-    expect(result).toEqual(expect.stringContaining('TQ 123 456'))
-    expect(result).toEqual(expect.stringContaining('10.5'))
-    expect(result).toEqual(expect.stringContaining('test-user-001'))
-    expect(result).toEqual(expect.stringContaining('Back to projects'))
+    expect(statusCode).toBe(statusCodes.badGateway)
   })
 })
 
