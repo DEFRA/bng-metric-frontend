@@ -25,3 +25,17 @@ export const projectDetailController = {
     })
   }
 }
+
+export const projectTaskListController = {
+  async handler(request, h) {
+    const { id } = request.params
+    const response = await fetch(`${backendUrl}/projects/${id}`)
+    const data = await response.json()
+
+    return h.view('projects/task-list', {
+      pageTitle: data.project?.name ?? 'Project',
+      heading: data.project?.name ?? 'Project',
+      project: data
+    })
+  }
+}

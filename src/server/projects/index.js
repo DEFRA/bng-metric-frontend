@@ -1,6 +1,7 @@
 import {
   projectsListController,
-  projectDetailController
+  projectDetailController,
+  projectTaskListController
 } from './controller.js'
 import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
@@ -60,6 +61,15 @@ export const projects = {
           ...projectDetailController,
           options: {
             ...projectDetailController.options,
+            ...protectedRouteOptions
+          }
+        },
+        {
+          method: 'GET',
+          path: '/project-task-list/{id}',
+          ...projectTaskListController,
+          options: {
+            ...projectTaskListController.options,
             ...protectedRouteOptions
           }
         }

@@ -1,0 +1,13 @@
+{% extends 'layouts/page.njk' %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <a class="govuk-link" href="/project-dashboard">Back to projects</a>
+    </div>
+  </div>
+{% endblock %}
