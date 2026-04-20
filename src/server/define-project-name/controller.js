@@ -2,7 +2,7 @@ import Boom from '@hapi/boom'
 
 import { config } from '../../config/config.js'
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
+const backendUrl = config.get('backend').url
 
 function hasInvalidChars(str) {
   return [...str].some((char) => {
