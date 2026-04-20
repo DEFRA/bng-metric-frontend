@@ -1,4 +1,10 @@
 import { getController } from './controller.js'
+import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
+
+const protectedRouteOptions = {
+  auth: 'session',
+  pre: [requireBngCompleterRole]
+}
 
 export const uploadReceived = {
   plugin: {
@@ -8,7 +14,8 @@ export const uploadReceived = {
         {
           method: 'GET',
           path: '/projects/{id}/upload-received',
-          ...getController
+          ...getController,
+          options: protectedRouteOptions
         }
       ])
     }
