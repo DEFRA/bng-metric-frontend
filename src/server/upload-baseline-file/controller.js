@@ -2,9 +2,7 @@ import { initiateUpload } from '../common/services/uploader.js'
 import { config } from '../../config/config.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
-const appBaseUrl = config.get('cdpUploader.url')
-  ? `http://localhost:${config.get('port')}`
-  : ''
+const appBaseUrl = config.get('appBaseUrl')
 
 async function fetchProjectName(id) {
   try {
