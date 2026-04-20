@@ -106,3 +106,42 @@ describe('#projectDetailController', () => {
     expect(result).toEqual(expect.stringContaining('Back to projects'))
   })
 })
+
+describe('#projectTaskListController', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  test('Should render the project task list page', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      json: () => Promise.resolve(mockProjects[0])
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: '/project-task-list/aaa-bbb-ccc',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(
+      expect.stringContaining('Greenfield Meadow Restoration')
+    )
+  })
+
+  test('Should redirect to login when unauthenticated', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/project-task-list/aaa-bbb-ccc'
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+  })
+})
