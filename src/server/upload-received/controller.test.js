@@ -11,14 +11,25 @@ const createMockH = () => ({
   redirect: vi.fn().mockReturnThis()
 })
 
-const createMockRequest = (uploadId = null, projectId = 'proj-123') => ({
-  params: { id: projectId },
-  yar: {
-    get: vi.fn().mockReturnValue(uploadId),
-    set: vi.fn(),
-    clear: vi.fn()
+const createMockRequest = (
+  uploadId = null,
+  projectId = 'proj-123',
+  sessionData = {}
+) => {
+  const store = { pendingUploadId: uploadId, ...sessionData }
+  return {
+    params: { id: projectId },
+    yar: {
+      get: vi.fn((key) => store[key] ?? null),
+      set: vi.fn((key, value) => {
+        store[key] = value
+      }),
+      clear: vi.fn((key) => {
+        delete store[key]
+      })
+    }
   }
-})
+}
 
 describe('upload-received controller', () => {
   it('should redirect to upload page when no uploadId in session', async () => {
@@ -152,5 +163,39 @@ describe('upload-received controller', () => {
       projectId: 'proj-123',
       refreshInterval: 5
     })
+  })
+
+  it('should redirect with timeout error when max wait time exceeded', async () => {
+    const h = createMockH()
+    const expiredStart = Date.now() - 121 * 1000
+    const request = createMockRequest('test-upload-id', 'proj-123', {
+      uploadStartedAt: expiredStart
+    })
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'pending' })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
+    expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'baselineError',
+      'The file check timed out. Please try again.'
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-baseline-file'
+    )
+  })
+
+  it('should clear uploadStartedAt on successful upload', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id', 'proj-123', {
+      uploadStartedAt: Date.now() - 10 * 1000
+    })
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validateBaseline).mockResolvedValue({ valid: true })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
   })
 })
