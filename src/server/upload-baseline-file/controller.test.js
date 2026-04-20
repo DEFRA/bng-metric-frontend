@@ -146,7 +146,7 @@ describe('#uploadBaselineFile - POST without file', () => {
 
     expect(statusCode).toBe(statusCodes.badRequest)
     expect(result).toEqual(
-      expect.stringContaining('Select a GeoPackage (.gpkg) file')
+      expect.stringContaining('The selected file must be a GeoPackage (.gpkg)')
     )
   })
 

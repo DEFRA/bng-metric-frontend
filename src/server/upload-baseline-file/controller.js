@@ -55,7 +55,7 @@ export const postController = {
         .view('upload-baseline-file/upload-baseline-file', {
           ...viewData(id, projectName),
           error: {
-            text: 'Select a GeoPackage (.gpkg) file',
+            text: 'The selected file must be a GeoPackage (.gpkg)',
             href: '#file'
           }
         })
