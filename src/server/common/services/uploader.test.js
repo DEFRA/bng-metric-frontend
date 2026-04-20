@@ -70,15 +70,15 @@ describe('initiateUpload', () => {
     )
   })
 
-  it('should return error when backend call fails', async () => {
+  it('should throw Boom badGateway when backend call fails', async () => {
     vi.mocked(Wreck.post).mockRejectedValue(new Error('Connection refused'))
 
-    const result = await initiateUpload({
-      redirect: '/projects/1/upload-received',
-      s3Bucket: 'baseline-files'
-    })
-
-    expect(result).toEqual({ error: 'Unable to initiate upload' })
+    await expect(
+      initiateUpload({
+        redirect: '/projects/1/upload-received',
+        s3Bucket: 'baseline-files'
+      })
+    ).rejects.toThrow('Unable to initiate upload')
   })
 })
 
