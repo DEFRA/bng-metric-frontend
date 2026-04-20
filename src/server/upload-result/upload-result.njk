@@ -2,6 +2,13 @@
 
 {% block pageTitle %}{{ pageTitle }}{% endblock %}
 
+{% block beforeContent %}
+  {{ super() }}
+  <nav>
+    <a class="govuk-back-link" href="/projects/{{ projectId }}/upload-baseline-file">Back</a>
+  </nav>
+{% endblock %}
+
 {% block content %}
   {{ appHeading({
     text: heading
