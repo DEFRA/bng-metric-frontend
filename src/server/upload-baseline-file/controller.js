@@ -1,7 +1,7 @@
 import { initiateUpload } from '../common/services/uploader.js'
 import { config } from '../../config/config.js'
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
+const backendUrl = config.get('backend').url
 const appBaseUrl = config.get('appBaseUrl')
 
 async function fetchProjectName(id) {
@@ -31,6 +31,7 @@ export const getController = {
   async handler(request, h) {
     const { id } = request.params
     const projectName = await fetchProjectName(id)
+    // Flash message: read once and clear so it doesn't persist on refresh
     const baselineError = request.yar.get('baselineError')
 
     if (baselineError) {

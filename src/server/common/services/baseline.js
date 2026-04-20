@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import Wreck from '@hapi/wreck'
 
 import { config } from '../../../config/config.js'
@@ -5,7 +6,7 @@ import { createLogger } from '../helpers/logging/logger.js'
 
 const logger = createLogger()
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
+const backendUrl = config.get('backend').url
 
 /**
  * Call the backend to validate the uploaded baseline file.
@@ -24,12 +25,22 @@ export async function validateBaseline(uploadId) {
   } catch (error) {
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
+
     logger.error(
       `Error validating baseline - uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
-    return {
-      valid: false,
-      error: responsePayload?.error ?? 'Unable to validate file'
+
+    // Client errors from the backend indicate a validation problem —
+    // return the error message so the caller can show it to the user
+    if (statusCode >= 400 && statusCode < 500) {
+      return {
+        valid: false,
+        error: responsePayload?.error ?? 'Unable to validate file'
+      }
     }
+
+    // Server or network errors — throw a Boom error so Hapi handles
+    // the response with the appropriate HTTP status code
+    throw Boom.badGateway('Unable to validate file', error)
   }
 }

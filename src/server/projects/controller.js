@@ -1,6 +1,6 @@
 import { config } from '../../config/config.js'
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
+const backendUrl = config.get('backend').url
 
 export const projectsListController = {
   async handler(_request, h) {

@@ -5,7 +5,7 @@ import { createLogger } from '../helpers/logging/logger.js'
 
 const logger = createLogger()
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
+const backendUrl = config.get('backend').url
 
 /**
  * Prepend the CDP uploader base URL for local development.
