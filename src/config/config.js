@@ -265,6 +265,12 @@ export const config = convict({
       env: 'OIDC_SERVICE_ID'
     }
   },
+  appBaseUrl: {
+    doc: 'Browser-facing base URL for this app. Used for upload redirect callbacks. Set to http://localhost:<port> locally, empty string in CDP cloud (relative URLs).',
+    format: String,
+    default: '',
+    env: 'APP_BASE_URL'
+  },
   cdpUploader: {
     url: {
       doc: 'Browser-facing base URL for the CDP uploader. Required locally, not needed in CDP cloud.',

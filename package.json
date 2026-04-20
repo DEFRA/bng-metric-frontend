@@ -10,8 +10,8 @@
   },
   "scripts": {
     "build:frontend": "NODE_ENV=production webpack",
-    "dev": "AWS_EMF_ENVIRONMENT=Local run-p frontend:watch server:watch",
-    "dev:debug": "AWS_EMF_ENVIRONMENT=Local run-p frontend:watch server:debug",
+    "dev": "AWS_EMF_ENVIRONMENT=Local APP_BASE_URL=http://localhost:3000 CDP_UPLOADER_URL=http://localhost:7337 run-p frontend:watch server:watch",
+    "dev:debug": "AWS_EMF_ENVIRONMENT=Local APP_BASE_URL=http://localhost:3000 CDP_UPLOADER_URL=http://localhost:7337 run-p frontend:watch server:debug",
     "docker:dev": "npm run dev",
     "format": "prettier --write \"src/**/*.js\" \"**/*.{js,cjs,md,json,config.js,test.js}\"",
     "format:check": "prettier --check \"src/**/*.js\" \"**/*.{js,cjs,md,json,config.js,test.js}\"",
