@@ -4,6 +4,7 @@ import { createLogger } from '../common/helpers/logging/logger.js'
 
 const logger = createLogger()
 const REFRESH_INTERVAL_SECONDS = 5
+const MAX_WAIT_SECONDS = 120
 const STATUS_READY = 'ready'
 const STATUS_REJECTED = 'rejected'
 
@@ -31,6 +32,7 @@ export const getController = {
       const result = await validateBaseline(uploadId)
 
       request.yar.clear('pendingUploadId')
+      request.yar.clear('uploadStartedAt')
 
       if (result.error) {
         request.yar.set('baselineError', result.error)
@@ -42,9 +44,31 @@ export const getController = {
 
     if (uploadStatus === STATUS_REJECTED) {
       request.yar.clear('pendingUploadId')
+      request.yar.clear('uploadStartedAt')
       request.yar.set(
         'baselineError',
         response.errorMessage ?? 'The selected file was rejected'
+      )
+      return h.redirect(`/projects/${id}/upload-baseline-file`)
+    }
+
+    // Track when polling started. If we exceed the max wait time, redirect
+    // to an error page (which has no meta-refresh) instead of rendering the
+    // refresh page again — this breaks the polling loop.
+    const startedAt = request.yar.get('uploadStartedAt') || Date.now()
+
+    if (!request.yar.get('uploadStartedAt')) {
+      request.yar.set('uploadStartedAt', startedAt)
+    }
+
+    const elapsed = (Date.now() - startedAt) / 1000
+
+    if (elapsed > MAX_WAIT_SECONDS) {
+      request.yar.clear('pendingUploadId')
+      request.yar.clear('uploadStartedAt')
+      request.yar.set(
+        'baselineError',
+        'The file check timed out. Please try again.'
       )
       return h.redirect(`/projects/${id}/upload-baseline-file`)
     }
