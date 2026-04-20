@@ -54,22 +54,16 @@ describe('upload-baseline-file controller', () => {
     )
   })
 
-  it('should render form with uploadError when initiation fails', async () => {
-    vi.mocked(initiateUpload).mockResolvedValue({
-      error: 'Unable to initiate upload'
-    })
+  it('should throw when initiation fails', async () => {
+    vi.mocked(initiateUpload).mockRejectedValue(
+      new Error('Unable to initiate upload')
+    )
 
     const h = createMockH()
     const request = createMockRequest()
 
-    await getController.handler(request, h)
-
-    expect(request.yar.set).not.toHaveBeenCalled()
-    expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
-      expect.objectContaining({
-        uploadError: 'Unable to initiate upload'
-      })
+    await expect(getController.handler(request, h)).rejects.toThrow(
+      'Unable to initiate upload'
     )
   })
 

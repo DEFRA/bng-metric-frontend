@@ -45,13 +45,6 @@ export const getController = {
       metadata: { projectId: id }
     })
 
-    if (uploadSession.error) {
-      return h.view('upload-baseline-file/upload-baseline-file', {
-        ...viewData(id, projectName),
-        uploadError: uploadSession.error
-      })
-    }
-
     request.yar.set('pendingUploadId', uploadSession.uploadId)
 
     return h.view('upload-baseline-file/upload-baseline-file', {

@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import Wreck from '@hapi/wreck'
 
 import { config } from '../../../config/config.js'
@@ -30,7 +31,8 @@ function buildUploadUrl(path) {
  * @param {string} options.s3Bucket - Destination S3 bucket
  * @param {string} [options.s3Path] - Optional path within the bucket
  * @param {object} [options.metadata] - Optional metadata
- * @returns {Promise<{uploadId: string, uploadUrl: string} | {error: string}>}
+ * @returns {Promise<{uploadId: string, uploadUrl: string}>}
+ * @throws {Boom} badGateway if the backend is unreachable or returns an error
  */
 export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
   const url = `${backendUrl}/upload/initiate`
@@ -60,12 +62,12 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
   } catch (error) {
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
+
     logger.error(
       `Error initiating upload - url: ${url}, backendUrl: ${backendUrl}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
-    return {
-      error: 'Unable to initiate upload'
-    }
+
+    throw Boom.badGateway('Unable to initiate upload', error)
   }
 }
 
@@ -98,9 +100,13 @@ export async function getUploadStatus(uploadId) {
   } catch (error) {
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
+
     logger.error(
       `Error fetching upload status - url: ${url}, backendUrl: ${backendUrl}, uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
+
+    // Return an error status rather than throwing Boom — the caller retries
+    // via meta-refresh and the timeout mechanism will handle persistent failures
     return {
       uploadStatus: 'error',
       error: 'Unable to check upload status'
