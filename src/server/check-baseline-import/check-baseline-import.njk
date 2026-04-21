@@ -2,7 +2,6 @@
 
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
-
 {% block pageTitle %}{{ pageTitle }}{% endblock %}
 
 {% block beforeContent %}
@@ -11,6 +10,10 @@
     <a class="govuk-back-link" href="/projects/{{ projectId }}/upload-baseline-file">Back</a>
   </nav>
 {% endblock %}
+
+{% set mapPlaceholderHtml %}
+  {% include "map/template.njk" %}
+{% endset %}
 
 {% block content %}
   {{ appHeading({
@@ -36,7 +39,7 @@
           {
             key: { text: "Map View" },
             value: {
-              html: '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23b1b4b6\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23505a5f\' font-family=\'sans-serif\' font-size=\'14\'%3EMap placeholder%3C/text%3E%3C/svg%3E" alt="Map placeholder" data-testid="map-placeholder">'
+              html: mapPlaceholderHtml
             }
           }
         ]
