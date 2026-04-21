@@ -209,4 +209,38 @@ describe('#projectTaskListController', () => {
 
     expect(statusCode).toBe(statusCodes.badRequest)
   })
+
+  test('Should return 504 when backend request times out', async () => {
+    const abortError = new DOMException('The operation was aborted.', 'AbortError')
+    vi.spyOn(global, 'fetch').mockRejectedValue(abortError)
+
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(504)
+  })
+
+  test('Should render error state when backend returns 404', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      json: () => Promise.resolve({ statusCode: 404 })
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('Project not found'))
+    expect(result).not.toEqual(
+      expect.stringContaining('data-testid="project-task-list-information"')
+    )
+    expect(result).not.toEqual(
+      expect.stringContaining('data-testid="project-task-list-component"')
+    )
+  })
 })
