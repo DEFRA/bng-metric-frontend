@@ -152,9 +152,7 @@ describe('#projectTaskListController', () => {
     )
     expect(result).toEqual(expect.stringContaining('Project Name'))
     expect(result).toEqual(expect.stringContaining('Project Details'))
-    expect(result).toEqual(
-      expect.stringContaining('On-site baseline habitats')
-    )
+    expect(result).toEqual(expect.stringContaining('On-site baseline habitats'))
     expect(result).toEqual(
       expect.stringContaining('On-site post intervention habitats')
     )
