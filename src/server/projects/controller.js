@@ -33,7 +33,7 @@ export const projectTaskListController = {
     const data = await response.json()
 
     return h.view('projects/task-list', {
-      pageTitle: data.project?.name ?? 'Project',
+      pageTitle: 'Project Task List',
       heading: data.project?.name ?? 'Project',
       project: data
     })

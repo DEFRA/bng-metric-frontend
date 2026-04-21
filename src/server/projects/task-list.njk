@@ -9,8 +9,8 @@
 
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      <p class="govuk-body">When you provide your information:</p>
-      <ul class="govuk-list govuk-list--bullet">
+      <p class="govuk-body" data-testid="project-task-list-information">When you provide your information:</p>
+      <ul class="govuk-list govuk-list--bullet" data-testid="project-task-list-content-list">
         <li>you’ll need to complete each section before you can send the information</li>
         <li>you can still make changes to a section even after it is marked complete</li>
         <li>you can save your progress at the end of each section if you need to come back later</li>
@@ -18,6 +18,7 @@
       {{
         govukTaskList({
           idPrefix: "project-task-list",
+          attributes: { "data-testid": "project-task-list-component"},
           items: [
             {
               title: {
@@ -60,7 +61,6 @@
           ]
         })
       }}
-      <a class="govuk-link" href="/project-dashboard">Back to projects</a>
     </div>
   </div>
 {% endblock %}
