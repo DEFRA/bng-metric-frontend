@@ -191,11 +191,12 @@ describe('#projectTaskListController', () => {
   })
 
   test('Should redirect to login when unauthenticated', async () => {
-    const { statusCode } = await server.inject({
+    const { statusCode, headers } = await server.inject({
       method: 'GET',
       url: '/project-task-list/aaa-bbb-ccc'
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe('/auth/forbidden')
   })
 })
