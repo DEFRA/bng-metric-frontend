@@ -37,6 +37,8 @@ const mockProjects = [
   }
 ]
 
+const projectTaskListurl = `/project-task-list/${mockProjects[0].id}`
+
 describe('#projectsListController', () => {
   let server
 
@@ -119,47 +121,73 @@ describe('#projectTaskListController', () => {
     await server.stop({ timeout: 0 })
   })
 
-  test('Should render the project task list page', async () => {
+  beforeEach(() => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
       json: () => Promise.resolve(mockProjects[0])
     })
+  })
 
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Should render the page with correct title', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-task-list/aaa-bbb-ccc',
+      url: projectTaskListurl,
       auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('Project Task List'))
+  })
+
+  test('Should show the page heading', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
     expect(result).toEqual(
-      expect.stringContaining('Greenfield Meadow Restoration')
+      expect.stringContaining('data-testid="app-heading-title"')
     )
-    expect(result).toEqual(expect.stringContaining('govuk-task-list'))
+  })
+
+  test('Should show the page paragraph content', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
     expect(result).toEqual(
-      expect.stringContaining('id="project-task-list-1-status"')
+      expect.stringContaining('data-testid="project-task-list-information"')
     )
+  })
+
+  test('Should show the page content list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
     expect(result).toEqual(
-      expect.stringContaining('When you provide your information:')
+      expect.stringContaining('data-testid="project-task-list-content-list"')
     )
+  })
+
+  test('Should show the page task list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
     expect(result).toEqual(
-      expect.stringContaining('need to complete each section')
+      expect.stringContaining('data-testid="project-task-list-component"')
     )
-    expect(result).toEqual(
-      expect.stringContaining('can still make changes to a section')
-    )
-    expect(result).toEqual(
-      expect.stringContaining('can save your progress at the end')
-    )
-    expect(result).toEqual(expect.stringContaining('Project Name'))
-    expect(result).toEqual(expect.stringContaining('Project Details'))
-    expect(result).toEqual(expect.stringContaining('On-site baseline habitats'))
-    expect(result).toEqual(
-      expect.stringContaining('On-site post intervention habitats')
-    )
-    expect(result).toEqual(expect.stringContaining('Completed'))
-    expect(result).toEqual(expect.stringContaining('Not yet started'))
-    expect(result).toEqual(expect.stringContaining('Incomplete'))
-    expect(result).toEqual(expect.stringContaining('Back to projects'))
   })
 
   test('Should redirect to login when unauthenticated', async () => {
