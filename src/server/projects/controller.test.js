@@ -14,7 +14,7 @@ const authedAuth = {
 
 const mockProjects = [
   {
-    id: 'aaa-bbb-ccc',
+    id: '0d7c6f7c-5f9e-4e7e-8f77-9d99d30a8d77',
     project: {
       name: 'Greenfield Meadow Restoration',
       site: { name: 'Greenfield Meadow', grid_ref: 'TQ 123 456' },
@@ -25,7 +25,7 @@ const mockProjects = [
     createdAt: '2024-01-01T00:00:00.000Z'
   },
   {
-    id: 'ddd-eee-fff',
+    id: '16b0bb16-11f9-44f4-9b19-51fb2f0a1c6f',
     project: {
       name: 'Oakwood Farm BNG Assessment',
       site: { name: 'Oakwood Farm', grid_ref: 'SP 987 654' },
@@ -93,7 +93,7 @@ describe('#projectDetailController', () => {
 
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard/aaa-bbb-ccc',
+      url: `/project-dashboard/${mockProjects[0].id}`,
       auth: authedAuth
     })
 
@@ -193,10 +193,20 @@ describe('#projectTaskListController', () => {
   test('Should redirect to login when unauthenticated', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'GET',
-      url: '/project-task-list/aaa-bbb-ccc'
+      url: `/project-task-list/${mockProjects[0].id}`
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/auth/forbidden')
+  })
+
+  test('Should return bad request when project id is not a UUID', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/project-task-list/aaa-bbb-ccc',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
   })
 })
