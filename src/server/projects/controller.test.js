@@ -211,7 +211,10 @@ describe('#projectTaskListController', () => {
   })
 
   test('Should return 504 when backend request times out', async () => {
-    const abortError = new DOMException('The operation was aborted.', 'AbortError')
+    const abortError = new DOMException(
+      'The operation was aborted.',
+      'AbortError'
+    )
     vi.spyOn(global, 'fetch').mockRejectedValue(abortError)
 
     const { statusCode } = await server.inject({
