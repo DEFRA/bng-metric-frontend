@@ -1,0 +1,68 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+{% block pageTitle %}{{ pageTitle }}{% endblock %}
+
+{% block beforeContent %}
+  {{ super() }}
+  <nav>
+    <a class="govuk-back-link" href="/projects/{{ projectId }}/upload-baseline-file">Back</a>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: caption
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {{ govukSummaryList({
+        card: {
+          title: { text: "Site Details" }
+        },
+        rows: [
+          {
+            key: { text: "Red Line Boundary" },
+            value: { text: "" }
+          },
+          {
+            key: { text: "Area Habitats" },
+            value: { text: "" }
+          },
+          {
+            key: { text: "Map View" },
+            value: {
+              html: '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23b1b4b6\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23505a5f\' font-family=\'sans-serif\' font-size=\'14\'%3EMap placeholder%3C/text%3E%3C/svg%3E" alt="Map placeholder" data-testid="map-placeholder">'
+            }
+          }
+        ]
+      }) }}
+
+      {{ govukSummaryList({
+        card: {
+          title: { text: "File Details" }
+        },
+        rows: [
+          {
+            key: { text: "File uploaded" },
+            value: { text: filename if filename else "" }
+          },
+          {
+            key: { text: "Layers" },
+            value: { text: "" }
+          }
+        ]
+      }) }}
+
+      {{ govukButton({
+        text: "Upload a different file",
+        href: "/projects/" + projectId + "/upload-baseline-file",
+        classes: "govuk-button--secondary"
+      }) }}
+    </div>
+  </div>
+{% endblock %}
