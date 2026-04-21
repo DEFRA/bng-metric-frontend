@@ -134,6 +134,34 @@ describe('#projectTaskListController', () => {
     expect(result).toEqual(
       expect.stringContaining('Greenfield Meadow Restoration')
     )
+    expect(result).toEqual(expect.stringContaining('govuk-task-list'))
+    expect(result).toEqual(
+      expect.stringContaining('id="project-task-list-1-status"')
+    )
+    expect(result).toEqual(
+      expect.stringContaining('When you provide your information:')
+    )
+    expect(result).toEqual(
+      expect.stringContaining('need to complete each section')
+    )
+    expect(result).toEqual(
+      expect.stringContaining('can still make changes to a section')
+    )
+    expect(result).toEqual(
+      expect.stringContaining('can save your progress at the end')
+    )
+    expect(result).toEqual(expect.stringContaining('Project Name'))
+    expect(result).toEqual(expect.stringContaining('Project Details'))
+    expect(result).toEqual(
+      expect.stringContaining('On-site baseline habitats')
+    )
+    expect(result).toEqual(
+      expect.stringContaining('On-site post intervention habitats')
+    )
+    expect(result).toEqual(expect.stringContaining('Completed'))
+    expect(result).toEqual(expect.stringContaining('Not yet started'))
+    expect(result).toEqual(expect.stringContaining('Incomplete'))
+    expect(result).toEqual(expect.stringContaining('Back to projects'))
   })
 
   test('Should redirect to login when unauthenticated', async () => {
