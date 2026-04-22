@@ -1,5 +1,3 @@
-import Joi from 'joi'
-
 import {
   projectsListController,
   projectDetailController,
@@ -43,10 +41,6 @@ const protectedRouteOptions = {
   pre: [requireBngCompleterRole]
 }
 
-const projectIdParams = Joi.object({
-  id: Joi.string().uuid().required()
-})
-
 export const projects = {
   plugin: {
     name: 'projects',
@@ -67,10 +61,7 @@ export const projects = {
           ...projectDetailController,
           options: {
             ...projectDetailController.options,
-            ...protectedRouteOptions,
-            validate: {
-              params: projectIdParams
-            }
+            ...protectedRouteOptions
           }
         },
         {
@@ -79,10 +70,7 @@ export const projects = {
           ...projectTaskListController,
           options: {
             ...projectTaskListController.options,
-            ...protectedRouteOptions,
-            validate: {
-              params: projectIdParams
-            }
+            ...protectedRouteOptions
           }
         }
       ])
