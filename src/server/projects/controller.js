@@ -1,3 +1,4 @@
+import Joi from 'joi'
 import Boom from '@hapi/boom'
 import { config } from '../../config/config.js'
 
@@ -15,6 +16,13 @@ export const projectsListController = {
 }
 
 export const projectDetailController = {
+  options: {
+    validate: {
+      params: Joi.object({
+        id: Joi.string().uuid().required()
+      })
+    }
+  },
   async handler(request, h) {
     const { id } = request.params
     const response = await fetch(`${backendUrl}/projects/${id}`)
@@ -29,6 +37,13 @@ export const projectDetailController = {
 }
 
 export const projectTaskListController = {
+  options: {
+    validate: {
+      params: Joi.object({
+        id: Joi.string().uuid().required()
+      })
+    }
+  },
   async handler(request, h) {
     const { id } = request.params
     const abort = new AbortController()
