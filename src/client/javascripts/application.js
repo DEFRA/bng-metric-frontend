@@ -6,6 +6,7 @@ import {
   FileUpload,
   Header,
   Radios,
+  ServiceNavigation,
   SkipLink
 } from 'govuk-frontend'
 
@@ -17,6 +18,7 @@ createAll(ErrorSummary)
 createAll(FileUpload)
 createAll(Header)
 createAll(Radios)
+createAll(ServiceNavigation)
 createAll(SkipLink)
 
 initFileUploadValidation()
