@@ -1,5 +1,6 @@
 import inert from '@hapi/inert'
 
+import { config } from '../config/config.js'
 import { home } from './home/index.js'
 import { about } from './about/index.js'
 import { auth } from './auth/index.js'
@@ -12,6 +13,7 @@ import { uploadResult } from './upload-result/index.js'
 import { checkBaselineImport } from './check-baseline-import/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
+import { swagger } from './common/helpers/swagger.js'
 
 export const router = {
   plugin: {
@@ -38,6 +40,11 @@ export const router = {
 
       // Static assets
       await server.register([serveStaticFiles])
+
+      // Swagger API documentation (opt-in via USE_SWAGGER env var)
+      if (config.get('useSwagger')) {
+        await server.register([swagger])
+      }
     }
   }
 }

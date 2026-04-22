@@ -268,6 +268,12 @@ export const config = convict({
       env: 'OIDC_SERVICE_ID'
     }
   },
+  useSwagger: {
+    doc: 'Enable Swagger API documentation at /docs',
+    format: Boolean,
+    default: false,
+    env: 'USE_SWAGGER'
+  },
   appBaseUrl: {
     doc: 'Browser-facing base URL for this app. Used for upload redirect callbacks. Set to http://localhost:<port> locally, empty string in CDP cloud (relative URLs).',
     format: String,

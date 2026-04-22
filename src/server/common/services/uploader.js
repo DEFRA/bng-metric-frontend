@@ -55,9 +55,13 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
       json: true
     })
 
+    const uploadUrl = buildUploadUrl(payload.uploadUrl)
+    logger.info(
+      `Upload initiated - uploadId: ${payload.uploadId}, raw uploadUrl: ${payload.uploadUrl}, resolved uploadUrl: ${uploadUrl}`
+    )
     return {
       uploadId: payload.uploadId,
-      uploadUrl: buildUploadUrl(payload.uploadUrl)
+      uploadUrl
     }
   } catch (error) {
     const statusCode = error?.output?.statusCode
