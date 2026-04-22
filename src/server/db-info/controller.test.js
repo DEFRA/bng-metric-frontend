@@ -26,7 +26,7 @@ describe('#dbInfoController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('DB Info |'))
+    expect(result).toEqual(expect.stringContaining('DB Info -'))
     expect(result).toEqual(expect.stringContaining('PostgreSQL 16.1'))
   })
 })

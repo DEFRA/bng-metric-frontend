@@ -57,7 +57,7 @@ describe('#projectsListController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('Projects |'))
+    expect(result).toEqual(expect.stringContaining('Projects -'))
   })
 
   test('Should show no projects message', async () => {

@@ -33,7 +33,7 @@ describe('#defineProjectNameController', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(
-      expect.stringContaining('Define Project Name | Biodiversity Net Gain')
+      expect.stringContaining('Define Project Name - Biodiversity Net Gain')
     )
   })
 
@@ -177,7 +177,7 @@ describe('#defineProjectNamePostController', () => {
     expect(result).toEqual(expect.stringContaining('Enter a project name'))
     expect(result).toEqual(
       expect.stringContaining(
-        'Error: Define Project Name | Biodiversity Net Gain'
+        'Error: Define Project Name - Biodiversity Net Gain'
       )
     )
     expect(fetch).not.toHaveBeenCalled()
