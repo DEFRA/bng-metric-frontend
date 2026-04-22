@@ -1,8 +1,15 @@
 import { homeController } from './controller.js'
 
 /**
- * Sets up the routes used in the home page.
- * These routes are registered in src/server/router.js.
+ * @openapi
+ * /:
+ *   get:
+ *     tags:
+ *       - Pages
+ *     summary: Home page
+ *     responses:
+ *       200:
+ *         description: Renders the home page
  */
 export const home = {
   plugin: {
