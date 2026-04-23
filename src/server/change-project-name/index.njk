@@ -1,0 +1,58 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+
+{% block beforeContent %}
+  {{ super() }}
+  {{ govukBackLink({
+    text: "Back",
+    href: "/project-task-list/" + projectId
+  }) }}
+{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+
+      {% if errors | length %}
+        {{ govukErrorSummary({
+          titleText: "There is a problem",
+          errorList: errors
+        }) }}
+      {% endif %}
+
+      <form method="post" action="/change-project-name/{{ projectId }}" novalidate>
+        <div class="govuk-form-group{% if errorMessage %} govuk-form-group--error{% endif %}">
+          <h1 class="govuk-label-wrapper">
+            <label class="govuk-label govuk-label--l" for="project-name">
+              {{ heading }}
+            </label>
+          </h1>
+          <div id="project-name-hint" class="govuk-hint">
+            Enter a descriptive name to help you find your project later
+          </div>
+          {% if errorMessage %}
+            <p id="project-name-error" class="govuk-error-message">
+              <span class="govuk-visually-hidden">Error:</span> {{ errorMessage.text }}
+            </p>
+          {% endif %}
+          <input
+            class="govuk-input{% if errorMessage %} govuk-input--error{% endif %}"
+            id="project-name"
+            name="projectName"
+            type="text"
+            maxlength="1000"
+            aria-describedby="project-name-hint{% if errorMessage %} project-name-error{% endif %}"
+            {% if projectName %}value="{{ projectName }}"{% endif %}
+          >
+        </div>
+
+        {{ govukButton({
+          text: "Save and continue"
+        }) }}
+      </form>
+    </div>
+  </div>
+{% endblock %}
