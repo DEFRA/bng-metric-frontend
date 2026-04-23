@@ -1,12 +1,11 @@
-import { config } from '../../config/config.js'
+import { backendClient } from '../common/services/backend-client.js'
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
-
-async function fetchProjectName(id) {
+async function fetchProjectName(request, id) {
   try {
-    const response = await fetch(`${backendUrl}/projects/${id}`)
-    const data = await response.json()
-    return data.project?.name ?? 'Project'
+    const { payload } = await backendClient(request).get(`/projects/${id}`, {
+      json: true
+    })
+    return payload?.project?.name ?? 'Project'
   } catch {
     return 'Project'
   }
@@ -15,7 +14,7 @@ async function fetchProjectName(id) {
 export const getController = {
   async handler(request, h) {
     const { id } = request.params
-    const projectName = await fetchProjectName(id)
+    const projectName = await fetchProjectName(request, id)
     const baseline = request.yar.get('baseline')
     const filename = baseline?.filename ?? null
 

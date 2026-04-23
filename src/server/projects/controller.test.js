@@ -1,3 +1,5 @@
+import Wreck from '@hapi/wreck'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 
@@ -85,9 +87,7 @@ describe('#projectDetailController', () => {
   })
 
   test('Should render the project detail page', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProjects[0])
-    })
+    vi.spyOn(Wreck, 'get').mockResolvedValue({ payload: mockProjects[0] })
 
     const { result, statusCode } = await server.inject({
       method: 'GET',

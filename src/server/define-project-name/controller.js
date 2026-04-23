@@ -1,8 +1,6 @@
 import Boom from '@hapi/boom'
 
-import { config } from '../../config/config.js'
-
-const backendUrl = config.get('backend').url
+import { backendClient } from '../common/services/backend-client.js'
 
 function hasInvalidChars(str) {
   return [...str].some((char) => {
@@ -62,17 +60,17 @@ export const defineProjectNamePostController = {
       })
     }
 
-    const response = await fetch(`${backendUrl}/projects/new`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project: { name: projectName },
-        userId: request.auth.credentials.sub
+    try {
+      await backendClient(request).post('/projects/new', {
+        payload: JSON.stringify({
+          project: { name: projectName },
+          userId: request.auth.credentials.sub
+        }),
+        headers: { 'Content-Type': 'application/json' },
+        json: true
       })
-    })
-
-    if (!response.ok) {
-      throw Boom.badGateway('Failed to create project')
+    } catch (error) {
+      throw Boom.badGateway('Failed to create project', error)
     }
 
     return h.redirect('/project-dashboard')

@@ -294,6 +294,33 @@ export const config = convict({
       default: 'baseline/',
       env: 'CDP_UPLOADER_S3_PATH'
     }
+  },
+  userContext: {
+    rootSecret: {
+      doc: 'Root secret for deriving per-epoch HMAC signing keys used to authenticate FE→BE calls. MUST match the value configured on the backend and MUST be overridden per environment.',
+      format: String,
+      default: 'local-dev-only-root-secret-change-me-per-environment',
+      env: 'USER_CONTEXT_ROOT_SECRET',
+      sensitive: true
+    },
+    rotationPeriodSeconds: {
+      doc: 'How often the derived signing key rotates. Both services must agree.',
+      format: Number,
+      default: 3600,
+      env: 'USER_CONTEXT_ROTATION_PERIOD_SECONDS'
+    },
+    tokenTtlSeconds: {
+      doc: 'Maximum lifetime of an individual signed header.',
+      format: Number,
+      default: 60,
+      env: 'USER_CONTEXT_TOKEN_TTL_SECONDS'
+    },
+    clockSkewEpochs: {
+      doc: 'Unused on the frontend (verifier-only) but kept for shape parity with the backend config.',
+      format: Number,
+      default: 1,
+      env: 'USER_CONTEXT_CLOCK_SKEW_EPOCHS'
+    }
   }
 })
 

@@ -1,6 +1,4 @@
-import { config } from '../../config/config.js'
-
-const backendUrl = config.get('backend').url
+import { backendClient } from '../common/services/backend-client.js'
 
 export const projectsListController = {
   async handler(_request, h) {
@@ -15,13 +13,14 @@ export const projectsListController = {
 export const projectDetailController = {
   async handler(request, h) {
     const { id } = request.params
-    const response = await fetch(`${backendUrl}/projects/${id}`)
-    const data = await response.json()
+    const { payload } = await backendClient(request).get(`/projects/${id}`, {
+      json: true
+    })
 
     return h.view('projects/detail', {
-      pageTitle: data.project?.name ?? 'Project',
-      heading: data.project?.name ?? 'Project',
-      project: data
+      pageTitle: payload?.project?.name ?? 'Project',
+      heading: payload?.project?.name ?? 'Project',
+      project: payload
     })
   }
 }

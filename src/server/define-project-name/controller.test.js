@@ -1,3 +1,5 @@
+import Wreck from '@hapi/wreck'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 
@@ -111,8 +113,12 @@ describe('#defineProjectNamePostController', () => {
     await server.stop({ timeout: 0 })
   })
 
+  let postSpy
+
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true })
+    postSpy = vi
+      .spyOn(Wreck, 'post')
+      .mockResolvedValue({ payload: { id: 'new-id' } })
   })
 
   afterEach(() => {
@@ -127,14 +133,16 @@ describe('#defineProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(fetch).toHaveBeenCalledOnce()
+    expect(postSpy).toHaveBeenCalledOnce()
 
-    const [url, options] = fetch.mock.calls[0]
-    const body = JSON.parse(options.body)
+    const [url, options] = postSpy.mock.calls[0]
+    const body = JSON.parse(options.payload)
 
     expect(url).toContain('/projects/new')
-    expect(options.method).toBe('POST')
     expect(options.headers['Content-Type']).toBe('application/json')
+    expect(options.headers['x-user-context']).toMatch(
+      /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
+    )
     expect(body.project).toEqual({ name: 'My Valid Project' })
     expect(body.userId).toBe('test-user-123')
   })
@@ -151,8 +159,8 @@ describe('#defineProjectNamePostController', () => {
     expect(headers.location).toBe('/project-dashboard')
   })
 
-  test('Should render error page when backend returns a non-2xx response', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500 })
+  test('Should render error page when backend call fails', async () => {
+    postSpy.mockRejectedValue(new Error('boom'))
 
     const { statusCode } = await server.inject({
       method: 'POST',
@@ -180,7 +188,7 @@ describe('#defineProjectNamePostController', () => {
         'Error: Define Project Name - Biodiversity Net Gain'
       )
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(postSpy).not.toHaveBeenCalled()
   })
 
   test('Should show error summary when project name exceeds 1000 characters', async () => {
@@ -196,7 +204,7 @@ describe('#defineProjectNamePostController', () => {
     expect(result).toEqual(
       expect.stringContaining('Project name must be 1000 characters or fewer')
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(postSpy).not.toHaveBeenCalled()
   })
 
   test('Should show error summary when project name contains invalid characters', async () => {
@@ -212,7 +220,7 @@ describe('#defineProjectNamePostController', () => {
     expect(result).toEqual(
       expect.stringContaining('Project name must only contain valid characters')
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(postSpy).not.toHaveBeenCalled()
   })
 
   test('Should show red error border on input when validation fails', async () => {

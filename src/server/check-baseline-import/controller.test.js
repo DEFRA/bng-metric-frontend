@@ -1,3 +1,5 @@
+import Wreck from '@hapi/wreck'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 
@@ -34,9 +36,7 @@ describe('#checkBaselineImport - GET', () => {
   })
 
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProject)
-    })
+    vi.spyOn(Wreck, 'get').mockResolvedValue({ payload: mockProject })
   })
 
   afterEach(() => {

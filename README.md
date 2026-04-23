@@ -82,6 +82,11 @@ return await fetch(url, {
 })
 ```
 
+## Security
+
+- [Authentication (OIDC)](docs/authentication.md) — sign-in flow against Defra ID.
+- [User-context authentication](docs/user-context-auth.md) — signs the `x-user-context` header on every FE→BE call.
+
 ## Local Development
 
 ### Setup

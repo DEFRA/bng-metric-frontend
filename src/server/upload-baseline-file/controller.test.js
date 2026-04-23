@@ -1,8 +1,8 @@
 import { initiateUpload } from '../common/services/uploader.js'
+import { backendClient } from '../common/services/backend-client.js'
 
 vi.mock('../common/services/uploader.js')
-
-global.fetch = vi.fn()
+vi.mock('../common/services/backend-client.js')
 
 const { getController } = await import('./controller.js')
 
@@ -13,18 +13,27 @@ const createMockH = () => ({
 
 const createMockRequest = (projectId = 'proj-123') => ({
   params: { id: projectId },
+  auth: { credentials: { sub: 'user-1' } },
   yar: {
+    id: 'yar-1',
     set: vi.fn(),
     get: vi.fn(),
     clear: vi.fn()
   }
 })
 
+function mockBackendGet(payload) {
+  vi.mocked(backendClient).mockReturnValue({
+    get: vi.fn().mockResolvedValue({ payload }),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  })
+}
+
 describe('upload-baseline-file controller', () => {
   beforeEach(() => {
-    vi.mocked(fetch).mockResolvedValue({
-      json: () => Promise.resolve({ project: { name: 'Test Project' } })
-    })
+    mockBackendGet({ project: { name: 'Test Project' } })
   })
 
   it('should render form with uploadUrl on successful initiation', async () => {
@@ -38,7 +47,7 @@ describe('upload-baseline-file controller', () => {
 
     await getController.handler(request, h)
 
-    expect(initiateUpload).toHaveBeenCalledWith({
+    expect(initiateUpload).toHaveBeenCalledWith(request, {
       redirect: '/projects/proj-123/upload-received',
       s3Bucket: 'baseline-files',
       s3Path: 'baseline/',
@@ -68,9 +77,7 @@ describe('upload-baseline-file controller', () => {
   })
 
   it('should use project name from backend', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      json: () => Promise.resolve({ project: { name: 'My BNG Project' } })
-    })
+    mockBackendGet({ project: { name: 'My BNG Project' } })
     vi.mocked(initiateUpload).mockResolvedValue({
       uploadId: 'abc-123',
       uploadUrl: '/upload-and-scan/abc-123'
@@ -89,8 +96,13 @@ describe('upload-baseline-file controller', () => {
     )
   })
 
-  it('should fall back to "Project" when fetch fails', async () => {
-    vi.mocked(fetch).mockRejectedValue(new Error('Network error'))
+  it('should fall back to "Project" when backend call fails', async () => {
+    vi.mocked(backendClient).mockReturnValue({
+      get: vi.fn().mockRejectedValue(new Error('Network error')),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn()
+    })
     vi.mocked(initiateUpload).mockResolvedValue({
       uploadId: 'abc-123',
       uploadUrl: '/upload-and-scan/abc-123'

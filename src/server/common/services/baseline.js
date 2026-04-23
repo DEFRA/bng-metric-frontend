@@ -1,25 +1,24 @@
 import Boom from '@hapi/boom'
-import Wreck from '@hapi/wreck'
 
-import { config } from '../../../config/config.js'
+import { backendClient } from './backend-client.js'
 import { createLogger } from '../helpers/logging/logger.js'
 
 const logger = createLogger()
 
-const backendUrl = config.get('backend').url
-
 /**
  * Call the backend to validate the uploaded baseline file.
+ * @param {object} request - The Hapi request, used to derive the signed user-context header
  * @param {string} uploadId - The upload ID to validate
  * @returns {Promise<{valid: boolean, error?: string}>}
  */
-export async function validateBaseline(uploadId) {
-  const url = `${backendUrl}/baseline/validate/${uploadId}`
-
+export async function validateBaseline(request, uploadId) {
   logger.info(`Validating baseline - uploadId: ${uploadId}`)
 
   try {
-    const { payload } = await Wreck.post(url, { json: true })
+    const { payload } = await backendClient(request).post(
+      `/baseline/validate/${uploadId}`,
+      { json: true }
+    )
 
     return { valid: payload.valid ?? false }
   } catch (error) {
@@ -30,8 +29,6 @@ export async function validateBaseline(uploadId) {
       `Error validating baseline - uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
 
-    // Client errors from the backend indicate a validation problem —
-    // return the error message so the caller can show it to the user
     if (statusCode >= 400 && statusCode < 500) {
       return {
         valid: false,
@@ -39,8 +36,6 @@ export async function validateBaseline(uploadId) {
       }
     }
 
-    // Server or network errors — throw a Boom error so Hapi handles
-    // the response with the appropriate HTTP status code
     throw Boom.badGateway('Unable to validate file', error)
   }
 }

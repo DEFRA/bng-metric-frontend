@@ -21,7 +21,7 @@ export const getController = {
       return h.redirect(`/projects/${id}/upload-baseline-file`)
     }
 
-    const response = await getUploadStatus(uploadId)
+    const response = await getUploadStatus(request, uploadId)
     const uploadStatus = response.uploadStatus
 
     logger.info(
@@ -29,7 +29,7 @@ export const getController = {
     )
 
     if (uploadStatus === STATUS_READY) {
-      const result = await validateBaseline(uploadId)
+      const result = await validateBaseline(request, uploadId)
 
       request.yar.clear('pendingUploadId')
       request.yar.clear('uploadStartedAt')

@@ -1,12 +1,10 @@
 import Boom from '@hapi/boom'
-import Wreck from '@hapi/wreck'
 
+import { backendClient } from './backend-client.js'
 import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
 
 const logger = createLogger()
-
-const backendUrl = config.get('backend').url
 
 /**
  * Prepend the CDP uploader base URL for local development.
@@ -26,6 +24,7 @@ function buildUploadUrl(path) {
 
 /**
  * Initiate an upload session via the backend
+ * @param {object} request - The Hapi request, used to derive the signed user-context header
  * @param {object} options - Upload options
  * @param {string} options.redirect - URL to redirect to after upload
  * @param {string} options.s3Bucket - Destination S3 bucket
@@ -34,24 +33,18 @@ function buildUploadUrl(path) {
  * @returns {Promise<{uploadId: string, uploadUrl: string}>}
  * @throws {Boom} badGateway if the backend is unreachable or returns an error
  */
-export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
-  const url = `${backendUrl}/upload/initiate`
-
+export async function initiateUpload(
+  request,
+  { redirect, s3Bucket, s3Path, metadata }
+) {
   logger.info(
-    `Initiating upload - url: ${url}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}`
+    `Initiating upload - s3Bucket: ${s3Bucket}, s3Path: ${s3Path}`
   )
 
   try {
-    const { payload } = await Wreck.post(url, {
-      payload: JSON.stringify({
-        redirect,
-        s3Bucket,
-        s3Path,
-        metadata
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      },
+    const { payload } = await backendClient(request).post('/upload/initiate', {
+      payload: JSON.stringify({ redirect, s3Bucket, s3Path, metadata }),
+      headers: { 'Content-Type': 'application/json' },
       json: true
     })
 
@@ -64,7 +57,7 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
     const responsePayload = error?.data?.payload
 
     logger.error(
-      `Error initiating upload - url: ${url}, backendUrl: ${backendUrl}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error initiating upload - s3Bucket: ${s3Bucket}, s3Path: ${s3Path}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
 
     throw Boom.badGateway('Unable to initiate upload', error)
@@ -73,16 +66,18 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
 
 /**
  * Get the upload status from the backend
+ * @param {object} request - The Hapi request, used to derive the signed user-context header
  * @param {string} uploadId - The upload ID to check status for
  * @returns {Promise<{uploadStatus: string, error?: string}>}
  */
-export async function getUploadStatus(uploadId) {
-  const url = `${backendUrl}/upload/${uploadId}/status`
-
-  logger.info(`Fetching upload status - url: ${url}, uploadId: ${uploadId}`)
+export async function getUploadStatus(request, uploadId) {
+  logger.info(`Fetching upload status - uploadId: ${uploadId}`)
 
   try {
-    const { payload } = await Wreck.get(url, { json: true })
+    const { payload } = await backendClient(request).get(
+      `/upload/${uploadId}/status`,
+      { json: true }
+    )
 
     if (payload.numberOfRejectedFiles > 0) {
       logger.info(
@@ -102,11 +97,9 @@ export async function getUploadStatus(uploadId) {
     const responsePayload = error?.data?.payload
 
     logger.error(
-      `Error fetching upload status - url: ${url}, backendUrl: ${backendUrl}, uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error fetching upload status - uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
 
-    // Return an error status rather than throwing Boom — the caller retries
-    // via meta-refresh and the timeout mechanism will handle persistent failures
     return {
       uploadStatus: 'error',
       error: 'Unable to check upload status'

@@ -1,14 +1,15 @@
 import { initiateUpload } from '../common/services/uploader.js'
+import { backendClient } from '../common/services/backend-client.js'
 import { config } from '../../config/config.js'
 
-const backendUrl = config.get('backend').url
 const appBaseUrl = config.get('appBaseUrl')
 
-async function fetchProjectName(id) {
+async function fetchProjectName(request, id) {
   try {
-    const response = await fetch(`${backendUrl}/projects/${id}`)
-    const data = await response.json()
-    return data.project?.name ?? 'Project'
+    const { payload } = await backendClient(request).get(`/projects/${id}`, {
+      json: true
+    })
+    return payload?.project?.name ?? 'Project'
   } catch {
     return 'Project'
   }
@@ -30,7 +31,7 @@ function viewData(projectId, projectName) {
 export const getController = {
   async handler(request, h) {
     const { id } = request.params
-    const projectName = await fetchProjectName(id)
+    const projectName = await fetchProjectName(request, id)
     // Flash message: read once and clear so it doesn't persist on refresh
     const baselineError = request.yar.get('baselineError')
 
@@ -38,7 +39,7 @@ export const getController = {
       request.yar.clear('baselineError')
     }
 
-    const uploadSession = await initiateUpload({
+    const uploadSession = await initiateUpload(request, {
       redirect: `${appBaseUrl}/projects/${id}/upload-received`,
       s3Bucket: config.get('cdpUploader.bucket'),
       s3Path: config.get('cdpUploader.s3Path'),
