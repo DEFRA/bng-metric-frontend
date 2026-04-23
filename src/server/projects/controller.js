@@ -39,27 +39,6 @@ export const projectsListController = {
   }
 }
 
-export const projectDetailController = {
-  options: {
-    validate: {
-      params: Joi.object({
-        id: Joi.string().uuid().required()
-      })
-    }
-  },
-  async handler(request, h) {
-    const { id } = request.params
-    const response = await fetch(`${backendUrl}/projects/${id}`)
-    const data = await response.json()
-
-    return h.view('projects/detail', {
-      pageTitle: data.project?.name ?? 'Project',
-      heading: data.project?.name ?? 'Project',
-      project: data
-    })
-  }
-}
-
 export const projectTaskListController = {
   options: {
     validate: {
