@@ -1,6 +1,5 @@
 import {
   projectsListController,
-  projectDetailController,
   projectTaskListController
 } from './controller.js'
 import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
@@ -16,23 +15,6 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *     responses:
  *       200:
  *         description: Renders the project dashboard
- *       302:
- *         description: Redirects to login if not authenticated
- * /project-dashboard/{id}:
- *   get:
- *     tags:
- *       - Projects
- *     summary: Project detail
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: Renders the project detail page
  *       302:
  *         description: Redirects to login if not authenticated
  */
@@ -52,15 +34,6 @@ export const projects = {
           ...projectsListController,
           options: {
             ...projectsListController.options,
-            ...protectedRouteOptions
-          }
-        },
-        {
-          method: 'GET',
-          path: '/project-dashboard/{id}',
-          ...projectDetailController,
-          options: {
-            ...projectDetailController.options,
             ...protectedRouteOptions
           }
         },

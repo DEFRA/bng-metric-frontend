@@ -110,6 +110,31 @@ describe('#projectsListController', () => {
     expect(result).toEqual(expect.stringContaining('20 March 2024 at 12:00am'))
   })
 
+  test('Should render each project name as a link to its task list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: '/project-dashboard',
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(
+      expect.stringContaining(`href="/project-task-list/${mockProjects[0].id}"`)
+    )
+    expect(result).toEqual(
+      expect.stringContaining(`href="/project-task-list/${mockProjects[1].id}"`)
+    )
+    expect(result).toEqual(
+      expect.stringContaining(
+        `href="/project-task-list/${mockProjects[0].id}">Greenfield Meadow Restoration</a>`
+      )
+    )
+    expect(result).toEqual(
+      expect.stringContaining(
+        `href="/project-task-list/${mockProjects[1].id}">Oakwood Farm BNG Assessment</a>`
+      )
+    )
+  })
+
   test('Should show no projects message when backend returns empty array', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
@@ -284,11 +309,35 @@ describe('#projectTaskListController', () => {
   })
 
   test('Should return 504 when backend request times out', async () => {
-    const abortError = new DOMException(
-      'The operation was aborted.',
-      'AbortError'
-    )
-    vi.spyOn(global, 'fetch').mockRejectedValue(abortError)
+    vi.useFakeTimers()
+
+    vi.spyOn(global, 'fetch').mockImplementation((_url, { signal }) => {
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => {
+          const err = new Error('The operation was aborted')
+          err.name = 'AbortError'
+          reject(err)
+        })
+      })
+    })
+
+    const injectPromise = server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    await vi.advanceTimersByTimeAsync(5000)
+
+    const { statusCode } = await injectPromise
+
+    vi.useRealTimers()
+
+    expect(statusCode).toBe(statusCodes.gatewayTimeout)
+  })
+
+  test('Should return 500 when fetch throws an unexpected error', async () => {
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('Network failure'))
 
     const { statusCode } = await server.inject({
       method: 'GET',
@@ -296,7 +345,7 @@ describe('#projectTaskListController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(504)
+    expect(statusCode).toBe(statusCodes.internalServerError)
   })
 
   test('Should render error state when backend returns 404', async () => {
