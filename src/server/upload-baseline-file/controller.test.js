@@ -6,10 +6,13 @@ global.fetch = vi.fn()
 
 const { getController } = await import('./controller.js')
 
-const createMockH = () => ({
-  view: vi.fn().mockReturnThis(),
-  redirect: vi.fn().mockReturnThis()
-})
+const createMockH = () => {
+  const response = { header: vi.fn().mockReturnThis() }
+  return {
+    view: vi.fn().mockReturnValue(response),
+    redirect: vi.fn().mockReturnThis()
+  }
+}
 
 const createMockRequest = (projectId = 'proj-123') => ({
   params: { id: projectId },

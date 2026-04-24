@@ -47,10 +47,14 @@ export const getController = {
 
     request.yar.set('pendingUploadId', uploadSession.uploadId)
 
-    return h.view('upload-baseline-file/upload-baseline-file', {
-      ...viewData(id, projectName),
-      uploadUrl: uploadSession.uploadUrl,
-      error: baselineError ? { text: baselineError } : undefined
-    })
+    // Prevent caching — the CDP upload URL embedded in the form action
+    // is unique and short-lived, therefore must be fresh on every page load.
+    return h
+      .view('upload-baseline-file/upload-baseline-file', {
+        ...viewData(id, projectName),
+        uploadUrl: uploadSession.uploadUrl,
+        error: baselineError ? { text: baselineError } : undefined
+      })
+      .header('Cache-Control', 'no-store')
   }
 }
