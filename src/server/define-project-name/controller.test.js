@@ -164,6 +164,21 @@ describe('#defineProjectNamePostController', () => {
     expect(statusCode).toBe(502)
   })
 
+  test('Should return 504 when backend request times out', async () => {
+    vi.spyOn(global, 'fetch').mockRejectedValue(
+      Object.assign(new Error('aborted'), { name: 'AbortError' })
+    )
+
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: '/define-project-name',
+      payload: { projectName: 'My Valid Project' },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(504)
+  })
+
   test('Should show error summary when project name is empty', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
