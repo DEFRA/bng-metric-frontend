@@ -130,7 +130,7 @@ describe('#changeProjectNameController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(504)
+    expect(statusCode).toBe(statusCodes.gatewayTimeout)
   })
 
   test('Should return 404 when backend returns 404', async () => {
@@ -144,7 +144,7 @@ describe('#changeProjectNameController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(404)
+    expect(statusCode).toBe(statusCodes.notFound)
   })
 })
 
@@ -195,7 +195,7 @@ describe('#changeProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(302)
+    expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe(`/project-task-list/${projectId}`)
   })
 
@@ -209,7 +209,7 @@ describe('#changeProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(502)
+    expect(statusCode).toBe(statusCodes.badGateway)
   })
 
   test('Should show error summary when project name is empty', async () => {

@@ -147,7 +147,7 @@ describe('#defineProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(302)
+    expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/project-dashboard')
   })
 
@@ -161,7 +161,7 @@ describe('#defineProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(502)
+    expect(statusCode).toBe(statusCodes.badGateway)
   })
 
   test('Should return 504 when backend request times out', async () => {
@@ -176,7 +176,7 @@ describe('#defineProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(504)
+    expect(statusCode).toBe(statusCodes.gatewayTimeout)
   })
 
   test('Should show error summary when project name is empty', async () => {
