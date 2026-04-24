@@ -1,42 +1,8 @@
 import Boom from '@hapi/boom'
-
 import { config } from '../../config/config.js'
+import { validateProjectName } from '../common/helpers/project-name.js'
 
 const backendUrl = config.get('backend').url
-
-function hasInvalidChars(str) {
-  return [...str].some((char) => {
-    const codePoint = char.codePointAt(0)
-    return (
-      codePoint < 0x20 ||
-      codePoint === 0x7f ||
-      (codePoint >= 0xd800 && codePoint <= 0xdfff)
-    )
-  })
-}
-
-function validateProjectName(projectName) {
-  const errors = []
-
-  if (!projectName || projectName.trim() === '') {
-    errors.push({
-      text: 'Enter a project name',
-      href: '#project-name'
-    })
-  } else if (projectName.length > 1000) {
-    errors.push({
-      text: 'Project name must be 1000 characters or fewer',
-      href: '#project-name'
-    })
-  } else if (hasInvalidChars(projectName)) {
-    errors.push({
-      text: 'Project name must only contain valid characters',
-      href: '#project-name'
-    })
-  }
-
-  return errors
-}
 
 export const defineProjectNameController = {
   handler(_request, h) {
