@@ -3,6 +3,7 @@ import { config } from '../../config/config.js'
 import { validateProjectName } from '../common/helpers/project-name.js'
 
 const backendUrl = config.get('backend').url
+const BACKEND_TIMEOUT_MS = 5000
 
 export const defineProjectNameController = {
   handler(_request, h) {
@@ -28,14 +29,29 @@ export const defineProjectNamePostController = {
       })
     }
 
-    const response = await fetch(`${backendUrl}/projects/new`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project: { name: projectName },
-        userId: request.auth.credentials.sub
+    const abort = new AbortController()
+    const timeout = setTimeout(() => abort.abort(), BACKEND_TIMEOUT_MS)
+
+    let response
+
+    try {
+      response = await fetch(`${backendUrl}/projects/new`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: { name: projectName },
+          userId: request.auth.credentials.sub
+        }),
+        signal: abort.signal
       })
-    })
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw Boom.gatewayTimeout('Backend request timed out')
+      }
+      throw err
+    } finally {
+      clearTimeout(timeout)
+    }
 
     if (!response.ok) {
       throw Boom.badGateway('Failed to create project')
