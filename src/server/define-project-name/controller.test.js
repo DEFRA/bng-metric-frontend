@@ -178,7 +178,8 @@ describe('#defineProjectNamePostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Valid Project' },
+      payload: { projectName: 'My Valid Project', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 

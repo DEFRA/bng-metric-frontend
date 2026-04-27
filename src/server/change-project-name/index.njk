@@ -23,7 +23,7 @@
         }) }}
       {% endif %}
 
-      <form method="post" action="/change-project-name/{{ projectId }}" novalidate>
+      {% call appForm({ action: "/change-project-name/" + projectId }) %}
         <div class="govuk-form-group{% if errorMessage %} govuk-form-group--error{% endif %}">
           <h1 class="govuk-label-wrapper">
             <label class="govuk-label govuk-label--l" for="project-name">
@@ -52,7 +52,7 @@
         {{ govukButton({
           text: "Save and continue"
         }) }}
-      </form>
+      {% endcall %}
     </div>
   </div>
 {% endblock %}
