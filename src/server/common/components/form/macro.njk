@@ -1,0 +1,33 @@
+{#
+  Usage:
+    {% call appForm({ action: "/define-project-name" }) %}
+      ...form fields...
+    {% endcall %}
+
+  Renders a <form method="post"> with the CSRF token injected as a hidden
+  `crumb` input. The `crumb` value is supplied by @hapi/crumb via
+  addToViewContext — no handler needs to pass it explicitly. POSTs from forms
+  that do not go through this macro will be rejected as 403 by crumb.
+
+  Options:
+    action      required, string
+    enctype     optional, e.g. "multipart/form-data"
+    id          optional
+    classes     optional, extra classes
+    attributes  optional, dict of extra HTML attributes
+    novalidate  optional, boolean (default true, matches GOV.UK form pattern)
+#}
+{% macro appForm(params) %}
+  <form
+    method="post"
+    action="{{ params.action }}"
+    {% if params.enctype %}enctype="{{ params.enctype }}"{% endif %}
+    {% if params.id %}id="{{ params.id }}"{% endif %}
+    {% if params.classes %}class="{{ params.classes }}"{% endif %}
+    {% for name, value in (params.attributes or {}) %} {{ name }}="{{ value }}"{% endfor %}
+    {% if params.novalidate !== false %}novalidate{% endif %}
+  >
+    <input type="hidden" name="crumb" value="{{ crumb }}">
+    {{ caller() }}
+  </form>
+{% endmacro %}

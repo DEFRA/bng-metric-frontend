@@ -59,6 +59,7 @@
           </p>
         </template>
 
+        {# Posts to the CDP uploader service, not this app — no appForm/crumb. #}
         <form action="{{ uploadUrl }}" method="post" enctype="multipart/form-data" novalidate>
           {{ govukFileUpload({
             id: "file",
