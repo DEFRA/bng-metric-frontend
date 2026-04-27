@@ -16,12 +16,21 @@ const backendUrl = config.get('backend').url
 export async function validateBaseline(uploadId) {
   const url = `${backendUrl}/baseline/validate/${uploadId}`
 
-  logger.info(`Validating baseline - uploadId: ${uploadId}`)
+  logger.info(`Validating baseline - url: ${url}, uploadId: ${uploadId}`)
 
   try {
     const { payload } = await Wreck.post(url, { json: true })
 
-    return { valid: payload.valid ?? false }
+    if (!payload.valid) {
+      const errorMessage =
+        payload.errors?.join(', ') ?? 'Unable to validate file'
+      logger.info(
+        `Baseline validation failed - uploadId: ${uploadId}, errors: ${errorMessage}`
+      )
+      return { valid: false, error: errorMessage }
+    }
+
+    return { valid: true }
   } catch (error) {
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
