@@ -2,7 +2,7 @@ import Joi from 'joi'
 import Boom from '@hapi/boom'
 
 import { config } from '../../config/config.js'
-import { validateProjectName } from '../common/helpers/project-name.js'
+import { projectNameSchema } from '../common/helpers/project-name.js'
 
 const backendUrl = config.get('backend').url
 const BACKEND_TIMEOUT_MS = 5000
@@ -35,6 +35,10 @@ export const changeProjectNameController = {
       clearTimeout(timeout)
     }
 
+    if (!response.ok) {
+      throw Boom.badGateway('Failed to fetch projects')
+    }
+
     const data = await response.json()
 
     if (data?.statusCode === 404) {
@@ -42,8 +46,8 @@ export const changeProjectNameController = {
     }
 
     return h.view('change-project-name/index', {
-      pageTitle: 'Change Project Name',
-      heading: 'Change Project Name',
+      pageTitle: 'Project Name',
+      heading: 'Project Name',
       projectId: id,
       projectName: data?.project?.name
     })
@@ -55,24 +59,39 @@ export const changeProjectNamePostController = {
     validate: {
       params: Joi.object({
         id: Joi.string().uuid().required()
-      })
+      }),
+      payload: Joi.object({
+        projectName: projectNameSchema
+      }),
+      failAction: async (request, h, err) => {
+        const isPayloadError = err.details.some(
+          (d) => d.path[0] === 'projectName'
+        )
+        if (!isPayloadError) {
+          throw err
+        }
+        const { id } = request.params
+        const projectName = request.payload?.projectName
+        const errors = err.details.map((d) => ({
+          text: d.message,
+          href: '#project-name'
+        }))
+        return h
+          .view('change-project-name/index', {
+            pageTitle: 'Error: Project Name',
+            heading: 'Project Name',
+            projectId: id,
+            projectName,
+            errors,
+            errorMessage: { text: errors[0].text }
+          })
+          .takeover()
+      }
     }
   },
   async handler(request, h) {
     const { id } = request.params
     const { projectName } = request.payload
-    const errors = validateProjectName(projectName)
-
-    if (errors.length > 0) {
-      return h.view('change-project-name/index', {
-        pageTitle: 'Error: Change Project Name',
-        heading: 'Change Project Name',
-        projectId: id,
-        projectName,
-        errors,
-        errorMessage: { text: errors[0].text }
-      })
-    }
 
     const response = await fetch(`${backendUrl}/projects/${id}`, {
       method: 'PATCH',

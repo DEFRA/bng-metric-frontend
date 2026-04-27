@@ -1,6 +1,6 @@
 import Joi from 'joi'
 
-const projectNameSchema = Joi.string()
+export const projectNameSchema = Joi.string()
   .trim()
   .empty('')
   .required()
