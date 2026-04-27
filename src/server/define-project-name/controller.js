@@ -9,7 +9,7 @@ export const defineProjectNameController = {
   handler(_request, h) {
     return h.view('define-project-name/index', {
       pageTitle: 'Define Project Name',
-      heading: 'Project Name'
+      heading: 'Add a name for your Biodiversity Net Gain project'
     })
   }
 }
