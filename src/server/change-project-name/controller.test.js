@@ -37,6 +37,7 @@ describe('#changeProjectNameController', () => {
 
   beforeEach(() => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
       json: () => Promise.resolve(mockProject)
     })
   })
@@ -54,7 +55,7 @@ describe('#changeProjectNameController', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(
-      expect.stringContaining('Change Project Name - Biodiversity Net Gain')
+      expect.stringContaining('Project Name - Biodiversity Net Gain')
     )
   })
 
@@ -133,8 +134,21 @@ describe('#changeProjectNameController', () => {
     expect(statusCode).toBe(statusCodes.gatewayTimeout)
   })
 
+  test('Should return 502 when backend returns a non-2xx response', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500 })
+
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: changeProjectNameUrl,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badGateway)
+  })
+
   test('Should return 404 when backend returns 404', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
       json: () => Promise.resolve({ statusCode: 404 })
     })
 
@@ -224,9 +238,7 @@ describe('#changeProjectNamePostController', () => {
     expect(result).toEqual(expect.stringContaining('There is a problem'))
     expect(result).toEqual(expect.stringContaining('Enter a project name'))
     expect(result).toEqual(
-      expect.stringContaining(
-        'Error: Change Project Name - Biodiversity Net Gain'
-      )
+      expect.stringContaining('Error: Project Name - Biodiversity Net Gain')
     )
     expect(fetch).not.toHaveBeenCalled()
   })
@@ -297,5 +309,33 @@ describe('#changeProjectNamePostController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.badRequest)
+  })
+
+  test('Should show error summary when projectName field is missing from payload', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'POST',
+      url: changeProjectNameUrl,
+      payload: {},
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('There is a problem'))
+    expect(result).toEqual(expect.stringContaining('Enter a project name'))
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  test('Should show error summary when project name is whitespace only', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'POST',
+      url: changeProjectNameUrl,
+      payload: { projectName: '   ' },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('There is a problem'))
+    expect(result).toEqual(expect.stringContaining('Enter a project name'))
+    expect(fetch).not.toHaveBeenCalled()
   })
 })
