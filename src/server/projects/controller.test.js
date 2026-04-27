@@ -288,7 +288,7 @@ describe('#projectTaskListController', () => {
     )
   })
 
-  test('Should contain a link to the proejct details in the task list', async () => {
+  test('Should contain a link to the project details in the task list', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: projectTaskListurl,
