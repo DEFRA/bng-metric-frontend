@@ -288,6 +288,20 @@ describe('#projectTaskListController', () => {
     )
   })
 
+  test('Should contain a link to the proejct details in the task list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(
+      expect.stringContaining(
+        `<a class="govuk-link govuk-task-list__link" href="/project-details/${mockProjects[0].id}"`
+      )
+    )
+  })
+
   test('Should redirect to login when unauthenticated', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'GET',

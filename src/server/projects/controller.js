@@ -73,6 +73,7 @@ export const projectTaskListController = {
       pageTitle: 'Project Task List',
       heading: data?.project?.name ?? 'Project not found',
       data,
+      id,
       error: data?.statusCode === 404
     })
   }
