@@ -17,11 +17,11 @@ async function fetchProjectName(id) {
 function viewData(projectId, projectName) {
   return {
     pageTitle: 'Upload Baseline File',
-    heading: 'Upload a GeoPackage file',
+    heading: 'Upload a GeoPackage (.gpkg) file',
     caption: projectName,
     projectId,
     instructionText:
-      'Upload a GIS file containing your red line boundary and baseline habitat parcels.',
+      'Upload a GeoPackage (.gpkg) file containing a red line boundary and baseline habitat parcels.',
     secondaryText:
       'We\u2019ll identify the layers in your file and look up location information automatically.'
   }

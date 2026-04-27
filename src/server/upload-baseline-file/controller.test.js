@@ -52,7 +52,7 @@ describe('upload-baseline-file controller', () => {
       'upload-baseline-file/upload-baseline-file',
       expect.objectContaining({
         uploadUrl: '/upload-and-scan/abc-123',
-        heading: 'Upload a GeoPackage file'
+        heading: 'Upload a GeoPackage (.gpkg) file'
       })
     )
   })
