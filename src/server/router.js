@@ -12,6 +12,7 @@ import { uploadBaselineFile } from './upload-baseline-file/index.js'
 import { uploadReceived } from './upload-received/index.js'
 import { uploadResult } from './upload-result/index.js'
 import { checkBaselineImport } from './check-baseline-import/index.js'
+import { invalidFile } from './invalid-file/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -37,7 +38,8 @@ export const router = {
         uploadBaselineFile,
         uploadReceived,
         uploadResult,
-        checkBaselineImport
+        checkBaselineImport,
+        invalidFile
       ])
 
       // Static assets
