@@ -15,52 +15,51 @@
         <li>you can still make changes to a section even after it is marked complete</li>
         <li>you can save your progress at the end of each section if you need to come back later</li>
       </ul>
-      {{
-        govukTaskList({
-          idPrefix: "project-task-list",
-          attributes: { "data-testid": "project-task-list-component"},
-          items: [
-            {
-              title: {
+      {{govukTaskList({
+        idPrefix: "project-task-list",
+        attributes: { "data-testid": "project-task-list-component"},
+        items: [
+          {
+            title: {
               text: "Project Name"
-              },
-              status: {
-                text: "Completed"
-              }
             },
-            {
-              title: {
-                text: "Project Details"
-              },
-              status: {
-                tag: {
-                  text: "Not yet started",
-                  classes: "govuk-tag--blue"
-                }
-              }
+            status: {
+              text: "Completed"
+            }
+          },
+          {
+            title: {
+              text: "Project Details"
             },
-            {
-              title: {
-                text: "On-site baseline habitats"
-              },
-              status: {
-                tag: {
-                  text: "Not yet started",
-                  classes: "govuk-tag--blue"
-                }
-              }
-            },
-            {
-              title: {
-                text: "On-site post intervention habitats"
-              },
-              status: {
-                text: "Incomplete"
+            status: {
+              tag: {
+                text: "Not yet started",
+                classes: "govuk-tag--blue"
               }
             }
-          ]
-        })
-      }}
+          },
+          {
+            title: {
+              text: "On-site baseline habitats"
+            },
+            status: {
+              tag: {
+                text: "Not yet started",
+                classes: "govuk-tag--blue"
+              }
+            }
+          },
+          {
+            title: {
+              text: "On-site post intervention habitats"
+            },
+            href: "/projects/" + id + "/upload-baseline-file",
+            status: {
+              text: "Incomplete"
+            }
+          }
+        ]
+      })}}
     </div>
   </div>
   {% endif %}
