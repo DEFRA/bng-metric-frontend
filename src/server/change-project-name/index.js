@@ -49,7 +49,7 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *       302:
  *         description: Redirects to the project task list on success
  *       400:
- *         description: Validation error, re-renders the form
+ *         description: Validation error, send to error page
  */
 const protectedRouteOptions = {
   auth: 'session',
