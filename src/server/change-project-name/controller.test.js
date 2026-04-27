@@ -1,5 +1,6 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import { primeCrumb } from '../common/test-helpers/csrf.js'
 
 const authCredentials = {
   sub: 'test-user-123',
@@ -164,6 +165,7 @@ describe('#changeProjectNameController', () => {
 
 describe('#changeProjectNamePostController', () => {
   let server
+  let crumb
 
   beforeAll(async () => {
     server = await createServer()
@@ -174,8 +176,9 @@ describe('#changeProjectNamePostController', () => {
     await server.stop({ timeout: 0 })
   })
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true })
+    crumb = await primeCrumb(server)
   })
 
   afterEach(() => {
@@ -186,7 +189,8 @@ describe('#changeProjectNamePostController', () => {
     await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: 'Updated Project Name' },
+      payload: { projectName: 'Updated Project Name', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -205,7 +209,8 @@ describe('#changeProjectNamePostController', () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: 'Updated Project Name' },
+      payload: { projectName: 'Updated Project Name', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -219,7 +224,8 @@ describe('#changeProjectNamePostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: 'Updated Project Name' },
+      payload: { projectName: 'Updated Project Name', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -230,7 +236,8 @@ describe('#changeProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: '' },
+      payload: { projectName: '', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -247,7 +254,8 @@ describe('#changeProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: 'a'.repeat(1001) },
+      payload: { projectName: 'a'.repeat(1001), crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -263,7 +271,8 @@ describe('#changeProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: 'Invalid\x00Name' },
+      payload: { projectName: 'Invalid\x00Name', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -279,7 +288,8 @@ describe('#changeProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: '' },
+      payload: { projectName: '', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -292,7 +302,8 @@ describe('#changeProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: 'My Project\x01' },
+      payload: { projectName: 'My Project\x01', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -304,7 +315,8 @@ describe('#changeProjectNamePostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url: '/change-project-name/not-a-uuid',
-      payload: { projectName: 'Valid Name' },
+      payload: { projectName: 'Valid Name', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -315,7 +327,8 @@ describe('#changeProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: {},
+      payload: { crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -329,13 +342,26 @@ describe('#changeProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
-      payload: { projectName: '   ' },
+      payload: { projectName: '   ', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(expect.stringContaining('There is a problem'))
     expect(result).toEqual(expect.stringContaining('Enter a project name'))
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  test('Should reject POST with 403 when crumb is missing', async () => {
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: changeProjectNameUrl,
+      payload: { projectName: 'Updated Project Name' },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.forbidden)
     expect(fetch).not.toHaveBeenCalled()
   })
 })
