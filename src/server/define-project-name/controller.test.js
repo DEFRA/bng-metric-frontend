@@ -46,7 +46,11 @@ describe('#defineProjectNameController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('Project Name'))
+    expect(result).toEqual(
+      expect.stringContaining(
+        'Add a name for your Biodiversity Net Gain project'
+      )
+    )
   })
 
   test('Should render the hint text', async () => {
@@ -59,7 +63,7 @@ describe('#defineProjectNameController', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(
       expect.stringContaining(
-        'Enter a descriptive name to help you find your project later'
+        'Give your project a unique name so you can find it later.'
       )
     )
   })
