@@ -111,4 +111,93 @@ describe('upload-baseline-file controller', () => {
       })
     )
   })
+
+  it('should fall back to "Project" when backend returns no project key', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      json: () => Promise.resolve({})
+    })
+    vi.mocked(initiateUpload).mockResolvedValue({
+      uploadId: 'abc-123',
+      uploadUrl: '/upload-and-scan/abc-123'
+    })
+
+    const h = createMockH()
+    const request = createMockRequest()
+
+    await getController.handler(request, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-baseline-file/upload-baseline-file',
+      expect.objectContaining({
+        caption: 'Project'
+      })
+    )
+  })
+
+  it('should display flash error and clear it from session', async () => {
+    vi.mocked(initiateUpload).mockResolvedValue({
+      uploadId: 'abc-123',
+      uploadUrl: '/upload-and-scan/abc-123'
+    })
+
+    const h = createMockH()
+    const request = {
+      ...createMockRequest(),
+      yar: {
+        set: vi.fn(),
+        get: vi.fn((key) =>
+          key === 'baselineError' ? 'File must be a GeoPackage' : null
+        ),
+        clear: vi.fn()
+      }
+    }
+
+    await getController.handler(request, h)
+
+    expect(request.yar.clear).toHaveBeenCalledWith('baselineError')
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-baseline-file/upload-baseline-file',
+      expect.objectContaining({
+        error: { text: 'File must be a GeoPackage' }
+      })
+    )
+  })
+
+  it('should pass error as undefined when there is no flash error', async () => {
+    vi.mocked(initiateUpload).mockResolvedValue({
+      uploadId: 'abc-123',
+      uploadUrl: '/upload-and-scan/abc-123'
+    })
+
+    const h = createMockH()
+    const request = createMockRequest()
+
+    await getController.handler(request, h)
+
+    expect(request.yar.clear).not.toHaveBeenCalledWith('baselineError')
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-baseline-file/upload-baseline-file',
+      expect.objectContaining({
+        error: undefined
+      })
+    )
+  })
+
+  it('should set Cache-Control: no-store header on the response', async () => {
+    vi.mocked(initiateUpload).mockResolvedValue({
+      uploadId: 'abc-123',
+      uploadUrl: '/upload-and-scan/abc-123'
+    })
+
+    const response = { header: vi.fn().mockReturnThis() }
+    const h = {
+      view: vi.fn().mockReturnValue(response),
+      redirect: vi.fn().mockReturnThis()
+    }
+    const request = createMockRequest()
+
+    await getController.handler(request, h)
+
+    expect(response.header).toHaveBeenCalledWith('Cache-Control', 'no-store')
+  })
 })
