@@ -298,6 +298,20 @@ describe('#projectTaskListController', () => {
     expect(headers.location).toBe('/auth/forbidden')
   })
 
+  test('Should contain a link to upload baselin in the task list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(
+      expect.stringContaining(
+        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-baseline-file"`
+      )
+    )
+  })
+
   test('Should return bad request when project id is not a UUID', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
