@@ -19,7 +19,8 @@ export const invalidFile = {
         {
           method: 'GET',
           path: '/invalid-file',
-          ...invalidFileController
+          ...invalidFileController,
+          options: { auth: 'session' }
         }
       ])
     }
