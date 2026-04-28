@@ -36,7 +36,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    needs: parse-depends-on    
+    needs: parse-depends-on
     uses: DEFRA/bng-metric-harness/.github/workflows/integration-tests.yml@${{ needs.parse-depends-on.outputs.harness-branch }}
     with:
       frontend-branch: ${{ github.head_ref }}

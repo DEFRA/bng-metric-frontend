@@ -1,5 +1,6 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import { primeCrumb } from '../common/test-helpers/csrf.js'
 
 const authCredentials = {
   sub: 'test-user-123',
@@ -101,6 +102,7 @@ describe('#defineProjectNameController', () => {
 
 describe('#defineProjectNamePostController', () => {
   let server
+  let crumb
 
   beforeAll(async () => {
     server = await createServer()
@@ -111,8 +113,9 @@ describe('#defineProjectNamePostController', () => {
     await server.stop({ timeout: 0 })
   })
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true })
+    crumb = await primeCrumb(server)
   })
 
   afterEach(() => {
@@ -123,7 +126,8 @@ describe('#defineProjectNamePostController', () => {
     await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Valid Project' },
+      payload: { projectName: 'My Valid Project', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -143,11 +147,12 @@ describe('#defineProjectNamePostController', () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Valid Project' },
+      payload: { projectName: 'My Valid Project', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(302)
+    expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/project-dashboard')
   })
 
@@ -157,18 +162,36 @@ describe('#defineProjectNamePostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Valid Project' },
+      payload: { projectName: 'My Valid Project', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(502)
+    expect(statusCode).toBe(statusCodes.badGateway)
+  })
+
+  test('Should return 504 when backend request times out', async () => {
+    vi.spyOn(global, 'fetch').mockRejectedValue(
+      Object.assign(new Error('aborted'), { name: 'AbortError' })
+    )
+
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: '/define-project-name',
+      payload: { projectName: 'My Valid Project', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.gatewayTimeout)
   })
 
   test('Should show error summary when project name is empty', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: '' },
+      payload: { projectName: '', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -187,7 +210,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'a'.repeat(1001) },
+      payload: { projectName: 'a'.repeat(1001), crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -203,7 +227,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'Invalid\x00Name' },
+      payload: { projectName: 'Invalid\x00Name', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -219,7 +244,8 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: '' },
+      payload: { projectName: '', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
@@ -232,11 +258,40 @@ describe('#defineProjectNamePostController', () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url: '/define-project-name',
-      payload: { projectName: 'My Project\x01' },
+      payload: { projectName: 'My Project\x01', crumb: crumb.token },
+      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(expect.stringContaining('value="My Project'))
+  })
+
+  test('Should reject POST with 403 when crumb is missing', async () => {
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: '/define-project-name',
+      payload: { projectName: 'My Valid Project' },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  test('Should reject POST with 403 when crumb cookie and payload mismatch', async () => {
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: '/define-project-name',
+      payload: {
+        projectName: 'My Valid Project',
+        crumb: 'not-the-right-token'
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

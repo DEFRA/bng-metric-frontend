@@ -7,6 +7,7 @@ import { auth } from './auth/index.js'
 import { dbInfo } from './db-info/index.js'
 import { projects } from './projects/index.js'
 import { defineProjectName } from './define-project-name/index.js'
+import { changeProjectName } from './change-project-name/index.js'
 import { uploadBaselineFile } from './upload-baseline-file/index.js'
 import { uploadReceived } from './upload-received/index.js'
 import { uploadResult } from './upload-result/index.js'
@@ -32,6 +33,7 @@ export const router = {
         dbInfo,
         projects,
         defineProjectName,
+        changeProjectName,
         uploadBaselineFile,
         uploadReceived,
         uploadResult,
