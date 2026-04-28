@@ -58,26 +58,36 @@ describe('upload-received controller', () => {
     expect(h.view).not.toHaveBeenCalled()
   })
 
-  it('should redirect to upload page with error when validation fails', async () => {
+  it('should redirect to dropout page with structured errors when validation fails', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
+    const errors = [
+      { code: 'NO_HABITAT_AREAS', ac: 'AC3', message: 'No habitat areas' }
+    ]
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
     vi.mocked(validateBaseline).mockResolvedValue({
       valid: false,
-      error: 'File is not a valid GeoPackage'
+      errors
     })
 
     await getController.handler(request, h)
 
     expect(validateBaseline).toHaveBeenCalledWith('test-upload-id')
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
-    expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineError',
-      'File is not a valid GeoPackage'
-    )
-    expect(h.redirect).toHaveBeenCalledWith(
-      '/projects/proj-123/upload-baseline-file'
-    )
+    expect(request.yar.set).toHaveBeenCalledWith('baselineErrors', errors)
+    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
+  })
+
+  it('should default to an empty errors array when validation fails without errors', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validateBaseline).mockResolvedValue({ valid: false })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith('baselineErrors', [])
+    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
   })
 
   it('should render processing view when status is pending', async () => {
