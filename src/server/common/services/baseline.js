@@ -10,8 +10,12 @@ const backendUrl = config.get('backend').url
 
 /**
  * Call the backend to validate the uploaded baseline file.
+ *
+ * Returns the structured error array when validation fails, so the
+ * controller can hand the detail to the dropout page (BMD-367).
+ *
  * @param {string} uploadId - The upload ID to validate
- * @returns {Promise<{valid: boolean, error?: string}>}
+ * @returns {Promise<{valid: boolean, errors?: object[]}>}
  */
 export async function validateBaseline(uploadId) {
   const url = `${backendUrl}/baseline/validate/${uploadId}`
@@ -22,12 +26,11 @@ export async function validateBaseline(uploadId) {
     const { payload } = await Wreck.post(url, { json: true })
 
     if (!payload.valid) {
-      const errorMessage =
-        payload.errors?.join(', ') ?? 'Unable to validate file'
+      const errors = Array.isArray(payload.errors) ? payload.errors : []
       logger.info(
-        `Baseline validation failed - uploadId: ${uploadId}, errors: ${errorMessage}`
+        `Baseline validation failed - uploadId: ${uploadId}, errorCount: ${errors.length}, codes: ${errors.map((e) => e.code).join(',')}`
       )
-      return { valid: false, error: errorMessage }
+      return { valid: false, errors }
     }
 
     return { valid: true }
@@ -40,12 +43,17 @@ export async function validateBaseline(uploadId) {
     )
 
     // Client errors from the backend indicate a validation problem —
-    // return the error message so the caller can show it to the user
+    // surface the structured errors if present.
     if (statusCode >= 400 && statusCode < 500) {
-      return {
-        valid: false,
-        error: responsePayload?.error ?? 'Unable to validate file'
-      }
+      const errors = Array.isArray(responsePayload?.errors)
+        ? responsePayload.errors
+        : [
+            {
+              code: 'VALIDATION_FAILED',
+              message: responsePayload?.error ?? 'Unable to validate file'
+            }
+          ]
+      return { valid: false, errors }
     }
 
     // Server or network errors — throw a Boom error so Hapi handles
