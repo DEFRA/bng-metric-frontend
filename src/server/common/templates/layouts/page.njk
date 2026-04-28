@@ -7,10 +7,12 @@
 
 {# Import custom components globally #}
 {% from "heading/macro.njk" import appHeading %}
+{% from "form/macro.njk" import appForm with context %}
 
 {% set mainClasses = "app-main-wrapper" %}
 
 {% block head %}
+  <meta name="csrf-token" content="{{ crumb }}">
   <link href="{{ getAssetPath('stylesheets/application.scss') }}" rel="stylesheet">
 {% endblock %}
 

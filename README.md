@@ -24,6 +24,7 @@ Core delivery platform Node.js Frontend Template.
   - [Docker Compose](#docker-compose)
   - [Dependabot](#dependabot)
   - [SonarCloud](#sonarcloud)
+- [Security](#security)
 - [Licence](#licence)
   - [About the licence](#about-the-licence)
 
@@ -194,6 +195,16 @@ the [.github/example.dependabot.yml](.github/example.dependabot.yml) to `.github
 ### SonarCloud
 
 Instructions for setting up SonarCloud can be found in [sonar-project.properties](./sonar-project.properties).
+
+## Security
+
+CSRF protection is enabled globally via [`@hapi/crumb`](https://github.com/hapijs/crumb).
+See [docs/csrf.md](docs/csrf.md) before adding forms or state-changing routes —
+it covers the `appForm` macro, the `primeCrumb` test helper, when to disable
+crumb, and a PR review checklist.
+
+Authentication (OIDC via Defra Identity) is documented in
+[docs/authentication.md](docs/authentication.md).
 
 ## Licence
 

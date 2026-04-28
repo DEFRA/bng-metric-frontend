@@ -8,7 +8,7 @@
   {{ super() }}
   {{ govukBackLink({
     text: "Back",
-    href: "/project-dashboard"
+    href: "/project-task-list/" + projectId
   }) }}
 {% endblock %}
 
@@ -23,7 +23,7 @@
         }) }}
       {% endif %}
 
-      {% call appForm({ action: "/define-project-name" }) %}
+      {% call appForm({ action: "/change-project-name/" + projectId }) %}
         <div class="govuk-form-group{% if errorMessage %} govuk-form-group--error{% endif %}">
           <h1 class="govuk-label-wrapper">
             <label class="govuk-label govuk-label--l" for="project-name">
