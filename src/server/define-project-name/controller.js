@@ -1,42 +1,9 @@
 import Boom from '@hapi/boom'
-
 import { config } from '../../config/config.js'
+import { validateProjectName } from '../common/helpers/project-name.js'
 
 const backendUrl = config.get('backend').url
-
-function hasInvalidChars(str) {
-  return [...str].some((char) => {
-    const codePoint = char.codePointAt(0)
-    return (
-      codePoint < 0x20 ||
-      codePoint === 0x7f ||
-      (codePoint >= 0xd800 && codePoint <= 0xdfff)
-    )
-  })
-}
-
-function validateProjectName(projectName) {
-  const errors = []
-
-  if (!projectName || projectName.trim() === '') {
-    errors.push({
-      text: 'Enter a project name',
-      href: '#project-name'
-    })
-  } else if (projectName.length > 1000) {
-    errors.push({
-      text: 'Project name must be 1000 characters or fewer',
-      href: '#project-name'
-    })
-  } else if (hasInvalidChars(projectName)) {
-    errors.push({
-      text: 'Project name must only contain valid characters',
-      href: '#project-name'
-    })
-  }
-
-  return errors
-}
+const BACKEND_TIMEOUT_MS = 5000
 
 export const defineProjectNameController = {
   handler(_request, h) {
@@ -62,14 +29,29 @@ export const defineProjectNamePostController = {
       })
     }
 
-    const response = await fetch(`${backendUrl}/projects/new`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project: { name: projectName },
-        userId: request.auth.credentials.sub
+    const abort = new AbortController()
+    const timeout = setTimeout(() => abort.abort(), BACKEND_TIMEOUT_MS)
+
+    let response
+
+    try {
+      response = await fetch(`${backendUrl}/projects/new`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: { name: projectName },
+          userId: request.auth.credentials.sub
+        }),
+        signal: abort.signal
       })
-    })
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw Boom.gatewayTimeout('Backend request timed out')
+      }
+      throw err
+    } finally {
+      clearTimeout(timeout)
+    }
 
     if (!response.ok) {
       throw Boom.badGateway('Failed to create project')
