@@ -1,19 +1,5 @@
 {% extends 'layouts/page.njk' %}
 
-{% block header %}
-  {{ govukHeader({
-    homepageUrl: "https://www.gov.uk/",
-    classes: "app-header",
-    containerClasses: "govuk-width-container",
-    useTudorCrown: true
-  }) }}
-
-  {{ govukServiceNavigation({
-    serviceName: serviceName,
-    serviceUrl: serviceUrl
-  }) }}
-{% endblock %}
-
 {% block content %}
   {{ appHeading({
     text: heading,
