@@ -29,41 +29,37 @@
                 text: "Completed"
               }
             },
-            status: {
-              text: "Completed"
-            }
-          },
-          {
-            title: {
-              text: "Project Details"
+            {
+              title: {
+                text: "Project Details"
+              },
+              status: {
+                tag: {
+                  text: "Not yet started",
+                  classes: "govuk-tag--blue"
+                }
+              }
             },
-            status: {
-              tag: {
-                text: "Not yet started",
-                classes: "govuk-tag--blue"
+            {
+              title: {
+                text: "On-site baseline habitats"
+              },
+              status: {
+                tag: {
+                  text: "Not yet started",
+                  classes: "govuk-tag--blue"
+                }
+              }
+            },
+            {
+              title: {
+                text: "On-site post intervention habitats"
+              },
+              href: "/projects/" + id + "/upload-baseline-file",
+              status: {
+                text: "Incomplete"
               }
             }
-          },
-          {
-            title: {
-              text: "On-site baseline habitats"
-            },
-            status: {
-              tag: {
-                text: "Not yet started",
-                classes: "govuk-tag--blue"
-              }
-            }
-          },
-          {
-            title: {
-              text: "On-site post intervention habitats"
-            },
-            href: "/projects/" + id + "/upload-baseline-file",
-            status: {
-              text: "Incomplete"
-            }
-          }
         ]
       })}}
     </div>
