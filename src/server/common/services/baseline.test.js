@@ -20,79 +20,61 @@ describe('#validateBaseline', () => {
     expect(result).toEqual({ valid: true })
   })
 
-  test('Should return valid:false with error message when backend reports invalid file', async () => {
-    vi.spyOn(Wreck, 'post').mockResolvedValue({
-      payload: {
-        valid: false,
-        errors: ['File is not a valid SQLite database']
+  test('Should forward the structured error array when invalid', async () => {
+    const errors = [
+      { code: 'NO_HABITAT_AREAS', ac: 'AC3', message: 'No habitat areas' },
+      {
+        code: 'AREA_PARCELS_OUTSIDE_REDLINE',
+        ac: 'AC8',
+        message: 'Areas outside redline',
+        offendingFeatures: [{ id: 1 }]
       }
+    ]
+    vi.spyOn(Wreck, 'post').mockResolvedValue({
+      payload: { valid: false, errors }
     })
 
     const result = await validateBaseline(uploadId)
 
-    expect(result).toEqual({
-      valid: false,
-      error: 'File is not a valid SQLite database'
-    })
+    expect(result).toEqual({ valid: false, errors })
   })
 
-  test('Should join multiple errors into a single string', async () => {
-    vi.spyOn(Wreck, 'post').mockResolvedValue({
-      payload: {
-        valid: false,
-        errors: ['Missing required table', 'Invalid schema version']
-      }
-    })
-
-    const result = await validateBaseline(uploadId)
-
-    expect(result).toEqual({
-      valid: false,
-      error: 'Missing required table, Invalid schema version'
-    })
-  })
-
-  test('Should return fallback error message when invalid and no errors array', async () => {
+  test('Should default to an empty errors array when payload omits one', async () => {
     vi.spyOn(Wreck, 'post').mockResolvedValue({
       payload: { valid: false }
     })
 
     const result = await validateBaseline(uploadId)
 
-    expect(result).toEqual({
-      valid: false,
-      error: 'Unable to validate file'
-    })
+    expect(result).toEqual({ valid: false, errors: [] })
   })
 
-  test('Should return valid:false with error message on 4xx response from backend', async () => {
+  test('Should forward structured errors from a 4xx response', async () => {
+    const errors = [{ code: 'UPLOAD_NOT_READY', message: 'not ready' }]
     const boomError = {
-      output: { statusCode: 422 },
-      data: { payload: { error: 'Unprocessable file content' } }
+      output: { statusCode: 409 },
+      data: { payload: { valid: false, errors } }
     }
     vi.spyOn(Wreck, 'post').mockRejectedValue(boomError)
 
     const result = await validateBaseline(uploadId)
 
-    expect(result).toEqual({
-      valid: false,
-      error: 'Unprocessable file content'
-    })
+    expect(result).toEqual({ valid: false, errors })
   })
 
-  test('Should use fallback error message when 4xx response has no error field', async () => {
+  test('Should fall back to a single error when 4xx has no errors array', async () => {
     const boomError = {
       output: { statusCode: 400 },
-      data: { payload: {} }
+      data: { payload: { error: 'Bad input' } }
     }
     vi.spyOn(Wreck, 'post').mockRejectedValue(boomError)
 
     const result = await validateBaseline(uploadId)
 
-    expect(result).toEqual({
-      valid: false,
-      error: 'Unable to validate file'
-    })
+    expect(result.valid).toBe(false)
+    expect(result.errors).toEqual([
+      { code: 'VALIDATION_FAILED', message: 'Bad input' }
+    ])
   })
 
   test('Should throw a Boom badGateway error on 5xx response from backend', async () => {

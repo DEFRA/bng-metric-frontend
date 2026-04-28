@@ -34,9 +34,10 @@ export const getController = {
       request.yar.clear('pendingUploadId')
       request.yar.clear('uploadStartedAt')
 
-      if (result.error) {
-        request.yar.set('baselineError', result.error)
-        return h.redirect(`/projects/${id}/upload-baseline-file`)
+      if (!result.valid) {
+        // Structured errors are handed to the BMD-367 dropout page via session.
+        request.yar.set('baselineErrors', result.errors ?? [])
+        return h.redirect('/invalid-file')
       }
 
       return h.redirect(`/projects/${id}/upload-result`)
