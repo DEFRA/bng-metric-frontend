@@ -33,7 +33,7 @@ export const projectsListController = {
 
     return h.view('projects/index', {
       pageTitle: 'Projects',
-      heading: 'Projects',
+      heading: 'Manage your Biodiversity Net Gain projects',
       projects
     })
   }
