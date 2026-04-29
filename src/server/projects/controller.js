@@ -71,7 +71,8 @@ export const projectTaskListController = {
 
     return h.view('projects/task-list', {
       pageTitle: 'Project Task List',
-      heading: data?.project?.name ?? 'Project not found',
+      heading: 'Add your Biodiversity Net Gain project details',
+      caption: data?.project?.name ?? 'Project not found',
       data,
       id,
       error: data?.statusCode === 404
