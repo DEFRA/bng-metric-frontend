@@ -298,7 +298,21 @@ describe('#projectTaskListController', () => {
     expect(headers.location).toBe('/auth/forbidden')
   })
 
-  test('Should contain a link to upload baselin in the task list', async () => {
+  test('Should contain a link to the project details in the task list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(
+      expect.stringContaining(
+        `<a class="govuk-link govuk-task-list__link" href="/project-details/${mockProjects[0].id}"`
+      )
+    )
+  })
+
+  test('Should contain a link to upload baseline in the task list', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: projectTaskListurl,
