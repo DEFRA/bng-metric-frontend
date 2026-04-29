@@ -4,16 +4,17 @@
 
 {% block content %}
   {{ appHeading({
-    text: heading
+    text: heading,
+    caption: caption
   }) }}
   {% if not error %}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
       <p class="govuk-body" data-testid="project-task-list-information">When you provide your information:</p>
       <ul class="govuk-list govuk-list--bullet" data-testid="project-task-list-content-list">
-        <li>you’ll need to complete each section before you can send the information</li>
-        <li>you can still make changes to a section even after it is marked complete</li>
-        <li>you can save your progress at the end of each section if you need to come back later</li>
+        <li>complete each section before sending the information</li>
+        <li>you can edit sections after completing them</li>
+        <li>you can save your progress at the end of each section to return later</li>
       </ul>
       {{
         govukTaskList({
