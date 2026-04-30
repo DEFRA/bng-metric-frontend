@@ -43,19 +43,22 @@ describe('#invalidFileController', () => {
 
     expect(result).toEqual(
       expect.stringContaining(
-        '<title>Biodiversity Net Gain - Dropout Page</title>'
+        '<title>Biodiversity Net Gain - There is a problem with your file</title>'
       )
     )
   })
 
-  test('renders the placeholder body text', async () => {
+  test('renders fallback copy when no baseline errors are in session', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: '/invalid-file',
       auth: authedAuth
     })
 
-    expect(result).toEqual(expect.stringContaining('Dropout Page (Skeleton)'))
+    expect(result).toEqual(
+      expect.stringContaining('There is a problem with your file')
+    )
+    expect(result).toEqual(expect.stringContaining("couldn't accept your file"))
   })
 
   test('redirects unauthenticated requests', async () => {
