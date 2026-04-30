@@ -1,7 +1,9 @@
 export const invalidFileController = {
-  handler(_request, h) {
+  handler(request, h) {
+    const baselineErrors = request.yar.get('baselineErrors') ?? []
     return h.view('invalid-file/index', {
-      pageTitle: 'Dropout Page'
+      pageTitle: 'Dropout Page',
+      baselineErrors
     })
   }
 }
