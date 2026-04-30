@@ -75,6 +75,10 @@ describe('upload-received controller', () => {
     expect(validateBaseline).toHaveBeenCalledWith('test-upload-id')
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(request.yar.set).toHaveBeenCalledWith('baselineErrors', errors)
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'baselineErrorsProjectId',
+      'proj-123'
+    )
     expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
   })
 
