@@ -36,10 +36,10 @@ export const getController = {
 
       if (!result.valid) {
         // Structured errors are handed to the BMD-367 dropout page via session.
-        request.yar.set('baselineErrors', result.errors ?? [])
+        request.yar.set('baselineValidationErrors', result.errors ?? [])
         // The dropout page is project-agnostic; pass the projectId so it can
         // render a "try another file" link back to the upload page.
-        request.yar.set('baselineErrorsProjectId', id)
+        request.yar.set('baselineValidationErrorsProjectId', id)
         return h.redirect('/invalid-file')
       }
 
@@ -50,7 +50,7 @@ export const getController = {
       request.yar.clear('pendingUploadId')
       request.yar.clear('uploadStartedAt')
       request.yar.set(
-        'baselineError',
+        'uploadError',
         response.errorMessage ?? 'The selected file was rejected'
       )
       return h.redirect(`/projects/${id}/upload-baseline-file`)
@@ -71,7 +71,7 @@ export const getController = {
       request.yar.clear('pendingUploadId')
       request.yar.clear('uploadStartedAt')
       request.yar.set(
-        'baselineError',
+        'uploadError',
         'The file check timed out. Please try again.'
       )
       return h.redirect(`/projects/${id}/upload-baseline-file`)
