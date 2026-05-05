@@ -11,7 +11,7 @@
       {% if baselineErrors and baselineErrors.length > 0 %}
         {% set errorList = [] %}
         {% for err in baselineErrors %}
-          {% set errorList = (errorList.push({ text: err.message, href: "#error-" + loop.index }), errorList) %}
+          {% set errorList = (errorList.push({ text: err.message }), errorList) %}
         {% endfor %}
 
         {{ govukErrorSummary({
@@ -23,31 +23,8 @@
 
         <p class="govuk-body">
           Your file passed the format check, but failed one or more geometry
-          checks. Fix the issues below in your GeoPackage and upload it again.
+          checks. Fix the issues listed above in your GeoPackage and upload it again.
         </p>
-
-        {% for err in baselineErrors %}
-          <h2 class="govuk-heading-m" id="error-{{ loop.index }}">{{ err.message }}</h2>
-
-          {% if err.offendingFeatures and err.offendingFeatures.length > 0 %}
-            <p class="govuk-body">Affected features:</p>
-            <ul class="govuk-list govuk-list--bullet">
-              {% for feature in err.offendingFeatures %}
-                <li>
-                  {% if feature.name %}
-                    {{ feature.name }} (id: {{ feature.id }})
-                  {% elif feature.id is defined %}
-                    Feature {{ feature.id }}
-                  {% elif feature.area is defined %}
-                    Sliver #{{ feature.id }} — {{ feature.area }} sq m
-                  {% else %}
-                    {{ feature | dump }}
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        {% endfor %}
       {% else %}
         <h1 class="govuk-heading-l">There is a problem with your file</h1>
         <p class="govuk-body">
