@@ -74,9 +74,12 @@ describe('upload-received controller', () => {
 
     expect(validateBaseline).toHaveBeenCalledWith('test-upload-id')
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
-    expect(request.yar.set).toHaveBeenCalledWith('baselineErrors', errors)
     expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineErrorsProjectId',
+      'baselineValidationErrors',
+      errors
+    )
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'baselineValidationErrorsProjectId',
       'proj-123'
     )
     expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
@@ -90,7 +93,7 @@ describe('upload-received controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.set).toHaveBeenCalledWith('baselineErrors', [])
+    expect(request.yar.set).toHaveBeenCalledWith('baselineValidationErrors', [])
     expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
   })
 
@@ -138,7 +141,7 @@ describe('upload-received controller', () => {
 
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineError',
+      'uploadError',
       'The selected file contains a virus'
     )
     expect(h.redirect).toHaveBeenCalledWith(
@@ -156,7 +159,7 @@ describe('upload-received controller', () => {
     await getController.handler(request, h)
 
     expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineError',
+      'uploadError',
       'The selected file was rejected'
     )
   })
@@ -192,7 +195,7 @@ describe('upload-received controller', () => {
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
     expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineError',
+      'uploadError',
       'The file check timed out. Please try again.'
     )
     expect(h.redirect).toHaveBeenCalledWith(

@@ -146,7 +146,7 @@ describe('upload-baseline-file controller', () => {
       yar: {
         set: vi.fn(),
         get: vi.fn((key) =>
-          key === 'baselineError' ? 'File must be a GeoPackage' : null
+          key === 'uploadError' ? 'File must be a GeoPackage' : null
         ),
         clear: vi.fn()
       }
@@ -154,7 +154,7 @@ describe('upload-baseline-file controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.clear).toHaveBeenCalledWith('baselineError')
+    expect(request.yar.clear).toHaveBeenCalledWith('uploadError')
     expect(h.view).toHaveBeenCalledWith(
       'upload-baseline-file/upload-baseline-file',
       expect.objectContaining({
@@ -174,7 +174,7 @@ describe('upload-baseline-file controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.clear).not.toHaveBeenCalledWith('baselineError')
+    expect(request.yar.clear).not.toHaveBeenCalledWith('uploadError')
     expect(h.view).toHaveBeenCalledWith(
       'upload-baseline-file/upload-baseline-file',
       expect.objectContaining({

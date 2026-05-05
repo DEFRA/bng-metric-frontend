@@ -32,10 +32,10 @@ export const getController = {
     const { id } = request.params
     const projectName = await fetchProjectName(id)
     // Flash message: read once and clear so it doesn't persist on refresh
-    const baselineError = request.yar.get('baselineError')
+    const uploadError = request.yar.get('uploadError')
 
-    if (baselineError) {
-      request.yar.clear('baselineError')
+    if (uploadError) {
+      request.yar.clear('uploadError')
     }
 
     const uploadSession = await initiateUpload({
@@ -53,7 +53,7 @@ export const getController = {
       .view('upload-baseline-file/upload-baseline-file', {
         ...viewData(id, projectName),
         uploadUrl: uploadSession.uploadUrl,
-        error: baselineError ? { text: baselineError } : undefined
+        error: uploadError ? { text: uploadError } : undefined
       })
       .header('Cache-Control', 'no-store')
   }
