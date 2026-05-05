@@ -8,9 +8,11 @@ export const invalidFileController = {
     request.yar.clear('baselineErrors')
     request.yar.clear('baselineErrorsProjectId')
 
+    const errorList = baselineErrors.map((err) => ({ text: err.message }))
+
     return h.view('invalid-file/index', {
       pageTitle: 'There is a problem with your file',
-      baselineErrors,
+      errorList,
       projectId
     })
   }
