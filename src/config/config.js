@@ -266,6 +266,12 @@ export const config = convict({
       format: String,
       default: '',
       env: 'OIDC_SERVICE_ID'
+    },
+    validateNonce: {
+      doc: 'Pass expectedNonce to openid-client. Set false against the cdp-defra-id-stub which omits nonce from the ID token; live Defra ID always includes it.',
+      format: Boolean,
+      default: true,
+      env: 'OIDC_VALIDATE_NONCE'
     }
   },
   useSwagger: {
