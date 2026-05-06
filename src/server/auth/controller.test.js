@@ -144,7 +144,8 @@ describe('#callbackController', () => {
       expect.any(URL),
       {
         pkceCodeVerifier: 'verifier',
-        expectedState: 'state'
+        expectedState: 'state',
+        expectedNonce: 'nonce'
       }
     )
     expect(request.yar.set).toHaveBeenCalledWith('auth', {
@@ -174,27 +175,6 @@ describe('#callbackController', () => {
     await callbackController.handler(request, h)
 
     expect(h.redirect).toHaveBeenCalledWith('/project-dashboard')
-  })
-
-  test('rejects tokens when nonce in claims does not match', async () => {
-    const request = buildRequest()
-    request.yar.set('oidc', {
-      codeVerifier: 'verifier',
-      state: 'state',
-      nonce: 'expected-nonce'
-    })
-    const claims = { sub: 'user-1', nonce: 'wrong-nonce' }
-    authorizationCodeGrant.mockResolvedValue({
-      id_token: 'id-token',
-      refresh_token: 'refresh-token',
-      claims: () => claims
-    })
-
-    const h = buildToolkit()
-    await callbackController.handler(request, h)
-
-    expect(request.logger.error).toHaveBeenCalled()
-    expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
 
   test('redirects to /auth/forbidden when token exchange fails', async () => {

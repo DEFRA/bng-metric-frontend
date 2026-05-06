@@ -17,13 +17,20 @@ const postLogoutRedirectUri = config.get('oidc.postLogoutRedirectUri')
 const clientId = config.get('oidc.clientId')
 const scope = `${config.get('oidc.scopes')} ${clientId}`.trim()
 const serviceId = config.get('oidc.serviceId')
+const validateNonce = config.get('oidc.validateNonce')
 
 function describeOidcError(error) {
   const cause = error.cause
   const parts = []
-  if (error.code) parts.push(`code=${error.code}`)
-  if (cause?.code) parts.push(`causeCode=${cause.code}`)
-  if (cause?.message) parts.push(`causeMessage=${cause.message}`)
+  if (error.code) {
+    parts.push(`code=${error.code}`)
+  }
+  if (cause?.code) {
+    parts.push(`causeCode=${cause.code}`)
+  }
+  if (cause?.message) {
+    parts.push(`causeMessage=${cause.message}`)
+  }
   if (cause?.cause?.body) {
     parts.push(`causeBody=${JSON.stringify(cause.cause.body)}`)
   }
@@ -87,17 +94,22 @@ export const callbackController = {
       const currentUrl = new URL(redirectUri)
       currentUrl.search = request.url.search
 
-      // Don't pass expectedNonce to openid-client — the stub omits it from
-      // the ID token.  We validate it manually below when the provider does
-      // include it (the live service always does).
-      const tokens = await authorizationCodeGrant(oidcConfig, currentUrl, {
+      const checks = {
         pkceCodeVerifier: pending.codeVerifier,
         expectedState: pending.state
-      })
+      }
+      if (validateNonce) {
+        checks.expectedNonce = pending.nonce
+      }
+      const tokens = await authorizationCodeGrant(
+        oidcConfig,
+        currentUrl,
+        checks
+      )
 
       const claims = tokens.claims()
 
-      if (claims.nonce && claims.nonce !== pending.nonce) {
+      if (!validateNonce && claims.nonce && claims.nonce !== pending.nonce) {
         throw new Error(
           `Nonce mismatch: expected ${pending.nonce}, got ${claims.nonce}`
         )
