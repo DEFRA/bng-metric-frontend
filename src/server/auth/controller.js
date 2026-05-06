@@ -14,7 +14,8 @@ import { statusCodes } from '../common/constants.js'
 
 const redirectUri = config.get('oidc.redirectUri')
 const postLogoutRedirectUri = config.get('oidc.postLogoutRedirectUri')
-const scope = config.get('oidc.scopes')
+const clientId = config.get('oidc.clientId')
+const scope = `${config.get('oidc.scopes')} ${clientId}`.trim()
 const serviceId = config.get('oidc.serviceId')
 
 export const loginController = {
@@ -106,17 +107,21 @@ export const callbackController = {
       return h.redirect('/project-dashboard')
     } catch (error) {
       const cause = error.cause
-      request.logger.error(
-        {
-          err: error,
-          code: error.code,
-          causeMessage: cause?.message,
-          causeCode: cause?.code,
-          causeBody: cause?.cause?.body,
-          causeClaims: cause?.cause?.claims
-        },
-        'OIDC callback failed'
-      )
+      const detail = [
+        error.code && `code=${error.code}`,
+        cause?.code && `causeCode=${cause.code}`,
+        cause?.message && `causeMessage=${cause.message}`,
+        cause?.cause?.body &&
+          `causeBody=${JSON.stringify(cause.cause.body)}`,
+        cause?.cause?.claims &&
+          `causeClaims=${JSON.stringify(cause.cause.claims)}`
+      ]
+        .filter(Boolean)
+        .join(' | ')
+      const message = detail
+        ? `OIDC callback failed :: ${detail}`
+        : 'OIDC callback failed'
+      request.logger.error(error, message)
       request.yar.clear('oidc')
       return h.redirect('/auth/forbidden')
     }
