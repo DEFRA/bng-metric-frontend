@@ -105,7 +105,18 @@ export const callbackController = {
 
       return h.redirect('/project-dashboard')
     } catch (error) {
-      request.logger.error(error, 'OIDC callback failed')
+      const cause = error.cause
+      request.logger.error(
+        {
+          err: error,
+          code: error.code,
+          causeMessage: cause?.message,
+          causeCode: cause?.code,
+          causeBody: cause?.cause?.body,
+          causeClaims: cause?.cause?.claims
+        },
+        'OIDC callback failed'
+      )
       request.yar.clear('oidc')
       return h.redirect('/auth/forbidden')
     }
