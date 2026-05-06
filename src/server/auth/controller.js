@@ -18,6 +18,27 @@ const clientId = config.get('oidc.clientId')
 const scope = `${config.get('oidc.scopes')} ${clientId}`.trim()
 const serviceId = config.get('oidc.serviceId')
 
+function describeOidcError(error) {
+  const cause = error.cause
+  const parts = []
+  if (error.code) parts.push(`code=${error.code}`)
+  if (cause?.code) parts.push(`causeCode=${cause.code}`)
+  if (cause?.message) parts.push(`causeMessage=${cause.message}`)
+  if (cause?.cause?.body) {
+    parts.push(`causeBody=${JSON.stringify(cause.cause.body)}`)
+  }
+  if (cause?.cause?.claims) {
+    parts.push(`causeClaims=${JSON.stringify(cause.cause.claims)}`)
+  }
+  return parts.join(' | ')
+}
+
+function logOidcError(request, error, baseMessage) {
+  const detail = describeOidcError(error)
+  const message = detail ? `${baseMessage} :: ${detail}` : baseMessage
+  request.logger.error(error, message)
+}
+
 export const loginController = {
   async handler(request, h) {
     try {
@@ -47,7 +68,7 @@ export const loginController = {
 
       return h.redirect(authorizationUrl.href)
     } catch (error) {
-      request.logger.error(error, 'OIDC login initiation failed')
+      logOidcError(request, error, 'OIDC login initiation failed')
       return h.redirect('/auth/forbidden')
     }
   }
@@ -106,22 +127,7 @@ export const callbackController = {
 
       return h.redirect('/project-dashboard')
     } catch (error) {
-      const cause = error.cause
-      const detail = [
-        error.code && `code=${error.code}`,
-        cause?.code && `causeCode=${cause.code}`,
-        cause?.message && `causeMessage=${cause.message}`,
-        cause?.cause?.body &&
-          `causeBody=${JSON.stringify(cause.cause.body)}`,
-        cause?.cause?.claims &&
-          `causeClaims=${JSON.stringify(cause.cause.claims)}`
-      ]
-        .filter(Boolean)
-        .join(' | ')
-      const message = detail
-        ? `OIDC callback failed :: ${detail}`
-        : 'OIDC callback failed'
-      request.logger.error(error, message)
+      logOidcError(request, error, 'OIDC callback failed')
       request.yar.clear('oidc')
       return h.redirect('/auth/forbidden')
     }
@@ -141,7 +147,7 @@ export const logoutController = {
       })
       return h.redirect(endSessionUrl.href)
     } catch (error) {
-      request.logger.error(error, 'OIDC end-session URL build failed')
+      logOidcError(request, error, 'OIDC end-session URL build failed')
       return h.redirect('/auth/signed-out')
     }
   }
