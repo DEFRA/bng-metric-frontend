@@ -1,8 +1,8 @@
 import Boom from '@hapi/boom'
-import Wreck from '@hapi/wreck'
 
 import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
+import { wreck } from '../helpers/wreck-client.js'
 
 const logger = createLogger()
 
@@ -42,7 +42,7 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
   )
 
   try {
-    const { payload } = await Wreck.post(url, {
+    const { payload } = await wreck.post(url, {
       payload: JSON.stringify({
         redirect,
         s3Bucket,
@@ -51,8 +51,7 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
       }),
       headers: {
         'Content-Type': 'application/json'
-      },
-      json: true
+      }
     })
 
     const uploadUrl = buildUploadUrl(payload.uploadUrl)
@@ -86,7 +85,7 @@ export async function getUploadStatus(uploadId) {
   logger.info(`Fetching upload status - url: ${url}, uploadId: ${uploadId}`)
 
   try {
-    const { payload } = await Wreck.get(url, { json: true })
+    const { payload } = await wreck.get(url)
 
     if (payload.numberOfRejectedFiles > 0) {
       logger.info(

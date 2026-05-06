@@ -1,6 +1,19 @@
+import Boom from '@hapi/boom'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
+import { wreck } from '../common/helpers/wreck-client.js'
+
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 const authCredentials = {
   sub: 'test-user-123',
@@ -37,13 +50,14 @@ describe('#changeProjectNameController', () => {
   })
 
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockProject)
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProject
     })
   })
 
   afterEach(() => {
+    vi.mocked(wreck.get).mockReset()
     vi.restoreAllMocks()
   })
 
@@ -120,11 +134,9 @@ describe('#changeProjectNameController', () => {
   })
 
   test('Should return 504 when backend request times out', async () => {
-    const abortError = new DOMException(
-      'The operation was aborted.',
-      'AbortError'
+    vi.mocked(wreck.get).mockRejectedValue(
+      Boom.gatewayTimeout('Client request timeout')
     )
-    vi.spyOn(global, 'fetch').mockRejectedValue(abortError)
 
     const { statusCode } = await server.inject({
       method: 'GET',
@@ -136,7 +148,10 @@ describe('#changeProjectNameController', () => {
   })
 
   test('Should return 502 when backend returns a non-2xx response', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500 })
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 500 },
+      payload: null
+    })
 
     const { statusCode } = await server.inject({
       method: 'GET',
@@ -148,9 +163,9 @@ describe('#changeProjectNameController', () => {
   })
 
   test('Should return 404 when backend returns 404', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ statusCode: 404 })
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { statusCode: 404 }
     })
 
     const { statusCode } = await server.inject({
@@ -177,11 +192,15 @@ describe('#changeProjectNamePostController', () => {
   })
 
   beforeEach(async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true })
+    vi.mocked(wreck.patch).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {}
+    })
     crumb = await primeCrumb(server)
   })
 
   afterEach(() => {
+    vi.mocked(wreck.patch).mockReset()
     vi.restoreAllMocks()
   })
 
@@ -194,13 +213,12 @@ describe('#changeProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(fetch).toHaveBeenCalledOnce()
+    expect(wreck.patch).toHaveBeenCalledOnce()
 
-    const [url, options] = fetch.mock.calls[0]
-    const body = JSON.parse(options.body)
+    const [url, options] = vi.mocked(wreck.patch).mock.calls[0]
+    const body = JSON.parse(options.payload)
 
     expect(url).toContain(`/projects/${projectId}`)
-    expect(options.method).toBe('PATCH')
     expect(options.headers['Content-Type']).toBe('application/json')
     expect(body.project).toEqual({ name: 'Updated Project Name' })
   })
@@ -219,7 +237,10 @@ describe('#changeProjectNamePostController', () => {
   })
 
   test('Should return 502 when backend returns a non-2xx response', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500 })
+    vi.mocked(wreck.patch).mockResolvedValue({
+      res: { statusCode: 500 },
+      payload: null
+    })
 
     const { statusCode } = await server.inject({
       method: 'POST',
@@ -247,7 +268,7 @@ describe('#changeProjectNamePostController', () => {
     expect(result).toEqual(
       expect.stringContaining('Error: Project Name - Biodiversity Net Gain')
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.patch).not.toHaveBeenCalled()
   })
 
   test('Should show error summary when project name exceeds 1000 characters', async () => {
@@ -264,7 +285,7 @@ describe('#changeProjectNamePostController', () => {
     expect(result).toEqual(
       expect.stringContaining('Project name must be 1000 characters or fewer')
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.patch).not.toHaveBeenCalled()
   })
 
   test('Should show error summary when project name contains invalid characters', async () => {
@@ -281,7 +302,7 @@ describe('#changeProjectNamePostController', () => {
     expect(result).toEqual(
       expect.stringContaining('Project name must only contain valid characters')
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.patch).not.toHaveBeenCalled()
   })
 
   test('Should show red error border on input when validation fails', async () => {
@@ -335,7 +356,7 @@ describe('#changeProjectNamePostController', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(expect.stringContaining('There is a problem'))
     expect(result).toEqual(expect.stringContaining('Enter a project name'))
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.patch).not.toHaveBeenCalled()
   })
 
   test('Should show error summary when project name is whitespace only', async () => {
@@ -350,7 +371,7 @@ describe('#changeProjectNamePostController', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(expect.stringContaining('There is a problem'))
     expect(result).toEqual(expect.stringContaining('Enter a project name'))
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.patch).not.toHaveBeenCalled()
   })
 
   test('Should reject POST with 403 when crumb is missing', async () => {
@@ -362,6 +383,6 @@ describe('#changeProjectNamePostController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.forbidden)
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.patch).not.toHaveBeenCalled()
   })
 })

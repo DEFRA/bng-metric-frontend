@@ -1,6 +1,19 @@
+import Boom from '@hapi/boom'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
+import { wreck } from '../common/helpers/wreck-client.js'
+
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 const authCredentials = {
   sub: 'test-user-123',
@@ -118,12 +131,16 @@ describe('#defineProjectNamePostController', () => {
   })
 
   beforeEach(async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true })
+    vi.mocked(wreck.post).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {}
+    })
     crumb = await primeCrumb(server)
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.mocked(wreck.post).mockReset()
   })
 
   test('Should POST to the backend with correct payload on valid input', async () => {
@@ -135,13 +152,12 @@ describe('#defineProjectNamePostController', () => {
       auth: authedAuth
     })
 
-    expect(fetch).toHaveBeenCalledOnce()
+    expect(wreck.post).toHaveBeenCalledOnce()
 
-    const [url, options] = fetch.mock.calls[0]
-    const body = JSON.parse(options.body)
+    const [url, options] = vi.mocked(wreck.post).mock.calls[0]
+    const body = JSON.parse(options.payload)
 
     expect(url).toContain('/projects/new')
-    expect(options.method).toBe('POST')
     expect(options.headers['Content-Type']).toBe('application/json')
     expect(body.project).toEqual({ name: 'My Valid Project' })
     expect(body.userId).toBe('test-user-123')
@@ -161,7 +177,10 @@ describe('#defineProjectNamePostController', () => {
   })
 
   test('Should render error page when backend returns a non-2xx response', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 500 })
+    vi.mocked(wreck.post).mockResolvedValue({
+      res: { statusCode: 500 },
+      payload: null
+    })
 
     const { statusCode } = await server.inject({
       method: 'POST',
@@ -175,8 +194,8 @@ describe('#defineProjectNamePostController', () => {
   })
 
   test('Should return 504 when backend request times out', async () => {
-    vi.spyOn(global, 'fetch').mockRejectedValue(
-      Object.assign(new Error('aborted'), { name: 'AbortError' })
+    vi.mocked(wreck.post).mockRejectedValue(
+      Boom.gatewayTimeout('Client request timeout')
     )
 
     const { statusCode } = await server.inject({
@@ -207,7 +226,7 @@ describe('#defineProjectNamePostController', () => {
         'Error: Define Project Name - Biodiversity Net Gain'
       )
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.post).not.toHaveBeenCalled()
   })
 
   test('Should show error summary when project name exceeds 1000 characters', async () => {
@@ -224,7 +243,7 @@ describe('#defineProjectNamePostController', () => {
     expect(result).toEqual(
       expect.stringContaining('Project name must be 1000 characters or fewer')
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.post).not.toHaveBeenCalled()
   })
 
   test('Should show error summary when project name contains invalid characters', async () => {
@@ -241,7 +260,7 @@ describe('#defineProjectNamePostController', () => {
     expect(result).toEqual(
       expect.stringContaining('Project name must only contain valid characters')
     )
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.post).not.toHaveBeenCalled()
   })
 
   test('Should show red error border on input when validation fails', async () => {
@@ -280,7 +299,7 @@ describe('#defineProjectNamePostController', () => {
     })
 
     expect(statusCode).toBe(403)
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.post).not.toHaveBeenCalled()
   })
 
   test('Should reject POST with 403 when crumb cookie and payload mismatch', async () => {
@@ -296,6 +315,6 @@ describe('#defineProjectNamePostController', () => {
     })
 
     expect(statusCode).toBe(403)
-    expect(fetch).not.toHaveBeenCalled()
+    expect(wreck.post).not.toHaveBeenCalled()
   })
 })

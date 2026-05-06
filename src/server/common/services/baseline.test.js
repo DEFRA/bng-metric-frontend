@@ -1,7 +1,17 @@
 import { vi } from 'vitest'
-import Wreck from '@hapi/wreck'
 
 import { validateBaseline } from './baseline.js'
+import { wreck } from '../helpers/wreck-client.js'
+
+vi.mock('../helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 const uploadId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
@@ -11,7 +21,7 @@ describe('#validateBaseline', () => {
   })
 
   test('Should return valid:true when backend reports file is valid', async () => {
-    vi.spyOn(Wreck, 'post').mockResolvedValue({
+    vi.mocked(wreck.post).mockResolvedValue({
       payload: { valid: true }
     })
 
@@ -30,7 +40,7 @@ describe('#validateBaseline', () => {
         offendingFeatures: [{ id: 1 }]
       }
     ]
-    vi.spyOn(Wreck, 'post').mockResolvedValue({
+    vi.mocked(wreck.post).mockResolvedValue({
       payload: { valid: false, errors }
     })
 
@@ -40,7 +50,7 @@ describe('#validateBaseline', () => {
   })
 
   test('Should default to an empty errors array when payload omits one', async () => {
-    vi.spyOn(Wreck, 'post').mockResolvedValue({
+    vi.mocked(wreck.post).mockResolvedValue({
       payload: { valid: false }
     })
 
@@ -55,7 +65,7 @@ describe('#validateBaseline', () => {
       output: { statusCode: 409 },
       data: { payload: { valid: false, errors } }
     }
-    vi.spyOn(Wreck, 'post').mockRejectedValue(boomError)
+    vi.mocked(wreck.post).mockRejectedValue(boomError)
 
     const result = await validateBaseline(uploadId)
 
@@ -67,7 +77,7 @@ describe('#validateBaseline', () => {
       output: { statusCode: 400 },
       data: { payload: { error: 'Bad input' } }
     }
-    vi.spyOn(Wreck, 'post').mockRejectedValue(boomError)
+    vi.mocked(wreck.post).mockRejectedValue(boomError)
 
     const result = await validateBaseline(uploadId)
 
@@ -83,7 +93,7 @@ describe('#validateBaseline', () => {
       data: { payload: {} },
       message: 'Service Unavailable'
     }
-    vi.spyOn(Wreck, 'post').mockRejectedValue(boomError)
+    vi.mocked(wreck.post).mockRejectedValue(boomError)
 
     await expect(validateBaseline(uploadId)).rejects.toMatchObject({
       isBoom: true,
@@ -92,7 +102,7 @@ describe('#validateBaseline', () => {
   })
 
   test('Should throw a Boom badGateway error on network failure', async () => {
-    vi.spyOn(Wreck, 'post').mockRejectedValue(new Error('Network failure'))
+    vi.mocked(wreck.post).mockRejectedValue(new Error('Network failure'))
 
     await expect(validateBaseline(uploadId)).rejects.toMatchObject({
       isBoom: true,
@@ -101,15 +111,14 @@ describe('#validateBaseline', () => {
   })
 
   test('Should call the correct backend URL', async () => {
-    vi.spyOn(Wreck, 'post').mockResolvedValue({
+    vi.mocked(wreck.post).mockResolvedValue({
       payload: { valid: true }
     })
 
     await validateBaseline(uploadId)
 
-    expect(Wreck.post).toHaveBeenCalledWith(
-      expect.stringContaining(`/baseline/validate/${uploadId}`),
-      expect.objectContaining({ json: true })
+    expect(wreck.post).toHaveBeenCalledWith(
+      expect.stringContaining(`/baseline/validate/${uploadId}`)
     )
   })
 })

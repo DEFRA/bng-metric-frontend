@@ -14,6 +14,17 @@
  * start submitting empty tokens and 403ing with no obvious cause.
  */
 import { createServer } from '../../server.js'
+import { wreck } from './wreck-client.js'
+
+vi.mock('./wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 const authedAuth = {
   strategy: 'session',
@@ -117,7 +128,10 @@ describe('CSRF wiring', () => {
     })
 
     test('POST is accepted when the meta-tag token is supplied with the cookie', async () => {
-      vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true })
+      vi.mocked(wreck.post).mockResolvedValue({
+        res: { statusCode: 200 },
+        payload: {}
+      })
 
       const get = await server.inject({
         method: 'GET',

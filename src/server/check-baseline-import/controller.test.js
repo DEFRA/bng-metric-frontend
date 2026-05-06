@@ -1,5 +1,16 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import { wreck } from '../common/helpers/wreck-client.js'
+
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 const authCredentials = {
   sub: 'test-user',
@@ -34,8 +45,9 @@ describe('#checkBaselineImport - GET', () => {
   })
 
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProject)
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProject
     })
   })
 

@@ -1,11 +1,11 @@
 import { config } from '../../config/config.js'
+import { wreck } from '../common/helpers/wreck-client.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
 async function fetchProjectName(id) {
   try {
-    const response = await fetch(`${backendUrl}/projects/${id}`)
-    const data = await response.json()
+    const { payload: data } = await wreck.get(`${backendUrl}/projects/${id}`)
     return data.project?.name ?? 'Project'
   } catch {
     return 'Project'

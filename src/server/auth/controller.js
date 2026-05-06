@@ -15,9 +15,11 @@ import { statusCodes } from '../common/constants.js'
 const redirectUri = config.get('oidc.redirectUri')
 const postLogoutRedirectUri = config.get('oidc.postLogoutRedirectUri')
 const clientId = config.get('oidc.clientId')
-const scope = `${config.get('oidc.scopes')} ${clientId}`.trim()
 const serviceId = config.get('oidc.serviceId')
-const validateNonce = config.get('oidc.validateNonce')
+const useStub = config.get('oidc.useStub')
+const scope = useStub
+  ? config.get('oidc.scopes')
+  : `${config.get('oidc.scopes')} ${clientId}`.trim()
 
 function describeOidcError(error) {
   const cause = error.cause
@@ -98,7 +100,7 @@ export const callbackController = {
         pkceCodeVerifier: pending.codeVerifier,
         expectedState: pending.state
       }
-      if (validateNonce) {
+      if (!useStub) {
         checks.expectedNonce = pending.nonce
       }
       const tokens = await authorizationCodeGrant(
@@ -109,7 +111,7 @@ export const callbackController = {
 
       const claims = tokens.claims()
 
-      if (!validateNonce && claims.nonce && claims.nonce !== pending.nonce) {
+      if (useStub && claims.nonce && claims.nonce !== pending.nonce) {
         throw new Error(
           `Nonce mismatch: expected ${pending.nonce}, got ${claims.nonce}`
         )

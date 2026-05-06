@@ -31,10 +31,10 @@ The stub does not ship with default users. You must register one through its UI:
 ### Start the frontend
 
 ```shell
-npm run dev
+OIDC_USE_STUB=true npm run dev
 ```
 
-The frontend runs on `http://localhost:3000`. No extra environment variables are needed for local development - the defaults in `src/config/config.js` point at the stub.
+The frontend runs on `http://localhost:3000`. The discovery URL, client ID, secret, and other defaults in `src/config/config.js` already point at the stub, so setting `OIDC_USE_STUB=true` is the only env var you need locally. See [Stub vs live OIDC](#stub-vs-live-oidc) below for what this flag changes.
 
 ### Test the login flow
 
@@ -49,7 +49,7 @@ The frontend runs on `http://localhost:3000`. No extra environment variables are
 Run with debug logging to see auth-related messages:
 
 ```shell
-LOG_LEVEL=debug npm run dev
+OIDC_USE_STUB=true LOG_LEVEL=debug npm run dev
 ```
 
 Key log messages:
@@ -62,15 +62,41 @@ Key log messages:
 
 All OIDC settings are in `src/config/config.js` under the `oidc` key. Each has a sensible local default and can be overridden via environment variable for deployed environments.
 
-| Config key                   | Env var                         | Local default                                                              | Description                                                          |
-| ---------------------------- | ------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `oidc.discoveryUrl`          | `OIDC_DISCOVERY_URL`            | `http://localhost:3200/cdp-defra-id-stub/.well-known/openid-configuration` | OIDC provider discovery endpoint                                     |
-| `oidc.clientId`              | `OIDC_CLIENT_ID`                | `63983fc2-cfff-45bb-8ec2-959e21062b9a`                                     | Application client ID (must match the provider)                      |
-| `oidc.clientSecret`          | `OIDC_CLIENT_SECRET`            | `test_value`                                                               | Client secret                                                        |
-| `oidc.redirectUri`           | `OIDC_REDIRECT_URI`             | `http://localhost:3000/auth/callback`                                      | Callback URL after authentication                                    |
-| `oidc.postLogoutRedirectUri` | `OIDC_POST_LOGOUT_REDIRECT_URI` | `http://localhost:3000/auth/signed-out`                                    | Landing page after logout                                            |
-| `oidc.scopes`                | `OIDC_SCOPES`                   | `openid profile email offline_access`                                      | Scopes requested from the provider                                   |
-| `oidc.serviceId`             | `OIDC_SERVICE_ID`               | _(empty)_                                                                  | Defra ID service identifier (required for real B2C, ignored by stub) |
+| Config key                   | Env var                         | Local default                                                              | Description                                                                                                       |
+| ---------------------------- | ------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `oidc.discoveryUrl`          | `OIDC_DISCOVERY_URL`            | `http://localhost:3200/cdp-defra-id-stub/.well-known/openid-configuration` | OIDC provider discovery endpoint                                                                                  |
+| `oidc.clientId`              | `OIDC_CLIENT_ID`                | `63983fc2-cfff-45bb-8ec2-959e21062b9a`                                     | Application client ID (must match the provider)                                                                   |
+| `oidc.clientSecret`          | `OIDC_CLIENT_SECRET`            | `test_value`                                                               | Client secret                                                                                                     |
+| `oidc.redirectUri`           | `OIDC_REDIRECT_URI`             | `http://localhost:3000/auth/callback`                                      | Callback URL after authentication                                                                                 |
+| `oidc.postLogoutRedirectUri` | `OIDC_POST_LOGOUT_REDIRECT_URI` | `http://localhost:3000/auth/signed-out`                                    | Landing page after logout                                                                                         |
+| `oidc.scopes`                | `OIDC_SCOPES`                   | `openid profile email offline_access`                                      | Scopes requested from the provider. Against live B2C the client ID is appended automatically (see `oidc.useStub`) |
+| `oidc.serviceId`             | `OIDC_SERVICE_ID`               | _(empty)_                                                                  | Defra ID service identifier (required for real B2C, ignored by stub)                                              |
+| `oidc.useStub`               | `OIDC_USE_STUB`                 | `false`                                                                    | Set `true` when the OIDC provider is the cdp-defra-id-stub (changes scope and nonce handling — see below)         |
+
+### Stub vs live OIDC
+
+The `OIDC_USE_STUB` flag toggles two concrete behaviors that differ between the cdp-defra-id-stub and live Defra ID (Azure AD B2C):
+
+| Behavior                           | `useStub=true` (stub)        | `useStub=false` (live B2C)                                 |
+| ---------------------------------- | ---------------------------- | ---------------------------------------------------------- |
+| Scope sent to `/authorize`         | `OIDC_SCOPES` as configured  | `OIDC_SCOPES` with the `clientId` appended                 |
+| `expectedNonce` to `openid-client` | _not passed_                 | `pending.nonce` — strict comparison against ID token claim |
+| Manual nonce fallback check        | runs if the stub emits nonce | skipped (library already validated)                        |
+
+**Why these differ:**
+
+- **Scope**: Azure AD B2C's `/token` endpoint returns a response without an `access_token` field unless the request includes a resource scope, and B2C uses the application's own client ID as that resource scope (per the [Defra ID core service onboarding guide](https://dev.azure.com/defragovuk/DEFRA-Common-Platform-Improvements/_wiki/wikis/DEFRA-Common-Platform-Improvements.wiki/97504/Technical-onboarding-guide-for-core-service-Overview) and [Microsoft B2C access-token docs](https://learn.microsoft.com/en-us/azure/active-directory-b2c/access-tokens#openid-connect-scopes)). Without it, `openid-client` rejects the token-endpoint response with `OAUTH_INVALID_RESPONSE` ("invalid response encountered"). The stub does not enforce this contract.
+- **Nonce**: live B2C echoes the `nonce` we send in the authorization request as a claim in the ID token; the stub omits it. `openid-client` v6's auth-code grant has only two modes — "expect nonce" (strict) or "expect no nonce" (rejects any token containing one). There's no "ignore" mode, so we have to flip behavior based on which provider is on the other end.
+
+### When to set `OIDC_USE_STUB`
+
+| Scenario                                                                                                                     | `OIDC_USE_STUB`                   |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Local development against the cdp-defra-id-stub on `localhost:3200`                                                          | `true`                            |
+| Deployed environment pointing at a stub instance (e.g. an integration env that doesn't yet have a Defra ID app registration) | `true`                            |
+| Deployed environment using live Defra ID (dev / test / prod B2C tenants)                                                     | `false` _(default — leave unset)_ |
+
+If you change which provider an environment points at (e.g. swap a dev env from stub to live B2C), update `OIDC_USE_STUB` alongside `OIDC_DISCOVERY_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_SERVICE_ID`.
 
 ## How the auth flow works
 
@@ -78,13 +104,15 @@ All OIDC settings are in `src/config/config.js` under the `oidc` key. Each has a
 
 1. Generates a PKCE code verifier, code challenge (S256), random state, and nonce.
 2. Stores `{ codeVerifier, state, nonce }` in the server-side yar session under the key `oidc`.
-3. Builds the authorization URL using `openid-client` and redirects the browser to the provider.
+3. Builds the authorization URL using `openid-client` (passing `nonce` as a query parameter so the provider echoes it in the ID token) and redirects the browser to the provider.
 
 ### Callback (`/auth/callback`)
 
 1. Reads the pending `oidc` data from yar. If missing, redirects to `/auth/login`.
 2. Exchanges the authorization code for tokens via `authorizationCodeGrant`, validating PKCE and state.
-3. If the ID token contains a `nonce` claim, validates it matches the stored nonce (the stub omits it; the live service includes it).
+3. **Nonce validation** — depends on `oidc.useStub`:
+   - **Live B2C (`useStub=false`):** `expectedNonce` is passed to `authorizationCodeGrant`, so `openid-client` enforces the OIDC-spec rule that the ID token's `nonce` claim must equal the value sent in the auth request. Mismatch or missing claim throws and the callback fails.
+   - **Stub (`useStub=true`):** `expectedNonce` is omitted (the stub does not emit `nonce` in the ID token, so passing it would make `openid-client` reject the response with `JWT "nonce" claim missing`). A manual fallback comparison runs only if the stub ever does include a `nonce` claim.
 4. Stores `{ user: claims, idToken, refreshToken }` in yar under the key `auth`.
 5. Clears the temporary `oidc` session data.
 6. Redirects to `/project-dashboard`.

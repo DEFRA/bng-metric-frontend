@@ -2,10 +2,11 @@ import Joi from 'joi'
 import Boom from '@hapi/boom'
 
 import { config } from '../../config/config.js'
+import { statusCodes } from '../common/constants.js'
+import { wreck } from '../common/helpers/wreck-client.js'
 import { projectNameSchema } from '../common/helpers/project-name.js'
 
 const backendUrl = config.get('backend').url
-const BACKEND_TIMEOUT_MS = 5000
 
 export const changeProjectNameController = {
   options: {
@@ -17,29 +18,13 @@ export const changeProjectNameController = {
   },
   async handler(request, h) {
     const { id } = request.params
-    const abort = new AbortController()
-    const timeout = setTimeout(() => abort.abort(), BACKEND_TIMEOUT_MS)
+    const { res, payload: data } = await wreck.get(
+      `${backendUrl}/projects/${id}`
+    )
 
-    let response
-
-    try {
-      response = await fetch(`${backendUrl}/projects/${id}`, {
-        signal: abort.signal
-      })
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        throw Boom.gatewayTimeout('Backend request timed out')
-      }
-      throw err
-    } finally {
-      clearTimeout(timeout)
-    }
-
-    if (!response.ok) {
+    if (res.statusCode >= statusCodes.badRequest) {
       throw Boom.badGateway('Failed to fetch projects')
     }
-
-    const data = await response.json()
 
     if (data?.statusCode === 404) {
       throw Boom.notFound('Project not found')
@@ -93,13 +78,12 @@ export const changeProjectNamePostController = {
     const { id } = request.params
     const { projectName } = request.payload
 
-    const response = await fetch(`${backendUrl}/projects/${id}`, {
-      method: 'PATCH',
+    const { res } = await wreck.patch(`${backendUrl}/projects/${id}`, {
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project: { name: projectName } })
+      payload: JSON.stringify({ project: { name: projectName } })
     })
 
-    if (!response.ok) {
+    if (res.statusCode >= statusCodes.badRequest) {
       throw Boom.badGateway('Failed to update project name')
     }
 
