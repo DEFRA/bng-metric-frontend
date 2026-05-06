@@ -1,5 +1,16 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import { wreck } from '../common/helpers/wreck-client.js'
+
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 describe('#dbInfoController', () => {
   let server
@@ -16,8 +27,9 @@ describe('#dbInfoController', () => {
   test('Should provide expected response', async () => {
     const mockData = { version: 'PostgreSQL 16.1' }
 
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockData)
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockData
     })
 
     const { result, statusCode } = await server.inject({

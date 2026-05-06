@@ -1,8 +1,17 @@
 import { initiateUpload } from '../common/services/uploader.js'
+import { wreck } from '../common/helpers/wreck-client.js'
 
 vi.mock('../common/services/uploader.js')
 
-global.fetch = vi.fn()
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 const { getController } = await import('./controller.js')
 
@@ -25,8 +34,9 @@ const createMockRequest = (projectId = 'proj-123') => ({
 
 describe('upload-baseline-file controller', () => {
   beforeEach(() => {
-    vi.mocked(fetch).mockResolvedValue({
-      json: () => Promise.resolve({ project: { name: 'Test Project' } })
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'Test Project' } }
     })
   })
 
@@ -71,8 +81,9 @@ describe('upload-baseline-file controller', () => {
   })
 
   it('should use project name from backend', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      json: () => Promise.resolve({ project: { name: 'My BNG Project' } })
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'My BNG Project' } }
     })
     vi.mocked(initiateUpload).mockResolvedValue({
       uploadId: 'abc-123',
@@ -92,8 +103,8 @@ describe('upload-baseline-file controller', () => {
     )
   })
 
-  it('should fall back to "Project" when fetch fails', async () => {
-    vi.mocked(fetch).mockRejectedValue(new Error('Network error'))
+  it('should fall back to "Project" when backend call fails', async () => {
+    vi.mocked(wreck.get).mockRejectedValue(new Error('Network error'))
     vi.mocked(initiateUpload).mockResolvedValue({
       uploadId: 'abc-123',
       uploadUrl: '/upload-and-scan/abc-123'
@@ -113,8 +124,9 @@ describe('upload-baseline-file controller', () => {
   })
 
   it('should fall back to "Project" when backend returns no project key', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      json: () => Promise.resolve({})
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {}
     })
     vi.mocked(initiateUpload).mockResolvedValue({
       uploadId: 'abc-123',

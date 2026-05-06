@@ -1,5 +1,18 @@
+import Boom from '@hapi/boom'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import { wreck } from '../common/helpers/wreck-client.js'
+
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
 
 const authCredentials = {
   sub: 'test-user',
@@ -54,13 +67,14 @@ describe('#projectsListController', () => {
   })
 
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockProjects)
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjects
     })
   })
 
   afterEach(() => {
+    vi.mocked(wreck.get).mockReset()
     vi.restoreAllMocks()
   })
 
@@ -82,9 +96,8 @@ describe('#projectsListController', () => {
       auth: authedAuth
     })
 
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining(`/users/${authCredentials.sub}/projects`),
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    expect(wreck.get).toHaveBeenCalledWith(
+      expect.stringContaining(`/users/${authCredentials.sub}/projects`)
     )
   })
 
@@ -136,9 +149,9 @@ describe('#projectsListController', () => {
   })
 
   test('Should show no projects message when backend returns empty array', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve([])
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: []
     })
 
     const { result, statusCode } = await server.inject({
@@ -152,9 +165,9 @@ describe('#projectsListController', () => {
   })
 
   test('Should return 502 when backend returns a non-2xx response', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: false,
-      status: 503
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 503 },
+      payload: null
     })
 
     const { statusCode } = await server.inject({
@@ -166,8 +179,8 @@ describe('#projectsListController', () => {
     expect(statusCode).toBe(statusCodes.badGateway)
   })
 
-  test('Should return 500 when fetch throws an unexpected error', async () => {
-    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('Network failure'))
+  test('Should return 500 when wreck throws an unexpected error', async () => {
+    vi.mocked(wreck.get).mockRejectedValue(new Error('Network failure'))
 
     const { statusCode } = await server.inject({
       method: 'GET',
@@ -179,29 +192,15 @@ describe('#projectsListController', () => {
   })
 
   test('Should return 504 when backend request times out', async () => {
-    vi.useFakeTimers()
+    vi.mocked(wreck.get).mockRejectedValue(
+      Boom.gatewayTimeout('Client request timeout')
+    )
 
-    vi.spyOn(global, 'fetch').mockImplementation((_url, { signal }) => {
-      return new Promise((_resolve, reject) => {
-        signal.addEventListener('abort', () => {
-          const err = new Error('The operation was aborted')
-          err.name = 'AbortError'
-          reject(err)
-        })
-      })
-    })
-
-    const injectPromise = server.inject({
+    const { statusCode } = await server.inject({
       method: 'GET',
       url: '/project-dashboard',
       auth: authedAuth
     })
-
-    await vi.advanceTimersByTimeAsync(5000)
-
-    const { statusCode } = await injectPromise
-
-    vi.useRealTimers()
 
     expect(statusCode).toBe(statusCodes.gatewayTimeout)
   })
@@ -220,12 +219,14 @@ describe('#projectTaskListController', () => {
   })
 
   beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve(mockProjects[0])
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjects[0]
     })
   })
 
   afterEach(() => {
+    vi.mocked(wreck.get).mockReset()
     vi.restoreAllMocks()
   })
 
@@ -337,35 +338,21 @@ describe('#projectTaskListController', () => {
   })
 
   test('Should return 504 when backend request times out', async () => {
-    vi.useFakeTimers()
+    vi.mocked(wreck.get).mockRejectedValue(
+      Boom.gatewayTimeout('Client request timeout')
+    )
 
-    vi.spyOn(global, 'fetch').mockImplementation((_url, { signal }) => {
-      return new Promise((_resolve, reject) => {
-        signal.addEventListener('abort', () => {
-          const err = new Error('The operation was aborted')
-          err.name = 'AbortError'
-          reject(err)
-        })
-      })
-    })
-
-    const injectPromise = server.inject({
+    const { statusCode } = await server.inject({
       method: 'GET',
       url: projectTaskListurl,
       auth: authedAuth
     })
 
-    await vi.advanceTimersByTimeAsync(5000)
-
-    const { statusCode } = await injectPromise
-
-    vi.useRealTimers()
-
     expect(statusCode).toBe(statusCodes.gatewayTimeout)
   })
 
-  test('Should return 500 when fetch throws an unexpected error', async () => {
-    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('Network failure'))
+  test('Should return 500 when wreck throws an unexpected error', async () => {
+    vi.mocked(wreck.get).mockRejectedValue(new Error('Network failure'))
 
     const { statusCode } = await server.inject({
       method: 'GET',
@@ -377,8 +364,9 @@ describe('#projectTaskListController', () => {
   })
 
   test('Should render error state when backend returns 404', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve({ statusCode: 404 })
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { statusCode: 404 }
     })
 
     const { result, statusCode } = await server.inject({

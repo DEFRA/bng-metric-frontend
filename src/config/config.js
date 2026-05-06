@@ -40,8 +40,18 @@ export const config = convict({
     env: 'PORT'
   },
   backend: {
-    doc: 'The backend address to bind',
-    url: backendUrl
+    url: {
+      doc: 'The backend service base URL',
+      format: String,
+      default: backendUrl,
+      env: 'BACKEND_URL'
+    },
+    timeoutMs: {
+      doc: 'Timeout in milliseconds for HTTP requests to backend services',
+      format: Number,
+      default: 10000,
+      env: 'BACKEND_TIMEOUT_MS'
+    }
   },
   staticCacheTimeout: {
     doc: 'Static cache timeout in milliseconds',
@@ -267,11 +277,11 @@ export const config = convict({
       default: '',
       env: 'OIDC_SERVICE_ID'
     },
-    validateNonce: {
-      doc: 'Pass expectedNonce to openid-client. Set false against the cdp-defra-id-stub which omits nonce from the ID token; live Defra ID always includes it.',
+    useStub: {
+      doc: 'True when the OIDC provider is the cdp-defra-id-stub. Live Defra ID (Azure AD B2C) requires the client ID appended to the scopes and includes nonce in the ID token; the stub does neither.',
       format: Boolean,
-      default: true,
-      env: 'OIDC_VALIDATE_NONCE'
+      default: false,
+      env: 'OIDC_USE_STUB'
     }
   },
   useSwagger: {

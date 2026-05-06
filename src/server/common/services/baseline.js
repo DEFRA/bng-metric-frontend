@@ -1,8 +1,9 @@
 import Boom from '@hapi/boom'
-import Wreck from '@hapi/wreck'
 
 import { config } from '../../../config/config.js'
+import { statusCodes } from '../constants.js'
 import { createLogger } from '../helpers/logging/logger.js'
+import { wreck } from '../helpers/wreck-client.js'
 
 const logger = createLogger()
 
@@ -23,7 +24,7 @@ export async function validateBaseline(uploadId) {
   logger.info(`Validating baseline - url: ${url}, uploadId: ${uploadId}`)
 
   try {
-    const { payload } = await Wreck.post(url, { json: true })
+    const { payload } = await wreck.post(url)
 
     if (!payload.valid) {
       const errors = Array.isArray(payload.errors) ? payload.errors : []
@@ -44,7 +45,10 @@ export async function validateBaseline(uploadId) {
 
     // Client errors from the backend indicate a validation problem —
     // surface the structured errors if present.
-    if (statusCode >= 400 && statusCode < 500) {
+    if (
+      statusCode >= statusCodes.badRequest &&
+      statusCode < statusCodes.internalServerError
+    ) {
       const errors = Array.isArray(responsePayload?.errors)
         ? responsePayload.errors
         : [

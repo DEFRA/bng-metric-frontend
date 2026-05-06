@@ -1,4 +1,12 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi
+} from 'vitest'
 
 import {
   callbackController,
@@ -194,6 +202,47 @@ describe('#callbackController', () => {
     expect(request.yar.clear).toHaveBeenCalledWith('oidc')
     expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
+
+  test('logs the full cause chain when openid-client throws a structured error', async () => {
+    const request = buildRequest()
+    request.yar.set('oidc', {
+      codeVerifier: 'verifier',
+      state: 'state',
+      nonce: 'nonce'
+    })
+
+    const innerCause = {
+      body: { error: 'invalid_request' },
+      claims: { sub: 'user-1', aud: 'client-id' }
+    }
+    const cause = Object.assign(new Error('JWT "sub" claim missing'), {
+      code: 'OAUTH_INVALID_RESPONSE',
+      cause: innerCause
+    })
+    const error = Object.assign(new Error('invalid response encountered'), {
+      code: 'OAUTH_INVALID_RESPONSE',
+      cause
+    })
+    authorizationCodeGrant.mockRejectedValue(error)
+
+    const h = buildToolkit()
+    await callbackController.handler(request, h)
+
+    expect(request.logger.error).toHaveBeenCalledOnce()
+    const [loggedError, loggedMessage] = request.logger.error.mock.calls[0]
+    expect(loggedError).toBe(error)
+    expect(loggedMessage).toContain('OIDC callback failed ::')
+    expect(loggedMessage).toContain('code=OAUTH_INVALID_RESPONSE')
+    expect(loggedMessage).toContain('causeCode=OAUTH_INVALID_RESPONSE')
+    expect(loggedMessage).toContain('causeMessage=JWT "sub" claim missing')
+    expect(loggedMessage).toContain(
+      `causeBody=${JSON.stringify(innerCause.body)}`
+    )
+    expect(loggedMessage).toContain(
+      `causeClaims=${JSON.stringify(innerCause.claims)}`
+    )
+    expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
+  })
 })
 
 describe('#logoutController', () => {
@@ -254,5 +303,161 @@ describe('#forbiddenController', () => {
       expect.objectContaining({ pageTitle: 'Access denied' })
     )
     expect(h._response.code).toHaveBeenCalledWith(403)
+  })
+})
+
+describe('with OIDC_USE_STUB=true', () => {
+  let stubLoginController
+  let stubCallbackController
+  let stubAuthorizationCodeGrant
+  let stubBuildAuthorizationUrl
+  let stubGetOidcConfig
+  let stubRandomPKCECodeVerifier
+  let stubCalculatePKCECodeChallenge
+  let stubRandomState
+  let stubRandomNonce
+
+  beforeAll(async () => {
+    vi.stubEnv('OIDC_USE_STUB', 'true')
+    vi.resetModules()
+    const controllerMod = await import('./controller.js')
+    const oidcMod = await import('openid-client')
+    const helperMod = await import('../common/helpers/auth/oidc-client.js')
+    stubLoginController = controllerMod.loginController
+    stubCallbackController = controllerMod.callbackController
+    stubAuthorizationCodeGrant = oidcMod.authorizationCodeGrant
+    stubBuildAuthorizationUrl = oidcMod.buildAuthorizationUrl
+    stubRandomPKCECodeVerifier = oidcMod.randomPKCECodeVerifier
+    stubCalculatePKCECodeChallenge = oidcMod.calculatePKCECodeChallenge
+    stubRandomState = oidcMod.randomState
+    stubRandomNonce = oidcMod.randomNonce
+    stubGetOidcConfig = helperMod.getOidcConfig
+  })
+
+  afterAll(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    stubGetOidcConfig.mockResolvedValue(fakeOidcConfig)
+  })
+
+  test('omits clientId from the requested scope', async () => {
+    stubRandomPKCECodeVerifier.mockReturnValue('verifier')
+    stubCalculatePKCECodeChallenge.mockResolvedValue('challenge')
+    stubRandomState.mockReturnValue('state')
+    stubRandomNonce.mockReturnValue('nonce')
+    stubBuildAuthorizationUrl.mockReturnValue(new URL('https://stub/authorize'))
+
+    const request = buildRequest()
+    const h = buildToolkit()
+    await stubLoginController.handler(request, h)
+
+    const [, params] = stubBuildAuthorizationUrl.mock.calls[0]
+    expect(params.scope).toBe('openid profile email offline_access')
+    expect(params.scope).not.toContain('63983fc2')
+  })
+
+  test('omits expectedNonce on the token grant', async () => {
+    const request = buildRequest()
+    request.yar.set('oidc', {
+      codeVerifier: 'verifier',
+      state: 'state',
+      nonce: 'nonce'
+    })
+    stubAuthorizationCodeGrant.mockResolvedValue({
+      id_token: 'id-token',
+      refresh_token: 'refresh-token',
+      claims: () => ({ sub: 'u' })
+    })
+
+    const h = buildToolkit()
+    await stubCallbackController.handler(request, h)
+
+    const [, , checks] = stubAuthorizationCodeGrant.mock.calls[0]
+    expect(checks).toEqual({
+      pkceCodeVerifier: 'verifier',
+      expectedState: 'state'
+    })
+    expect(checks).not.toHaveProperty('expectedNonce')
+    expect(h.redirect).toHaveBeenCalledWith('/project-dashboard')
+  })
+
+  test('rejects callback when the stub returns a mismatched nonce claim', async () => {
+    const request = buildRequest()
+    request.yar.set('oidc', {
+      codeVerifier: 'verifier',
+      state: 'state',
+      nonce: 'expected-nonce'
+    })
+    stubAuthorizationCodeGrant.mockResolvedValue({
+      id_token: 'id-token',
+      refresh_token: 'refresh-token',
+      claims: () => ({ sub: 'u', nonce: 'wrong-nonce' })
+    })
+
+    const h = buildToolkit()
+    await stubCallbackController.handler(request, h)
+
+    expect(request.logger.error).toHaveBeenCalled()
+    const [loggedError] = request.logger.error.mock.calls[0]
+    expect(loggedError.message).toBe(
+      'Nonce mismatch: expected expected-nonce, got wrong-nonce'
+    )
+    expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
+  })
+})
+
+describe('with OIDC_SERVICE_ID configured', () => {
+  let serviceIdLoginController
+  let serviceIdBuildAuthorizationUrl
+  let serviceIdRandomPKCECodeVerifier
+  let serviceIdCalculatePKCECodeChallenge
+  let serviceIdRandomState
+  let serviceIdRandomNonce
+  let serviceIdGetOidcConfig
+
+  beforeAll(async () => {
+    vi.stubEnv('OIDC_SERVICE_ID', 'svc-abc-123')
+    vi.resetModules()
+    const controllerMod = await import('./controller.js')
+    const oidcMod = await import('openid-client')
+    const helperMod = await import('../common/helpers/auth/oidc-client.js')
+    serviceIdLoginController = controllerMod.loginController
+    serviceIdBuildAuthorizationUrl = oidcMod.buildAuthorizationUrl
+    serviceIdRandomPKCECodeVerifier = oidcMod.randomPKCECodeVerifier
+    serviceIdCalculatePKCECodeChallenge = oidcMod.calculatePKCECodeChallenge
+    serviceIdRandomState = oidcMod.randomState
+    serviceIdRandomNonce = oidcMod.randomNonce
+    serviceIdGetOidcConfig = helperMod.getOidcConfig
+  })
+
+  afterAll(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    serviceIdGetOidcConfig.mockResolvedValue(fakeOidcConfig)
+  })
+
+  test('passes serviceId in the authorization request parameters', async () => {
+    serviceIdRandomPKCECodeVerifier.mockReturnValue('verifier')
+    serviceIdCalculatePKCECodeChallenge.mockResolvedValue('challenge')
+    serviceIdRandomState.mockReturnValue('state')
+    serviceIdRandomNonce.mockReturnValue('nonce')
+    serviceIdBuildAuthorizationUrl.mockReturnValue(
+      new URL('https://idp/authorize')
+    )
+
+    const request = buildRequest()
+    const h = buildToolkit()
+    await serviceIdLoginController.handler(request, h)
+
+    const [, params] = serviceIdBuildAuthorizationUrl.mock.calls[0]
+    expect(params.serviceId).toBe('svc-abc-123')
   })
 })
