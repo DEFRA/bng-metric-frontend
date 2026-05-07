@@ -148,20 +148,20 @@ describe('#projectsListController', () => {
     )
   })
 
-  test('Should show no projects message when backend returns empty array', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: []
+  test('Should redirect to define-project-name when backend returns empty array', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([])
     })
 
-    const { result, statusCode } = await server.inject({
+    const { statusCode, headers } = await server.inject({
       method: 'GET',
       url: '/project-dashboard',
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('No projects started.'))
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe('/define-project-name')
   })
 
   test('Should return 502 when backend returns a non-2xx response', async () => {

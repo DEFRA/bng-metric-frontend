@@ -17,6 +17,10 @@ export const projectsListController = {
       throw Boom.badGateway('Failed to fetch projects')
     }
 
+    if (projects.length === 0) {
+      return h.redirect('/define-project-name')
+    }
+
     return h.view('projects/index', {
       pageTitle: 'Projects',
       heading: 'Manage your Biodiversity Net Gain projects',
