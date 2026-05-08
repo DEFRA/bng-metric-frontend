@@ -18,8 +18,25 @@
 
         <p class="govuk-body">
           Your file passed the format check, but failed one or more geometry
-          checks. Fix the issues listed above in your GeoPackage and upload it again.
+          checks. Fix the issues listed below in your GeoPackage and upload it again.
         </p>
+
+        {#
+          Interim layout. The final formatting will be finalized in future stories.
+        #}
+        {% for block in errorBlocks %}
+          <h2 class="govuk-heading-m">{{ block.heading }}</h2>
+          {% if block.items.length > 0 %}
+            <ul class="govuk-list">
+              {% for item in block.items %}
+                <li>{{ item }}</li>
+              {% endfor %}
+              {% if block.more > 0 %}
+                <li class="govuk-hint">… and {{ block.more }} more</li>
+              {% endif %}
+            </ul>
+          {% endif %}
+        {% endfor %}
       {% else %}
         <h1 class="govuk-heading-l">There is a problem with your file</h1>
         <p class="govuk-body">
