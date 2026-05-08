@@ -272,6 +272,154 @@ describe('invalidFileController.handler — populated session', () => {
     )
   })
 
+  test('errorBlocks: AREA_PARCELS_INVALID_GEOMETRY appends per-row reason in parentheses', async () => {
+    const errors = [
+      {
+        code: 'AREA_PARCELS_INVALID_GEOMETRY',
+        message: 'One or more area habitat polygons have invalid geometry: …',
+        details: {
+          count: 2,
+          sample: [
+            {
+              idx: 0,
+              fid: '1',
+              feature_ref: 'H001',
+              reason: 'Self-intersection'
+            },
+            // No reason → renders as Feature Ref only (no parens).
+            { idx: 1, fid: '2', feature_ref: 'H002' }
+          ]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].items).toEqual([
+      'Feature Ref H001 (Self-intersection)',
+      'Feature Ref H002'
+    ])
+  })
+
+  test('errorBlocks: AREA_PARCELS_OUTSIDE_REDLINE without escape fields renders the bare Feature Ref', async () => {
+    // Backwards compatibility: backend may not always emit escape geometry
+    // (e.g. older clients of the validator). The describeFeatureWithEscape
+    // helper short-circuits to the plain feature label.
+    const errors = [
+      {
+        code: 'AREA_PARCELS_OUTSIDE_REDLINE',
+        message:
+          'One or more area habitat polygons are not entirely within the redline boundary: …',
+        details: {
+          count: 1,
+          sample: [{ idx: 0, fid: '1', feature_ref: 'H001' }]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].items).toEqual(['Feature Ref H001'])
+  })
+
+  test('errorBlocks: sliver row uses defensive fallbacks for missing area / location', async () => {
+    // Defensive branches in describeSliver — area_sqm defaults to 0,
+    // location_wkt defaults to "unknown location".
+    const errors = [
+      {
+        code: 'SLIVERS_INSIDE_REDLINE',
+        message: 'Baseline file contains slivers …',
+        details: {
+          count: 1,
+          sample: [{}]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].items).toEqual([
+      '~0.00 sq m near unknown location'
+    ])
+  })
+
+  test('errorBlocks: more=0 when details present but count is missing', async () => {
+    const errors = [
+      {
+        code: 'TREES_OUTSIDE_REDLINE',
+        message:
+          'One or more trees are not entirely within the redline boundary: …',
+        details: {
+          // count intentionally omitted — exercises the `?? 0` branch.
+          sample: [{ idx: 0, fid: '1', feature_ref: 'T001' }]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].more).toBe(0)
+  })
+
+  test('errorBlocks: more=0 when details present but sample is missing', async () => {
+    // details exists but sample is undefined — exercises the `sample?.length`
+    // optional-chain on line 86.
+    const errors = [
+      {
+        code: 'TREES_OUTSIDE_REDLINE',
+        message:
+          'One or more trees are not entirely within the redline boundary: …',
+        details: { count: 5 }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].more).toBe(5)
+    // sample is missing → buildItems falls through to message-split path,
+    // so items is the post-colon remainder rather than []. The point of this
+    // test is just to exercise the `sample?.length ?? 0` branch in buildBlock.
+    expect(view.errorBlocks[0].items).toEqual(['…'])
+  })
+
+  test('errorBlocks: describeFeature falls through to the bare "feature" label when no identifying fields are present', async () => {
+    // Empty fid string + no idx + no feature_ref hits the final fallback.
+    // Use a layer error code so the sample goes through describeFeature.
+    const errors = [
+      {
+        code: 'IGGIS_OUTSIDE_REDLINE',
+        message:
+          'One or more IGGIs are not entirely within the redline boundary: …',
+        details: {
+          count: 1,
+          sample: [{ fid: '' }]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].items).toEqual(['feature'])
+  })
+
   test('errorBlocks: feature label falls back to fid then to "feature #idx"', async () => {
     const errors = [
       {
