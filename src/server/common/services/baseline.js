@@ -16,7 +16,7 @@ const backendUrl = config.get('backend').url
  * controller can hand the detail to the dropout page (BMD-367).
  *
  * The projectId is passed in the JSON body so the backend can persist the
- * unpacked baseline data against the project (BMD-448) when validation
+ * unpacked baseline data against the project when validation
  * passes. If validation fails, the backend returns the same structured
  * error response as before and nothing is persisted.
  *
