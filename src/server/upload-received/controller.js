@@ -29,7 +29,7 @@ export const getController = {
     )
 
     if (uploadStatus === STATUS_READY) {
-      const result = await validateBaseline(uploadId)
+      const result = await validateBaseline(id, uploadId)
 
       request.yar.clear('pendingUploadId')
       request.yar.clear('uploadStartedAt')

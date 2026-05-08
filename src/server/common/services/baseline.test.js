@@ -13,6 +13,7 @@ vi.mock('../helpers/wreck-client.js', () => ({
   }
 }))
 
+const projectId = '11111111-2222-3333-4444-555555555555'
 const uploadId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 describe('#validateBaseline', () => {
@@ -25,7 +26,7 @@ describe('#validateBaseline', () => {
       payload: { valid: true }
     })
 
-    const result = await validateBaseline(uploadId)
+    const result = await validateBaseline(projectId, uploadId)
 
     expect(result).toEqual({ valid: true })
   })
@@ -44,7 +45,7 @@ describe('#validateBaseline', () => {
       payload: { valid: false, errors }
     })
 
-    const result = await validateBaseline(uploadId)
+    const result = await validateBaseline(projectId, uploadId)
 
     expect(result).toEqual({ valid: false, errors })
   })
@@ -54,7 +55,7 @@ describe('#validateBaseline', () => {
       payload: { valid: false }
     })
 
-    const result = await validateBaseline(uploadId)
+    const result = await validateBaseline(projectId, uploadId)
 
     expect(result).toEqual({ valid: false, errors: [] })
   })
@@ -67,7 +68,7 @@ describe('#validateBaseline', () => {
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
-    const result = await validateBaseline(uploadId)
+    const result = await validateBaseline(projectId, uploadId)
 
     expect(result).toEqual({ valid: false, errors })
   })
@@ -79,7 +80,7 @@ describe('#validateBaseline', () => {
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
-    const result = await validateBaseline(uploadId)
+    const result = await validateBaseline(projectId, uploadId)
 
     expect(result.valid).toBe(false)
     expect(result.errors).toEqual([
@@ -95,7 +96,7 @@ describe('#validateBaseline', () => {
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
-    await expect(validateBaseline(uploadId)).rejects.toMatchObject({
+    await expect(validateBaseline(projectId, uploadId)).rejects.toMatchObject({
       isBoom: true,
       output: { statusCode: 502 }
     })
@@ -104,7 +105,7 @@ describe('#validateBaseline', () => {
   test('Should throw a Boom badGateway error on network failure', async () => {
     vi.mocked(wreck.post).mockRejectedValue(new Error('Network failure'))
 
-    await expect(validateBaseline(uploadId)).rejects.toMatchObject({
+    await expect(validateBaseline(projectId, uploadId)).rejects.toMatchObject({
       isBoom: true,
       output: { statusCode: 502 }
     })
@@ -115,10 +116,29 @@ describe('#validateBaseline', () => {
       payload: { valid: true }
     })
 
-    await validateBaseline(uploadId)
+    await validateBaseline(projectId, uploadId)
 
     expect(wreck.post).toHaveBeenCalledWith(
-      expect.stringContaining(`/baseline/validate/${uploadId}`)
+      expect.stringContaining(`/baseline/validate/${uploadId}`),
+      expect.any(Object)
+    )
+  })
+
+  test('Should send the projectId in the JSON request body so the backend can persist against the project', async () => {
+    vi.mocked(wreck.post).mockResolvedValue({
+      payload: { valid: true }
+    })
+
+    await validateBaseline(projectId, uploadId)
+
+    expect(wreck.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        payload: JSON.stringify({ projectId }),
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json'
+        })
+      })
     )
   })
 })
