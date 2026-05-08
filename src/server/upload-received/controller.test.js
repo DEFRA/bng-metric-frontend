@@ -52,7 +52,7 @@ describe('upload-received controller', () => {
     await getController.handler(request, h)
 
     expect(getUploadStatus).toHaveBeenCalledWith('test-upload-id')
-    expect(validateBaseline).toHaveBeenCalledWith('test-upload-id')
+    expect(validateBaseline).toHaveBeenCalledWith('proj-123', 'test-upload-id')
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(h.redirect).toHaveBeenCalledWith('/projects/proj-123/upload-result')
     expect(h.view).not.toHaveBeenCalled()
@@ -72,7 +72,7 @@ describe('upload-received controller', () => {
 
     await getController.handler(request, h)
 
-    expect(validateBaseline).toHaveBeenCalledWith('test-upload-id')
+    expect(validateBaseline).toHaveBeenCalledWith('proj-123', 'test-upload-id')
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(request.yar.set).toHaveBeenCalledWith(
       'baselineValidationErrors',

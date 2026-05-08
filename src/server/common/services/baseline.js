@@ -15,16 +15,27 @@ const backendUrl = config.get('backend').url
  * Returns the structured error array when validation fails, so the
  * controller can hand the detail to the dropout page (BMD-367).
  *
+ * The projectId is passed in the JSON body so the backend can persist the
+ * unpacked baseline data against the project (BMD-448) when validation
+ * passes. If validation fails, the backend returns the same structured
+ * error response as before and nothing is persisted.
+ *
+ * @param {string} projectId - The project to persist the baseline against
  * @param {string} uploadId - The upload ID to validate
  * @returns {Promise<{valid: boolean, errors?: object[]}>}
  */
-export async function validateBaseline(uploadId) {
+export async function validateBaseline(projectId, uploadId) {
   const url = `${backendUrl}/baseline/validate/${uploadId}`
 
-  logger.info(`Validating baseline - url: ${url}, uploadId: ${uploadId}`)
+  logger.info(
+    `Validating baseline - url: ${url}, projectId: ${projectId}, uploadId: ${uploadId}`
+  )
 
   try {
-    const { payload } = await wreck.post(url)
+    const { payload } = await wreck.post(url, {
+      payload: JSON.stringify({ projectId }),
+      headers: { 'Content-Type': 'application/json' }
+    })
 
     if (!payload.valid) {
       const errors = Array.isArray(payload.errors) ? payload.errors : []
