@@ -35,15 +35,32 @@ export const projectTaskListController = {
   },
   async handler(request, h) {
     const { id } = request.params
-    const { payload: data } = await wreck.get(`${backendUrl}/projects/${id}`)
-
-    return h.view('projects/task-list', {
-      pageTitle: 'Project Task List',
-      heading: 'Add your Biodiversity Net Gain project details',
-      caption: data?.project?.name ?? 'Project not found',
-      data,
-      id,
-      error: data?.statusCode === 404
-    })
+    try {
+      const { payload: data } = await wreck.get(`${backendUrl}/projects/${id}`)
+      return h.view('projects/task-list', {
+        pageTitle: 'Project Task List',
+        heading: 'Add your Biodiversity Net Gain project details',
+        caption: data?.project?.name ?? 'Project not found',
+        data,
+        id,
+        error: false
+      })
+    } catch (err) {
+      if (
+        err.isBoom &&
+        err.data?.isResponseError &&
+        err.output.statusCode === 404
+      ) {
+        return h.view('projects/task-list', {
+          pageTitle: 'Project Task List',
+          heading: 'Add your Biodiversity Net Gain project details',
+          caption: 'Project not found',
+          data: null,
+          id,
+          error: true
+        })
+      }
+      throw err
+    }
   }
 }
