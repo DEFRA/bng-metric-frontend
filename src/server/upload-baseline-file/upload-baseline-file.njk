@@ -3,7 +3,6 @@
 {% from "govuk/components/file-upload/macro.njk" import govukFileUpload %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
-{% from "govuk/components/details/macro.njk" import govukDetails %}
 
 {% block beforeContent %}
   {{ super() }}
@@ -35,15 +34,6 @@
       {% if uploadUrl %}
         <p class="govuk-body">{{ instructionText }}</p>
         <p class="govuk-body">{{ secondaryText }}</p>
-
-        {{ govukDetails({
-          summaryText: "What layers should my file contain?",
-          html: '<p class="govuk-body">Your GeoPackage file should contain layers for:</p>
-          <ul class="govuk-list govuk-list--bullet">
-            <li>Red line boundary</li>
-            <li>Baseline habitat parcels</li>
-          </ul>'
-        }) }}
 
         <template id="tpl-error-summary">
           {{ govukErrorSummary({
