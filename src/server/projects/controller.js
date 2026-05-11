@@ -49,7 +49,7 @@ export const projectTaskListController = {
       if (
         err.isBoom &&
         err.data?.isResponseError &&
-        err.output.statusCode === 404
+        err.output.statusCode === statusCodes.notFound
       ) {
         return h.view('projects/task-list', {
           pageTitle: 'Project Task List',
