@@ -364,10 +364,9 @@ describe('#projectTaskListController', () => {
   })
 
   test('Should render error state when backend returns 404', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: { statusCode: 404 }
-    })
+    const boomErr = new Boom.Boom('Not Found', { statusCode: 404 })
+    boomErr.data = { isResponseError: true }
+    vi.mocked(wreck.get).mockRejectedValue(boomErr)
 
     const { result, statusCode } = await server.inject({
       method: 'GET',
