@@ -149,9 +149,9 @@ describe('#projectsListController', () => {
   })
 
   test('Should redirect to define-project-name when backend returns empty array', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve([])
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: []
     })
 
     const { statusCode, headers } = await server.inject({
