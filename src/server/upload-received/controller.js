@@ -49,11 +49,9 @@ export const getController = {
     if (uploadStatus === STATUS_REJECTED) {
       request.yar.clear('pendingUploadId')
       request.yar.clear('uploadStartedAt')
-      request.yar.set(
-        'uploadError',
-        response.errorMessage ?? 'The selected file was rejected'
-      )
-      return h.redirect(`/projects/${id}/upload-baseline-file`)
+      request.yar.set('baselineValidationErrors', [])
+      request.yar.set('baselineValidationErrorsProjectId', id)
+      return h.redirect('/invalid-file')
     }
 
     // Track when polling started. If we exceed the max wait time, redirect
