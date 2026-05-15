@@ -328,6 +328,75 @@ describe('invalidFileController.handler — populated session', () => {
     expect(view.errorBlocks[0].items).toEqual(['Feature Ref H001'])
   })
 
+  test('errorBlocks: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE lists offending parcels with habitat type and band (V.High → "Very high")', async () => {
+    const errors = [
+      {
+        code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+        message:
+          'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service: Feature Ref H001 (and 1 more)',
+        details: {
+          count: 3,
+          sample: [
+            {
+              idx: 0,
+              fid: '1',
+              feature_ref: 'H001',
+              habitat_type: 'Grassland - Lowland meadows',
+              distinctiveness: 'V.High'
+            },
+            {
+              idx: 1,
+              fid: '2',
+              feature_ref: 'H002',
+              habitat_type: 'Woodland and forest - Wet woodland',
+              distinctiveness: 'High'
+            }
+          ]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service',
+        items: [
+          'Feature Ref H001 — Grassland - Lowland meadows (Very high)',
+          'Feature Ref H002 — Woodland and forest - Wet woodland (High)'
+        ],
+        more: 1
+      }
+    ])
+  })
+
+  test('errorBlocks: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE falls back when habitat_type / distinctiveness are missing', async () => {
+    const errors = [
+      {
+        code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+        message:
+          'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service: …',
+        details: {
+          count: 1,
+          sample: [{ idx: 0, fid: '7' }]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].items).toEqual([
+      'fid 7 — unknown habitat (unknown)'
+    ])
+  })
+
   test('errorBlocks: sliver row uses defensive fallbacks for missing area / location', async () => {
     // Defensive branches in describeSliver — area_sqm defaults to 0,
     // location_wkt defaults to "unknown location".

@@ -44,6 +44,21 @@ function describeFeatureWithEscape(s) {
   return `${base} — ~${area} sq m near ${s.escape_location_wkt}`
 }
 
+// Backend emits the reference-data band identifier ("V.High", "High"); the
+// AC calls them "Very high" and "High" for the user.
+function displayBand(band) {
+  if (band === 'V.High') {
+    return 'Very high'
+  }
+  return band ?? 'unknown'
+}
+
+function describeDistinctivenessOffender(s) {
+  const base = describeFeature(s)
+  const type = s?.habitat_type ?? 'unknown habitat'
+  return `${base} — ${type} (${displayBand(s?.distinctiveness)})`
+}
+
 function buildItems(err) {
   // Non-list errors don't carry details. Use the part of the message after
   // the first ": " as the single sub-line; if there's no separator, the
@@ -70,6 +85,9 @@ function buildItems(err) {
   }
   if (err.code === 'AREA_PARCELS_OUTSIDE_REDLINE') {
     return sample.map(describeFeatureWithEscape)
+  }
+  if (err.code === 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE') {
+    return sample.map(describeDistinctivenessOffender)
   }
   return sample.map(describeFeature)
 }
