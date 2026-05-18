@@ -126,7 +126,7 @@ describe('initFileUploadValidation', () => {
 
       expect(event.defaultPrevented).toBe(true)
       expect(document.body.innerHTML).toContain(
-        'The selected file must be a GeoPackage (.gpkg)'
+        'Select a GeoPackage (.gpkg) file'
       )
     })
 
