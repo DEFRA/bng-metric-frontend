@@ -53,7 +53,7 @@ export function initFileUploadValidation() {
 
 function validateFile(file) {
   if (!file) {
-    return ['The selected file must be a GeoPackage (.gpkg)']
+    return ['Select a GeoPackage (.gpkg) file']
   }
 
   const errors = []
