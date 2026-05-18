@@ -9,4 +9,17 @@ coverage
 .cache
 .envrc
 tsconfig.tsbuildinfo
+
+# Secrets — never commit
 .env
+.env.*
+!.env.example
+
+# Private keys / certs
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.kdbx
