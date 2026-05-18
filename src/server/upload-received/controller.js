@@ -8,6 +8,13 @@ const MAX_WAIT_SECONDS = 120
 const STATUS_READY = 'ready'
 const STATUS_REJECTED = 'rejected'
 
+const GPKG_FORMAT_ERROR_CODES = new Set([
+  'GPKG_INVALID_FILE',
+  'GPKG_NOT_A_GEOPACKAGE'
+])
+const GPKG_FORMAT_ERROR_MESSAGE =
+  'The selected file must be a GeoPackage (.gpkg)'
+
 export const getController = {
   async handler(request, h) {
     const { id } = request.params
@@ -35,8 +42,18 @@ export const getController = {
       request.yar.clear('uploadStartedAt')
 
       if (!result.valid) {
+        const errors = result.errors ?? []
+        const isFormatError = errors.some((e) =>
+          GPKG_FORMAT_ERROR_CODES.has(e?.code)
+        )
+
+        if (isFormatError) {
+          request.yar.set('uploadError', GPKG_FORMAT_ERROR_MESSAGE)
+          return h.redirect(`/projects/${id}/upload-baseline-file`)
+        }
+
         // Structured errors are handed to the BMD-367 dropout page via session.
-        request.yar.set('baselineValidationErrors', result.errors ?? [])
+        request.yar.set('baselineValidationErrors', errors)
         // The dropout page is project-agnostic; pass the projectId so it can
         // render a "try another file" link back to the upload page.
         request.yar.set('baselineValidationErrorsProjectId', id)
