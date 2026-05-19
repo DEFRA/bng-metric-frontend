@@ -2,7 +2,7 @@ import { invalidFileController } from './controller.js'
 
 /**
  * @openapi
- * /invalid-file:
+ * /error-file:
  *   get:
  *     tags:
  *       - Pages
@@ -13,12 +13,12 @@ import { invalidFileController } from './controller.js'
  */
 export const invalidFile = {
   plugin: {
-    name: 'invalid-file',
+    name: 'error-file',
     register(server) {
       server.route([
         {
           method: 'GET',
-          path: '/invalid-file',
+          path: '/error-file',
           ...invalidFileController,
           options: { auth: 'session' }
         }

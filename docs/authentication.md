@@ -41,7 +41,7 @@ The frontend runs on `http://localhost:3000`. The discovery URL, client ID, secr
 1. Visit `http://localhost:3000` and click **Sign in**.
 2. You are redirected to the stub's login page. Enter the email of the user you registered.
 3. After authenticating, the stub redirects back to `/auth/callback`, which exchanges the authorization code for tokens and stores the user session.
-4. You land on `/project-dashboard`.
+4. You land on `/manage-projects`.
 5. The **Sign out** link appears in the service navigation bar at the top of every page.
 
 ### Debugging
@@ -115,7 +115,7 @@ If you change which provider an environment points at (e.g. swap a dev env from 
    - **Stub (`useStub=true`):** `expectedNonce` is omitted (the stub does not emit `nonce` in the ID token, so passing it would make `openid-client` reject the response with `JWT "nonce" claim missing`). A manual fallback comparison runs only if the stub ever does include a `nonce` claim.
 4. Stores `{ user: claims, idToken, refreshToken }` in yar under the key `auth`.
 5. Clears the temporary `oidc` session data.
-6. Redirects to `/project-dashboard`.
+6. Redirects to `/manage-projects`.
 
 ### Session auth scheme
 

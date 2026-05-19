@@ -52,7 +52,7 @@ const mockProjects = [
   }
 ]
 
-const projectTaskListurl = `/project-task-list/${mockProjects[0].id}`
+const projectTaskListurl = `/add-project-details/${mockProjects[0].id}`
 
 describe('#projectsListController', () => {
   let server
@@ -81,7 +81,7 @@ describe('#projectsListController', () => {
   test('Should render the projects list page', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
@@ -92,7 +92,7 @@ describe('#projectsListController', () => {
   test('Should fetch projects for the current user', async () => {
     await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
@@ -104,7 +104,7 @@ describe('#projectsListController', () => {
   test('Should render a table with project name, last modified, and date created', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
@@ -126,29 +126,33 @@ describe('#projectsListController', () => {
   test('Should render each project name as a link to its task list', async () => {
     const { result } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
     expect(result).toEqual(
-      expect.stringContaining(`href="/project-task-list/${mockProjects[0].id}"`)
-    )
-    expect(result).toEqual(
-      expect.stringContaining(`href="/project-task-list/${mockProjects[1].id}"`)
-    )
-    expect(result).toEqual(
       expect.stringContaining(
-        `href="/project-task-list/${mockProjects[0].id}">Greenfield Meadow Restoration</a>`
+        `href="/add-project-details/${mockProjects[0].id}"`
       )
     )
     expect(result).toEqual(
       expect.stringContaining(
-        `href="/project-task-list/${mockProjects[1].id}">Oakwood Farm BNG Assessment</a>`
+        `href="/add-project-details/${mockProjects[1].id}"`
+      )
+    )
+    expect(result).toEqual(
+      expect.stringContaining(
+        `href="/add-project-details/${mockProjects[0].id}">Greenfield Meadow Restoration</a>`
+      )
+    )
+    expect(result).toEqual(
+      expect.stringContaining(
+        `href="/add-project-details/${mockProjects[1].id}">Oakwood Farm BNG Assessment</a>`
       )
     )
   })
 
-  test('Should redirect to define-project-name when backend returns empty array', async () => {
+  test('Should redirect to project-name when backend returns empty array', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: []
@@ -156,12 +160,12 @@ describe('#projectsListController', () => {
 
     const { statusCode, headers } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe('/define-project-name')
+    expect(headers.location).toBe('/project-name')
   })
 
   test('Should return 502 when backend returns a non-2xx response', async () => {
@@ -172,7 +176,7 @@ describe('#projectsListController', () => {
 
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
@@ -184,7 +188,7 @@ describe('#projectsListController', () => {
 
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
@@ -198,7 +202,7 @@ describe('#projectsListController', () => {
 
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-dashboard',
+      url: '/manage-projects',
       auth: authedAuth
     })
 
@@ -292,7 +296,7 @@ describe('#projectTaskListController', () => {
   test('Should redirect to login when unauthenticated', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'GET',
-      url: `/project-task-list/${mockProjects[0].id}`
+      url: `/add-project-details/${mockProjects[0].id}`
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
@@ -330,7 +334,7 @@ describe('#projectTaskListController', () => {
   test('Should return bad request when project id is not a UUID', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/project-task-list/aaa-bbb-ccc',
+      url: '/add-project-details/aaa-bbb-ccc',
       auth: authedAuth
     })
 

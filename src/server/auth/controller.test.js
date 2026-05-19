@@ -129,7 +129,7 @@ describe('#callbackController', () => {
     expect(authorizationCodeGrant).not.toHaveBeenCalled()
   })
 
-  test('stores user claims + tokens in yar and redirects to /project-dashboard', async () => {
+  test('stores user claims + tokens in yar and redirects to /manage-projects', async () => {
     const request = buildRequest()
     request.yar.set('oidc', {
       codeVerifier: 'verifier',
@@ -162,7 +162,7 @@ describe('#callbackController', () => {
       refreshToken: 'refresh-token'
     })
     expect(request.yar.clear).toHaveBeenCalledWith('oidc')
-    expect(h.redirect).toHaveBeenCalledWith('/project-dashboard')
+    expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
   })
 
   test('accepts tokens when nonce is absent from claims (stub compatibility)', async () => {
@@ -182,7 +182,7 @@ describe('#callbackController', () => {
     const h = buildToolkit()
     await callbackController.handler(request, h)
 
-    expect(h.redirect).toHaveBeenCalledWith('/project-dashboard')
+    expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
   })
 
   test('redirects to /auth/forbidden when token exchange fails', async () => {
@@ -382,7 +382,7 @@ describe('with OIDC_USE_STUB=true', () => {
       expectedState: 'state'
     })
     expect(checks).not.toHaveProperty('expectedNonce')
-    expect(h.redirect).toHaveBeenCalledWith('/project-dashboard')
+    expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
   })
 
   test('rejects callback when the stub returns a mismatched nonce claim', async () => {

@@ -82,7 +82,7 @@ describe('upload-received controller', () => {
       'baselineValidationErrorsProjectId',
       'proj-123'
     )
-    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
+    expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
   it.each([['GPKG_INVALID_FILE'], ['GPKG_NOT_A_GEOPACKAGE']])(
@@ -121,7 +121,7 @@ describe('upload-received controller', () => {
     await getController.handler(request, h)
 
     expect(request.yar.set).toHaveBeenCalledWith('baselineValidationErrors', [])
-    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
+    expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
   it('should render processing view when status is pending', async () => {
@@ -172,7 +172,7 @@ describe('upload-received controller', () => {
       'baselineValidationErrorsProjectId',
       'proj-123'
     )
-    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
+    expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
   it('should render processing view for unrecognised status', async () => {
