@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "type": "module",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.14.1"
   },
   "scripts": {
     "build:frontend": "NODE_ENV=production webpack",
@@ -18,7 +18,7 @@
     "frontend:watch": "NODE_ENV=development webpack --watch",
     "git:pre-commit-hook": "npm run security-audit && npm run format:check && npm run lint && npm test",
     "install:gitleaks": "node scripts/install-gitleaks.mjs",
-    "postinstall": "node -e \"if(!process.env.CI && require('fs').existsSync('.git')){require('child_process').execSync('npm run setup:husky && npm run install:gitleaks',{stdio:'inherit'})}\"",
+    "postinstall": "node scripts/postinstall.mjs",
     "lint": "run-s lint:js lint:scss",
     "lint:js": "eslint .",
     "lint:js:fix": "eslint . --fix",

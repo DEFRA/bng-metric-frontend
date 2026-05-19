@@ -1,4 +1,4 @@
-ARG PARENT_VERSION=2.10.1-node24.11.1
+ARG PARENT_VERSION=3.0.5-node24.14.1
 ARG PORT=3000
 ARG PORT_DEBUG=9229
 
@@ -14,7 +14,9 @@ ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
 COPY --chown=node:node --chmod=755 package*.json ./
-RUN npm install
+# Strip our postinstall hook (dev-only husky/gitleaks setup) before install —
+# scripts/ is not in this image, and the hooks are not needed inside the container.
+RUN npm pkg delete scripts.postinstall && npm install
 COPY --chown=node:node --chmod=755 . .
 RUN npm run build:frontend
 
@@ -42,7 +44,9 @@ COPY --from=production_build /home/node/package*.json ./
 COPY --from=production_build /home/node/src ./src/
 COPY --from=production_build /home/node/.public/ ./.public/
 
-RUN npm ci --omit=dev
+# Strip our postinstall hook (dev-only husky/gitleaks setup) before install —
+# scripts/ is not shipped in the production image, and the hooks are not needed at runtime.
+RUN npm pkg delete scripts.postinstall && npm ci --omit=dev
 
 ARG PORT
 ENV PORT=${PORT}
