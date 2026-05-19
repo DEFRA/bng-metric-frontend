@@ -336,6 +336,7 @@ describe('invalidFileController.handler — populated session', () => {
           'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service: Feature Ref H001 (and 1 more)',
         details: {
           count: 3,
+          allowedBands: ['Medium', 'Low', 'V.Low'],
           sample: [
             {
               idx: 0,
@@ -365,6 +366,7 @@ describe('invalidFileController.handler — populated session', () => {
       {
         heading:
           'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service',
+        note: 'Allowed distinctiveness: Medium, Low and Very low.',
         items: [
           'Feature Ref H001 — Grassland - Lowland meadows (Very high)',
           'Feature Ref H002 — Woodland and forest - Wet woodland (High)'
@@ -382,6 +384,7 @@ describe('invalidFileController.handler — populated session', () => {
           'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service: …',
         details: {
           count: 1,
+          allowedBands: ['Medium', 'Low', 'V.Low'],
           sample: [{ idx: 0, fid: '7' }]
         }
       }

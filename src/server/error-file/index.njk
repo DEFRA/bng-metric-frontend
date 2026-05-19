@@ -26,6 +26,9 @@
         #}
         {% for block in errorBlocks %}
           <h2 class="govuk-heading-m">{{ block.heading }}</h2>
+          {% if block.note %}
+            <p class="govuk-body">{{ block.note }}</p>
+          {% endif %}
           {% if block.items.length > 0 %}
             <ul class="govuk-list">
               {% for item in block.items %}
