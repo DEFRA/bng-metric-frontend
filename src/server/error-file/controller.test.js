@@ -465,6 +465,32 @@ describe('invalidFileController.handler — populated session', () => {
     expect(view.errorBlocks[0].note).toBe('Allowed distinctiveness: Medium.')
   })
 
+  test('errorList: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE summary entry includes the allowed-bands note', async () => {
+    const errors = [
+      {
+        code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+        message:
+          'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service: Feature Ref H001',
+        details: {
+          count: 1,
+          allowedBands: ['Medium', 'Low', 'V.Low'],
+          sample: [{ feature_ref: 'H001', distinctiveness: 'V.High' }]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorList).toEqual([
+      {
+        text: 'One or more habitats have a distinctiveness that is out of scope for the BNG Beta service. Allowed distinctiveness: Medium, Low and Very low.'
+      }
+    ])
+  })
+
   test('errorBlocks: sliver row uses defensive fallbacks for missing area / location', async () => {
     // Defensive branches in describeSliver — area_sqm defaults to 0,
     // location_wkt defaults to "unknown location".

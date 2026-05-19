@@ -163,7 +163,9 @@ export const invalidFileController = {
       : baselineValidationErrors
 
     const errorBlocks = visibleErrors.map(buildBlock)
-    const errorList = errorBlocks.map((b) => ({ text: b.heading }))
+    const errorList = errorBlocks.map((b) => ({
+      text: b.note ? `${b.heading}. ${b.note}` : b.heading
+    }))
 
     return h.view('error-file/index', {
       pageTitle: 'There is a problem with your file',
