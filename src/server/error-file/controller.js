@@ -112,7 +112,7 @@ export const invalidFileController = {
     const errorBlocks = visibleErrors.map(buildBlock)
     const errorList = errorBlocks.map((b) => ({ text: b.heading }))
 
-    return h.view('invalid-file/index', {
+    return h.view('error-file/index', {
       pageTitle: 'There is a problem with your file',
       errorList,
       errorBlocks,

@@ -6,15 +6,15 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
 /**
  * @openapi
- * /project-dashboard:
+ * /manage-projects:
  *   get:
  *     tags:
  *       - Projects
- *     summary: Project dashboard
+ *     summary: Manage projects
  *     description: Lists all projects for the authenticated user
  *     responses:
  *       200:
- *         description: Renders the project dashboard
+ *         description: Renders the manage projects page
  *       302:
  *         description: Redirects to login if not authenticated
  */
@@ -30,7 +30,7 @@ export const projects = {
       server.route([
         {
           method: 'GET',
-          path: '/project-dashboard',
+          path: '/manage-projects',
           ...projectsListController,
           options: {
             ...projectsListController.options,
@@ -39,7 +39,7 @@ export const projects = {
         },
         {
           method: 'GET',
-          path: '/project-task-list/{id}',
+          path: '/add-project-details/{id}',
           ...projectTaskListController,
           options: {
             ...projectTaskListController.options,

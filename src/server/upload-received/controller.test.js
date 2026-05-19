@@ -82,7 +82,7 @@ describe('upload-received controller', () => {
       'baselineValidationErrorsProjectId',
       'proj-123'
     )
-    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
+    expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
   it('should default to an empty errors array when validation fails without errors', async () => {
@@ -94,7 +94,7 @@ describe('upload-received controller', () => {
     await getController.handler(request, h)
 
     expect(request.yar.set).toHaveBeenCalledWith('baselineValidationErrors', [])
-    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
+    expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
   it('should render processing view when status is pending', async () => {
@@ -145,7 +145,7 @@ describe('upload-received controller', () => {
       'baselineValidationErrorsProjectId',
       'proj-123'
     )
-    expect(h.redirect).toHaveBeenCalledWith('/invalid-file')
+    expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
   it('should render processing view for unrecognised status', async () => {

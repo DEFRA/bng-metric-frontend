@@ -27,10 +27,10 @@ describe('#invalidFileController', () => {
     await server.stop({ timeout: 0 })
   })
 
-  test('serves the page at /invalid-file', async () => {
+  test('serves the page at /error-file', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/invalid-file',
+      url: '/error-file',
       auth: authedAuth
     })
 
@@ -40,7 +40,7 @@ describe('#invalidFileController', () => {
   test('renders the expected page title', async () => {
     const { result } = await server.inject({
       method: 'GET',
-      url: '/invalid-file',
+      url: '/error-file',
       auth: authedAuth
     })
 
@@ -54,7 +54,7 @@ describe('#invalidFileController', () => {
   test('renders fallback copy when no baseline errors are in session', async () => {
     const { result } = await server.inject({
       method: 'GET',
-      url: '/invalid-file',
+      url: '/error-file',
       auth: authedAuth
     })
 
@@ -67,7 +67,7 @@ describe('#invalidFileController', () => {
   test('redirects unauthenticated requests', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'GET',
-      url: '/invalid-file'
+      url: '/error-file'
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
@@ -105,7 +105,7 @@ describe('invalidFileController.handler — populated session', () => {
     await invalidFileController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'invalid-file/index',
+      'error-file/index',
       expect.objectContaining({
         errorList: [{ text: 'No habitat areas' }, { text: 'Redline invalid' }],
         projectId: 'proj-456'
@@ -173,7 +173,7 @@ describe('invalidFileController.handler — populated session', () => {
     await invalidFileController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'invalid-file/index',
+      'error-file/index',
       expect.objectContaining({
         errorBlocks: [
           {
@@ -437,7 +437,7 @@ describe('invalidFileController.handler — populated session', () => {
     await invalidFileController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'invalid-file/index',
+      'error-file/index',
       expect.objectContaining({
         errorBlocks: [
           expect.objectContaining({
@@ -470,7 +470,7 @@ describe('invalidFileController.handler — populated session', () => {
     await invalidFileController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'invalid-file/index',
+      'error-file/index',
       expect.objectContaining({ errorList: [], projectId: null })
     )
   })

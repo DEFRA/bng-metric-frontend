@@ -87,6 +87,6 @@ export const changeProjectNamePostController = {
       throw Boom.badGateway('Failed to update project name')
     }
 
-    return h.redirect(`/project-task-list/${id}`)
+    return h.redirect(`/add-project-details/${id}`)
   }
 }

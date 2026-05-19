@@ -12,7 +12,7 @@
     <div class="govuk-grid-column-one-third app-heading-secondary-info">
       {{ govukButton({
         text: "Create project",
-        href: "/define-project-name",
+        href: "/project-name",
         classes: "govuk-!-margin-bottom-0"
       }) }}
     </div>
@@ -33,7 +33,7 @@
             {% for item in projects %}
               <tr class="govuk-table__row">
                 <td class="govuk-table__cell">
-                  <a class="govuk-link" href="/project-task-list/{{ item.id }}">{{ item.project.name }}</a>
+                  <a class="govuk-link" href="/add-project-details/{{ item.id }}">{{ item.project.name }}</a>
                 </td>
                 <td class="govuk-table__cell">
                   {{ item.updatedAt | formatDate("d MMMM yyyy 'at' h:mmaaa") if item.updatedAt else '—' }}

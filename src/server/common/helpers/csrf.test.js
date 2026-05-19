@@ -100,7 +100,7 @@ describe('CSRF wiring', () => {
     test("the form's hidden crumb input matches the meta-tag token on the same render", async () => {
       const res = await server.inject({
         method: 'GET',
-        url: '/define-project-name',
+        url: '/project-name',
         auth: authedAuth
       })
 
@@ -119,7 +119,7 @@ describe('CSRF wiring', () => {
     test('POST without a crumb is rejected with 403', async () => {
       const res = await server.inject({
         method: 'POST',
-        url: '/define-project-name',
+        url: '/project-name',
         payload: { projectName: 'irrelevant' },
         auth: authedAuth
       })
@@ -135,7 +135,7 @@ describe('CSRF wiring', () => {
 
       const get = await server.inject({
         method: 'GET',
-        url: '/define-project-name',
+        url: '/project-name',
         auth: authedAuth
       })
 
@@ -144,7 +144,7 @@ describe('CSRF wiring', () => {
 
       const post = await server.inject({
         method: 'POST',
-        url: '/define-project-name',
+        url: '/project-name',
         payload: { projectName: 'My Valid Project', crumb: token },
         headers: { cookie },
         auth: authedAuth

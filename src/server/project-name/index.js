@@ -6,7 +6,7 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
 /**
  * @openapi
- * /define-project-name:
+ * /project-name:
  *   get:
  *     tags:
  *       - Projects
@@ -49,7 +49,7 @@ export const defineProjectName = {
       server.route([
         {
           method: 'GET',
-          path: '/define-project-name',
+          path: '/project-name',
           ...defineProjectNameController,
           options: {
             ...defineProjectNameController.options,
@@ -58,7 +58,7 @@ export const defineProjectName = {
         },
         {
           method: 'POST',
-          path: '/define-project-name',
+          path: '/project-name',
           ...defineProjectNamePostController,
           options: {
             ...defineProjectNamePostController.options,

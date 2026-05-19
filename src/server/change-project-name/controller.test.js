@@ -96,7 +96,7 @@ describe('#changeProjectNameController', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(
-      expect.stringContaining(`href="/project-task-list/${projectId}"`)
+      expect.stringContaining(`href="/add-project-details/${projectId}"`)
     )
     expect(result).toEqual(expect.stringContaining('govuk-back-link'))
   })
@@ -233,7 +233,7 @@ describe('#changeProjectNamePostController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/project-task-list/${projectId}`)
+    expect(headers.location).toBe(`/add-project-details/${projectId}`)
   })
 
   test('Should return 502 when backend returns a non-2xx response', async () => {

@@ -8,7 +8,7 @@ const backendUrl = config.get('backend').url
 
 export const defineProjectNameController = {
   handler(_request, h) {
-    return h.view('define-project-name/index', {
+    return h.view('project-name/index', {
       pageTitle: 'Define Project Name',
       heading: 'Add a name for your Biodiversity Net Gain project'
     })
@@ -21,7 +21,7 @@ export const defineProjectNamePostController = {
     const errors = validateProjectName(projectName)
 
     if (errors.length > 0) {
-      return h.view('define-project-name/index', {
+      return h.view('project-name/index', {
         pageTitle: 'Error: Define Project Name',
         heading: 'Project Name',
         projectName,
@@ -42,6 +42,6 @@ export const defineProjectNamePostController = {
       throw Boom.badGateway('Failed to create project')
     }
 
-    return h.redirect('/project-dashboard')
+    return h.redirect('/manage-projects')
   }
 }

@@ -41,7 +41,7 @@ describe('#defineProjectNameController', () => {
   test('Should render the define project name page', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name',
+      url: '/project-name',
       auth: authedAuth
     })
 
@@ -54,7 +54,7 @@ describe('#defineProjectNameController', () => {
   test('Should render the Project Name heading', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name',
+      url: '/project-name',
       auth: authedAuth
     })
 
@@ -69,7 +69,7 @@ describe('#defineProjectNameController', () => {
   test('Should render the hint text', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name',
+      url: '/project-name',
       auth: authedAuth
     })
 
@@ -84,7 +84,7 @@ describe('#defineProjectNameController', () => {
   test('Should render the Save and continue button', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name',
+      url: '/project-name',
       auth: authedAuth
     })
 
@@ -95,19 +95,19 @@ describe('#defineProjectNameController', () => {
   test('Should render a back link to the project dashboard', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name',
+      url: '/project-name',
       auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('href="/project-dashboard"'))
+    expect(result).toEqual(expect.stringContaining('href="/manage-projects"'))
     expect(result).toEqual(expect.stringContaining('govuk-back-link'))
   })
 
   test('Should render an input with maxlength of 1000', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: '/define-project-name',
+      url: '/project-name',
       auth: authedAuth
     })
 
@@ -146,7 +146,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should POST to the backend with correct payload on valid input', async () => {
     await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'My Valid Project', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -166,14 +166,14 @@ describe('#defineProjectNamePostController', () => {
   test('Should redirect to project dashboard on valid input', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'My Valid Project', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe('/project-dashboard')
+    expect(headers.location).toBe('/manage-projects')
   })
 
   test('Should render error page when backend returns a non-2xx response', async () => {
@@ -184,7 +184,7 @@ describe('#defineProjectNamePostController', () => {
 
     const { statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'My Valid Project', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -200,7 +200,7 @@ describe('#defineProjectNamePostController', () => {
 
     const { statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'My Valid Project', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -212,7 +212,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should show error summary when project name is empty', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: '', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -232,7 +232,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should show error summary when project name exceeds 1000 characters', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'a'.repeat(1001), crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -249,7 +249,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should show error summary when project name contains invalid characters', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'Invalid\x00Name', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -266,7 +266,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should show red error border on input when validation fails', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: '', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -280,7 +280,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should repopulate the input with submitted value on error', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'My Project\x01', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
@@ -293,7 +293,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should reject POST with 403 when crumb is missing', async () => {
     const { statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: { projectName: 'My Valid Project' },
       auth: authedAuth
     })
@@ -305,7 +305,7 @@ describe('#defineProjectNamePostController', () => {
   test('Should reject POST with 403 when crumb cookie and payload mismatch', async () => {
     const { statusCode } = await server.inject({
       method: 'POST',
-      url: '/define-project-name',
+      url: '/project-name',
       payload: {
         projectName: 'My Valid Project',
         crumb: 'not-the-right-token'

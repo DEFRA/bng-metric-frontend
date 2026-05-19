@@ -136,10 +136,10 @@ export const callbackController = {
       const stored = request.yar.get('auth')
       request.logger.debug(
         { storedUser: Boolean(stored?.user), yarId: request.yar.id },
-        'OIDC callback: session stored, redirecting to /project-dashboard'
+        'OIDC callback: session stored, redirecting to /manage-projects'
       )
 
-      return h.redirect('/project-dashboard')
+      return h.redirect('/manage-projects')
     } catch (error) {
       logOidcError(request, error, 'OIDC callback failed')
       request.yar.clear('oidc')

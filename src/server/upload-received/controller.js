@@ -40,7 +40,7 @@ export const getController = {
         // The dropout page is project-agnostic; pass the projectId so it can
         // render a "try another file" link back to the upload page.
         request.yar.set('baselineValidationErrorsProjectId', id)
-        return h.redirect('/invalid-file')
+        return h.redirect('/error-file')
       }
 
       return h.redirect(`/projects/${id}/upload-result`)
@@ -51,7 +51,7 @@ export const getController = {
       request.yar.clear('uploadStartedAt')
       request.yar.set('baselineValidationErrors', [])
       request.yar.set('baselineValidationErrorsProjectId', id)
-      return h.redirect('/invalid-file')
+      return h.redirect('/error-file')
     }
 
     // Track when polling started. If we exceed the max wait time, redirect

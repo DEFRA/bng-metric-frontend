@@ -18,7 +18,7 @@ export const projectsListController = {
     }
 
     if (projects.length === 0) {
-      return h.redirect('/define-project-name')
+      return h.redirect('/project-name')
     }
 
     return h.view('projects/index', {
