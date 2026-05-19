@@ -5,8 +5,9 @@ import {
   createWriteStream,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
-  unlinkSync
+  rmSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -88,9 +89,10 @@ async function main() {
 
   mkdirSync(INSTALL_DIR, { recursive: true })
   const base = `https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}`
-  const archivePath = path.join(tmpdir(), asset)
+  const workDir = mkdtempSync(path.join(tmpdir(), 'install-gitleaks-'))
+  const archivePath = path.join(workDir, asset)
   const sumsPath = path.join(
-    tmpdir(),
+    workDir,
     `gitleaks_${GITLEAKS_VERSION}_checksums.txt`
   )
 
@@ -125,12 +127,7 @@ async function main() {
     )
     warn('pre-commit hook will still try PATH.')
   } finally {
-    if (existsSync(archivePath)) {
-      unlinkSync(archivePath)
-    }
-    if (existsSync(sumsPath)) {
-      unlinkSync(sumsPath)
-    }
+    rmSync(workDir, { recursive: true, force: true })
   }
 }
 
