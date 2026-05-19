@@ -12,28 +12,28 @@ describe('#buildNavigation', () => {
       {
         current: false,
         text: 'Projects',
-        href: '/project-dashboard'
+        href: '/manage-projects'
       }
     ])
   })
 
   test('Should highlight Projects for /projects path', () => {
-    const nav = buildNavigation(mockRequest({ path: '/project-dashboard' }))
+    const nav = buildNavigation(mockRequest({ path: '/manage-projects' }))
     expect(nav[0]).toEqual({
       current: true,
       text: 'Projects',
-      href: '/project-dashboard'
+      href: '/manage-projects'
     })
   })
 
-  test('Should highlight Projects for /project-dashboard/{id} path', () => {
+  test('Should highlight Projects for /manage-projects/{id} path', () => {
     const nav = buildNavigation(
-      mockRequest({ path: '/project-dashboard/some-uuid' })
+      mockRequest({ path: '/manage-projects/some-uuid' })
     )
     expect(nav[0]).toEqual({
       current: true,
       text: 'Projects',
-      href: '/project-dashboard'
+      href: '/manage-projects'
     })
   })
 })
