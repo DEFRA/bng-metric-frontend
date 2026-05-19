@@ -85,6 +85,33 @@ describe('upload-received controller', () => {
     expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
+  it.each([['GPKG_INVALID_FILE'], ['GPKG_NOT_A_GEOPACKAGE']])(
+    'should redirect to the upload page with the format-error flash when validation fails with %s',
+    async (code) => {
+      const h = createMockH()
+      const request = createMockRequest('test-upload-id')
+      vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+      vi.mocked(validateBaseline).mockResolvedValue({
+        valid: false,
+        errors: [{ code, message: 'File is not a valid GeoPackage' }]
+      })
+
+      await getController.handler(request, h)
+
+      expect(request.yar.set).toHaveBeenCalledWith(
+        'uploadError',
+        'The selected file must be a GeoPackage (.gpkg)'
+      )
+      expect(request.yar.set).not.toHaveBeenCalledWith(
+        'baselineValidationErrors',
+        expect.anything()
+      )
+      expect(h.redirect).toHaveBeenCalledWith(
+        '/projects/proj-123/upload-baseline-file'
+      )
+    }
+  )
+
   it('should default to an empty errors array when validation fails without errors', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
