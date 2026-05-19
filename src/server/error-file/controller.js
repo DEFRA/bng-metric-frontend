@@ -44,13 +44,20 @@ function describeFeatureWithEscape(s) {
   return `${base} — ~${area} sq m near ${s.escape_location_wkt}`
 }
 
-// Backend emits the reference-data band identifier ("V.High", "High"); the
-// AC calls them "Very high" and "High" for the user.
+// Backend emits the reference-data band identifiers; the AC uses
+// user-facing labels ("V.High" → "Very high" etc.). Unknown values pass
+// through unchanged so we never silently swallow a new band the backend
+// might introduce.
+const BAND_DISPLAY_NAMES = {
+  'V.High': 'Very high',
+  High: 'High',
+  Medium: 'Medium',
+  Low: 'Low',
+  'V.Low': 'Very low'
+}
+
 function displayBand(band) {
-  if (band === 'V.High') {
-    return 'Very high'
-  }
-  return band ?? 'unknown'
+  return BAND_DISPLAY_NAMES[band] ?? band ?? 'unknown'
 }
 
 function describeDistinctivenessOffender(s) {
@@ -97,13 +104,41 @@ function buildHeading(err) {
   return idx === -1 ? err.message : err.message.slice(0, idx)
 }
 
+function joinWithAnd(items) {
+  if (items.length <= 1) {
+    return items.join('')
+  }
+  return `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
+}
+
+// Render an optional explanatory line shown between the heading and the
+// offender list. For distinctiveness rejection the backend supplies the raw
+// allowed-band identifiers in details.allowedBands; we map them through
+// displayBand so the user sees "Very low" rather than "V.Low".
+function buildNote(err) {
+  if (err.code !== 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE') {
+    return null
+  }
+  const bands = err.details?.allowedBands
+  if (!Array.isArray(bands) || bands.length === 0) {
+    return null
+  }
+  const labels = bands.map(displayBand)
+  return `Allowed distinctiveness: ${joinWithAnd(labels)}.`
+}
+
 function buildBlock(err) {
   const items = buildItems(err)
   const total = Number(err.details?.count ?? 0)
   const more = err.details
     ? Math.max(0, total - (err.details.sample?.length ?? 0))
     : 0
-  return { heading: buildHeading(err), items, more }
+  const note = buildNote(err)
+  const block = { heading: buildHeading(err), items, more }
+  if (note) {
+    block.note = note
+  }
+  return block
 }
 
 export const invalidFileController = {
