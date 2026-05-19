@@ -131,10 +131,14 @@ describe('#projectsListController', () => {
     })
 
     expect(result).toEqual(
-      expect.stringContaining(`href="/add-project-details/${mockProjects[0].id}"`)
+      expect.stringContaining(
+        `href="/add-project-details/${mockProjects[0].id}"`
+      )
     )
     expect(result).toEqual(
-      expect.stringContaining(`href="/add-project-details/${mockProjects[1].id}"`)
+      expect.stringContaining(
+        `href="/add-project-details/${mockProjects[1].id}"`
+      )
     )
     expect(result).toEqual(
       expect.stringContaining(
