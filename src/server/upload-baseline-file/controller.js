@@ -21,9 +21,7 @@ function viewData(projectId, projectName) {
     caption: projectName,
     projectId,
     instructionText:
-      'Upload a GeoPackage (.gpkg) file containing a red line boundary and baseline habitat parcels.',
-    secondaryText:
-      'We\u2019ll identify the layers in your file and look up location information automatically.'
+      'Upload a GeoPackage (.gpkg) file containing a red line boundary and baseline habitat parcels.'
   }
 }
 
