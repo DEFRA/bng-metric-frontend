@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Frontend allowlist"
+paths = [
+  '''node_modules/''',
+  '''coverage/''',
+  '''\.public/''',
+  '''package-lock\.json''',
+]

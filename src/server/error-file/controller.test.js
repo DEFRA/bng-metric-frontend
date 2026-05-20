@@ -44,10 +44,8 @@ describe('#invalidFileController', () => {
       auth: authedAuth
     })
 
-    expect(result).toEqual(
-      expect.stringContaining(
-        '<title>Biodiversity Net Gain - There is a problem with your file</title>'
-      )
+    expect(result).toMatch(
+      /<title>\s*There is a problem with your file - Biodiversity Net Gain\s*<\/title>/
     )
   })
 
