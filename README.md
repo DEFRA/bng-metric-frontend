@@ -206,6 +206,30 @@ crumb, and a PR review checklist.
 Authentication (OIDC via Defra Identity) is documented in
 [docs/authentication.md](docs/authentication.md).
 
+### Secret scanning
+
+This repo scans for secrets at three independent layers — a real credential has to slip past all three to reach `main`:
+
+| Layer        | When         | What runs                                                 |
+| ------------ | ------------ | --------------------------------------------------------- |
+| pre-commit   | `git commit` | `gitleaks protect --staged` on the staged diff (< 200ms)  |
+| pre-push     | `git push`   | `gitleaks detect` on `@{u}..HEAD` (catches `--no-verify`) |
+| CI (PR-gate) | every PR     | `gitleaks-action` + `trufflehog --only-verified`          |
+
+`npm install` is the only setup step — `husky` is configured via `postinstall`, and `scripts/install-gitleaks.mjs` downloads a pinned gitleaks binary into `node_modules/.gitleaks/bin/` (verifies SHA-256; reuses any system `gitleaks` already on `PATH`). No `brew install` needed.
+
+If the download fails (firewall/offline), fall back to a system install:
+
+```bash
+brew install gitleaks            # macOS
+sudo apt install gitleaks        # Debian/Ubuntu
+choco install gitleaks           # Windows
+```
+
+**Allowlisting a false positive:** edit `.gitleaks.toml` and open a PR — reviewers must approve the widening.
+
+**Emergency bypass:** `git commit --no-verify` / `git push --no-verify`. CI still scans the PR and blocks the merge.
+
 ## Licence
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:

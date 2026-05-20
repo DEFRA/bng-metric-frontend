@@ -241,7 +241,9 @@ export const config = convict({
       env: 'OIDC_DISCOVERY_URL'
     },
     clientId: {
-      doc: 'OIDC client ID registered with the provider',
+      // Default below is the cdp-defra-id-stub's built-in client ID — not a
+      // production credential. Deployed environments override via OIDC_CLIENT_ID.
+      doc: 'OIDC client ID registered with the provider (stub default; deployed envs override via OIDC_CLIENT_ID)',
       format: String,
       default: '63983fc2-cfff-45bb-8ec2-959e21062b9a',
       env: 'OIDC_CLIENT_ID'
