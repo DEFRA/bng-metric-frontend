@@ -19,67 +19,57 @@
     caption: caption
   }) }}
 
+  {# Two-column layout (label left, value/field right) per Figma. Form fields
+     are embedded as `html` cells inside govukSummaryList so they share the
+     same row grid as the read-only rows. Each select's visible label is
+     hidden — the summary-list key column acts as the label — but the
+     accessible label text is preserved for screen readers via the
+     govuk-visually-hidden class. #}
+  {% set broadHabitatHtml %}
+    {{ govukSelect({
+      id: "broadHabitat",
+      name: "broadHabitat",
+      label: { text: "Broad habitat", classes: "govuk-visually-hidden" },
+      items: broadHabitatOptions,
+      formGroup: { classes: "govuk-!-margin-bottom-0" }
+    }) }}
+  {% endset %}
+
+  {% set habitatTypeHtml %}
+    {{ govukSelect({
+      id: "habitatType",
+      name: "habitatType",
+      label: { text: "Habitat type", classes: "govuk-visually-hidden" },
+      items: habitatTypeOptions,
+      formGroup: { classes: "govuk-!-margin-bottom-0" }
+    }) }}
+  {% endset %}
+
+  {% set conditionHtml %}
+    {{ govukSelect({
+      id: "condition",
+      name: "condition",
+      label: { text: "Condition", classes: "govuk-visually-hidden" },
+      items: conditionOptions,
+      formGroup: { classes: "govuk-!-margin-bottom-0" }
+    }) }}
+  {% endset %}
+
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
       <h2 class="govuk-heading-m">Baseline Details</h2>
 
       {{ govukSummaryList({
         rows: [
-          {
-            key: { text: "Reference" },
-            value: { text: habitatRef }
-          },
-          {
-            key: { text: "Area (hectares)" },
-            value: { text: areaDisplay }
-          }
-        ]
-      }) }}
-
-      {{ govukSelect({
-        id: "broadHabitat",
-        name: "broadHabitat",
-        label: { text: "Broad habitat" },
-        items: broadHabitatOptions
-      }) }}
-
-      {{ govukSelect({
-        id: "habitatType",
-        name: "habitatType",
-        label: { text: "Habitat type" },
-        items: habitatTypeOptions
-      }) }}
-
-      {{ govukSummaryList({
-        rows: [
-          {
-            key: { text: "Distinctiveness" },
-            value: { text: distinctivenessDisplay }
-          }
-        ]
-      }) }}
-
-      {{ govukSelect({
-        id: "condition",
-        name: "condition",
-        label: { text: "Condition" },
-        items: conditionOptions
-      }) }}
-
-      {{ govukSummaryList({
-        rows: [
-          {
-            key: { text: "Strategic Significance" },
-            value: { text: strategicSignificanceDisplay }
-          },
-          {
-            key: { text: "Trading rules" },
-            value: { text: tradingRule }
-          },
-          {
-            key: { text: "Habitat units" },
-            value: { text: habitatUnitsDisplay }
-          }
+          { key: { text: "Reference" }, value: { text: habitatRef } },
+          { key: { text: "Area (hectares)" }, value: { text: areaDisplay } },
+          { key: { text: "Broad habitat" }, value: { html: broadHabitatHtml } },
+          { key: { text: "Habitat type" }, value: { html: habitatTypeHtml } },
+          { key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } },
+          { key: { text: "Condition" }, value: { html: conditionHtml } },
+          { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
+          { key: { text: "Trading rules" }, value: { text: tradingRule } },
+          { key: { text: "Habitat units" }, value: { text: habitatUnitsDisplay } }
         ]
       }) }}
 

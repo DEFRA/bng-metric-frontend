@@ -13,6 +13,23 @@
   {% include "map/template.njk" %}
 {% endset %}
 
+{# Temporary entry point for BMD-315 manual testing. BMD-305 (Habitat List)
+   will own the real link in, so this block should be removed when BMD-305
+   merges and the Area Habitats row gets its proper summary value. #}
+{% set areaHabitatsHtml %}
+  {% if habitats and habitats.length %}
+    <ul class="govuk-list">
+      {% for habitat in habitats %}
+        <li>
+          <a class="govuk-link" href="/baseline-habitat-details?projectId={{ projectId }}&habitatId={{ habitat.featureId }}">
+            {{ habitat.ref }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endset %}
+
 {% block content %}
   {{ appHeading({
     text: heading,
@@ -32,7 +49,7 @@
           },
           {
             key: { text: "Area Habitats" },
-            value: { text: "" }
+            value: { html: areaHabitatsHtml }
           },
           {
             key: { text: "Map View" },

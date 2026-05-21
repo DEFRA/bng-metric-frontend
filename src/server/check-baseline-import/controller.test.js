@@ -23,9 +23,17 @@ const authedAuth = {
   credentials: authCredentials
 }
 
+const mockHabitats = [
+  { featureId: '11111111-1111-1111-1111-111111111111', ref: 'G-1' },
+  { featureId: '22222222-2222-2222-2222-222222222222', ref: 'G-2' }
+]
+
 const mockProject = {
   project: {
-    name: 'Greenfield Meadow Restoration'
+    name: 'Greenfield Meadow Restoration',
+    baseline: {
+      habitats: mockHabitats
+    }
   }
 }
 
@@ -136,6 +144,42 @@ describe('#checkBaselineImport - GET', () => {
     })
 
     expect(result).toEqual(expect.stringContaining('Area Habitats'))
+  })
+
+  test('Should render a link to baseline-habitat-details for each habitat', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    for (const habitat of mockHabitats) {
+      expect(result).toEqual(
+        expect.stringContaining(
+          `href="/baseline-habitat-details?projectId=${projectId}&habitatId=${habitat.featureId}"`
+        )
+      )
+      expect(result).toEqual(expect.stringContaining(habitat.ref))
+    }
+  })
+
+  test('Should tolerate a project with no habitats', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'Empty Project' } }
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('Area Habitats'))
+    expect(result).not.toEqual(
+      expect.stringContaining('href="/baseline-habitat-details')
+    )
   })
 
   test('Should show the Map View row with placeholder', async () => {
