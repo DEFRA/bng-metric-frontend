@@ -40,7 +40,8 @@ const mockHabitat = {
   distinctiveness: 'Low',
   distinctivenessScore: 2,
   condition: 'Good',
-  sizeSquareMetres: 25000
+  sizeSquareMetres: 25000,
+  units: 15
 }
 
 const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
@@ -169,13 +170,36 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Same distinctiveness or better habitat required')
   })
 
-  test('Renders habitat units to 2 decimal places (2.5 × 2 × 3 = 15.00)', async () => {
+  test('Renders the persisted habitat.units value to 2 decimal places', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
     expect(result).toContain('15.00')
+  })
+
+  test('Renders an empty habitat units cell when habitat.units is missing', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+        const { units, ...withoutUnits } = mockHabitat
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: withoutUnits
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    // No "15.00" (would only render if local compute were still in place),
+    // and no "0.00" (we deliberately avoid showing a fabricated zero).
+    expect(result).not.toContain('15.00')
+    expect(result).not.toContain('0.00')
   })
 
   test('Renders all three select dropdowns', async () => {

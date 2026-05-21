@@ -13,7 +13,6 @@ const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
 // Strategic significance is fixed at Low (1) for MVS (BMD-315 AC9).
 const FIXED_STRATEGIC_SIGNIFICANCE = { label: 'Low', score: 1 }
-const SQUARE_METRES_PER_HECTARE = 10000
 
 async function fetchProjectName(projectId) {
   try {
@@ -79,34 +78,11 @@ function toSelectItems(values, selected, labelFor = (v) => v) {
   }))
 }
 
-function computeHabitatUnits(habitat) {
-  // Compute on read for the skeleton: area × distinctiveness × condition × 1.
-  // BMD-480 will move this to server-side persistence; the formula must stay
-  // in lockstep with the backend's saved value when that lands.
-  const conditionScore = habitat.conditionScore ?? null
-  const hectares = habitat.sizeSquareMetres / SQUARE_METRES_PER_HECTARE
-  if (
-    typeof habitat.sizeSquareMetres !== 'number' ||
-    typeof habitat.distinctivenessScore !== 'number' ||
-    typeof conditionScore !== 'number'
-  ) {
-    return null
-  }
-  return (
-    hectares *
-    habitat.distinctivenessScore *
-    conditionScore *
-    FIXED_STRATEGIC_SIGNIFICANCE.score
-  )
-}
-
 function buildViewModel(habitat, reference, projectId, projectName) {
-  const conditionScore =
-    reference.conditions.find((c) => c.condition === habitat.condition)
-      ?.score ?? null
-  const habitatWithCondition = { ...habitat, conditionScore }
-  const habitatUnits = computeHabitatUnits(habitatWithCondition)
-
+  // Habitat units are computed and persisted by the backend's enrichment step
+  // (BMD-426 / bng-metric-engine). When the value is absent the display falls
+  // through to an empty cell, signalling "not yet calculated" rather than the
+  // misleading "0.00".
   return {
     projectId,
     projectName,
@@ -121,7 +97,7 @@ function buildViewModel(habitat, reference, projectId, projectName) {
     tradingRule: habitat.distinctiveness
       ? (reference.tradingRules[habitat.distinctiveness] ?? '')
       : '',
-    habitatUnitsDisplay: formatHabitatUnits(habitatUnits),
+    habitatUnitsDisplay: formatHabitatUnits(habitat.units),
     broadHabitatOptions: toSelectItems(
       reference.broadHabitats,
       habitat.broadType
