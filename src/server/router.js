@@ -12,6 +12,7 @@ import { uploadBaselineFile } from './upload-baseline-file/index.js'
 import { uploadReceived } from './upload-received/index.js'
 import { uploadResult } from './upload-result/index.js'
 import { checkBaselineImport } from './check-baseline-import/index.js'
+import { baselineHabitatDetails } from './baseline-habitat-details/index.js'
 import { invalidFile } from './error-file/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
@@ -39,6 +40,7 @@ export const router = {
         uploadReceived,
         uploadResult,
         checkBaselineImport,
+        baselineHabitatDetails,
         invalidFile
       ])
 
