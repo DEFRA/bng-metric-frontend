@@ -182,6 +182,22 @@ describe('#checkBaselineImport - GET', () => {
     )
   })
 
+  test('Should render with fallback caption when the project fetch fails', async () => {
+    vi.mocked(wreck.get).mockRejectedValue(new Error('backend down'))
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('Project'))
+    expect(result).not.toEqual(
+      expect.stringContaining('href="/baseline-habitat-details')
+    )
+  })
+
   test('Should show the Map View row with placeholder', async () => {
     const { result } = await server.inject({
       method: 'GET',
