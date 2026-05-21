@@ -32,7 +32,10 @@ const url = `/baseline-habitat-details?habitatId=${habitatId}&projectId=${projec
 const mockHabitat = {
   featureId: habitatId,
   ref: '12',
-  type: 'Grassland - Modified grassland',
+  // extract-baseline.js stores type as the short habitat-type name only;
+  // the controller is responsible for reconstructing the "Broad - Type"
+  // lookup key when calling the backend conditions endpoint.
+  type: 'Modified grassland',
   broadType: 'Grassland',
   distinctiveness: 'Low',
   distinctivenessScore: 2,
@@ -205,6 +208,22 @@ describe('#baselineHabitatDetails - GET', () => {
       auth: authedAuth
     })
     expect(result).toContain(`href="/projects/${projectId}/habitats?tab=area"`)
+  })
+
+  test('Calls the conditions endpoint with the combined "Broad - Type" key', async () => {
+    await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    const conditionCall = vi
+      .mocked(wreck.get)
+      .mock.calls.find(([u]) => u.includes('/reference/conditions'))
+    expect(conditionCall).toBeDefined()
+    expect(conditionCall[0]).toContain(
+      `habitatType=${encodeURIComponent('Grassland - Modified grassland')}`
+    )
   })
 
   test('Returns 404 when backend reports habitat not found', async () => {

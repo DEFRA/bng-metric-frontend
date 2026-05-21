@@ -38,6 +38,13 @@ async function fetchHabitat(projectId, habitatId) {
 }
 
 async function fetchReference(habitat) {
+  // The backend's conditions lookup is keyed by the combined "Broad - Type"
+  // string (e.g. "Grassland - Modified grassland"); the habitat document
+  // stores broadType and type separately, so we reconstruct the key here.
+  const conditionLookupKey =
+    habitat.broadType && habitat.type
+      ? `${habitat.broadType} - ${habitat.type}`
+      : null
   const [broads, types, conditions, tradingRules] = await Promise.all([
     wreck.get(`${backendUrl}/reference/broad-habitats`),
     habitat.broadType
@@ -45,9 +52,9 @@ async function fetchReference(habitat) {
           `${backendUrl}/reference/habitat-types?broad=${encodeURIComponent(habitat.broadType)}`
         )
       : Promise.resolve({ payload: [] }),
-    habitat.type
+    conditionLookupKey
       ? wreck.get(
-          `${backendUrl}/reference/conditions?habitatType=${encodeURIComponent(habitat.type)}`
+          `${backendUrl}/reference/conditions?habitatType=${encodeURIComponent(conditionLookupKey)}`
         )
       : Promise.resolve({ payload: [] }),
     wreck.get(`${backendUrl}/reference/trading-rules`)
