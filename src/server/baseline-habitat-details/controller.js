@@ -2,6 +2,7 @@ import Boom from '@hapi/boom'
 import Joi from 'joi'
 
 import { config } from '../../config/config.js'
+import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import {
   formatAreaHectares,
@@ -30,7 +31,10 @@ async function fetchHabitat(projectId, habitatId) {
     )
     return payload
   } catch (err) {
-    if (err.output?.statusCode === 404 || err.data?.res?.statusCode === 404) {
+    if (
+      err.output?.statusCode === statusCodes.notFound ||
+      err.data?.res?.statusCode === statusCodes.notFound
+    ) {
       throw Boom.notFound(`Habitat ${habitatId} not found`)
     }
     throw err

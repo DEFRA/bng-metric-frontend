@@ -241,6 +241,77 @@ describe('#baselineHabitatDetails - GET', () => {
     })
     expect(statusCode).toBe(statusCodes.notFound)
   })
+
+  test('Re-throws non-404 errors from the habitat fetch rather than masking as 404', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.includes(`/habitats/${habitatId}`)) {
+        return Promise.reject(Boom.badGateway('upstream broken'))
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.badGateway)
+  })
+
+  test('Falls back to "Project" caption when the project fetch fails', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}`)) {
+        return Promise.reject(new Error('boom'))
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Project')
+  })
+
+  test('Skips reference lookups when the habitat has no broadType / type', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: {
+            featureId: habitatId,
+            ref: '99',
+            type: null,
+            broadType: null,
+            distinctiveness: null,
+            distinctivenessScore: null,
+            condition: null,
+            sizeSquareMetres: null
+          }
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Habitat 99')
+    // distinctiveness display should be blank when both pieces are absent
+    expect(result).not.toContain('Low (2)')
+
+    const calls = vi.mocked(wreck.get).mock.calls.map(([u]) => u)
+    expect(calls.some((u) => u.includes('/reference/habitat-types'))).toBe(
+      false
+    )
+    expect(calls.some((u) => u.includes('/reference/conditions'))).toBe(false)
+  })
 })
 
 describe('#baselineHabitatDetails - validation', () => {
