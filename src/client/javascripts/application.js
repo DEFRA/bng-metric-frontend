@@ -7,7 +7,8 @@ import {
   Header,
   Radios,
   ServiceNavigation,
-  SkipLink
+  SkipLink,
+  Tabs
 } from 'govuk-frontend'
 
 import { initFileUploadValidation } from './file-upload-validation.js'
@@ -20,5 +21,6 @@ createAll(Header)
 createAll(Radios)
 createAll(ServiceNavigation)
 createAll(SkipLink)
+createAll(Tabs)
 
 initFileUploadValidation()
