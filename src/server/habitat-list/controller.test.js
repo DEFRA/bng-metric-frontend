@@ -1,5 +1,18 @@
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import { wreck } from '../common/helpers/wreck-client.js'
+
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
+
+const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
 
 const authCredentials = {
   sub: 'test-user',
@@ -27,6 +40,17 @@ describe('#habitatListController - GET', () => {
     await server.stop({ timeout: 0 })
   })
 
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProject
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   test('returns 200', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
@@ -45,6 +69,16 @@ describe('#habitatListController - GET', () => {
     })
 
     expect(result).toContain('On-site baseline habitats')
+  })
+
+  test('renders the project name as caption', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Greenfield Meadow Restoration')
   })
 
   test('renders the summary table', async () => {
