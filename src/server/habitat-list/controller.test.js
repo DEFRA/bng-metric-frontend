@@ -118,6 +118,33 @@ describe('#habitatListController - GET', () => {
     expect(result).toContain('id="watercourses"')
   })
 
+  test('falls back to "Project" caption when the API call throws', async () => {
+    vi.mocked(wreck.get).mockRejectedValue(new Error('network error'))
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Project')
+  })
+
+  test('falls back to "Project" caption when project name is missing', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: {} }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Project')
+  })
+
   test('renders the back link', async () => {
     const { result } = await server.inject({
       method: 'GET',
