@@ -169,6 +169,29 @@ describe('#habitatListController - GET', () => {
   })
 })
 
+describe('#habitatListController - validation', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  test('rejects an invalid project id with 400', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/projects/not-a-uuid/habitat-list',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+  })
+})
+
 describe('#habitatListController - authentication', () => {
   let server
 
