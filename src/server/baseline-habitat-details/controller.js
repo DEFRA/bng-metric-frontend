@@ -82,12 +82,12 @@ async function fetchReference(habitat) {
   }
 }
 
-function buildSelectItems(values, selectedValue, defaultText, labelFor) {
+function buildSelectItems(values, selectedValue, defaultText) {
   const items = [{ value: '', text: defaultText, selected: !selectedValue }]
   for (const value of values) {
     items.push({
       value,
-      text: labelFor ? labelFor(value) : value,
+      text: value,
       selected: value === selectedValue
     })
   }

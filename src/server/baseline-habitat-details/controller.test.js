@@ -338,6 +338,89 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Project')
   })
 
+  test('Falls back to "Project" caption when payload has no project name', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}`)) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: { project: {} }
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Project')
+    expect(result).not.toContain('Greenfield')
+  })
+
+  test('Falls back to empty habitat-types when the broad is unknown to the reference data', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: { ...mockHabitat, broadType: 'Unknown broad' }
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+  })
+
+  test('Falls back to empty trading rule when the band has no entry in the rules map', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: { ...mockHabitat, distinctiveness: 'NotInRulesMap' }
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    // Cell is rendered but empty when the band has no trading-rule entry
+    expect(result).toContain('<span id="tradingRuleDisplay"></span>')
+  })
+
+  test('Renders blank habitat reference when ref is missing on the document', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+        const { ref, ...withoutRef } = mockHabitat
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: withoutRef
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Habitat ')
+    expect(result).not.toContain('Habitat 12')
+  })
+
   test('Renders blank distinctiveness when the habitat has no broadType / type', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
       if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
