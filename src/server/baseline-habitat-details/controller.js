@@ -243,9 +243,12 @@ export const conditionsProxyController = {
   },
   async handler(request, _h) {
     const { habitatType } = request.query
-    const { payload } = await wreck.get(
+    const { res, payload } = await wreck.get(
       `${backendUrl}/reference/conditions?habitatType=${encodeURIComponent(habitatType)}`
     )
+    if (res.statusCode >= statusCodes.badRequest) {
+      throw Boom.badGateway('Failed to fetch habitat conditions')
+    }
     return payload
   }
 }
