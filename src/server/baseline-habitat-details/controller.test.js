@@ -4,6 +4,7 @@ import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
+import { _resetReferenceCache } from './controller.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -46,7 +47,6 @@ const mockHabitat = {
 }
 
 const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
-const mockBroadHabitats = ['Cropland', 'Grassland', 'Urban']
 const mockHabitatTypesByBroad = {
   Cropland: [
     { name: 'Cereal crops', distinctiveness: 'Low', distinctivenessScore: 2 }
@@ -89,16 +89,8 @@ function routeWreck(suffix) {
   if (suffix.endsWith(`/projects/${projectId}`)) {
     return { res: { statusCode: 200 }, payload: mockProject }
   }
-  if (suffix.endsWith('/reference/broad-habitats')) {
-    return { res: { statusCode: 200 }, payload: mockBroadHabitats }
-  }
-  if (suffix.includes('/reference/habitat-types')) {
-    const match = suffix.match(/broad=([^&]+)/)
-    const broad = match ? decodeURIComponent(match[1]) : null
-    return {
-      res: { statusCode: 200 },
-      payload: mockHabitatTypesByBroad[broad] ?? []
-    }
+  if (suffix.endsWith('/reference/habitat-types-by-broad')) {
+    return { res: { statusCode: 200 }, payload: mockHabitatTypesByBroad }
   }
   if (suffix.includes('/reference/conditions')) {
     return { res: { statusCode: 200 }, payload: mockConditions }
@@ -122,6 +114,7 @@ describe('#baselineHabitatDetails - GET', () => {
   })
 
   beforeEach(() => {
+    _resetReferenceCache()
     vi.mocked(wreck.get).mockImplementation((u) =>
       Promise.resolve(routeWreck(u))
     )
@@ -568,6 +561,7 @@ describe('#baselineHabitatDetails - POST', () => {
   })
 
   beforeEach(async () => {
+    _resetReferenceCache()
     vi.mocked(wreck.put).mockResolvedValue({
       res: { statusCode: 200 },
       payload: { ...mockHabitat, habitatUnits: 7.5, status: 'Complete' }
@@ -692,6 +686,7 @@ describe('#baselineHabitatDetails - conditions proxy', () => {
   })
 
   beforeEach(() => {
+    _resetReferenceCache()
     vi.mocked(wreck.get).mockImplementation((u) =>
       Promise.resolve(routeWreck(u))
     )
@@ -726,5 +721,84 @@ describe('#baselineHabitatDetails - conditions proxy', () => {
     })
 
     expect(statusCode).toBe(statusCodes.badRequest)
+  })
+})
+
+describe('#baselineHabitatDetails - static reference cache', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    _resetReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeWreck(u))
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Calls /reference/habitat-types-by-broad once across multiple page loads', async () => {
+    await server.inject({ method: 'GET', url, auth: authedAuth })
+    await server.inject({ method: 'GET', url, auth: authedAuth })
+    await server.inject({ method: 'GET', url, auth: authedAuth })
+
+    const calls = vi
+      .mocked(wreck.get)
+      .mock.calls.map(([u]) => u)
+      .filter((u) => u.endsWith('/reference/habitat-types-by-broad'))
+    expect(calls).toHaveLength(1)
+  })
+
+  test('Calls /reference/trading-rules once across multiple page loads', async () => {
+    await server.inject({ method: 'GET', url, auth: authedAuth })
+    await server.inject({ method: 'GET', url, auth: authedAuth })
+
+    const calls = vi
+      .mocked(wreck.get)
+      .mock.calls.map(([u]) => u)
+      .filter((u) => u.endsWith('/reference/trading-rules'))
+    expect(calls).toHaveLength(1)
+  })
+
+  test('Re-fetches after the cache is reset', async () => {
+    await server.inject({ method: 'GET', url, auth: authedAuth })
+    _resetReferenceCache()
+    await server.inject({ method: 'GET', url, auth: authedAuth })
+
+    const calls = vi
+      .mocked(wreck.get)
+      .mock.calls.map(([u]) => u)
+      .filter((u) => u.endsWith('/reference/habitat-types-by-broad'))
+    expect(calls).toHaveLength(2)
+  })
+
+  test('Does not cache a rejected fetch — next request retries', async () => {
+    let attempts = 0
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith('/reference/habitat-types-by-broad')) {
+        attempts += 1
+        if (attempts === 1) {
+          return Promise.reject(new Error('transient backend error'))
+        }
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const first = await server.inject({ method: 'GET', url, auth: authedAuth })
+    expect(first.statusCode).toBe(statusCodes.internalServerError)
+
+    const second = await server.inject({ method: 'GET', url, auth: authedAuth })
+    expect(second.statusCode).toBe(statusCodes.ok)
+    expect(attempts).toBe(2)
   })
 })
