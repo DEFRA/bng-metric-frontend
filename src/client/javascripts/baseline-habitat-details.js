@@ -106,11 +106,20 @@ async function handleTypeChange({
 async function loadConditions(broad, type) {
   const key = `${broad} - ${type}`
   const url = `${CONDITIONS_ENDPOINT}?habitatType=${encodeURIComponent(key)}`
-  const response = await fetch(url, { headers: { Accept: 'application/json' } })
-  if (!response.ok) {
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' }
+    })
+    if (!response.ok) {
+      return []
+    }
+    return await response.json()
+  } catch {
+    // Network error, abort, CORS, malformed JSON — fall through to an empty
+    // condition list so the dropdown is left with only its "Choose condition"
+    // placeholder rather than the page falling over.
     return []
   }
-  return response.json()
 }
 
 function resetSelect(select, defaultText) {
