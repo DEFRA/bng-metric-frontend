@@ -24,7 +24,13 @@
      same row grid as the read-only rows. Each select's visible label is
      hidden — the summary-list key column acts as the label — but the
      accessible label text is preserved for screen readers via the
-     govuk-visually-hidden class. #}
+     govuk-visually-hidden class.
+
+     The dropdowns + Save button live inside a single appForm. Hidden inputs
+     carry projectId and featureId; the macro injects the crumb. The client
+     JS (baseline-habitat-details.js) reads referenceData below to update the
+     distinctiveness / trading-rule / condition cells as the user changes
+     dropdowns (AC1–AC5), without mutating saved data. #}
   {% set broadHabitatHtml %}
     {{ govukSelect({
       id: "broadHabitat",
@@ -55,32 +61,49 @@
     }) }}
   {% endset %}
 
+  {% set distinctivenessHtml %}
+    <span id="distinctivenessDisplay">{{ distinctivenessDisplay }}</span>
+  {% endset %}
+
+  {% set tradingRuleHtml %}
+    <span id="tradingRuleDisplay">{{ tradingRule }}</span>
+  {% endset %}
+
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
       <h2 class="govuk-heading-m">Baseline Details</h2>
 
-      {{ govukSummaryList({
-        rows: [
-          { key: { text: "Reference" }, value: { text: habitatRef } },
-          { key: { text: "Area (hectares)" }, value: { text: areaDisplay } },
-          { key: { text: "Broad habitat" }, value: { html: broadHabitatHtml } },
-          { key: { text: "Habitat type" }, value: { html: habitatTypeHtml } },
-          { key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } },
-          { key: { text: "Condition" }, value: { html: conditionHtml } },
-          { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
-          { key: { text: "Trading rules" }, value: { text: tradingRule } },
-          { key: { text: "Habitat units" }, value: { text: habitatUnitsDisplay } }
-        ]
-      }) }}
+      {% call appForm({
+        action: "/baseline-habitat-details",
+        id: "habitat-details-form"
+      }) %}
+        <input type="hidden" name="projectId" value="{{ projectId }}">
+        <input type="hidden" name="featureId" value="{{ featureId }}">
 
-      <div class="govuk-button-group">
-        {{ govukButton({
-          text: "Save",
-          type: "button"
+        <script type="application/json" id="bhd-reference-data">{{ referenceJson | safe }}</script>
+
+        {{ govukSummaryList({
+          rows: [
+            { key: { text: "Reference" }, value: { text: habitatRef } },
+            { key: { text: "Area (hectares)" }, value: { text: areaDisplay } },
+            { key: { text: "Broad habitat" }, value: { html: broadHabitatHtml } },
+            { key: { text: "Habitat type" }, value: { html: habitatTypeHtml } },
+            { key: { text: "Distinctiveness" }, value: { html: distinctivenessHtml } },
+            { key: { text: "Condition" }, value: { html: conditionHtml } },
+            { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
+            { key: { text: "Trading rules" }, value: { html: tradingRuleHtml } },
+            { key: { text: "Habitat units" }, value: { text: habitatUnitsDisplay } }
+          ]
         }) }}
 
-        <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>
-      </div>
+        <div class="govuk-button-group">
+          {{ govukButton({
+            text: "Save"
+          }) }}
+
+          <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>
+        </div>
+      {% endcall %}
     </div>
   </div>
 {% endblock %}

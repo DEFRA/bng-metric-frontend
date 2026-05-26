@@ -3,6 +3,7 @@ import Boom from '@hapi/boom'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import { primeCrumb } from '../common/test-helpers/csrf.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -46,14 +47,26 @@ const mockHabitat = {
 
 const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
 const mockBroadHabitats = ['Cropland', 'Grassland', 'Urban']
-const mockHabitatTypes = [
-  { name: 'Bracken', distinctiveness: 'Medium', distinctivenessScore: 4 },
-  {
-    name: 'Modified grassland',
-    distinctiveness: 'Low',
-    distinctivenessScore: 2
-  }
-]
+const mockHabitatTypesByBroad = {
+  Cropland: [
+    { name: 'Cereal crops', distinctiveness: 'Low', distinctivenessScore: 2 }
+  ],
+  Grassland: [
+    { name: 'Bracken', distinctiveness: 'Low', distinctivenessScore: 2 },
+    {
+      name: 'Modified grassland',
+      distinctiveness: 'Low',
+      distinctivenessScore: 2
+    }
+  ],
+  Urban: [
+    {
+      name: 'Developed land; sealed surface',
+      distinctiveness: 'V.Low',
+      distinctivenessScore: 0
+    }
+  ]
+}
 const mockConditions = [
   { condition: 'Good', score: 3 },
   { condition: 'Fairly Good', score: 2.5 },
@@ -80,7 +93,12 @@ function routeWreck(suffix) {
     return { res: { statusCode: 200 }, payload: mockBroadHabitats }
   }
   if (suffix.includes('/reference/habitat-types')) {
-    return { res: { statusCode: 200 }, payload: mockHabitatTypes }
+    const match = suffix.match(/broad=([^&]+)/)
+    const broad = match ? decodeURIComponent(match[1]) : null
+    return {
+      res: { statusCode: 200 },
+      payload: mockHabitatTypesByBroad[broad] ?? []
+    }
   }
   if (suffix.includes('/reference/conditions')) {
     return { res: { statusCode: 200 }, payload: mockConditions }
@@ -320,7 +338,7 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Project')
   })
 
-  test('Skips reference lookups when the habitat has no broadType / type', async () => {
+  test('Renders blank distinctiveness when the habitat has no broadType / type', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
       if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
         return Promise.resolve({
@@ -351,11 +369,36 @@ describe('#baselineHabitatDetails - GET', () => {
     // distinctiveness display should be blank when both pieces are absent
     expect(result).not.toContain('Low (2)')
 
+    // Condition lookup still skipped without a habitat type, but habitat-types
+    // are fetched for every broad so the client-side dropdown JS has the data
+    // to populate the type dropdown when the user picks a broad.
     const calls = vi.mocked(wreck.get).mock.calls.map(([u]) => u)
-    expect(calls.some((u) => u.includes('/reference/habitat-types'))).toBe(
-      false
-    )
     expect(calls.some((u) => u.includes('/reference/conditions'))).toBe(false)
+  })
+
+  test('Embeds habitatTypesByBroad data for the client-side dropdown JS', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(result).toContain('id="bhd-reference-data"')
+    // Each broad's types should appear in the embedded JSON
+    expect(result).toContain('Modified grassland')
+    expect(result).toContain('Cereal crops')
+    expect(result).toContain('habitatTypesByBroad')
+    expect(result).toContain('tradingRulesByBand')
+  })
+
+  test('Includes a default "Choose ..." option for each dropdown', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(result).toContain('Choose broad habitat')
+    expect(result).toContain('Choose habitat type')
+    expect(result).toContain('Choose condition')
   })
 })
 
@@ -425,5 +468,180 @@ describe('#baselineHabitatDetails - authentication', () => {
     })
     expect(statusCode).toBe(302)
     expect(headers.location).toBe('/auth/forbidden')
+  })
+})
+
+describe('#baselineHabitatDetails - POST', () => {
+  let server
+  let crumb
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { ...mockHabitat, habitatUnits: 7.5, status: 'Complete' }
+    })
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Saves the dropdown values and redirects to the habitat list', async () => {
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(
+      `/projects/${projectId}/habitat-list#habitat-${habitatId}`
+    )
+    expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
+      expect.stringContaining(`/projects/${projectId}/habitats/${habitatId}`),
+      expect.objectContaining({
+        payload: JSON.stringify({
+          broadType: 'Grassland',
+          habitatType: 'Modified grassland',
+          condition: 'Good'
+        })
+      })
+    )
+  })
+
+  test('Sends nulls when dropdown values are empty (Incomplete habitat)', async () => {
+    await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: '',
+        habitatType: '',
+        condition: '',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        payload: JSON.stringify({
+          broadType: null,
+          habitatType: null,
+          condition: null
+        })
+      })
+    )
+  })
+
+  test('Returns 502 when the backend save fails', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 500 },
+      payload: { error: 'boom' }
+    })
+
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badGateway)
+  })
+
+  test('Rejects POST with 403 when crumb is missing', async () => {
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland'
+      },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(403)
+  })
+})
+
+describe('#baselineHabitatDetails - conditions proxy', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeWreck(u))
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Forwards habitatType to the backend conditions endpoint', async () => {
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url: '/api/reference/conditions?habitatType=Grassland%20-%20Modified%20grassland',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(mockConditions)
+    const lastCall = vi
+      .mocked(wreck.get)
+      .mock.calls.find(([u]) => u.includes('/reference/conditions'))
+    expect(lastCall[0]).toContain(
+      `habitatType=${encodeURIComponent('Grassland - Modified grassland')}`
+    )
+  })
+
+  test('Rejects missing habitatType query param with 400', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/api/reference/conditions',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
   })
 })

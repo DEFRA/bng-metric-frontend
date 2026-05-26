@@ -12,6 +12,7 @@ import {
 } from 'govuk-frontend'
 
 import { initFileUploadValidation } from './file-upload-validation.js'
+import { initBaselineHabitatDetails } from './baseline-habitat-details.js'
 
 createAll(Button)
 createAll(Checkboxes)
@@ -24,3 +25,4 @@ createAll(SkipLink)
 createAll(Tabs)
 
 initFileUploadValidation()
+initBaselineHabitatDetails()
