@@ -1,16 +1,4 @@
-import { config } from '../../config/config.js'
-import { wreck } from '../common/helpers/wreck-client.js'
-
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
-
-async function fetchProject(id) {
-  try {
-    const { payload: data } = await wreck.get(`${backendUrl}/projects/${id}`)
-    return data ?? null
-  } catch {
-    return null
-  }
-}
+import { fetchProject } from '../common/services/projects.js'
 
 export const getController = {
   async handler(request, h) {
