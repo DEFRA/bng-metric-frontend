@@ -48,13 +48,8 @@ async function fetchReference(habitat) {
     habitat.broadType && habitat.type
       ? `${habitat.broadType} - ${habitat.type}`
       : null
-  const [broads, types, conditions, tradingRules] = await Promise.all([
+  const [broads, conditions, tradingRules] = await Promise.all([
     wreck.get(`${backendUrl}/reference/broad-habitats`),
-    habitat.broadType
-      ? wreck.get(
-          `${backendUrl}/reference/habitat-types?broad=${encodeURIComponent(habitat.broadType)}`
-        )
-      : Promise.resolve({ payload: [] }),
     conditionLookupKey
       ? wreck.get(
           `${backendUrl}/reference/conditions?habitatType=${encodeURIComponent(conditionLookupKey)}`
@@ -62,20 +57,41 @@ async function fetchReference(habitat) {
       : Promise.resolve({ payload: [] }),
     wreck.get(`${backendUrl}/reference/trading-rules`)
   ])
+
+  // Fetch types for every broad in parallel so the client-side dropdown JS
+  // can switch the habitat-type options on broad change without an extra
+  // round trip. ~15 calls total — small enough to do at page load.
+  const allTypes = await Promise.all(
+    broads.payload.map(async (broad) => {
+      const res = await wreck.get(
+        `${backendUrl}/reference/habitat-types?broad=${encodeURIComponent(broad)}`
+      )
+      return [broad, res.payload]
+    })
+  )
+  const habitatTypesByBroad = Object.fromEntries(allTypes)
+
   return {
     broadHabitats: broads.payload,
-    habitatTypes: types.payload,
+    habitatTypes: habitat.broadType
+      ? (habitatTypesByBroad[habitat.broadType] ?? [])
+      : [],
+    habitatTypesByBroad,
     conditions: conditions.payload,
     tradingRules: tradingRules.payload
   }
 }
 
-function toSelectItems(values, selected, labelFor = (v) => v) {
-  return values.map((value) => ({
-    value,
-    text: labelFor(value),
-    selected: value === selected
-  }))
+function buildSelectItems(values, selectedValue, defaultText, labelFor) {
+  const items = [{ value: '', text: defaultText, selected: !selectedValue }]
+  for (const value of values) {
+    items.push({
+      value,
+      text: labelFor ? labelFor(value) : value,
+      selected: value === selectedValue
+    })
+  }
+  return items
 }
 
 function buildViewModel(habitat, reference, projectId, projectName) {
@@ -83,6 +99,7 @@ function buildViewModel(habitat, reference, projectId, projectName) {
   // (BMD-426 / bng-metric-engine). When the value is absent the display falls
   // through to an empty cell, signalling "not yet calculated" rather than the
   // misleading "0.00".
+  const habitatTypeNames = reference.habitatTypes.map((t) => t.name)
   return {
     projectId,
     projectName,
@@ -98,23 +115,28 @@ function buildViewModel(habitat, reference, projectId, projectName) {
       ? (reference.tradingRules[habitat.distinctiveness] ?? '')
       : '',
     habitatUnitsDisplay: formatHabitatUnits(habitat.units),
-    broadHabitatOptions: toSelectItems(
+    broadHabitatOptions: buildSelectItems(
       reference.broadHabitats,
-      habitat.broadType
+      habitat.broadType,
+      'Choose broad habitat'
     ),
-    // /reference/habitat-types returns { name, distinctiveness,
-    // distinctivenessScore } objects, not bare strings — map down to the
-    // name for both value and text so the select renders correctly.
-    habitatTypeOptions: reference.habitatTypes.map((t) => ({
-      value: t.name,
-      text: t.name,
-      selected: t.name === habitat.type
-    })),
-    conditionOptions: reference.conditions.map((c) => ({
-      value: c.condition,
-      text: `${c.condition} (${c.score})`,
-      selected: c.condition === habitat.condition
-    })),
+    habitatTypeOptions: buildSelectItems(
+      habitatTypeNames,
+      habitat.type,
+      'Choose habitat type'
+    ),
+    conditionOptions: [
+      { value: '', text: 'Choose condition', selected: !habitat.condition },
+      ...reference.conditions.map((c) => ({
+        value: c.condition,
+        text: `${c.condition} (${c.score})`,
+        selected: c.condition === habitat.condition
+      }))
+    ],
+    referenceJson: JSON.stringify({
+      habitatTypesByBroad: reference.habitatTypesByBroad,
+      tradingRulesByBand: reference.tradingRules
+    }),
     backHref: `/projects/${projectId}/habitat-list`,
     cancelHref: `/projects/${projectId}/habitat-list#habitat-${habitat.featureId}`,
     featureId: habitat.featureId
@@ -145,5 +167,64 @@ export const getController = {
       caption: projectName,
       ...viewModel
     })
+  }
+}
+
+export const postController = {
+  options: {
+    validate: {
+      payload: Joi.object({
+        projectId: Joi.string().uuid().required(),
+        featureId: Joi.string().uuid().required(),
+        broadHabitat: Joi.string().allow('').optional(),
+        habitatType: Joi.string().allow('').optional(),
+        condition: Joi.string().allow('').optional(),
+        crumb: Joi.string().optional()
+      })
+    }
+  },
+  async handler(request, h) {
+    const { projectId, featureId, broadHabitat, habitatType, condition } =
+      request.payload
+
+    const { res } = await wreck.put(
+      `${backendUrl}/projects/${projectId}/habitats/${featureId}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        payload: JSON.stringify({
+          broadType: broadHabitat || null,
+          habitatType: habitatType || null,
+          condition: condition || null
+        })
+      }
+    )
+
+    if (res.statusCode >= statusCodes.badRequest) {
+      throw Boom.badGateway('Failed to save habitat')
+    }
+
+    return h.redirect(
+      `/projects/${projectId}/habitat-list#habitat-${featureId}`
+    )
+  }
+}
+
+// Thin proxy to the backend's /reference/conditions endpoint so the client
+// JS can refresh condition options on habitat-type change without crossing
+// origins. Read-only; auth + role check sit on the route.
+export const conditionsProxyController = {
+  options: {
+    validate: {
+      query: Joi.object({
+        habitatType: Joi.string().min(1).required()
+      })
+    }
+  },
+  async handler(request, _h) {
+    const { habitatType } = request.query
+    const { payload } = await wreck.get(
+      `${backendUrl}/reference/conditions?habitatType=${encodeURIComponent(habitatType)}`
+    )
+    return payload
   }
 }

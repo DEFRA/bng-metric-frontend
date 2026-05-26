@@ -1,4 +1,8 @@
-import { getController } from './controller.js'
+import {
+  getController,
+  postController,
+  conditionsProxyController
+} from './controller.js'
 import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
 /**
@@ -28,6 +32,35 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *         description: Redirects to login if not authenticated
  *       404:
  *         description: Habitat not found
+ *   post:
+ *     tags:
+ *       - Baseline
+ *     summary: Save the area habitat dropdown selections
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/x-www-form-urlencoded:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - projectId
+ *               - featureId
+ *             properties:
+ *               projectId:
+ *                 type: string
+ *                 format: uuid
+ *               featureId:
+ *                 type: string
+ *                 format: uuid
+ *               broadHabitat:
+ *                 type: string
+ *               habitatType:
+ *                 type: string
+ *               condition:
+ *                 type: string
+ *     responses:
+ *       302:
+ *         description: Redirects to the habitat list (Area tab) on success
  */
 const protectedRouteOptions = {
   auth: 'session',
@@ -45,6 +78,24 @@ export const baselineHabitatDetails = {
           ...getController,
           options: {
             ...getController.options,
+            ...protectedRouteOptions
+          }
+        },
+        {
+          method: 'POST',
+          path: '/baseline-habitat-details',
+          ...postController,
+          options: {
+            ...postController.options,
+            ...protectedRouteOptions
+          }
+        },
+        {
+          method: 'GET',
+          path: '/api/reference/conditions',
+          ...conditionsProxyController,
+          options: {
+            ...conditionsProxyController.options,
             ...protectedRouteOptions
           }
         }
