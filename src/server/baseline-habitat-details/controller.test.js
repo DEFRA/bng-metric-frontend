@@ -722,6 +722,26 @@ describe('#baselineHabitatDetails - conditions proxy', () => {
 
     expect(statusCode).toBe(statusCodes.badRequest)
   })
+
+  test('Returns 502 when the backend conditions fetch returns an error status', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.includes('/reference/conditions')) {
+        return Promise.resolve({
+          res: { statusCode: 500 },
+          payload: { error: 'upstream broken' }
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/api/reference/conditions?habitatType=Grassland%20-%20Modified%20grassland',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badGateway)
+  })
 })
 
 describe('#baselineHabitatDetails - static reference cache', () => {
