@@ -11,6 +11,8 @@ const DISTINCTIVENESS_ID = 'distinctivenessDisplay'
 const TRADING_RULE_ID = 'tradingRuleDisplay'
 const REFERENCE_DATA_ID = 'bhd-reference-data'
 const CONDITIONS_ENDPOINT = '/api/reference/conditions'
+const CHOOSE_TYPE_LABEL = 'Choose habitat type'
+const CHOOSE_CONDITION_LABEL = 'Choose condition'
 
 export function initBaselineHabitatDetails() {
   const dataEl = document.getElementById(REFERENCE_DATA_ID)
@@ -62,10 +64,10 @@ function handleBroadChange({
 }) {
   const broad = broadSelect.value
   hideDerived()
-  resetSelect(conditionSelect, 'Choose condition')
+  resetSelect(conditionSelect, CHOOSE_CONDITION_LABEL)
 
   if (!broad) {
-    resetSelect(typeSelect, 'Choose habitat type')
+    resetSelect(typeSelect, CHOOSE_TYPE_LABEL)
     return
   }
 
@@ -81,7 +83,7 @@ async function handleTypeChange({
   tradingRulesByBand
 }) {
   const type = typeSelect.value
-  resetSelect(conditionSelect, 'Choose condition')
+  resetSelect(conditionSelect, CHOOSE_CONDITION_LABEL)
 
   if (!type) {
     hideDerived()
@@ -128,7 +130,7 @@ function populateTypeOptions(typeSelect, types) {
   }
   const placeholder = document.createElement('option')
   placeholder.value = ''
-  placeholder.textContent = 'Choose habitat type'
+  placeholder.textContent = CHOOSE_TYPE_LABEL
   placeholder.selected = true
   typeSelect.add(placeholder)
   for (const t of types) {
@@ -145,7 +147,7 @@ function populateConditionOptions(conditionSelect, conditions) {
   }
   const placeholder = document.createElement('option')
   placeholder.value = ''
-  placeholder.textContent = 'Choose condition'
+  placeholder.textContent = CHOOSE_CONDITION_LABEL
   conditionSelect.add(placeholder)
   for (const c of conditions) {
     const opt = document.createElement('option')
