@@ -224,6 +224,26 @@ describe('initBaselineHabitatDetails', () => {
     expect(document.getElementById('condition').value).toBe('')
   })
 
+  test('Falls back to an empty condition list when fetch throws (network error)', async () => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.reject(new TypeError('Network error'))
+    )
+    renderPage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Bracken')
+    fireChange('habitatType')
+    await flushAsync()
+
+    // Distinctiveness still updates (synchronous lookup from embedded data)
+    expect(document.getElementById('distinctivenessDisplay').textContent).toBe(
+      'Low (2)'
+    )
+    // Condition dropdown is empty apart from the placeholder
+    const options = Array.from(document.getElementById('condition').options)
+    expect(options.map((o) => o.value)).toEqual([''])
+  })
+
   test('AC1: changing condition does not alter derived fields or fetch', () => {
     renderPage()
     initBaselineHabitatDetails()
