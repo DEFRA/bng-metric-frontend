@@ -40,6 +40,41 @@ async function fetchHabitat(projectId, habitatId) {
   }
 }
 
+// Static reference data (broads, habitat-types-by-broad, trading-rules) is
+// bundled into bng-metric-engine at build time, so it only changes with a
+// backend deploy — which restarts this process anyway. Caching the bulk
+// fetch in a module-level Promise turns subsequent page loads into zero
+// round trips for the static slice. Conditions are per-habitat-type and
+// stay uncached.
+let staticReferencePromise = null
+
+function fetchStaticReference() {
+  if (!staticReferencePromise) {
+    staticReferencePromise = Promise.all([
+      wreck.get(`${backendUrl}/reference/habitat-types-by-broad`),
+      wreck.get(`${backendUrl}/reference/trading-rules`)
+    ])
+      .then(([types, rules]) => ({
+        habitatTypesByBroad: types.payload,
+        broadHabitats: Object.keys(types.payload).sort((a, b) =>
+          a.localeCompare(b)
+        ),
+        tradingRules: rules.payload
+      }))
+      .catch((err) => {
+        // Drop the cached rejection so the next request retries.
+        staticReferencePromise = null
+        throw err
+      })
+  }
+  return staticReferencePromise
+}
+
+// Exported for tests — resets the in-process cache between scenarios.
+export function _resetReferenceCache() {
+  staticReferencePromise = null
+}
+
 async function fetchReference(habitat) {
   // The backend's conditions lookup is keyed by the combined "Broad - Type"
   // string (e.g. "Grassland - Modified grassland"); the habitat document
@@ -48,37 +83,23 @@ async function fetchReference(habitat) {
     habitat.broadType && habitat.type
       ? `${habitat.broadType} - ${habitat.type}`
       : null
-  const [broads, conditions, tradingRules] = await Promise.all([
-    wreck.get(`${backendUrl}/reference/broad-habitats`),
+  const [staticRef, conditions] = await Promise.all([
+    fetchStaticReference(),
     conditionLookupKey
       ? wreck.get(
           `${backendUrl}/reference/conditions?habitatType=${encodeURIComponent(conditionLookupKey)}`
         )
-      : Promise.resolve({ payload: [] }),
-    wreck.get(`${backendUrl}/reference/trading-rules`)
+      : Promise.resolve({ payload: [] })
   ])
 
-  // Fetch types for every broad in parallel so the client-side dropdown JS
-  // can switch the habitat-type options on broad change without an extra
-  // round trip. ~15 calls total — small enough to do at page load.
-  const allTypes = await Promise.all(
-    broads.payload.map(async (broad) => {
-      const res = await wreck.get(
-        `${backendUrl}/reference/habitat-types?broad=${encodeURIComponent(broad)}`
-      )
-      return [broad, res.payload]
-    })
-  )
-  const habitatTypesByBroad = Object.fromEntries(allTypes)
-
   return {
-    broadHabitats: broads.payload,
+    broadHabitats: staticRef.broadHabitats,
     habitatTypes: habitat.broadType
-      ? (habitatTypesByBroad[habitat.broadType] ?? [])
+      ? (staticRef.habitatTypesByBroad[habitat.broadType] ?? [])
       : [],
-    habitatTypesByBroad,
+    habitatTypesByBroad: staticRef.habitatTypesByBroad,
     conditions: conditions.payload,
-    tradingRules: tradingRules.payload
+    tradingRules: staticRef.tradingRules
   }
 }
 
