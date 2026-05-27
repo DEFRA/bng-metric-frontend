@@ -1,39 +1,62 @@
-const { getController } = await import('./controller.js')
+import { createServer } from '../server.js'
+import { statusCodes } from '../common/constants.js'
 
-const createMockH = () => ({
-  view: vi.fn().mockReturnThis(),
-  redirect: vi.fn().mockReturnThis()
-})
+const authCredentials = {
+  sub: 'test-user',
+  email: 'test@example.com',
+  roles: ['aaa-bbb:bng completer:1']
+}
 
-const createMockRequest = (projectId = 'proj-123') => ({
-  params: { id: projectId }
-})
+const authedAuth = {
+  strategy: 'session',
+  credentials: authCredentials
+}
 
-describe('upload-result controller', () => {
-  it('should render the upload result view with the correct data', () => {
-    const h = createMockH()
-    const request = createMockRequest()
+const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
+const url = `/projects/${projectId}/upload-result`
 
-    getController.handler(request, h)
+describe('#uploadResultController - GET', () => {
+  let server
 
-    expect(h.view).toHaveBeenCalledWith('upload-result/upload-result', {
-      pageTitle: 'File uploaded',
-      heading: 'File uploaded successfully',
-      projectId: 'proj-123'
-    })
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
   })
 
-  it('should use the project id from request params', () => {
-    const h = createMockH()
-    const request = createMockRequest('proj-999')
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
 
-    getController.handler(request, h)
+  test('returns 200', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
 
-    expect(h.view).toHaveBeenCalledWith(
-      'upload-result/upload-result',
-      expect.objectContaining({
-        projectId: 'proj-999'
-      })
+    expect(statusCode).toBe(statusCodes.ok)
+  })
+
+  test('renders the success heading', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('File uploaded successfully')
+  })
+
+  test('links the user on to the check-baseline-import page', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/projects/${projectId}/check-baseline-import"`
     )
+    expect(result).toContain('Check your on-site baseline data')
   })
 })
