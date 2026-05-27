@@ -11,6 +11,8 @@ import {
   Tabs
 } from 'govuk-frontend'
 
+import { SortableTable } from '@ministryofjustice/frontend'
+
 import { initFileUploadValidation } from './file-upload-validation.js'
 
 createAll(Button)
@@ -22,5 +24,6 @@ createAll(Radios)
 createAll(ServiceNavigation)
 createAll(SkipLink)
 createAll(Tabs)
+createAll(SortableTable)
 
 initFileUploadValidation()
