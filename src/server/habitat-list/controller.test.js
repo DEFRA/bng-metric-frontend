@@ -43,7 +43,7 @@ const mockHabitatNullFields = {
   sizeSquareMetres: null,
   distinctiveness: null,
   condition: null,
-  units: 1.75,
+  units: null,
   status: null
 }
 
@@ -499,6 +499,37 @@ describe('#habitatListController - habitat rows', () => {
 
     // 25 000 m² → 2.5 ha
     expect(result).toContain('>2.5<')
+  })
+
+  test('renders units formatted to 2 decimal places', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // mockHabitat.units = 2.5 → formatHabitatUnits → '2.50'
+    expect(result).toContain('>2.50<')
+  })
+
+  test('renders an empty string when units is null', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: { habitats: [mockHabitatNullFields] }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('>null<')
   })
 
   test('renders the raw sizeSquareMetres as data-sort-value on the area cell', async () => {
