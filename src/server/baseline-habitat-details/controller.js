@@ -115,8 +115,8 @@ function buildViewModel(habitat, reference, projectId, projectName) {
       text: `${c.condition} (${c.score})`,
       selected: c.condition === habitat.condition
     })),
-    backHref: `/projects/${projectId}/habitats?tab=area`,
-    cancelHref: `/projects/${projectId}/habitats?tab=area#habitat-${habitat.featureId}`,
+    backHref: `/projects/${projectId}/habitat-list`,
+    cancelHref: `/projects/${projectId}/habitat-list#habitat-${habitat.featureId}`,
     featureId: habitat.featureId
   }
 }
