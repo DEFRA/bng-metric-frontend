@@ -12,7 +12,18 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
   }
 }))
 
-const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
+const mockProject = {
+  project: {
+    name: 'Greenfield Meadow Restoration',
+    baseline: {
+      habitatSizes: {
+        areaHabitats: { totalSquareMetres: 25000 },
+        hedgerows: { totalMetres: 2500 },
+        watercourses: { totalMetres: 1000 }
+      }
+    }
+  }
+}
 
 const authCredentials = {
   sub: 'test-user',
@@ -94,6 +105,108 @@ describe('#habitatListController - GET', () => {
     expect(result).toContain('Area habitats')
     expect(result).toContain('Hedgerows')
     expect(result).toContain('Watercourses')
+  })
+
+  test('renders the total area habitat size in hectares', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('2.5ha')
+  })
+
+  test('renders the total hedgerow size in kilometres', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('2.5km')
+  })
+
+  test('renders the total watercourse size in kilometres', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('1km')
+  })
+
+  test('shows "No data" for hedgerows when their total size is zero', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Greenfield Meadow Restoration',
+          baseline: {
+            habitatSizes: {
+              areaHabitats: { totalSquareMetres: 25000 },
+              hedgerows: { totalMetres: 0 },
+              watercourses: { totalMetres: 1000 }
+            }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No data')
+    expect(result).toContain('1km')
+    expect(result).not.toContain('0km')
+  })
+
+  test('shows "No data" for watercourses when their total size is zero', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Greenfield Meadow Restoration',
+          baseline: {
+            habitatSizes: {
+              areaHabitats: { totalSquareMetres: 25000 },
+              hedgerows: { totalMetres: 2500 },
+              watercourses: { totalMetres: 0 }
+            }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No data')
+    expect(result).toContain('2.5km')
+    expect(result).not.toContain('0km')
+  })
+
+  test('shows "No data" for hedgerows and watercourses when habitatSizes is missing', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'Greenfield Meadow Restoration' } }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    const noDataMatches = result.match(/No data/g) ?? []
+    expect(noDataMatches.length).toBeGreaterThanOrEqual(2)
   })
 
   test('renders the tabs component', async () => {
