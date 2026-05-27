@@ -102,7 +102,14 @@ function buildViewModel(habitat, reference, projectId, projectName) {
       reference.broadHabitats,
       habitat.broadType
     ),
-    habitatTypeOptions: toSelectItems(reference.habitatTypes, habitat.type),
+    // /reference/habitat-types returns { name, distinctiveness,
+    // distinctivenessScore } objects, not bare strings — map down to the
+    // name for both value and text so the select renders correctly.
+    habitatTypeOptions: reference.habitatTypes.map((t) => ({
+      value: t.name,
+      text: t.name,
+      selected: t.name === habitat.type
+    })),
     conditionOptions: reference.conditions.map((c) => ({
       value: c.condition,
       text: `${c.condition} (${c.score})`,

@@ -46,7 +46,14 @@ const mockHabitat = {
 
 const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
 const mockBroadHabitats = ['Cropland', 'Grassland', 'Urban']
-const mockHabitatTypes = ['Bracken', 'Modified grassland']
+const mockHabitatTypes = [
+  { name: 'Bracken', distinctiveness: 'Medium', distinctivenessScore: 4 },
+  {
+    name: 'Modified grassland',
+    distinctiveness: 'Low',
+    distinctivenessScore: 2
+  }
+]
 const mockConditions = [
   { condition: 'Good', score: 3 },
   { condition: 'Fairly Good', score: 2.5 },
@@ -211,6 +218,20 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('id="broadHabitat"')
     expect(result).toContain('id="habitatType"')
     expect(result).toContain('id="condition"')
+  })
+
+  test('Renders habitat-type options with the type name and selects the persisted type', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('[object Object]')
+    expect(result).toContain('<option value="Bracken">Bracken</option>')
+    expect(result).toContain(
+      '<option value="Modified grassland" selected>Modified grassland</option>'
+    )
   })
 
   test('Renders Save button and Cancel link', async () => {
