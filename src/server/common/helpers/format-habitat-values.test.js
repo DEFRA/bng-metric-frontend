@@ -2,7 +2,9 @@ import { describe, test, expect } from 'vitest'
 
 import {
   formatAreaHectares,
-  formatHabitatUnits
+  formatHabitatUnits,
+  formatTotalAreaSize,
+  formatTotalLengthSize
 } from './format-habitat-values.js'
 
 describe('formatAreaHectares', () => {
@@ -50,5 +52,58 @@ describe('formatHabitatUnits', () => {
     expect(formatHabitatUnits(null)).toBe('')
     expect(formatHabitatUnits(undefined)).toBe('')
     expect(formatHabitatUnits(Number.NaN)).toBe('')
+  })
+})
+
+describe('formatTotalAreaSize', () => {
+  test('Converts square metres to hectares and appends "ha" with no space', () => {
+    expect(formatTotalAreaSize(10000)).toBe('1ha')
+    expect(formatTotalAreaSize(25000)).toBe('2.5ha')
+  })
+
+  test('Rounds to 10 significant figures', () => {
+    expect(formatTotalAreaSize(12345678945)).toBe('1234567.894ha')
+  })
+
+  test('Handles small areas', () => {
+    expect(formatTotalAreaSize(1)).toBe('0.0001ha')
+  })
+
+  test('Returns empty string for null, undefined or non-finite input', () => {
+    expect(formatTotalAreaSize(null)).toBe('')
+    expect(formatTotalAreaSize(undefined)).toBe('')
+    expect(formatTotalAreaSize(Number.NaN)).toBe('')
+    expect(formatTotalAreaSize(Number.POSITIVE_INFINITY)).toBe('')
+  })
+
+  test('Returns empty string when given a non-number', () => {
+    expect(formatTotalAreaSize('100')).toBe('')
+  })
+})
+
+describe('formatTotalLengthSize', () => {
+  test('Converts metres to kilometres and appends "km" with no space', () => {
+    expect(formatTotalLengthSize(1000)).toBe('1km')
+    expect(formatTotalLengthSize(2500)).toBe('2.5km')
+  })
+
+  test('Rounds to 7 significant figures', () => {
+    // 1234567.891 m → 1234.567891 km → 7 sig figs → 1234.568 km
+    expect(formatTotalLengthSize(1234567.891)).toBe('1234.568km')
+  })
+
+  test('Returns "No data" when the total is zero', () => {
+    expect(formatTotalLengthSize(0)).toBe('No data')
+  })
+
+  test('Returns "No data" for null, undefined or non-finite input', () => {
+    expect(formatTotalLengthSize(null)).toBe('No data')
+    expect(formatTotalLengthSize(undefined)).toBe('No data')
+    expect(formatTotalLengthSize(Number.NaN)).toBe('No data')
+    expect(formatTotalLengthSize(Number.POSITIVE_INFINITY)).toBe('No data')
+  })
+
+  test('Returns "No data" when given a non-number', () => {
+    expect(formatTotalLengthSize('100')).toBe('No data')
   })
 })
