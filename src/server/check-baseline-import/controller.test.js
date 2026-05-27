@@ -28,11 +28,17 @@ const mockHabitats = [
   { featureId: '22222222-2222-2222-2222-222222222222', ref: 'G-2' }
 ]
 
+const mockFilename = 'greenfield-baseline.gpkg'
+
 const mockProject = {
   project: {
     name: 'Greenfield Meadow Restoration',
     baseline: {
-      habitats: mockHabitats
+      filename: mockFilename,
+      redLine: { featureId: 'rlb-1' },
+      habitats: mockHabitats,
+      hedgerows: [{ featureId: 'hr-1' }],
+      watercourses: [{ featureId: 'wc-1' }]
     }
   }
 }
@@ -232,6 +238,33 @@ describe('#checkBaselineImport - GET', () => {
     expect(result).toEqual(expect.stringContaining('File uploaded'))
   })
 
+  test('Should show the filename from the baseline document', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(expect.stringContaining(mockFilename))
+  })
+
+  test('Should tolerate a project with no baseline filename', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'No Baseline Project' } }
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(expect.stringContaining('File uploaded'))
+    expect(result).not.toEqual(expect.stringContaining(mockFilename))
+  })
+
   test('Should show the Layers row', async () => {
     const { result } = await server.inject({
       method: 'GET',
@@ -240,6 +273,52 @@ describe('#checkBaselineImport - GET', () => {
     })
 
     expect(result).toEqual(expect.stringContaining('Layers'))
+  })
+
+  test('Should list the layers present in the baseline document', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    for (const layer of [
+      'Red Line Boundary',
+      'Habitats',
+      'Hedgerows',
+      'Watercourses'
+    ]) {
+      expect(result).toEqual(expect.stringContaining(layer))
+    }
+  })
+
+  test('Should only list layers that are present in the baseline document', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Partial Layers Project',
+          baseline: {
+            filename: mockFilename,
+            redLine: { featureId: 'rlb-1' },
+            habitats: mockHabitats,
+            hedgerows: [],
+            watercourses: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(expect.stringContaining('Red Line Boundary'))
+    expect(result).toEqual(expect.stringContaining('Habitats'))
+    expect(result).not.toEqual(expect.stringContaining('<li>Hedgerows</li>'))
+    expect(result).not.toEqual(expect.stringContaining('<li>Watercourses</li>'))
   })
 
   test('Should show the Upload a different file button', async () => {
