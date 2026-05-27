@@ -1,7 +1,9 @@
 import { fetchProject } from '../common/services/projects.js'
 import {
   formatTotalAreaSize,
-  formatTotalLengthSize
+  formatTotalLengthSize,
+  formatAreaHectares,
+  formatHabitatUnits
 } from '../common/helpers/format-habitat-values.js'
 
 export const getController = {
@@ -21,12 +23,38 @@ export const getController = {
       )
     }
 
+    const habitats = project?.project?.baseline?.habitats ?? null
+    let habitatRows = null
+
+    if (habitats) {
+      habitatRows = habitats.map((habitat) => [
+        {
+          html: `<a class="govuk-link" href="/baseline-habitat-details/${habitat.featureId}">${habitat.ref}</a>`,
+          attributes: {
+            'data-sort-value': habitat.ref
+          }
+        },
+        { text: habitat.type ?? '' },
+        {
+          text: formatAreaHectares(habitat.sizeSquareMetres),
+          attributes: {
+            'data-sort-value': habitat.sizeSquareMetres
+          }
+        },
+        { text: habitat.distinctiveness ?? '' },
+        { text: habitat.condition ?? '' },
+        { text: formatHabitatUnits(habitat.units) },
+        { text: habitat.status ?? '' }
+      ])
+    }
+
     return h.view('habitat-list/habitat-list', {
       pageTitle: 'On-site baseline habitats',
       heading: 'On-site baseline habitats',
       caption: projectName,
       projectId: id,
-      totalSizes
+      totalSizes,
+      habitatRows
     })
   }
 }

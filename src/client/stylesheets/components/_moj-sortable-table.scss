@@ -1,0 +1,31 @@
+// Styles for the MOJ Sortable Table component.
+// Adapted from @ministryofjustice/frontend/moj/components/sortable-table.
+// Uses govuk-frontend focus variables already configured for this project.
+@use 'govuk-frontend' as *;
+
+[aria-sort] button,
+[aria-sort] button:hover {
+  display: inline-flex;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  color: #005ea5;
+  background-color: transparent;
+  box-shadow: 0 0 0 0;
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  align-items: center;
+}
+
+[aria-sort] button:focus {
+  outline: none;
+  color: $govuk-focus-text-colour;
+  background-color: $govuk-focus-colour;
+  box-shadow:
+    0 -2px $govuk-focus-colour,
+    0 4px $govuk-focus-text-colour;
+}
