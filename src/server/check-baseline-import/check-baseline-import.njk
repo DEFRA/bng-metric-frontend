@@ -13,6 +13,16 @@
   {% include "map/template.njk" %}
 {% endset %}
 
+{% set layersHtml %}
+  {% if layers and layers.length %}
+    <ul class="govuk-list">
+      {% for layer in layers %}
+        <li>{{ layer }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endset %}
+
 {# Temporary entry point for BMD-315 manual testing. BMD-305 (Habitat List)
    will own the real link in, so this block should be removed when BMD-305
    merges and the Area Habitats row gets its proper summary value. #}
@@ -71,7 +81,7 @@
           },
           {
             key: { text: "Layers" },
-            value: { text: "" }
+            value: { html: layersHtml }
           }
         ]
       }) }}
