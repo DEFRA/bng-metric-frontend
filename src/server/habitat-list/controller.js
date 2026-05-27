@@ -26,24 +26,24 @@ export const getController = {
     let habitatRows = null
 
     if (habitats) {
-      habitatRows = habitats.map((h) => [
+      habitatRows = habitats.map((habitat) => [
         {
-          html: `<a class="govuk-link" href="/baseline-habitat-details/${h.featureId}">${h.ref}</a>`,
+          html: `<a class="govuk-link" href="/baseline-habitat-details/${habitat.featureId}">${habitat.ref}</a>`,
           attributes: {
-            'data-sort-value': h.ref
+            'data-sort-value': habitat.ref
           }
         },
-        { text: h.type ?? '' },
+        { text: habitat.type ?? '' },
         {
-          text: formatAreaHectares(h.sizeSquareMetres),
+          text: formatAreaHectares(habitat.sizeSquareMetres),
           attributes: {
-            'data-sort-value': h.sizeSquareMetres
+            'data-sort-value': habitat.sizeSquareMetres
           }
         },
-        { text: h.distinctiveness ?? '' },
-        { text: h.condition ?? '' },
-        { text: h.units },
-        { text: h.status ?? 'Complete' }
+        { text: habitat.distinctiveness ?? '' },
+        { text: habitat.condition ?? '' },
+        { text: habitat.units },
+        { text: habitat.status ?? '' }
       ])
     }
 

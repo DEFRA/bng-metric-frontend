@@ -533,7 +533,7 @@ describe('#habitatListController - habitat rows', () => {
     expect(result).not.toContain('>null<')
   })
 
-  test('falls back to "Complete" when status is null', async () => {
+  test('renders an empty string for status when status is null', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: {
@@ -550,7 +550,7 @@ describe('#habitatListController - habitat rows', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain('Complete')
+    expect(result).not.toContain('Complete')
   })
 
   test('does not render habitat rows when baseline habitats are absent', async () => {
