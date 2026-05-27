@@ -242,17 +242,17 @@ describe('#baselineHabitatDetails - GET', () => {
     })
     expect(result).toContain('Save')
     expect(result).toContain(
-      `href="/projects/${projectId}/habitats?tab=area#habitat-${habitatId}"`
+      `href="/projects/${projectId}/habitat-list#habitat-${habitatId}"`
     )
   })
 
-  test('Renders Back link to Area tab of Habitat List', async () => {
+  test('Renders Back link to the Habitat List page', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
-    expect(result).toContain(`href="/projects/${projectId}/habitats?tab=area"`)
+    expect(result).toContain(`href="/projects/${projectId}/habitat-list"`)
   })
 
   test('Calls the conditions endpoint with the combined "Broad - Type" key', async () => {
