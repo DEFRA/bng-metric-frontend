@@ -20,6 +20,14 @@ const mockProject = {
         areaHabitats: { totalSquareMetres: 25000 },
         hedgerows: { totalMetres: 2500 },
         watercourses: { totalMetres: 1000 }
+      },
+      hedgerows: [{ featureId: 'h-1' }],
+      watercourses: [{ featureId: 'w-1' }],
+      units: {
+        totalUnits: 12.5,
+        habitatsTotal: 5.123,
+        hedgerowsTotal: 4.5,
+        watercoursesTotal: 3.0
       }
     }
   }
@@ -238,6 +246,140 @@ describe('#habitatListController - GET', () => {
 
     const noDataMatches = result.match(/No data/g) ?? []
     expect(noDataMatches.length).toBeGreaterThanOrEqual(2)
+  })
+
+  test('renders the total area habitat units to 2 decimal places (AC1)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // habitatsTotal 5.123 → '5.12'
+    expect(result).toContain('5.12')
+  })
+
+  test('renders the total hedgerow units to 2 decimal places (AC2)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // hedgerowsTotal 4.5 → '4.50'
+    expect(result).toContain('4.50')
+  })
+
+  test('renders the total watercourse units to 2 decimal places (AC5)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // watercoursesTotal 3.0 → '3.00'
+    expect(result).toContain('3.00')
+  })
+
+  test('shows "No data" for hedgerow units when no hedgerow habitats exist (AC4)', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Greenfield Meadow Restoration',
+          baseline: {
+            habitatSizes: {
+              areaHabitats: { totalSquareMetres: 25000 }
+            },
+            hedgerows: [],
+            watercourses: [{ featureId: 'w-1' }],
+            units: {
+              totalUnits: 8,
+              habitatsTotal: 5,
+              hedgerowsTotal: 0,
+              watercoursesTotal: 3
+            }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No data')
+    expect(result).toContain('3.00')
+    expect(result).not.toContain('0.00')
+  })
+
+  test('shows "No data" for watercourse units when no watercourse habitats exist (AC6)', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Greenfield Meadow Restoration',
+          baseline: {
+            habitatSizes: {
+              areaHabitats: { totalSquareMetres: 25000 }
+            },
+            hedgerows: [{ featureId: 'h-1' }],
+            watercourses: [],
+            units: {
+              totalUnits: 9,
+              habitatsTotal: 5,
+              hedgerowsTotal: 4,
+              watercoursesTotal: 0
+            }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No data')
+    expect(result).toContain('4.00')
+    expect(result).not.toContain('0.00')
+  })
+
+  test('caps unit totals at 7 significant figures', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Greenfield Meadow Restoration',
+          baseline: {
+            habitatSizes: {
+              areaHabitats: { totalSquareMetres: 25000 }
+            },
+            hedgerows: [{ featureId: 'h-1' }],
+            watercourses: [{ featureId: 'w-1' }],
+            units: {
+              totalUnits: 1234567.89,
+              habitatsTotal: 1234567.89,
+              hedgerowsTotal: 1,
+              watercoursesTotal: 1
+            }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // 1234567.89 → 7 sig figs → 1234568 → 2 dp → '1234568.00'
+    expect(result).toContain('1234568.00')
   })
 
   test('renders the tabs component', async () => {

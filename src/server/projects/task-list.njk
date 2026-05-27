@@ -46,8 +46,8 @@
               title: {
                 text: "On-site baseline habitats"
               },
-              href: "/projects/" + id + "/upload-baseline-file",
-              status: {
+              href: ("/projects/" + id + "/habitat-list") if isBaselineUploaded else ("/projects/" + id + "/upload-baseline-file"),
+              status: { text: "Completed" } if isBaselineUploaded else {
                 tag: {
                   text: "Not yet started",
                   classes: "govuk-tag--blue"
