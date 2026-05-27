@@ -23,13 +23,15 @@ export const getController = {
     }
 
     const habitats = project?.project?.baseline?.habitats ?? null
-
     let habitatRows = null
 
     if (habitats) {
       habitatRows = habitats.map((h) => [
         {
-          html: `<a class="govuk-link" href="/baseline-habitat-details/${h.featureId}">${h.ref}</a>`
+          html: `<a class="govuk-link" href="/baseline-habitat-details/${h.featureId}">${h.ref}</a>`,
+          attributes: {
+            'data-sort-value': h.ref
+          }
         },
         { text: h.type ?? '' },
         {

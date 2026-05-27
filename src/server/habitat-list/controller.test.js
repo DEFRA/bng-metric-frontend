@@ -25,6 +25,37 @@ const mockProject = {
   }
 }
 
+const mockHabitat = {
+  featureId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  ref: 'P-1',
+  type: 'Grassland',
+  sizeSquareMetres: 25000,
+  distinctiveness: 'Low',
+  condition: 'Good',
+  units: 2.5,
+  status: 'Complete'
+}
+
+const mockHabitatNullFields = {
+  featureId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+  ref: 'P-2',
+  type: null,
+  sizeSquareMetres: null,
+  distinctiveness: null,
+  condition: null,
+  units: 1.75,
+  status: null
+}
+
+const mockProjectWithHabitats = {
+  project: {
+    name: 'Greenfield Meadow Restoration',
+    baseline: {
+      habitats: [mockHabitat, mockHabitatNullFields]
+    }
+  }
+}
+
 const authCredentials = {
   sub: 'test-user',
   email: 'test@example.com',
@@ -343,5 +374,198 @@ describe('#habitatListController - authentication', () => {
 
     expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/auth/forbidden')
+  })
+})
+
+describe('#habitatListController - sortable table markup', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProject
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('renders the moj-sortable-table data-module attribute', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('data-module="moj-sortable-table"')
+  })
+
+  test('renders aria-sort on the Ref column header (ascending by default)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('aria-sort="ascending"')
+  })
+
+  test('renders aria-sort="none" on the remaining column headers', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('aria-sort="none"')
+  })
+})
+
+describe('#habitatListController - habitat rows', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjectWithHabitats
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('renders a link to baseline-habitat-details for each habitat', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/baseline-habitat-details/${mockHabitat.featureId}"`
+    )
+    expect(result).toContain(
+      `href="/baseline-habitat-details/${mockHabitatNullFields.featureId}"`
+    )
+  })
+
+  test('renders the habitat ref as the link text', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('>P-1<')
+    expect(result).toContain('>P-2<')
+  })
+
+  test('renders data-sort-value with the ref on the ref cell', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('data-sort-value="P-1"')
+  })
+
+  test('converts sizeSquareMetres to hectares for display', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // 25 000 m² → 2.5 ha
+    expect(result).toContain('>2.5<')
+  })
+
+  test('renders the raw sizeSquareMetres as data-sort-value on the area cell', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('data-sort-value="25000"')
+  })
+
+  test('renders type, distinctiveness and condition', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Grassland')
+    expect(result).toContain('Low')
+    expect(result).toContain('Good')
+  })
+
+  test('renders an empty string for null type, distinctiveness and condition', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('>null<')
+  })
+
+  test('falls back to "Complete" when status is null', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: { habitats: [mockHabitatNullFields] }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Complete')
+  })
+
+  test('does not render habitat rows when baseline habitats are absent', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'Empty Project' } }
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).not.toContain('href="/baseline-habitat-details/')
   })
 })
