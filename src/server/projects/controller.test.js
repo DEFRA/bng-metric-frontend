@@ -331,6 +331,66 @@ describe('#projectTaskListController', () => {
     )
   })
 
+  test('Should link to habitat-list when a baseline has been uploaded', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        ...mockProjects[0],
+        project: {
+          ...mockProjects[0].project,
+          baseline: {
+            uploadId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            importedAt: '2026-05-01T12:00:00.000Z'
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(
+      expect.stringContaining(
+        `href="/projects/${mockProjects[0].id}/habitat-list"`
+      )
+    )
+    expect(result).not.toEqual(
+      expect.stringContaining(
+        `href="/projects/${mockProjects[0].id}/upload-baseline-file"`
+      )
+    )
+  })
+
+  test('Should show "Completed" status when a baseline has been uploaded', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        ...mockProjects[0],
+        project: {
+          ...mockProjects[0].project,
+          baseline: {
+            uploadId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            importedAt: '2026-05-01T12:00:00.000Z'
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    // The "Completed" string appears twice — once for Project Name and once for
+    // On-site baseline habitats — when the baseline has been uploaded.
+    const completedMatches = result.match(/Completed/g) ?? []
+    expect(completedMatches.length).toBeGreaterThanOrEqual(2)
+  })
+
   test('Should return bad request when project id is not a UUID', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',

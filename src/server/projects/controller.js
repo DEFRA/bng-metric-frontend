@@ -41,12 +41,14 @@ export const projectTaskListController = {
     const { id } = request.params
     try {
       const { payload: data } = await wreck.get(`${backendUrl}/projects/${id}`)
+      const isBaselineUploaded = Boolean(data?.project?.baseline)
       return h.view('projects/task-list', {
         pageTitle: 'Project Task List',
         heading: 'Add your Biodiversity Net Gain project details',
         caption: data?.project?.name ?? 'Project not found',
         data,
         id,
+        isBaselineUploaded,
         error: false
       })
     } catch (err) {
