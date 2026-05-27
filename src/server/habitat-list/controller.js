@@ -2,7 +2,8 @@ import { fetchProject } from '../common/services/projects.js'
 import {
   formatTotalAreaSize,
   formatTotalLengthSize,
-  formatAreaHectares
+  formatAreaHectares,
+  formatHabitatUnits
 } from '../common/helpers/format-habitat-values.js'
 
 export const getController = {
@@ -42,7 +43,7 @@ export const getController = {
         },
         { text: habitat.distinctiveness ?? '' },
         { text: habitat.condition ?? '' },
-        { text: habitat.units },
+        { text: formatHabitatUnits(habitat.units) },
         { text: habitat.status ?? '' }
       ])
     }
