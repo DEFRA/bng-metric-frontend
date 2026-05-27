@@ -6,12 +6,23 @@ import {
   formatHabitatUnits
 } from '../common/helpers/format-habitat-values.js'
 
+const NO_DATA_DISPLAY = 'No data'
+
+function formatLinearUnits(features, total) {
+  if (!features?.length) {
+    return NO_DATA_DISPLAY
+  }
+  return formatHabitatUnits(total)
+}
+
 export const getController = {
   async handler(request, h) {
     const { id } = request.params
     const project = await fetchProject(id)
     const projectName = project?.project?.name ?? 'Project'
-    const habitatSizes = project?.project?.baseline?.habitatSizes
+    const baseline = project?.project?.baseline
+    const habitatSizes = baseline?.habitatSizes
+    const unitsTotals = baseline?.units
 
     const totalSizes = {
       areaHabitats: formatTotalAreaSize(
@@ -23,7 +34,19 @@ export const getController = {
       )
     }
 
-    const habitats = project?.project?.baseline?.habitats ?? null
+    const totalUnits = {
+      areaHabitats: formatHabitatUnits(unitsTotals?.habitatsTotal),
+      hedgerows: formatLinearUnits(
+        baseline?.hedgerows,
+        unitsTotals?.hedgerowsTotal
+      ),
+      watercourses: formatLinearUnits(
+        baseline?.watercourses,
+        unitsTotals?.watercoursesTotal
+      )
+    }
+
+    const habitats = baseline?.habitats ?? null
     let habitatRows = null
 
     if (habitats) {
@@ -54,6 +77,7 @@ export const getController = {
       caption: projectName,
       projectId: id,
       totalSizes,
+      totalUnits,
       habitatRows
     })
   }
