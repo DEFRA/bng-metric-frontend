@@ -60,7 +60,7 @@ export const getController = {
         return h.redirect('/error-file')
       }
 
-      return h.redirect(`/projects/${id}/upload-result`)
+      return h.redirect(`/projects/${id}/habitat-list`)
     }
 
     if (uploadStatus === STATUS_REJECTED) {

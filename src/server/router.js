@@ -10,8 +10,6 @@ import { defineProjectName } from './project-name/index.js'
 import { changeProjectName } from './change-project-name/index.js'
 import { uploadBaselineFile } from './upload-baseline-file/index.js'
 import { uploadReceived } from './upload-received/index.js'
-import { uploadResult } from './upload-result/index.js'
-import { checkBaselineImport } from './check-baseline-import/index.js'
 import { baselineHabitatDetails } from './baseline-habitat-details/index.js'
 import { invalidFile } from './error-file/index.js'
 import { habitatList } from './habitat-list/index.js'
@@ -39,8 +37,6 @@ export const router = {
         changeProjectName,
         uploadBaselineFile,
         uploadReceived,
-        uploadResult,
-        checkBaselineImport,
         baselineHabitatDetails,
         habitatList,
         invalidFile
