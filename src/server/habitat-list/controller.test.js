@@ -439,7 +439,7 @@ describe('#habitatListController - GET', () => {
     })
 
     expect(result).toContain('govuk-back-link')
-    expect(result).toContain(`/projects/${projectId}/check-baseline-import`)
+    expect(result).toContain(`/add-project-details/${projectId}`)
   })
 
   test('renders the action buttons', async () => {
