@@ -604,10 +604,10 @@ describe('#habitatListController - habitat rows', () => {
     })
 
     expect(result).toContain(
-      `href="/baseline-habitat-details/${mockHabitat.featureId}"`
+      `href="/baseline-habitat-details?habitatId=${mockHabitat.featureId}&projectId=${projectId}"`
     )
     expect(result).toContain(
-      `href="/baseline-habitat-details/${mockHabitatNullFields.featureId}"`
+      `href="/baseline-habitat-details?habitatId=${mockHabitatNullFields.featureId}&projectId=${projectId}"`
     )
   })
 
@@ -739,6 +739,6 @@ describe('#habitatListController - habitat rows', () => {
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).not.toContain('href="/baseline-habitat-details/')
+    expect(result).not.toContain('href="/baseline-habitat-details?')
   })
 })

@@ -52,7 +52,7 @@ export const getController = {
     if (habitats) {
       habitatRows = habitats.map((habitat) => [
         {
-          html: `<a class="govuk-link" href="/baseline-habitat-details/${habitat.featureId}">${habitat.ref}</a>`,
+          html: `<a class="govuk-link" href="/baseline-habitat-details?habitatId=${habitat.featureId}&projectId=${id}">${habitat.ref}</a>`,
           attributes: {
             'data-sort-value': habitat.ref
           }
