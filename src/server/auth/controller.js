@@ -10,6 +10,11 @@ import {
 
 import { config } from '../../config/config.js'
 import { getOidcConfig } from '../common/helpers/auth/oidc-client.js'
+import {
+  recordLoginSuccess,
+  recordLoginFailure,
+  LOGIN_FAILURE_REASON
+} from '../common/helpers/auth/auth-metrics.js'
 import { statusCodes } from '../common/constants.js'
 
 const redirectUri = config.get('oidc.redirectUri')
@@ -78,6 +83,7 @@ export const loginController = {
       return h.redirect(authorizationUrl.href)
     } catch (error) {
       logOidcError(request, error, 'OIDC login initiation failed')
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.initiation)
       return h.redirect('/auth/forbidden')
     }
   }
@@ -139,10 +145,12 @@ export const callbackController = {
         'OIDC callback: session stored, redirecting to /manage-projects'
       )
 
+      await recordLoginSuccess(request)
       return h.redirect('/manage-projects')
     } catch (error) {
       logOidcError(request, error, 'OIDC callback failed')
       request.yar.clear('oidc')
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
       return h.redirect('/auth/forbidden')
     }
   }

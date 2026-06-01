@@ -17,6 +17,11 @@ import {
 } from './controller.js'
 import { getOidcConfig } from '../common/helpers/auth/oidc-client.js'
 import {
+  recordLoginSuccess,
+  recordLoginFailure,
+  LOGIN_FAILURE_REASON
+} from '../common/helpers/auth/auth-metrics.js'
+import {
   authorizationCodeGrant,
   buildAuthorizationUrl,
   buildEndSessionUrl,
@@ -39,6 +44,17 @@ vi.mock('openid-client', () => ({
 vi.mock('../common/helpers/auth/oidc-client.js', () => ({
   getOidcConfig: vi.fn()
 }))
+
+// Keep the real metric-name/reason constants; stub only the emit functions so
+// nothing leaves the process and we can assert intent.
+vi.mock('../common/helpers/auth/auth-metrics.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    recordLoginSuccess: vi.fn(),
+    recordLoginFailure: vi.fn()
+  }
+})
 
 const fakeOidcConfig = { fake: 'config' }
 
@@ -114,6 +130,10 @@ describe('#loginController', () => {
     await loginController.handler(request, h)
 
     expect(request.logger.error).toHaveBeenCalled()
+    expect(recordLoginFailure).toHaveBeenCalledWith(
+      request,
+      LOGIN_FAILURE_REASON.initiation
+    )
     expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
 })
@@ -162,6 +182,7 @@ describe('#callbackController', () => {
       refreshToken: 'refresh-token'
     })
     expect(request.yar.clear).toHaveBeenCalledWith('oidc')
+    expect(recordLoginSuccess).toHaveBeenCalledWith(request)
     expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
   })
 
@@ -200,6 +221,10 @@ describe('#callbackController', () => {
 
     expect(request.logger.error).toHaveBeenCalled()
     expect(request.yar.clear).toHaveBeenCalledWith('oidc')
+    expect(recordLoginFailure).toHaveBeenCalledWith(
+      request,
+      LOGIN_FAILURE_REASON.callback
+    )
     expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
 
