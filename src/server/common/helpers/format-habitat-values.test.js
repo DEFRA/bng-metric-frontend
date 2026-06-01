@@ -3,6 +3,7 @@ import { describe, test, expect } from 'vitest'
 import {
   formatAreaHectares,
   formatHabitatUnits,
+  formatLengthKm,
   formatTotalAreaSize,
   formatTotalLengthSize
 } from './format-habitat-values.js'
@@ -52,6 +53,32 @@ describe('formatHabitatUnits', () => {
     expect(formatHabitatUnits(null)).toBe('')
     expect(formatHabitatUnits(undefined)).toBe('')
     expect(formatHabitatUnits(Number.NaN)).toBe('')
+  })
+})
+
+describe('formatLengthKm', () => {
+  test('Converts metres to kilometres', () => {
+    expect(formatLengthKm(1000)).toBe('1')
+    expect(formatLengthKm(2500)).toBe('2.5')
+  })
+
+  test('Rounds to 7 significant figures (trailing zeros stripped)', () => {
+    expect(formatLengthKm(1234567.891)).toBe('1234.568')
+  })
+
+  test('Handles small lengths', () => {
+    expect(formatLengthKm(1)).toBe('0.001')
+  })
+
+  test('Returns empty string for null, undefined or non-finite input', () => {
+    expect(formatLengthKm(null)).toBe('')
+    expect(formatLengthKm(undefined)).toBe('')
+    expect(formatLengthKm(Number.NaN)).toBe('')
+    expect(formatLengthKm(Number.POSITIVE_INFINITY)).toBe('')
+  })
+
+  test('Returns empty string when given a non-number', () => {
+    expect(formatLengthKm('100')).toBe('')
   })
 })
 

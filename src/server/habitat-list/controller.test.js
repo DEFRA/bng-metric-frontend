@@ -604,10 +604,10 @@ describe('#habitatListController - habitat rows', () => {
     })
 
     expect(result).toContain(
-      `href="/baseline-habitat-details?habitatId=${mockHabitat.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockHabitat.featureId}&projectId=${projectId}"`
     )
     expect(result).toContain(
-      `href="/baseline-habitat-details?habitatId=${mockHabitatNullFields.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockHabitatNullFields.featureId}&projectId=${projectId}"`
     )
   })
 
@@ -740,5 +740,73 @@ describe('#habitatListController - habitat rows', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).not.toContain('href="/baseline-habitat-details?')
+  })
+})
+
+describe('#habitatListController - hedgerow rows', () => {
+  let server
+
+  const mockHedgerow = {
+    featureId: 'hedge-1234',
+    ref: 'H-1',
+    type: 'Native hedgerow',
+    sizeMetres: 1234.567,
+    distinctiveness: 'Low',
+    condition: 'Good',
+    units: 8,
+    status: 'Complete'
+  }
+
+  const mockProjectWithHedgerows = {
+    project: {
+      name: 'Hedgerow Project',
+      baseline: {
+        hedgerows: [mockHedgerow]
+      }
+    }
+  }
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjectWithHedgerows
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('renders a baseline-habitat-details link for each hedgerow using featureId', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/baseline-habitat-details?featureId=${mockHedgerow.featureId}&projectId=${projectId}"`
+    )
+    expect(result).toContain('>H-1<')
+  })
+
+  test('renders length in km (not square metres) for each hedgerow', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // 1234.567 m → 1.234567 km
+    expect(result).toContain('>1.234567<')
   })
 })

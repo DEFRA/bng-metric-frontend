@@ -8,6 +8,7 @@
 const SQUARE_METRES_PER_HECTARE = 10000
 const METRES_PER_KILOMETRE = 1000
 const AREA_SIGNIFICANT_FIGURES = 10
+const LENGTH_SIGNIFICANT_FIGURES = 7
 const LENGTH_TOTAL_SIGNIFICANT_FIGURES = 7
 const HABITAT_UNITS_DECIMAL_PLACES = 2
 const HABITAT_UNITS_SIGNIFICANT_FIGURES = 7
@@ -50,6 +51,21 @@ function formatHabitatUnits(units) {
 }
 
 /**
+ * Convert a metres length to a display string in kilometres, rounded to 7
+ * significant figures (BMD-500 AC4). Returns '' for null/undefined/non-finite.
+ *
+ * @param {number|null|undefined} metres
+ * @returns {string}
+ */
+function formatLengthKm(metres) {
+  if (!isUsableNumber(metres)) {
+    return EMPTY_DISPLAY
+  }
+  const kilometres = metres / METRES_PER_KILOMETRE
+  return Number(kilometres.toPrecision(LENGTH_SIGNIFICANT_FIGURES)).toString()
+}
+
+/**
  * Format a total area for the Habitat List summary as a hectare value with
  * the "ha" suffix (no space between number and suffix). Returns '' for
  * null/undefined/non-finite input.
@@ -89,6 +105,7 @@ function formatTotalLengthSize(metres) {
 
 export {
   formatAreaHectares,
+  formatLengthKm,
   formatHabitatUnits,
   formatTotalAreaSize,
   formatTotalLengthSize
