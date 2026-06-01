@@ -3,6 +3,7 @@ import {
   formatTotalAreaSize,
   formatTotalLengthSize,
   formatAreaHectares,
+  formatLengthKm,
   formatHabitatUnits
 } from '../common/helpers/format-habitat-values.js'
 
@@ -13,6 +14,50 @@ function formatLinearUnits(features, total) {
     return NO_DATA_DISPLAY
   }
   return formatHabitatUnits(total)
+}
+
+function buildHabitatRow(habitat, projectId) {
+  return [
+    {
+      html: `<a class="govuk-link" href="/baseline-habitat-details?featureId=${habitat.featureId}&projectId=${projectId}">${habitat.ref}</a>`,
+      attributes: {
+        'data-sort-value': habitat.ref
+      }
+    },
+    { text: habitat.type ?? '' },
+    {
+      text: formatAreaHectares(habitat.sizeSquareMetres),
+      attributes: {
+        'data-sort-value': habitat.sizeSquareMetres
+      }
+    },
+    { text: habitat.distinctiveness ?? '' },
+    { text: habitat.condition ?? '' },
+    { text: formatHabitatUnits(habitat.units) },
+    { text: habitat.status ?? '' }
+  ]
+}
+
+function buildHedgerowRow(hedgerow, projectId) {
+  return [
+    {
+      html: `<a class="govuk-link" href="/baseline-habitat-details?featureId=${hedgerow.featureId}&projectId=${projectId}">${hedgerow.ref}</a>`,
+      attributes: {
+        'data-sort-value': hedgerow.ref
+      }
+    },
+    { text: hedgerow.type ?? '' },
+    {
+      text: formatLengthKm(hedgerow.sizeMetres),
+      attributes: {
+        'data-sort-value': hedgerow.sizeMetres
+      }
+    },
+    { text: hedgerow.distinctiveness ?? '' },
+    { text: hedgerow.condition ?? '' },
+    { text: formatHabitatUnits(hedgerow.units) },
+    { text: hedgerow.status ?? '' }
+  ]
 }
 
 export const getController = {
@@ -47,29 +92,14 @@ export const getController = {
     }
 
     const habitats = baseline?.habitats ?? null
-    let habitatRows = null
+    const habitatRows = habitats
+      ? habitats.map((habitat) => buildHabitatRow(habitat, id))
+      : null
 
-    if (habitats) {
-      habitatRows = habitats.map((habitat) => [
-        {
-          html: `<a class="govuk-link" href="/baseline-habitat-details?habitatId=${habitat.featureId}&projectId=${id}">${habitat.ref}</a>`,
-          attributes: {
-            'data-sort-value': habitat.ref
-          }
-        },
-        { text: habitat.type ?? '' },
-        {
-          text: formatAreaHectares(habitat.sizeSquareMetres),
-          attributes: {
-            'data-sort-value': habitat.sizeSquareMetres
-          }
-        },
-        { text: habitat.distinctiveness ?? '' },
-        { text: habitat.condition ?? '' },
-        { text: formatHabitatUnits(habitat.units) },
-        { text: habitat.status ?? '' }
-      ])
-    }
+    const hedgerows = baseline?.hedgerows ?? null
+    const hedgerowRows = hedgerows
+      ? hedgerows.map((hedgerow) => buildHedgerowRow(hedgerow, id))
+      : null
 
     return h.view('habitat-list/habitat-list', {
       pageTitle: 'On-site baseline habitats',
@@ -78,7 +108,8 @@ export const getController = {
       projectId: id,
       totalSizes,
       totalUnits,
-      habitatRows
+      habitatRows,
+      hedgerowRows
     })
   }
 }

@@ -11,10 +11,15 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *   get:
  *     tags:
  *       - Baseline
- *     summary: Render the read-only habitat details page for one area habitat
+ *     summary: Render the habitat details page for an area habitat or hedgerow
+ *     description: |
+ *       Renders the shared baseline-habitat-details page. The backend resolves
+ *       the feature by featureId and reports its type (area habitat or
+ *       hedgerow); the page then renders the matching per-type layout. Watercourses
+ *       will plug in via the same dispatch when their journey lands.
  *     parameters:
  *       - in: query
- *         name: habitatId
+ *         name: featureId
  *         required: true
  *         schema:
  *           type: string

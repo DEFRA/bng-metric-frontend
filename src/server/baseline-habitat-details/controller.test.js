@@ -29,7 +29,7 @@ const authedAuth = {
 
 const projectId = 'aa0e8400-e29b-41d4-a716-446655440000'
 const habitatId = 'aa0e8400-e29b-41d4-a716-446655440001'
-const url = `/baseline-habitat-details?habitatId=${habitatId}&projectId=${projectId}`
+const url = `/baseline-habitat-details?featureId=${habitatId}&projectId=${projectId}`
 
 const mockHabitat = {
   featureId: habitatId,
@@ -83,8 +83,11 @@ const mockTradingRules = {
 }
 
 function routeWreck(suffix) {
-  if (suffix.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
-    return { res: { statusCode: 200 }, payload: mockHabitat }
+  if (suffix.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
+    return {
+      res: { statusCode: 200 },
+      payload: { type: 'habitat', feature: mockHabitat }
+    }
   }
   if (suffix.endsWith(`/projects/${projectId}`)) {
     return { res: { statusCode: 200 }, payload: mockProject }
@@ -199,11 +202,11 @@ describe('#baselineHabitatDetails - GET', () => {
 
   test('Renders an empty habitat units cell when habitat.units is missing', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
-      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+      if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
         const { units, ...withoutUnits } = mockHabitat
         return Promise.resolve({
           res: { statusCode: 200 },
-          payload: withoutUnits
+          payload: { type: 'habitat', feature: withoutUnits }
         })
       }
       return Promise.resolve(routeWreck(u))
@@ -284,7 +287,7 @@ describe('#baselineHabitatDetails - GET', () => {
 
   test('Returns 404 when backend reports habitat not found', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
-      if (u.includes(`/habitats/${habitatId}`)) {
+      if (u.includes(`/features/${habitatId}`)) {
         return Promise.reject(Boom.notFound('not found'))
       }
       return Promise.resolve(routeWreck(u))
@@ -300,7 +303,7 @@ describe('#baselineHabitatDetails - GET', () => {
 
   test('Re-throws non-404 errors from the habitat fetch rather than masking as 404', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
-      if (u.includes(`/habitats/${habitatId}`)) {
+      if (u.includes(`/features/${habitatId}`)) {
         return Promise.reject(Boom.badGateway('upstream broken'))
       }
       return Promise.resolve(routeWreck(u))
@@ -354,10 +357,13 @@ describe('#baselineHabitatDetails - GET', () => {
 
   test('Falls back to empty habitat-types when the broad is unknown to the reference data', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
-      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+      if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
         return Promise.resolve({
           res: { statusCode: 200 },
-          payload: { ...mockHabitat, broadType: 'Unknown broad' }
+          payload: {
+            type: 'habitat',
+            feature: { ...mockHabitat, broadType: 'Unknown broad' }
+          }
         })
       }
       return Promise.resolve(routeWreck(u))
@@ -373,10 +379,13 @@ describe('#baselineHabitatDetails - GET', () => {
 
   test('Falls back to empty trading rule when the band has no entry in the rules map', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
-      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+      if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
         return Promise.resolve({
           res: { statusCode: 200 },
-          payload: { ...mockHabitat, distinctiveness: 'NotInRulesMap' }
+          payload: {
+            type: 'habitat',
+            feature: { ...mockHabitat, distinctiveness: 'NotInRulesMap' }
+          }
         })
       }
       return Promise.resolve(routeWreck(u))
@@ -394,11 +403,11 @@ describe('#baselineHabitatDetails - GET', () => {
 
   test('Renders blank habitat reference when ref is missing on the document', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
-      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+      if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
         const { ref, ...withoutRef } = mockHabitat
         return Promise.resolve({
           res: { statusCode: 200 },
-          payload: withoutRef
+          payload: { type: 'habitat', feature: withoutRef }
         })
       }
       return Promise.resolve(routeWreck(u))
@@ -416,18 +425,21 @@ describe('#baselineHabitatDetails - GET', () => {
 
   test('Renders blank distinctiveness when the habitat has no broadType / type', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
-      if (u.endsWith(`/projects/${projectId}/habitats/${habitatId}`)) {
+      if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
         return Promise.resolve({
           res: { statusCode: 200 },
           payload: {
-            featureId: habitatId,
-            ref: '99',
-            type: null,
-            broadType: null,
-            distinctiveness: null,
-            distinctivenessScore: null,
-            condition: null,
-            sizeSquareMetres: null
+            type: 'habitat',
+            feature: {
+              featureId: habitatId,
+              ref: '99',
+              type: null,
+              broadType: null,
+              distinctiveness: null,
+              distinctivenessScore: null,
+              condition: null,
+              sizeSquareMetres: null
+            }
           }
         })
       }
@@ -490,7 +502,7 @@ describe('#baselineHabitatDetails - validation', () => {
     await server.stop({ timeout: 0 })
   })
 
-  test('Rejects missing habitatId', async () => {
+  test('Rejects missing featureId', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
       url: `/baseline-habitat-details?projectId=${projectId}`,
@@ -499,13 +511,142 @@ describe('#baselineHabitatDetails - validation', () => {
     expect(statusCode).toBe(statusCodes.badRequest)
   })
 
-  test('Rejects non-UUID habitatId', async () => {
+  test('Rejects non-UUID featureId', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: `/baseline-habitat-details?habitatId=not-a-uuid&projectId=${projectId}`,
+      url: `/baseline-habitat-details?featureId=not-a-uuid&projectId=${projectId}`,
       auth: authedAuth
     })
     expect(statusCode).toBe(statusCodes.badRequest)
+  })
+})
+
+describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
+  let server
+
+  const hedgerowId = 'bb0e8400-e29b-41d4-a716-446655440002'
+  const hedgerowUrl = `/baseline-habitat-details?featureId=${hedgerowId}&projectId=${projectId}`
+  const mockHedgerow = {
+    featureId: hedgerowId,
+    ref: 'H1',
+    type: 'Native hedgerow',
+    distinctiveness: 'Low',
+    distinctivenessScore: 2,
+    condition: 'Good',
+    sizeMetres: 1234.567,
+    units: 8
+  }
+  const mockHedgerowTypes = [
+    {
+      name: 'Native hedgerow',
+      distinctiveness: 'Low',
+      distinctivenessScore: 2
+    }
+  ]
+  const mockHedgerowConditions = [
+    { condition: 'Good', score: 3 },
+    { condition: 'Moderate', score: 2 },
+    { condition: 'Poor', score: 1 }
+  ]
+
+  function routeHedgerowWreck(suffix) {
+    if (suffix.endsWith(`/projects/${projectId}/features/${hedgerowId}`)) {
+      return {
+        res: { statusCode: 200 },
+        payload: { type: 'hedgerow', feature: mockHedgerow }
+      }
+    }
+    if (suffix.endsWith(`/projects/${projectId}`)) {
+      return { res: { statusCode: 200 }, payload: mockProject }
+    }
+    if (suffix.endsWith('/reference/hedgerow-types')) {
+      return { res: { statusCode: 200 }, payload: mockHedgerowTypes }
+    }
+    if (suffix.includes('/reference/conditions')) {
+      return { res: { statusCode: 200 }, payload: mockHedgerowConditions }
+    }
+    if (suffix.endsWith('/reference/trading-rules')) {
+      return { res: { statusCode: 200 }, payload: mockTradingRules }
+    }
+    return { res: { statusCode: 404 }, payload: null }
+  }
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    _resetReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeHedgerowWreck(u))
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Renders the page heading with "Hedgerow" + the hedgerow reference', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: hedgerowUrl,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Hedgerow H1')
+  })
+
+  test('Renders length in km (not area in hectares) and labels the row "Length (km)"', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: hedgerowUrl,
+      auth: authedAuth
+    })
+    expect(result).toContain('Length (km)')
+    expect(result).not.toContain('Area (hectares)')
+    expect(result).toContain('1.234567')
+  })
+
+  test('Omits the Broad habitat row for hedgerows', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: hedgerowUrl,
+      auth: authedAuth
+    })
+    expect(result).not.toContain('Broad habitat')
+    expect(result).not.toContain('id="broadHabitat"')
+  })
+
+  test('Loads conditions from the hedgerow reference table (featureType=hedgerow)', async () => {
+    await server.inject({
+      method: 'GET',
+      url: hedgerowUrl,
+      auth: authedAuth
+    })
+    const conditionCall = vi
+      .mocked(wreck.get)
+      .mock.calls.find(([u]) => u.includes('/reference/conditions'))
+    expect(conditionCall).toBeDefined()
+    expect(conditionCall[0]).toContain('featureType=hedgerow')
+    expect(conditionCall[0]).toContain(
+      `habitatType=${encodeURIComponent('Native hedgerow')}`
+    )
+  })
+
+  test('Back and Cancel links return to the Hedgerows tab of the habitat list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: hedgerowUrl,
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      `href="/projects/${projectId}/habitat-list#hedgerows"`
+    )
   })
 })
 
@@ -594,6 +735,9 @@ describe('#baselineHabitatDetails - POST', () => {
       `/projects/${projectId}/habitat-list#habitat-${habitatId}`
     )
     expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
+      // BMD-501 will unify the save endpoint behind /features/{id} too;
+      // BMD-500 keeps the area save route untouched so the existing area
+      // journey continues to work without behaviour change.
       expect.stringContaining(`/projects/${projectId}/habitats/${habitatId}`),
       expect.objectContaining({
         payload: JSON.stringify({

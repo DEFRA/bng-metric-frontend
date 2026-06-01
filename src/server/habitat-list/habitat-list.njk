@@ -101,6 +101,62 @@
         }) -}}
       {% endset -%}
 
+      {% set hedgerows %}
+      <h2 class="govuk-heading-m">
+        Hedgerows
+      </h2>
+      {{ govukTable({
+          attributes: {
+            "data-module": "moj-sortable-table"
+          },
+          head: [
+            {
+              text: "Ref",
+              attributes: {
+                "aria-sort": "ascending"
+              }
+            },
+            {
+              text: "Habitat type",
+              attributes: {
+                "aria-sort": "none"
+              }
+            },
+            {
+              text: "Length (km)",
+              attributes: {
+                "aria-sort": "none"
+              }
+            },
+            {
+              text: "Distinctiveness",
+              attributes: {
+                "aria-sort": "none"
+              }
+            },
+            {
+              text: "Condition",
+              attributes: {
+                "aria-sort": "none"
+              }
+            },
+            {
+              text: "Units",
+              attributes: {
+                "aria-sort": "none"
+              }
+            },
+            {
+              text: "Status",
+              attributes: {
+                "aria-sort": "none"
+              }
+            }
+          ],
+          rows: hedgerowRows
+        }) -}}
+      {% endset -%}
+
       {{ govukTabs({
         items: [
           {
@@ -111,7 +167,7 @@
           {
             label: "Hedgerows",
             id: "hedgerows",
-            panel: { html: "<div></div>" }
+            panel: { html: hedgerows }
           },
           {
             label: "Watercourses",

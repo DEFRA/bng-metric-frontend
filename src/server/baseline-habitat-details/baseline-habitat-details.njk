@@ -30,16 +30,22 @@
      carry projectId and featureId; the macro injects the crumb. The client
      JS (baseline-habitat-details.js) reads referenceData below to update the
      distinctiveness / trading-rule / condition cells as the user changes
-     dropdowns (AC1–AC5), without mutating saved data. #}
-  {% set broadHabitatHtml %}
-    {{ govukSelect({
-      id: "broadHabitat",
-      name: "broadHabitat",
-      label: { text: "Broad habitat", classes: "govuk-visually-hidden" },
-      items: broadHabitatOptions,
-      formGroup: { classes: "govuk-!-margin-bottom-0" }
-    }) }}
-  {% endset %}
+     dropdowns, without mutating saved data.
+
+     The "Broad habitat" row only renders for area habitats; hedgerows have
+     no broad habitat dimension. The size row swaps label + value between
+     "Area (hectares)" and "Length (km)" via the strategy view model. #}
+  {% if showBroadHabitatRow %}
+    {% set broadHabitatHtml %}
+      {{ govukSelect({
+        id: "broadHabitat",
+        name: "broadHabitat",
+        label: { text: "Broad habitat", classes: "govuk-visually-hidden" },
+        items: broadHabitatOptions,
+        formGroup: { classes: "govuk-!-margin-bottom-0" }
+      }) }}
+    {% endset %}
+  {% endif %}
 
   {% set habitatTypeHtml %}
     {{ govukSelect({
@@ -69,6 +75,22 @@
     <span id="tradingRuleDisplay">{{ tradingRule }}</span>
   {% endset %}
 
+  {% set summaryRows = [
+    { key: { text: "Reference" }, value: { text: habitatRef } },
+    { key: { text: sizeLabel }, value: { text: sizeDisplay } }
+  ] %}
+
+  {% if showBroadHabitatRow %}
+    {% set summaryRows = (summaryRows.push({ key: { text: "Broad habitat" }, value: { html: broadHabitatHtml } }), summaryRows) %}
+  {% endif %}
+
+  {% set summaryRows = (summaryRows.push({ key: { text: "Habitat type" }, value: { html: habitatTypeHtml } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Distinctiveness" }, value: { html: distinctivenessHtml } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Condition" }, value: { html: conditionHtml } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Trading rules" }, value: { html: tradingRuleHtml } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Habitat units" }, value: { text: habitatUnitsDisplay } }), summaryRows) %}
+
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
       <h2 class="govuk-heading-m">Baseline Details</h2>
@@ -82,19 +104,7 @@
 
         <script type="application/json" id="bhd-reference-data">{{ referenceJson | safe }}</script>
 
-        {{ govukSummaryList({
-          rows: [
-            { key: { text: "Reference" }, value: { text: habitatRef } },
-            { key: { text: "Area (hectares)" }, value: { text: areaDisplay } },
-            { key: { text: "Broad habitat" }, value: { html: broadHabitatHtml } },
-            { key: { text: "Habitat type" }, value: { html: habitatTypeHtml } },
-            { key: { text: "Distinctiveness" }, value: { html: distinctivenessHtml } },
-            { key: { text: "Condition" }, value: { html: conditionHtml } },
-            { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
-            { key: { text: "Trading rules" }, value: { html: tradingRuleHtml } },
-            { key: { text: "Habitat units" }, value: { text: habitatUnitsDisplay } }
-          ]
-        }) }}
+        {{ govukSummaryList({ rows: summaryRows }) }}
 
         <div class="govuk-button-group">
           {{ govukButton({
