@@ -43,7 +43,7 @@ const mockHabitat = {
   distinctivenessScore: 2,
   condition: 'Good',
   sizeSquareMetres: 25000,
-  units: 15
+  habitatUnits: 15
 }
 
 const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
@@ -191,7 +191,7 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Same distinctiveness or better habitat required')
   })
 
-  test('Renders the persisted habitat.units value to 2 decimal places', async () => {
+  test('Renders the persisted habitat.habitatUnits value to 2 decimal places', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
@@ -200,13 +200,13 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('15.00')
   })
 
-  test('Renders an empty habitat units cell when habitat.units is missing', async () => {
+  test('Renders an empty habitat units cell when habitat.habitatUnits is missing', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
       if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
-        const { units, ...withoutUnits } = mockHabitat
+        const { habitatUnits, ...withoutHabitatUnits } = mockHabitat
         return Promise.resolve({
           res: { statusCode: 200 },
-          payload: { type: 'habitat', feature: withoutUnits }
+          payload: { type: 'habitat', feature: withoutHabitatUnits }
         })
       }
       return Promise.resolve(routeWreck(u))
@@ -534,7 +534,7 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
     distinctivenessScore: 2,
     condition: 'Good',
     sizeMetres: 1234.567,
-    units: 8
+    habitatUnits: 8
   }
   const mockHedgerowTypes = [
     {
@@ -705,7 +705,10 @@ describe('#baselineHabitatDetails - POST', () => {
     _resetReferenceCache()
     vi.mocked(wreck.put).mockResolvedValue({
       res: { statusCode: 200 },
-      payload: { ...mockHabitat, habitatUnits: 7.5, status: 'Complete' }
+      payload: {
+        type: 'habitat',
+        feature: { ...mockHabitat, habitatUnits: 7.5, status: 'Complete' }
+      }
     })
     crumb = await primeCrumb(server)
   })
@@ -714,7 +717,7 @@ describe('#baselineHabitatDetails - POST', () => {
     vi.restoreAllMocks()
   })
 
-  test('Saves the dropdown values and redirects to the habitat list', async () => {
+  test('Saves area habitat edits via the unified features endpoint and redirects to the row anchor', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url: '/baseline-habitat-details',
@@ -735,10 +738,7 @@ describe('#baselineHabitatDetails - POST', () => {
       `/projects/${projectId}/habitat-list#habitat-${habitatId}`
     )
     expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
-      // BMD-501 will unify the save endpoint behind /features/{id} too;
-      // BMD-500 keeps the area save route untouched so the existing area
-      // journey continues to work without behaviour change.
-      expect.stringContaining(`/projects/${projectId}/habitats/${habitatId}`),
+      expect.stringContaining(`/projects/${projectId}/features/${habitatId}`),
       expect.objectContaining({
         payload: JSON.stringify({
           broadType: 'Grassland',
@@ -746,6 +746,42 @@ describe('#baselineHabitatDetails - POST', () => {
           condition: 'Good'
         })
       })
+    )
+  })
+
+  test('Redirects to the Hedgerows tab when the backend reports a hedgerow edit', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        type: 'hedgerow',
+        feature: {
+          featureId: habitatId,
+          ref: 'H1',
+          type: 'Native hedgerow',
+          condition: 'Good',
+          status: 'Incomplete',
+          habitatUnits: 0
+        }
+      }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        habitatType: 'Native hedgerow',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(
+      `/projects/${projectId}/habitat-list#hedgerows`
     )
   })
 

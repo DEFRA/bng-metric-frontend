@@ -257,3 +257,159 @@ describe('initBaselineHabitatDetails', () => {
     expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 })
+
+const HEDGEROW_REFERENCE_DATA = {
+  habitatTypes: [
+    {
+      name: 'Native hedgerow',
+      distinctiveness: 'Medium',
+      distinctivenessScore: 4
+    },
+    {
+      name: 'Line of trees',
+      distinctiveness: 'Low',
+      distinctivenessScore: 2
+    }
+  ],
+  tradingRulesByBand: {
+    Medium: 'Same broad habitat or higher distinctiveness',
+    Low: 'Same distinctiveness or better habitat required'
+  }
+}
+
+// Hedgerow variant: no broad habitat dropdown, flat habitatTypes array.
+// initBaselineHabitatDetails branches on the absence of #broadHabitat.
+function renderHedgerowPage({
+  selectedType = 'Native hedgerow',
+  selectedCondition = 'Good'
+} = {}) {
+  document.body.innerHTML = `
+    <select id="habitatType">
+      <option value="">Choose habitat type</option>
+      <option value="Native hedgerow">Native hedgerow</option>
+      <option value="Line of trees">Line of trees</option>
+    </select>
+    <select id="condition">
+      <option value="">Choose condition</option>
+      <option value="Good">Good (3)</option>
+      <option value="Poor">Poor (1)</option>
+    </select>
+    <span id="distinctivenessDisplay">Medium (4)</span>
+    <span id="tradingRuleDisplay">Same broad habitat or higher distinctiveness</span>
+    <script type="application/json" id="bhd-reference-data">${JSON.stringify(HEDGEROW_REFERENCE_DATA)}</script>
+  `
+  document.getElementById('habitatType').value = selectedType
+  document.getElementById('condition').value = selectedCondition
+}
+
+describe('initBaselineHabitatDetails — hedgerow variant', () => {
+  beforeEach(() => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(CONDITIONS_FIXTURE)
+      })
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('AC2: shows distinctiveness + trading rule for the new hedgerow habitat type', async () => {
+    renderHedgerowPage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Line of trees')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(document.getElementById('distinctivenessDisplay').textContent).toBe(
+      'Low (2)'
+    )
+    expect(document.getElementById('tradingRuleDisplay').textContent).toBe(
+      'Same distinctiveness or better habitat required'
+    )
+  })
+
+  test('AC2: resets the condition dropdown when hedgerow habitat type changes', async () => {
+    renderHedgerowPage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Line of trees')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(document.getElementById('condition').value).toBe('')
+  })
+
+  test('AC2: fetches conditions for the new type with featureType=hedgerow', async () => {
+    renderHedgerowPage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Line of trees')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/reference/conditions?habitatType=Line%20of%20trees&featureType=hedgerow',
+      expect.anything()
+    )
+    const conditionOptions = Array.from(
+      document.getElementById('condition').options
+    )
+    expect(conditionOptions.map((o) => o.value)).toEqual([
+      '',
+      'Good',
+      'Moderate',
+      'Poor'
+    ])
+  })
+
+  test('AC3: deselecting habitat type clears distinctiveness, trading rule, and condition without fetching', () => {
+    renderHedgerowPage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', '')
+    fireChange('habitatType')
+
+    expect(document.getElementById('distinctivenessDisplay').textContent).toBe(
+      ''
+    )
+    expect(document.getElementById('tradingRuleDisplay').textContent).toBe('')
+    expect(document.getElementById('condition').value).toBe('')
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  test('AC1: changing condition does not alter derived fields or fetch', () => {
+    renderHedgerowPage()
+    initBaselineHabitatDetails()
+
+    setValue('condition', 'Poor')
+    fireChange('condition')
+
+    expect(document.getElementById('distinctivenessDisplay').textContent).toBe(
+      'Medium (4)'
+    )
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  test('Falls back to empty condition list when fetch throws (network error)', async () => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.reject(new TypeError('Network error'))
+    )
+    renderHedgerowPage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Line of trees')
+    fireChange('habitatType')
+    await flushAsync()
+
+    // Distinctiveness still updates synchronously from embedded data
+    expect(document.getElementById('distinctivenessDisplay').textContent).toBe(
+      'Low (2)'
+    )
+    const options = Array.from(document.getElementById('condition').options)
+    expect(options.map((o) => o.value)).toEqual([''])
+  })
+})

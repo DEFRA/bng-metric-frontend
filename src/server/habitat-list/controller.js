@@ -33,7 +33,7 @@ function buildHabitatRow(habitat, projectId) {
     },
     { text: habitat.distinctiveness ?? '' },
     { text: habitat.condition ?? '' },
-    { text: formatHabitatUnits(habitat.units) },
+    { text: formatHabitatUnits(habitat.habitatUnits) },
     { text: habitat.status ?? '' }
   ]
 }
@@ -55,7 +55,7 @@ function buildHedgerowRow(hedgerow, projectId) {
     },
     { text: hedgerow.distinctiveness ?? '' },
     { text: hedgerow.condition ?? '' },
-    { text: formatHabitatUnits(hedgerow.units) },
+    { text: formatHabitatUnits(hedgerow.habitatUnits) },
     { text: hedgerow.status ?? '' }
   ]
 }
