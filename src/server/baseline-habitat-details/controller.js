@@ -76,9 +76,8 @@ export const getController = {
 }
 
 // POST handler validation accepts the superset of fields across all feature
-// types — the backend enforces strict per-type rules. BMD-501 will wire up
-// the per-type strategy on save; for BMD-500 (page load only) we keep the
-// area POST shape so the existing area Save journey continues to work.
+// types — the backend enforces strict per-type rules and reports back which
+// type was actually edited so we can pick the right redirect anchor.
 export const postController = {
   options: {
     validate: {
@@ -96,8 +95,8 @@ export const postController = {
     const { projectId, featureId, broadHabitat, habitatType, condition } =
       request.payload
 
-    const { res } = await wreck.put(
-      `${backendUrl}/projects/${projectId}/habitats/${featureId}`,
+    const { res, payload } = await wreck.put(
+      `${backendUrl}/projects/${projectId}/features/${featureId}`,
       {
         headers: { 'Content-Type': 'application/json' },
         payload: JSON.stringify({
@@ -113,9 +112,42 @@ export const postController = {
     }
 
     return h.redirect(
-      `/projects/${projectId}/habitat-list#habitat-${featureId}`
+      `/projects/${projectId}/habitat-list${habitatListAnchorFor(payload, featureId)}`
     )
   }
+}
+
+// Pick the URL fragment that lands the user on the right tab + row after a
+// save. The unified PUT returns `{ type, feature }`; hedgerow returns AC6
+// asks for the Hedgerows tab to be selected, area habitats keep their
+// existing per-row anchor.
+function habitatListAnchorFor(payload, featureId) {
+  const type = readType(payload)
+  if (type === 'hedgerow') {
+    return '#hedgerows'
+  }
+  return `#habitat-${featureId}`
+}
+
+function readType(payload) {
+  if (!payload) {
+    return null
+  }
+  if (typeof payload === 'string') {
+    try {
+      return JSON.parse(payload)?.type ?? null
+    } catch {
+      return null
+    }
+  }
+  if (Buffer.isBuffer(payload)) {
+    try {
+      return JSON.parse(payload.toString('utf8'))?.type ?? null
+    } catch {
+      return null
+    }
+  }
+  return payload.type ?? null
 }
 
 // Thin proxy to the backend's /reference/conditions endpoint so the client

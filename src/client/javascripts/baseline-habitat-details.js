@@ -1,8 +1,18 @@
-// BMD-480 AC1–AC5: client-side dropdown behaviour on the Habitat Details
-// page. Updates display-only fields (distinctiveness, trading rules) and
-// resets child dropdowns as the user changes broad habitat / habitat type.
-// All changes are local — saving is on form submit (POST handler in
-// baseline-habitat-details/controller.js).
+// Client-side dropdown behaviour on the Habitat Details page.
+//
+// Two variants share this module because the page itself is shared (one URL,
+// one Nunjucks shell, per-type strategies — see BMD-500):
+//
+//   - Area habitat (BMD-480): broad habitat → habitat type → condition.
+//     Distinctiveness + trading rules update as habitat type changes.
+//   - Hedgerow (BMD-501):     habitat type → condition. No broad row.
+//     Distinctiveness + trading rules update as habitat type changes.
+//
+// We branch on whether the broad-habitat select exists in the DOM — the only
+// structural difference between the two forms.
+//
+// All changes are display-only; persistence happens on form submit (POST
+// handler in baseline-habitat-details/controller.js).
 
 const BROAD_ID = 'broadHabitat'
 const TYPE_ID = 'habitatType'
@@ -26,27 +36,51 @@ export function initBaselineHabitatDetails() {
   } catch {
     return
   }
-  const habitatTypesByBroad = data.habitatTypesByBroad ?? {}
-  const tradingRulesByBand = data.tradingRulesByBand ?? {}
 
-  const broadSelect = document.getElementById(BROAD_ID)
   const typeSelect = document.getElementById(TYPE_ID)
   const conditionSelect = document.getElementById(CONDITION_ID)
-  if (!broadSelect || !typeSelect || !conditionSelect) {
+  if (!typeSelect || !conditionSelect) {
     return
   }
 
+  const broadSelect = document.getElementById(BROAD_ID)
+  const tradingRulesByBand = data.tradingRulesByBand ?? {}
+
+  if (broadSelect) {
+    initAreaVariant({
+      broadSelect,
+      typeSelect,
+      conditionSelect,
+      habitatTypesByBroad: data.habitatTypesByBroad ?? {},
+      tradingRulesByBand
+    })
+  } else {
+    initHedgerowVariant({
+      typeSelect,
+      conditionSelect,
+      habitatTypes: data.habitatTypes ?? [],
+      tradingRulesByBand
+    })
+  }
+}
+
+function initAreaVariant({
+  broadSelect,
+  typeSelect,
+  conditionSelect,
+  habitatTypesByBroad,
+  tradingRulesByBand
+}) {
   broadSelect.addEventListener('change', () => {
-    handleBroadChange({
+    handleAreaBroadChange({
       broadSelect,
       typeSelect,
       conditionSelect,
       habitatTypesByBroad
     })
   })
-
   typeSelect.addEventListener('change', () => {
-    handleTypeChange({
+    handleAreaTypeChange({
       broadSelect,
       typeSelect,
       conditionSelect,
@@ -56,7 +90,23 @@ export function initBaselineHabitatDetails() {
   })
 }
 
-function handleBroadChange({
+function initHedgerowVariant({
+  typeSelect,
+  conditionSelect,
+  habitatTypes,
+  tradingRulesByBand
+}) {
+  typeSelect.addEventListener('change', () => {
+    handleHedgerowTypeChange({
+      typeSelect,
+      conditionSelect,
+      habitatTypes,
+      tradingRulesByBand
+    })
+  })
+}
+
+function handleAreaBroadChange({
   broadSelect,
   typeSelect,
   conditionSelect,
@@ -75,7 +125,7 @@ function handleBroadChange({
   populateTypeOptions(typeSelect, types)
 }
 
-async function handleTypeChange({
+async function handleAreaTypeChange({
   broadSelect,
   typeSelect,
   conditionSelect,
@@ -99,13 +149,51 @@ async function handleTypeChange({
     hideDerived()
   }
 
-  const conditions = await loadConditions(broad, type)
+  const key = `${broad} - ${type}`
+  const conditions = await loadConditions({ habitatType: key })
   populateConditionOptions(conditionSelect, conditions)
 }
 
-async function loadConditions(broad, type) {
-  const key = `${broad} - ${type}`
-  const url = `${CONDITIONS_ENDPOINT}?habitatType=${encodeURIComponent(key)}`
+async function handleHedgerowTypeChange({
+  typeSelect,
+  conditionSelect,
+  habitatTypes,
+  tradingRulesByBand
+}) {
+  const type = typeSelect.value
+  resetSelect(conditionSelect, CHOOSE_CONDITION_LABEL)
+
+  // AC3 — deselecting the habitat type clears the derived display fields and
+  // leaves the condition dropdown at its placeholder. No fetch needed.
+  if (!type) {
+    hideDerived()
+    return
+  }
+
+  // AC2 — habitat-type metadata travels with the reference JSON on page load
+  // (the engine's hedgerow type list is short), so distinctiveness + trading
+  // rules can update without a round trip; only the condition options need
+  // to be refetched per type.
+  const meta = habitatTypes.find((t) => t.name === type)
+  if (meta) {
+    showDistinctiveness(meta.distinctiveness, meta.distinctivenessScore)
+    showTradingRule(tradingRulesByBand[meta.distinctiveness])
+  } else {
+    hideDerived()
+  }
+
+  const conditions = await loadConditions({
+    habitatType: type,
+    featureType: 'hedgerow'
+  })
+  populateConditionOptions(conditionSelect, conditions)
+}
+
+async function loadConditions({ habitatType, featureType }) {
+  let url = `${CONDITIONS_ENDPOINT}?habitatType=${encodeURIComponent(habitatType)}`
+  if (featureType) {
+    url += `&featureType=${encodeURIComponent(featureType)}`
+  }
   try {
     const response = await fetch(url, {
       headers: { Accept: 'application/json' }

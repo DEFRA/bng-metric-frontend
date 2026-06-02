@@ -89,7 +89,7 @@ function buildViewModel(hedgerow, reference, { projectId, projectName }) {
     tradingRule: hedgerow.distinctiveness
       ? (reference.tradingRules[hedgerow.distinctiveness] ?? '')
       : '',
-    habitatUnitsDisplay: formatHabitatUnits(hedgerow.units),
+    habitatUnitsDisplay: formatHabitatUnits(hedgerow.habitatUnits),
     habitatTypeOptions: buildSelectItems(
       habitatTypeNames,
       hedgerow.type,

@@ -110,7 +110,7 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
     tradingRule: habitat.distinctiveness
       ? (reference.tradingRules[habitat.distinctiveness] ?? '')
       : '',
-    habitatUnitsDisplay: formatHabitatUnits(habitat.units),
+    habitatUnitsDisplay: formatHabitatUnits(habitat.habitatUnits),
     broadHabitatOptions: buildSelectItems(
       reference.broadHabitats,
       habitat.broadType,
