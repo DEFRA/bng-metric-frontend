@@ -60,7 +60,11 @@ describe('hedgerowStrategy.loadReference', () => {
       type: 'Native hedgerow'
     })
 
-    expect(reference.habitatTypes).toEqual(mockHedgerowTypes)
+    // Strategy annotates each entry with `broad: null` for shape uniformity
+    // with the area variant.
+    expect(reference.habitatTypes).toEqual(
+      mockHedgerowTypes.map((t) => ({ ...t, broad: null }))
+    )
     expect(reference.conditions).toEqual(mockConditions)
     expect(reference.tradingRules).toEqual(mockTradingRules)
   })

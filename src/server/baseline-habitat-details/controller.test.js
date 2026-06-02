@@ -43,7 +43,7 @@ const mockHabitat = {
   distinctivenessScore: 2,
   condition: 'Good',
   sizeSquareMetres: 25000,
-  habitatUnits: 15
+  units: 15
 }
 
 const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
@@ -191,7 +191,7 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Same distinctiveness or better habitat required')
   })
 
-  test('Renders the persisted habitat.habitatUnits value to 2 decimal places', async () => {
+  test('Renders the persisted habitat.units value to 2 decimal places', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
@@ -200,13 +200,13 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('15.00')
   })
 
-  test('Renders an empty habitat units cell when habitat.habitatUnits is missing', async () => {
+  test('Renders an empty habitat units cell when habitat.units is missing', async () => {
     vi.mocked(wreck.get).mockImplementation((u) => {
       if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
-        const { habitatUnits, ...withoutHabitatUnits } = mockHabitat
+        const { units, ...withoutUnits } = mockHabitat
         return Promise.resolve({
           res: { statusCode: 200 },
-          payload: { type: 'habitat', feature: withoutHabitatUnits }
+          payload: { type: 'habitat', feature: withoutUnits }
         })
       }
       return Promise.resolve(routeWreck(u))
@@ -464,17 +464,19 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(calls.some((u) => u.includes('/reference/conditions'))).toBe(false)
   })
 
-  test('Embeds habitatTypesByBroad data for the client-side dropdown JS', async () => {
+  test('Embeds the habitat-types reference data for the client-side dropdown JS', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
     expect(result).toContain('id="bhd-reference-data"')
-    // Each broad's types should appear in the embedded JSON
+    // Each habitat type should appear in the embedded JSON, with its parent
+    // broad annotated on the entry.
     expect(result).toContain('Modified grassland')
     expect(result).toContain('Cereal crops')
-    expect(result).toContain('habitatTypesByBroad')
+    expect(result).toContain('habitatTypes')
+    expect(result).toContain('"broad":"Grassland"')
     expect(result).toContain('tradingRulesByBand')
   })
 
@@ -534,7 +536,7 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
     distinctivenessScore: 2,
     condition: 'Good',
     sizeMetres: 1234.567,
-    habitatUnits: 8
+    units: 8
   }
   const mockHedgerowTypes = [
     {
@@ -707,7 +709,7 @@ describe('#baselineHabitatDetails - POST', () => {
       res: { statusCode: 200 },
       payload: {
         type: 'habitat',
-        feature: { ...mockHabitat, habitatUnits: 7.5, status: 'Complete' }
+        feature: { ...mockHabitat, units: 7.5, status: 'Complete' }
       }
     })
     crumb = await primeCrumb(server)
@@ -760,7 +762,7 @@ describe('#baselineHabitatDetails - POST', () => {
           type: 'Native hedgerow',
           condition: 'Good',
           status: 'Incomplete',
-          habitatUnits: 0
+          units: 0
         }
       }
     })
@@ -782,6 +784,33 @@ describe('#baselineHabitatDetails - POST', () => {
     expect(statusCode).toBe(302)
     expect(headers.location).toBe(
       `/projects/${projectId}/habitat-list#hedgerows`
+    )
+  })
+
+  test('Falls back to the area row anchor when the backend response has no type', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { feature: { ...mockHabitat, units: 7.5 } }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland',
+        habitatType: 'Lowland meadows',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(
+      `/projects/${projectId}/habitat-list#habitat-${habitatId}`
     )
   })
 

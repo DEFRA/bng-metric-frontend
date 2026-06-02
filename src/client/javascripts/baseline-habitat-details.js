@@ -1,15 +1,16 @@
-// Client-side dropdown behaviour on the Habitat Details page.
+// Client-side dropdown behaviour on the Habitat Details page. Used by both
+// the area-habitat form (BMD-480) and the hedgerow form (BMD-501); the only
+// structural difference is whether the broad-habitat select is in the DOM.
 //
-// Two variants share this module because the page itself is shared (one URL,
-// one Nunjucks shell, per-type strategies — see BMD-500):
+// Embedded reference-data (#bhd-reference-data):
+//   {
+//     habitatTypes: Array<{ name, distinctiveness, distinctivenessScore,
+//                           broad: string | null }>,
+//     tradingRulesByBand: { [band]: string }
+//   }
 //
-//   - Area habitat (BMD-480): broad habitat → habitat type → condition.
-//     Distinctiveness + trading rules update as habitat type changes.
-//   - Hedgerow (BMD-501):     habitat type → condition. No broad row.
-//     Distinctiveness + trading rules update as habitat type changes.
-//
-// We branch on whether the broad-habitat select exists in the DOM — the only
-// structural difference between the two forms.
+// `broad` is the parent broad-habitat for area entries and null for hedgerow
+// entries. The area form filters by `broad`; the hedgerow form ignores it.
 //
 // All changes are display-only; persistence happens on form submit (POST
 // handler in baseline-habitat-details/controller.js).
@@ -44,6 +45,7 @@ export function initBaselineHabitatDetails() {
   }
 
   const broadSelect = document.getElementById(BROAD_ID)
+  const habitatTypes = data.habitatTypes ?? []
   const tradingRulesByBand = data.tradingRulesByBand ?? {}
 
   if (broadSelect) {
@@ -51,14 +53,14 @@ export function initBaselineHabitatDetails() {
       broadSelect,
       typeSelect,
       conditionSelect,
-      habitatTypesByBroad: data.habitatTypesByBroad ?? {},
+      habitatTypes,
       tradingRulesByBand
     })
   } else {
     initHedgerowVariant({
       typeSelect,
       conditionSelect,
-      habitatTypes: data.habitatTypes ?? [],
+      habitatTypes,
       tradingRulesByBand
     })
   }
@@ -68,7 +70,7 @@ function initAreaVariant({
   broadSelect,
   typeSelect,
   conditionSelect,
-  habitatTypesByBroad,
+  habitatTypes,
   tradingRulesByBand
 }) {
   broadSelect.addEventListener('change', () => {
@@ -76,7 +78,7 @@ function initAreaVariant({
       broadSelect,
       typeSelect,
       conditionSelect,
-      habitatTypesByBroad
+      habitatTypes
     })
   })
   typeSelect.addEventListener('change', () => {
@@ -84,7 +86,7 @@ function initAreaVariant({
       broadSelect,
       typeSelect,
       conditionSelect,
-      habitatTypesByBroad,
+      habitatTypes,
       tradingRulesByBand
     })
   })
@@ -110,7 +112,7 @@ function handleAreaBroadChange({
   broadSelect,
   typeSelect,
   conditionSelect,
-  habitatTypesByBroad
+  habitatTypes
 }) {
   const broad = broadSelect.value
   hideDerived()
@@ -121,7 +123,7 @@ function handleAreaBroadChange({
     return
   }
 
-  const types = habitatTypesByBroad[broad] ?? []
+  const types = habitatTypes.filter((t) => t.broad === broad)
   populateTypeOptions(typeSelect, types)
 }
 
@@ -129,7 +131,7 @@ async function handleAreaTypeChange({
   broadSelect,
   typeSelect,
   conditionSelect,
-  habitatTypesByBroad,
+  habitatTypes,
   tradingRulesByBand
 }) {
   const type = typeSelect.value
@@ -141,7 +143,7 @@ async function handleAreaTypeChange({
   }
 
   const broad = broadSelect.value
-  const meta = (habitatTypesByBroad[broad] ?? []).find((t) => t.name === type)
+  const meta = habitatTypes.find((t) => t.broad === broad && t.name === type)
   if (meta) {
     showDistinctiveness(meta.distinctiveness, meta.distinctivenessScore)
     showTradingRule(tradingRulesByBand[meta.distinctiveness])
