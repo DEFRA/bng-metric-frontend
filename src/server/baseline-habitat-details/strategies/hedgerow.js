@@ -25,7 +25,9 @@ function fetchStaticReference() {
       wreck.get(`${backendUrl}/reference/trading-rules`)
     ])
       .then(([types, rules]) => ({
-        habitatTypes: types.payload,
+        // `broad: null` keeps the shape uniform with the area variant's
+        // habitatTypes entries; hedgerows have no parent broad habitat.
+        habitatTypes: types.payload.map((t) => ({ ...t, broad: null })),
         tradingRules: rules.payload
       }))
       .catch((err) => {
@@ -89,7 +91,7 @@ function buildViewModel(hedgerow, reference, { projectId, projectName }) {
     tradingRule: hedgerow.distinctiveness
       ? (reference.tradingRules[hedgerow.distinctiveness] ?? '')
       : '',
-    habitatUnitsDisplay: formatHabitatUnits(hedgerow.habitatUnits),
+    habitatUnitsDisplay: formatHabitatUnits(hedgerow.units),
     habitatTypeOptions: buildSelectItems(
       habitatTypeNames,
       hedgerow.type,

@@ -2,26 +2,32 @@
 import { initBaselineHabitatDetails } from './baseline-habitat-details.js'
 
 const REFERENCE_DATA = {
-  habitatTypesByBroad: {
-    Cropland: [
-      { name: 'Cereal crops', distinctiveness: 'Low', distinctivenessScore: 2 }
-    ],
-    Grassland: [
-      { name: 'Bracken', distinctiveness: 'Low', distinctivenessScore: 2 },
-      {
-        name: 'Modified grassland',
-        distinctiveness: 'Low',
-        distinctivenessScore: 2
-      }
-    ],
-    Urban: [
-      {
-        name: 'Developed land; sealed surface',
-        distinctiveness: 'V.Low',
-        distinctivenessScore: 0
-      }
-    ]
-  },
+  habitatTypes: [
+    {
+      name: 'Cereal crops',
+      broad: 'Cropland',
+      distinctiveness: 'Low',
+      distinctivenessScore: 2
+    },
+    {
+      name: 'Bracken',
+      broad: 'Grassland',
+      distinctiveness: 'Low',
+      distinctivenessScore: 2
+    },
+    {
+      name: 'Modified grassland',
+      broad: 'Grassland',
+      distinctiveness: 'Low',
+      distinctivenessScore: 2
+    },
+    {
+      name: 'Developed land; sealed surface',
+      broad: 'Urban',
+      distinctiveness: 'V.Low',
+      distinctivenessScore: 0
+    }
+  ],
   tradingRulesByBand: {
     Low: 'Same distinctiveness or better habitat required',
     'V.Low': 'Compensation Not Required',
@@ -262,11 +268,13 @@ const HEDGEROW_REFERENCE_DATA = {
   habitatTypes: [
     {
       name: 'Native hedgerow',
+      broad: null,
       distinctiveness: 'Medium',
       distinctivenessScore: 4
     },
     {
       name: 'Line of trees',
+      broad: null,
       distinctiveness: 'Low',
       distinctivenessScore: 2
     }

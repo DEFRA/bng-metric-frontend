@@ -117,37 +117,25 @@ export const postController = {
   }
 }
 
-// Pick the URL fragment that lands the user on the right tab + row after a
-// save. The unified PUT returns `{ type, feature }`; hedgerow returns AC6
-// asks for the Hedgerows tab to be selected, area habitats keep their
-// existing per-row anchor.
+// Pick the URL fragment that lands the user on the right place in the
+// habitat-list after a save. The unified PUT returns `{ type, feature }`.
+//
+// Hedgerow: AC6 asks for the Hedgerows tab to be opened (`#hedgerows`
+//   matches the govuk-tabs panel id in habitat-list.njk).
+// Area:     preserves the legacy `#habitat-{featureId}` row-anchor used
+//   by the area save flow before BMD-501. The row IDs aren't rendered in
+//   the template today so the anchor effectively scrolls to the top of
+//   the page; a future ticket can wire up real row anchors.
+// Missing type: defaults to the area branch so a malformed response still
+//   lands somewhere sensible.
+//
+// `wreck-client.js` configures `json: true`, so `payload` is always the
+// parsed response object here — no string/Buffer parsing needed.
 function habitatListAnchorFor(payload, featureId) {
-  const type = readType(payload)
-  if (type === 'hedgerow') {
+  if (payload?.type === 'hedgerow') {
     return '#hedgerows'
   }
   return `#habitat-${featureId}`
-}
-
-function readType(payload) {
-  if (!payload) {
-    return null
-  }
-  if (typeof payload === 'string') {
-    try {
-      return JSON.parse(payload)?.type ?? null
-    } catch {
-      return null
-    }
-  }
-  if (Buffer.isBuffer(payload)) {
-    try {
-      return JSON.parse(payload.toString('utf8'))?.type ?? null
-    } catch {
-      return null
-    }
-  }
-  return payload.type ?? null
 }
 
 // Thin proxy to the backend's /reference/conditions endpoint so the client

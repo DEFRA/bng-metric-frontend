@@ -40,7 +40,7 @@ const mockHabitat = {
   sizeSquareMetres: 25000,
   distinctiveness: 'Low',
   condition: 'Good',
-  habitatUnits: 2.5,
+  units: 2.5,
   status: 'Complete'
 }
 
@@ -51,7 +51,7 @@ const mockHabitatNullFields = {
   sizeSquareMetres: null,
   distinctiveness: null,
   condition: null,
-  habitatUnits: null,
+  units: null,
   status: null
 }
 
@@ -650,7 +650,7 @@ describe('#habitatListController - habitat rows', () => {
       auth: authedAuth
     })
 
-    // mockHabitat.habitatUnits = 2.5 → formatHabitatUnits → '2.50'
+    // mockHabitat.units = 2.5 → formatHabitatUnits → '2.50'
     expect(result).toContain('>2.50<')
   })
 
@@ -753,7 +753,7 @@ describe('#habitatListController - hedgerow rows', () => {
     sizeMetres: 1234.567,
     distinctiveness: 'Low',
     condition: 'Good',
-    habitatUnits: 8,
+    units: 8,
     status: 'Complete'
   }
 
