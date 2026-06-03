@@ -51,60 +51,10 @@ describe('initFileUploadValidation', () => {
     expect(() => initFileUploadValidation()).not.toThrow()
   })
 
+  // Validation message text and the no-error case are covered by
+  // file-validation-rules.test.js; the DOM-shell tests below assert the
+  // wiring (handler side effects, GDS-specific DOM artifacts).
   describe('on file change', () => {
-    test('Should show error for non-.gpkg file', () => {
-      const input = document.querySelector('#file')
-      Object.defineProperty(input, 'files', {
-        value: [createFile('data.csv', 100)]
-      })
-
-      input.dispatchEvent(new Event('change'))
-
-      expect(document.body.innerHTML).toContain(
-        'The selected file must be a GeoPackage (.gpkg)'
-      )
-    })
-
-    test('Should show error for file exceeding 100 MB', () => {
-      const input = document.querySelector('#file')
-      Object.defineProperty(input, 'files', {
-        value: [createFile('data.gpkg', 104857601)]
-      })
-
-      input.dispatchEvent(new Event('change'))
-
-      expect(document.body.innerHTML).toContain(
-        'The selected file must be smaller than 100 MB'
-      )
-    })
-
-    test('Should show multiple errors for wrong extension and size', () => {
-      const input = document.querySelector('#file')
-      Object.defineProperty(input, 'files', {
-        value: [createFile('data.csv', 104857601)]
-      })
-
-      input.dispatchEvent(new Event('change'))
-
-      expect(document.body.innerHTML).toContain(
-        'The selected file must be a GeoPackage (.gpkg)'
-      )
-      expect(document.body.innerHTML).toContain(
-        'The selected file must be smaller than 100 MB'
-      )
-    })
-
-    test('Should not show errors for valid .gpkg file under limit', () => {
-      const input = document.querySelector('#file')
-      Object.defineProperty(input, 'files', {
-        value: [createFile('data.gpkg', 100)]
-      })
-
-      input.dispatchEvent(new Event('change'))
-
-      expect(document.querySelector('.govuk-error-summary')).toBeNull()
-    })
-
     test('Should clear file input value when validation fails', () => {
       const input = document.querySelector('#file')
       Object.defineProperty(input, 'files', {

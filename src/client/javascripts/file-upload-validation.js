@@ -1,7 +1,4 @@
-import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants.js'
-
-const ALLOWED_EXTENSION = '.gpkg'
-const MAX_FILE_SIZE_LABEL = '100 MB'
+import { validateFile } from './file-validation-rules.js'
 
 /**
  * Initialises client-side validation for the file upload form.
@@ -49,24 +46,6 @@ export function initFileUploadValidation() {
       showErrors(form, fileInput, errors)
     }
   })
-}
-
-function validateFile(file) {
-  if (!file) {
-    return ['Select a GeoPackage (.gpkg) file']
-  }
-
-  const errors = []
-
-  if (!file.name.toLowerCase().endsWith(ALLOWED_EXTENSION)) {
-    errors.push('The selected file must be a GeoPackage (.gpkg)')
-  }
-
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    errors.push(`The selected file must be smaller than ${MAX_FILE_SIZE_LABEL}`)
-  }
-
-  return errors
 }
 
 function showErrors(form, fileInput, errors) {
