@@ -15,12 +15,29 @@
 // All changes are display-only; persistence happens on form submit (POST
 // handler in baseline-habitat-details/controller.js).
 
-const BROAD_ID = 'broadHabitat'
-const TYPE_ID = 'habitatType'
-const CONDITION_ID = 'condition'
-const DISTINCTIVENESS_ID = 'distinctivenessDisplay'
-const TRADING_RULE_ID = 'tradingRuleDisplay'
-const REFERENCE_DATA_ID = 'bhd-reference-data'
+// Element IDs this module reads from the rendered page. Exported so the
+// server-side controller test can assert the template still renders each
+// one — without that, a renamed `id="..."` on the template would leave the
+// JS silently broken while these unit tests stayed green.
+export const BROAD_ID = 'broadHabitat'
+export const TYPE_ID = 'habitatType'
+export const CONDITION_ID = 'condition'
+export const DISTINCTIVENESS_ID = 'distinctivenessDisplay'
+export const TRADING_RULE_ID = 'tradingRuleDisplay'
+export const REFERENCE_DATA_ID = 'bhd-reference-data'
+
+export const REQUIRED_ELEMENT_IDS_HEDGEROW = [
+  TYPE_ID,
+  CONDITION_ID,
+  DISTINCTIVENESS_ID,
+  TRADING_RULE_ID,
+  REFERENCE_DATA_ID
+]
+export const REQUIRED_ELEMENT_IDS_AREA = [
+  BROAD_ID,
+  ...REQUIRED_ELEMENT_IDS_HEDGEROW
+]
+
 const CONDITIONS_ENDPOINT = '/api/reference/conditions'
 const CHOOSE_TYPE_LABEL = 'Choose habitat type'
 const CHOOSE_CONDITION_LABEL = 'Choose condition'

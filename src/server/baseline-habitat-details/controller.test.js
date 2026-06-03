@@ -1,5 +1,9 @@
 import Boom from '@hapi/boom'
 
+import {
+  REQUIRED_ELEMENT_IDS_AREA,
+  REQUIRED_ELEMENT_IDS_HEDGEROW
+} from '../../client/javascripts/baseline-habitat-details.js'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
@@ -490,6 +494,18 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Choose habitat type')
     expect(result).toContain('Choose condition')
   })
+
+  test.each(REQUIRED_ELEMENT_IDS_AREA)(
+    'Renders id="%s" so the client JS can find it',
+    async (id) => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toContain(`id="${id}"`)
+    }
+  )
 })
 
 describe('#baselineHabitatDetails - validation', () => {
@@ -650,6 +666,18 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
       `href="/projects/${projectId}/habitat-list#hedgerows"`
     )
   })
+
+  test.each(REQUIRED_ELEMENT_IDS_HEDGEROW)(
+    'Renders id="%s" so the client JS can find it',
+    async (id) => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url: hedgerowUrl,
+        auth: authedAuth
+      })
+      expect(result).toContain(`id="${id}"`)
+    }
+  )
 })
 
 describe('#baselineHabitatDetails - authentication', () => {
