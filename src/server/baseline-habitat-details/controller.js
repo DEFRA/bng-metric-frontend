@@ -95,19 +95,27 @@ export const postController = {
     const { projectId, featureId, broadHabitat, habitatType, condition } =
       request.payload
 
-    const { res, payload } = await wreck.put(
-      `${backendUrl}/projects/${projectId}/features/${featureId}`,
-      {
-        headers: { 'Content-Type': 'application/json' },
-        payload: JSON.stringify({
-          broadType: broadHabitat || null,
-          habitatType: habitatType || null,
-          condition: condition || null
-        })
+    let payload
+    try {
+      const result = await wreck.put(
+        `${backendUrl}/projects/${projectId}/features/${featureId}`,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          payload: JSON.stringify({
+            broadType: broadHabitat || null,
+            habitatType: habitatType || null,
+            condition: condition || null
+          })
+        }
+      )
+      payload = result.payload
+    } catch (err) {
+      // Backend serializes concurrent edits on the same project with a row
+      // lock and returns 409 when it can't be acquired. Surface that as a 409
+      // to the user instead of a generic 5xx so they're prompted to retry.
+      if (err?.output?.statusCode === statusCodes.conflict) {
+        throw Boom.conflict('Another user is editing this project')
       }
-    )
-
-    if (res.statusCode >= statusCodes.badRequest) {
       throw Boom.badGateway('Failed to save habitat')
     }
 
