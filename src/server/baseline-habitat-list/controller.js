@@ -101,7 +101,7 @@ export const getController = {
       ? hedgerows.map((hedgerow) => buildHedgerowRow(hedgerow, id))
       : null
 
-    return h.view('habitat-list/habitat-list', {
+    return h.view('baseline-habitat-list/baseline-habitat-list', {
       pageTitle: 'On-site baseline habitats',
       heading: 'On-site baseline habitats',
       caption: projectName,

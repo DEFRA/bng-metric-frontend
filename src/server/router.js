@@ -12,7 +12,7 @@ import { uploadBaselineFile } from './upload-baseline-file/index.js'
 import { uploadReceived } from './upload-received/index.js'
 import { baselineHabitatDetails } from './baseline-habitat-details/index.js'
 import { invalidFile } from './error-file/index.js'
-import { habitatList } from './habitat-list/index.js'
+import { baselineHabitatList } from './baseline-habitat-list/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -38,7 +38,7 @@ export const router = {
         uploadBaselineFile,
         uploadReceived,
         baselineHabitatDetails,
-        habitatList,
+        baselineHabitatList,
         invalidFile
       ])
 

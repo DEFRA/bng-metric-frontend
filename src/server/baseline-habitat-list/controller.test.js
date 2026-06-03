@@ -76,7 +76,7 @@ const authedAuth = {
 }
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
-const url = `/projects/${projectId}/habitat-list`
+const url = `/projects/${projectId}/baseline-habitat-list`
 
 describe('#habitatListController - GET', () => {
   let server
@@ -470,7 +470,7 @@ describe('#habitatListController - validation', () => {
   test('rejects an invalid project id with 400', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects/not-a-uuid/habitat-list',
+      url: '/projects/not-a-uuid/baseline-habitat-list',
       auth: authedAuth
     })
 
