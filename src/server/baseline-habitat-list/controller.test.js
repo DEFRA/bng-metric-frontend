@@ -449,9 +449,9 @@ describe('#habitatListController - GET', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain('Show map')
     expect(result).toContain('Upload a different file')
     expect(result).toContain('Continue')
+    expect(result).not.toContain('Show map')
   })
 })
 
