@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { initBaselineHabitatDetails } from './baseline-habitat-details.js'
+import { renderTemplateIntoDocument } from '../../server/test-helpers/render-template.js'
 
 const REFERENCE_DATA = {
   habitatTypes: [
@@ -41,35 +42,70 @@ const CONDITIONS_FIXTURE = [
   { condition: 'Poor', score: 1 }
 ]
 
-function renderPage({
+// Builds the same view-model shape the area strategy passes to the
+// template. The tests only care that the named element IDs exist and
+// that #bhd-reference-data carries the right JSON; option lists are
+// minimal but realistic so the rendered <select>s have the values the
+// initial selection assertions reference.
+function buildAreaViewModel({
   selectedBroad = 'Grassland',
   selectedType = 'Modified grassland',
   selectedCondition = 'Good'
 } = {}) {
-  document.body.innerHTML = `
-    <select id="broadHabitat">
-      <option value="">Choose broad habitat</option>
-      <option value="Cropland">Cropland</option>
-      <option value="Grassland">Grassland</option>
-      <option value="Urban">Urban</option>
-    </select>
-    <select id="habitatType">
-      <option value="">Choose habitat type</option>
-      <option value="Bracken">Bracken</option>
-      <option value="Modified grassland">Modified grassland</option>
-    </select>
-    <select id="condition">
-      <option value="">Choose condition</option>
-      <option value="Good">Good (3)</option>
-      <option value="Poor">Poor (1)</option>
-    </select>
-    <span id="distinctivenessDisplay">Low (2)</span>
-    <span id="tradingRuleDisplay">Same distinctiveness or better habitat required</span>
-    <script type="application/json" id="bhd-reference-data">${JSON.stringify(REFERENCE_DATA)}</script>
-  `
-  document.getElementById('broadHabitat').value = selectedBroad
-  document.getElementById('habitatType').value = selectedType
-  document.getElementById('condition').value = selectedCondition
+  const broads = ['Cropland', 'Grassland', 'Urban']
+  const types = ['Bracken', 'Modified grassland']
+  const conditions = CONDITIONS_FIXTURE
+  return {
+    pageTitle: 'Habitat 12',
+    heading: 'Habitat 12',
+    caption: 'Test Project',
+    headingPrefix: 'Habitat',
+    projectId: 'aa0e8400-e29b-41d4-a716-446655440000',
+    projectName: 'Test Project',
+    habitatRef: '12',
+    sizeLabel: 'Area (hectares)',
+    sizeDisplay: '2.5',
+    showBroadHabitatRow: true,
+    distinctivenessDisplay: 'Low (2)',
+    strategicSignificanceDisplay: 'Low (1)',
+    tradingRule: 'Same distinctiveness or better habitat required',
+    habitatUnitsDisplay: '15.00',
+    broadHabitatOptions: [
+      { value: '', text: 'Choose broad habitat', selected: !selectedBroad },
+      ...broads.map((value) => ({
+        value,
+        text: value,
+        selected: value === selectedBroad
+      }))
+    ],
+    habitatTypeOptions: [
+      { value: '', text: 'Choose habitat type', selected: !selectedType },
+      ...types.map((value) => ({
+        value,
+        text: value,
+        selected: value === selectedType
+      }))
+    ],
+    conditionOptions: [
+      { value: '', text: 'Choose condition', selected: !selectedCondition },
+      ...conditions.map((c) => ({
+        value: c.condition,
+        text: `${c.condition} (${c.score})`,
+        selected: c.condition === selectedCondition
+      }))
+    ],
+    referenceJson: JSON.stringify(REFERENCE_DATA),
+    backHref: '/projects/test/habitat-list',
+    cancelHref: '/projects/test/habitat-list#habitat-id',
+    featureId: 'aa0e8400-e29b-41d4-a716-446655440001'
+  }
+}
+
+function renderPage(overrides = {}) {
+  renderTemplateIntoDocument(
+    'baseline-habitat-details/baseline-habitat-details.njk',
+    buildAreaViewModel(overrides)
+  )
 }
 
 function fireChange(id) {
@@ -285,29 +321,57 @@ const HEDGEROW_REFERENCE_DATA = {
   }
 }
 
-// Hedgerow variant: no broad habitat dropdown, flat habitatTypes array.
-// initBaselineHabitatDetails branches on the absence of #broadHabitat.
-function renderHedgerowPage({
+// Mirrors the hedgerow strategy's view model: no broad-habitat dropdown,
+// flat habitatTypes array embedded in #bhd-reference-data.
+function buildHedgerowViewModel({
   selectedType = 'Native hedgerow',
   selectedCondition = 'Good'
 } = {}) {
-  document.body.innerHTML = `
-    <select id="habitatType">
-      <option value="">Choose habitat type</option>
-      <option value="Native hedgerow">Native hedgerow</option>
-      <option value="Line of trees">Line of trees</option>
-    </select>
-    <select id="condition">
-      <option value="">Choose condition</option>
-      <option value="Good">Good (3)</option>
-      <option value="Poor">Poor (1)</option>
-    </select>
-    <span id="distinctivenessDisplay">Medium (4)</span>
-    <span id="tradingRuleDisplay">Same broad habitat or higher distinctiveness</span>
-    <script type="application/json" id="bhd-reference-data">${JSON.stringify(HEDGEROW_REFERENCE_DATA)}</script>
-  `
-  document.getElementById('habitatType').value = selectedType
-  document.getElementById('condition').value = selectedCondition
+  const types = ['Native hedgerow', 'Line of trees']
+  const conditions = CONDITIONS_FIXTURE
+  return {
+    pageTitle: 'Hedgerow H1',
+    heading: 'Hedgerow H1',
+    caption: 'Test Project',
+    headingPrefix: 'Hedgerow',
+    projectId: 'aa0e8400-e29b-41d4-a716-446655440000',
+    projectName: 'Test Project',
+    habitatRef: 'H1',
+    sizeLabel: 'Length (km)',
+    sizeDisplay: '1.234567',
+    showBroadHabitatRow: false,
+    distinctivenessDisplay: 'Medium (4)',
+    strategicSignificanceDisplay: 'Low (1)',
+    tradingRule: 'Same broad habitat or higher distinctiveness',
+    habitatUnitsDisplay: '8.00',
+    habitatTypeOptions: [
+      { value: '', text: 'Choose habitat type', selected: !selectedType },
+      ...types.map((value) => ({
+        value,
+        text: value,
+        selected: value === selectedType
+      }))
+    ],
+    conditionOptions: [
+      { value: '', text: 'Choose condition', selected: !selectedCondition },
+      ...conditions.map((c) => ({
+        value: c.condition,
+        text: `${c.condition} (${c.score})`,
+        selected: c.condition === selectedCondition
+      }))
+    ],
+    referenceJson: JSON.stringify(HEDGEROW_REFERENCE_DATA),
+    backHref: '/projects/test/habitat-list#hedgerows',
+    cancelHref: '/projects/test/habitat-list#hedgerows',
+    featureId: 'bb0e8400-e29b-41d4-a716-446655440002'
+  }
+}
+
+function renderHedgerowPage(overrides = {}) {
+  renderTemplateIntoDocument(
+    'baseline-habitat-details/baseline-habitat-details.njk',
+    buildHedgerowViewModel(overrides)
+  )
 }
 
 describe('initBaselineHabitatDetails — hedgerow variant', () => {

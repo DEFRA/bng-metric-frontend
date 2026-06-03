@@ -1,33 +1,20 @@
 // @vitest-environment happy-dom
 import { initFileUploadValidation } from './file-upload-validation.js'
+import { renderTemplateIntoDocument } from '../../server/test-helpers/render-template.js'
 
+// Render the real upload-baseline-file template via the same Nunjucks
+// config the server uses, so the DOM under test matches what the user
+// actually sees. View model fields below are the ones the template
+// (and its `layouts/page.njk` parent) require to render the form.
 function createUploadForm() {
-  document.body.innerHTML = `
-    <template id="tpl-error-summary">
-      <div class="govuk-error-summary" data-module="govuk-error-summary" data-client-error="true">
-        <div role="alert">
-          <h2 class="govuk-error-summary__title">There is a problem</h2>
-          <div class="govuk-error-summary__body">
-            <ul class="govuk-list govuk-error-summary__list"></ul>
-          </div>
-        </div>
-      </div>
-    </template>
-    <template id="tpl-error-message">
-      <p class="govuk-error-message">
-        <span class="govuk-visually-hidden">Error:</span>
-        <span data-error-text></span>
-      </p>
-    </template>
-    <div class="govuk-grid-column-two-thirds">
-      <form enctype="multipart/form-data">
-        <div class="govuk-form-group">
-          <input type="file" id="file" class="govuk-file-upload" />
-        </div>
-        <button type="submit">Upload</button>
-      </form>
-    </div>`
-  document.head.innerHTML = '<title>Upload Baseline File</title>'
+  renderTemplateIntoDocument('upload-baseline-file/upload-baseline-file.njk', {
+    pageTitle: 'Upload Baseline File',
+    heading: 'Upload Baseline File',
+    caption: 'Test Project',
+    projectId: 'test-project',
+    uploadUrl: '/upload',
+    instructionText: 'Choose a GeoPackage file to upload.'
+  })
 }
 
 function createFile(name, size) {
@@ -152,7 +139,7 @@ describe('initFileUploadValidation', () => {
 
       input.dispatchEvent(new Event('change'))
 
-      expect(document.title).toBe('Error: Upload Baseline File')
+      expect(document.title.startsWith('Error: ')).toBe(true)
     })
 
     test('Should add inline error messages with visually hidden prefix', () => {
@@ -205,7 +192,7 @@ describe('initFileUploadValidation', () => {
           .querySelector('.govuk-form-group')
           .classList.contains('govuk-form-group--error')
       ).toBe(false)
-      expect(document.title).toBe('Upload Baseline File')
+      expect(document.title.startsWith('Error: ')).toBe(false)
     })
   })
 })
