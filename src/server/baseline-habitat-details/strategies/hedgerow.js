@@ -109,8 +109,8 @@ function buildViewModel(hedgerow, reference, { projectId, projectName }) {
       habitatTypes: reference.habitatTypes,
       tradingRulesByBand: reference.tradingRules
     }),
-    backHref: `/projects/${projectId}/habitat-list#hedgerows`,
-    cancelHref: `/projects/${projectId}/habitat-list#hedgerows`,
+    backHref: `/projects/${projectId}/baseline-habitat-list#hedgerows`,
+    cancelHref: `/projects/${projectId}/baseline-habitat-list#hedgerows`,
     featureId: hedgerow.featureId
   }
 }

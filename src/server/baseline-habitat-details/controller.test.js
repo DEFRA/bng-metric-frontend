@@ -260,7 +260,7 @@ describe('#baselineHabitatDetails - GET', () => {
     })
     expect(result).toContain('Save')
     expect(result).toContain(
-      `href="/projects/${projectId}/habitat-list#habitat-${habitatId}"`
+      `href="/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}"`
     )
   })
 
@@ -270,7 +270,9 @@ describe('#baselineHabitatDetails - GET', () => {
       url,
       auth: authedAuth
     })
-    expect(result).toContain(`href="/projects/${projectId}/habitat-list"`)
+    expect(result).toContain(
+      `href="/projects/${projectId}/baseline-habitat-list"`
+    )
   })
 
   test('Calls the conditions endpoint with the combined "Broad - Type" key', async () => {
@@ -663,7 +665,7 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
       auth: authedAuth
     })
     expect(result).toContain(
-      `href="/projects/${projectId}/habitat-list#hedgerows"`
+      `href="/projects/${projectId}/baseline-habitat-list#hedgerows"`
     )
   })
 
@@ -765,7 +767,7 @@ describe('#baselineHabitatDetails - POST', () => {
 
     expect(statusCode).toBe(302)
     expect(headers.location).toBe(
-      `/projects/${projectId}/habitat-list#habitat-${habitatId}`
+      `/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}`
     )
     expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
       expect.stringContaining(`/projects/${projectId}/features/${habitatId}`),

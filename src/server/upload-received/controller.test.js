@@ -54,7 +54,9 @@ describe('upload-received controller', () => {
     expect(getUploadStatus).toHaveBeenCalledWith('test-upload-id')
     expect(validateBaseline).toHaveBeenCalledWith('proj-123', 'test-upload-id')
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
-    expect(h.redirect).toHaveBeenCalledWith('/projects/proj-123/habitat-list')
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/baseline-habitat-list'
+    )
     expect(h.view).not.toHaveBeenCalled()
   })
 

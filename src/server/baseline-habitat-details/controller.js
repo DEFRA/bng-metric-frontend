@@ -120,7 +120,7 @@ export const postController = {
     }
 
     return h.redirect(
-      `/projects/${projectId}/habitat-list${habitatListAnchorFor(payload, featureId)}`
+      `/projects/${projectId}/baseline-habitat-list${habitatListAnchorFor(payload, featureId)}`
     )
   }
 }

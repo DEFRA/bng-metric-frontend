@@ -138,8 +138,8 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
       habitatTypes: reference.habitatTypes,
       tradingRulesByBand: reference.tradingRules
     }),
-    backHref: `/projects/${projectId}/habitat-list`,
-    cancelHref: `/projects/${projectId}/habitat-list#habitat-${habitat.featureId}`,
+    backHref: `/projects/${projectId}/baseline-habitat-list`,
+    cancelHref: `/projects/${projectId}/baseline-habitat-list#habitat-${habitat.featureId}`,
     featureId: habitat.featureId
   }
 }
