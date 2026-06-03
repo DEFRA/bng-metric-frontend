@@ -96,6 +96,18 @@ describe('#catchAll', () => {
     expect(mockToolkitCode).toHaveBeenCalledWith(statusCodes.badRequest)
   })
 
+  test('Should provide a retry-friendly "Conflict" page for 409', () => {
+    catchAll(mockRequest(statusCodes.conflict), mockToolkit)
+
+    expect(mockErrorLogger).not.toHaveBeenCalledWith(mockStack)
+    expect(mockToolkitView).toHaveBeenCalledWith(errorPage, {
+      pageTitle: 'Another user is editing this. Please try again.',
+      heading: statusCodes.conflict,
+      message: 'Another user is editing this. Please try again.'
+    })
+    expect(mockToolkitCode).toHaveBeenCalledWith(statusCodes.conflict)
+  })
+
   test('Should provide expected default page', () => {
     catchAll(mockRequest(statusCodes.imATeapot), mockToolkit)
 

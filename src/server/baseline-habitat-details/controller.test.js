@@ -871,9 +871,10 @@ describe('#baselineHabitatDetails - POST', () => {
   })
 
   test('Returns 502 when the backend save fails', async () => {
-    vi.mocked(wreck.put).mockResolvedValue({
-      res: { statusCode: 500 },
-      payload: { error: 'boom' }
+    vi.mocked(wreck.put).mockRejectedValue({
+      isBoom: true,
+      output: { statusCode: 500 },
+      data: { payload: { error: 'boom' } }
     })
 
     const { statusCode } = await server.inject({
@@ -892,6 +893,34 @@ describe('#baselineHabitatDetails - POST', () => {
     })
 
     expect(statusCode).toBe(statusCodes.badGateway)
+  })
+
+  test('Returns 409 (not 5xx) when the backend reports a concurrent-edit conflict', async () => {
+    vi.mocked(wreck.put).mockRejectedValue({
+      isBoom: true,
+      output: { statusCode: statusCodes.conflict },
+      data: {
+        payload: { message: 'Another edit for this project is in progress' }
+      }
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.conflict)
+    expect(result).toContain('Another user is editing this')
   })
 
   test('Rejects POST with 403 when crumb is missing', async () => {

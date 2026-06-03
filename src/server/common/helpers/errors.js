@@ -10,6 +10,8 @@ function statusCodeMessage(statusCode) {
       return 'Unauthorized'
     case statusCodes.badRequest:
       return 'Bad Request'
+    case statusCodes.conflict:
+      return 'Another user is editing this. Please try again.'
     default:
       return 'Something went wrong'
   }
