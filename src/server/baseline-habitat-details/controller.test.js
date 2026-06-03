@@ -813,7 +813,7 @@ describe('#baselineHabitatDetails - POST', () => {
 
     expect(statusCode).toBe(302)
     expect(headers.location).toBe(
-      `/projects/${projectId}/habitat-list#hedgerows`
+      `/projects/${projectId}/baseline-habitat-list#hedgerows`
     )
   })
 
@@ -840,7 +840,7 @@ describe('#baselineHabitatDetails - POST', () => {
 
     expect(statusCode).toBe(302)
     expect(headers.location).toBe(
-      `/projects/${projectId}/habitat-list#habitat-${habitatId}`
+      `/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}`
     )
   })
 
