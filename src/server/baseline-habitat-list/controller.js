@@ -60,25 +60,25 @@ function buildHedgerowRow(hedgerow, projectId) {
   ]
 }
 
-function buildWatercoureRow(hedgerow, projectId) {
+function buildWatercourseRow(watercourse, projectId) {
   return [
     {
-      html: `<a class="govuk-link" href="/baseline-habitat-details?featureId=${hedgerow.featureId}&projectId=${projectId}">${hedgerow.ref}</a>`,
+      html: `<a class="govuk-link" href="/baseline-habitat-details?featureId=${watercourse.featureId}&projectId=${projectId}">${watercourse.ref}</a>`,
       attributes: {
-        'data-sort-value': hedgerow.ref
+        'data-sort-value': watercourse.ref
       }
     },
-    { text: hedgerow.type ?? '' },
+    { text: watercourse.type ?? '' },
     {
-      text: formatLengthKm(hedgerow.sizeMetres),
+      text: formatLengthKm(watercourse.sizeMetres),
       attributes: {
-        'data-sort-value': hedgerow.sizeMetres
+        'data-sort-value': watercourse.sizeMetres
       }
     },
-    { text: hedgerow.distinctiveness ?? '' },
-    { text: hedgerow.condition ?? '' },
-    { text: formatHabitatUnits(hedgerow.units) },
-    { text: hedgerow.status ?? '' }
+    { text: watercourse.distinctiveness ?? '' },
+    { text: watercourse.condition ?? '' },
+    { text: formatHabitatUnits(watercourse.units) },
+    { text: watercourse.status ?? '' }
   ]
 }
 
@@ -125,7 +125,7 @@ export const getController = {
 
     const watercourses = baseline?.watercourses ?? null
     const watercourseRows = watercourses?.length
-      ? watercourses.map((watercourse) => buildWatercoureRow(watercourse, id))
+      ? watercourses.map((watercourse) => buildWatercourseRow(watercourse, id))
       : null
 
     return h.view('baseline-habitat-list/baseline-habitat-list', {

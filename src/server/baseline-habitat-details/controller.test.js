@@ -817,6 +817,42 @@ describe('#baselineHabitatDetails - POST', () => {
     )
   })
 
+  test('Redirects to the Watercourses tab when the backend reports a watercourse edit', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        type: 'watercourse',
+        feature: {
+          featureId: habitatId,
+          ref: 'WC1',
+          type: 'Ditch',
+          condition: 'Good',
+          status: 'Incomplete',
+          units: 0
+        }
+      }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        habitatType: 'Ditch',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(
+      `/projects/${projectId}/baseline-habitat-list#watercourses`
+    )
+  })
+
   test('Falls back to the area row anchor when the backend response has no type', async () => {
     vi.mocked(wreck.put).mockResolvedValue({
       res: { statusCode: 200 },

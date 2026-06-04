@@ -1046,27 +1046,7 @@ describe('#habitatListController - watercourse rows', () => {
     expect(result).toContain('Complete')
   })
 
-  test('renders an empty string for null type, distinctiveness, condition and status', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: {
-        project: {
-          name: 'Watercourse Project',
-          baseline: { watercourses: [mockWatercourseNullFields] }
-        }
-      }
-    })
-
-    const { result } = await server.inject({
-      method: 'GET',
-      url,
-      auth: authedAuth
-    })
-
-    expect(result).not.toContain('>null<')
-  })
-
-  test('renders an empty string when units is null', async () => {
+  test('renders empty strings for null type, distinctiveness, condition, units and status', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: {

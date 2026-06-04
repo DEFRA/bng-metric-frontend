@@ -143,6 +143,9 @@ function habitatListAnchorFor(payload, featureId) {
   if (payload?.type === 'hedgerow') {
     return '#hedgerows'
   }
+  if (payload?.type === 'watercourse') {
+    return '#watercourses'
+  }
   return `#habitat-${featureId}`
 }
 
