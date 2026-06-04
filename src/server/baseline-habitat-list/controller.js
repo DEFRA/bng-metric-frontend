@@ -60,6 +60,28 @@ function buildHedgerowRow(hedgerow, projectId) {
   ]
 }
 
+function buildWatercoureRow(hedgerow, projectId) {
+  return [
+    {
+      html: `<a class="govuk-link" href="/baseline-habitat-details?featureId=${hedgerow.featureId}&projectId=${projectId}">${hedgerow.ref}</a>`,
+      attributes: {
+        'data-sort-value': hedgerow.ref
+      }
+    },
+    { text: hedgerow.type ?? '' },
+    {
+      text: formatLengthKm(hedgerow.sizeMetres),
+      attributes: {
+        'data-sort-value': hedgerow.sizeMetres
+      }
+    },
+    { text: hedgerow.distinctiveness ?? '' },
+    { text: hedgerow.condition ?? '' },
+    { text: formatHabitatUnits(hedgerow.units) },
+    { text: hedgerow.status ?? '' }
+  ]
+}
+
 export const getController = {
   async handler(request, h) {
     const { id } = request.params
@@ -101,6 +123,11 @@ export const getController = {
       ? hedgerows.map((hedgerow) => buildHedgerowRow(hedgerow, id))
       : null
 
+    const watercourses = baseline?.watercourses ?? null
+    const watercourseRows = watercourses
+      ? watercourses.map((watercourse) => buildWatercoureRow(watercourse, id))
+      : null
+
     return h.view('baseline-habitat-list/baseline-habitat-list', {
       pageTitle: 'On-site baseline habitats',
       heading: 'On-site baseline habitats',
@@ -109,7 +136,8 @@ export const getController = {
       totalSizes,
       totalUnits,
       habitatRows,
-      hedgerowRows
+      hedgerowRows,
+      watercourseRows
     })
   }
 }
