@@ -1100,6 +1100,7 @@ describe('#habitatListController - watercourse rows', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).not.toContain('WC-1')
+    expect(result).toContain('No watercourse data uploaded.')
   })
 
   test('renders multiple watercourse rows', async () => {
@@ -1127,5 +1128,135 @@ describe('#habitatListController - watercourse rows', () => {
     expect(result).toContain(
       `href="/baseline-habitat-details?featureId=${mockWatercourseNullFields.featureId}&projectId=${projectId}"`
     )
+  })
+})
+
+describe('#habitatListController - no watercourse data', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('shows "No watercourse data uploaded." when watercourses is absent from the baseline', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'No Watercourse Project',
+          baseline: {
+            habitats: [],
+            hedgerows: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No watercourse data uploaded.')
+  })
+
+  test('shows "No watercourse data uploaded." when watercourses is an empty array', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Empty Watercourses Project',
+          baseline: {
+            watercourses: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No watercourse data uploaded.')
+  })
+
+  test('shows "No watercourse data uploaded." when the entire baseline is absent', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'No Baseline Project' } }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No watercourse data uploaded.')
+  })
+
+  test('does not show the watercourse table when there are no watercourses', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'No Watercourse Project',
+          baseline: { watercourses: [] }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('id="watercourses" class="govuk-table"')
+  })
+
+  test('does not show "No watercourse data uploaded." when watercourses are present', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Watercourse Project',
+          baseline: {
+            watercourses: [
+              {
+                featureId: 'wc-abc',
+                ref: 'WC-1',
+                type: 'Ditch',
+                sizeMetres: 200,
+                distinctiveness: 'Low',
+                condition: 'Good',
+                units: 1,
+                status: 'Complete'
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('No watercourse data uploaded.')
   })
 })

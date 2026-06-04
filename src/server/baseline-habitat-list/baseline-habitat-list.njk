@@ -155,56 +155,60 @@
       <h2 class="govuk-heading-m">
         Watercourses
       </h2>
-      {{ govukTable({
-          attributes: {
-            "data-module": "moj-sortable-table"
-          },
-          head: [
-            {
-              text: "Ref",
-              attributes: {
-                "aria-sort": "ascending"
-              }
+      {% if watercourseRows %}
+        {{ govukTable({
+            attributes: {
+              "data-module": "moj-sortable-table"
             },
-            {
-              text: "Habitat type",
-              attributes: {
-                "aria-sort": "none"
+            head: [
+              {
+                text: "Ref",
+                attributes: {
+                  "aria-sort": "ascending"
+                }
+              },
+              {
+                text: "Habitat type",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Size",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Distinctiveness",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Condition",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Units",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Status",
+                attributes: {
+                  "aria-sort": "none"
+                }
               }
-            },
-            {
-              text: "Size",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Distinctiveness",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Condition",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Units",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Status",
-              attributes: {
-                "aria-sort": "none"
-              }
-            }
-          ],
-          rows: watercourseRows
-        }) -}}
+            ],
+            rows: watercourseRows
+          }) -}}
+      {% else %}
+        <p class="govuk-body">No watercourse data uploaded.</p>
+      {% endif %}
       {% endset -%}
 
       {{ govukTabs({

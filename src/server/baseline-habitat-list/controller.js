@@ -124,7 +124,7 @@ export const getController = {
       : null
 
     const watercourses = baseline?.watercourses ?? null
-    const watercourseRows = watercourses
+    const watercourseRows = watercourses?.length
       ? watercourses.map((watercourse) => buildWatercoureRow(watercourse, id))
       : null
 
