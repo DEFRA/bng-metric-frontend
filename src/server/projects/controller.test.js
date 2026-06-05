@@ -331,7 +331,7 @@ describe('#projectTaskListController', () => {
     )
   })
 
-  test('Should link to habitat-list when a baseline has been uploaded', async () => {
+  test('Should link to baseline-habitat-list when a baseline has been uploaded', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: {
@@ -354,7 +354,7 @@ describe('#projectTaskListController', () => {
 
     expect(result).toEqual(
       expect.stringContaining(
-        `href="/projects/${mockProjects[0].id}/habitat-list"`
+        `href="/projects/${mockProjects[0].id}/baseline-habitat-list"`
       )
     )
     expect(result).not.toEqual(

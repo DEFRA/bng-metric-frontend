@@ -15,7 +15,7 @@ import { postInterventionUploadReceived } from './post-intervention-upload-recei
 import { baselineHabitatDetails } from './baseline-habitat-details/index.js'
 import { postInterventionHabitatDetails } from './post-intervention-habitat-details/index.js'
 import { invalidFile } from './error-file/index.js'
-import { habitatList } from './habitat-list/index.js'
+import { baselineHabitatList } from './baseline-habitat-list/index.js'
 import { postInterventionHabitatList } from './post-intervention-habitat-list/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
@@ -45,7 +45,7 @@ export const router = {
         postInterventionUploadReceived,
         baselineHabitatDetails,
         postInterventionHabitatDetails,
-        habitatList,
+        baselineHabitatList,
         postInterventionHabitatList,
         invalidFile
       ])

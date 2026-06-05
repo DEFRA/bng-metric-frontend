@@ -39,12 +39,6 @@
     <div class="govuk-grid-column-full">
       <h2 class="govuk-heading-m">Habitat details</h2>
 
-      {{ govukButton({
-        text: "Show map",
-        classes: "govuk-button--secondary",
-        href: "#"
-      }) }}
-
       {% set habitats %}
       <h2 class="govuk-heading-m">
         Area habitats
@@ -157,6 +151,66 @@
         }) -}}
       {% endset -%}
 
+      {% set watercourses %}
+      <h2 class="govuk-heading-m">
+        Watercourses
+      </h2>
+      {% if watercourseRows %}
+        {{ govukTable({
+            attributes: {
+              "data-module": "moj-sortable-table"
+            },
+            head: [
+              {
+                text: "Ref",
+                attributes: {
+                  "aria-sort": "ascending"
+                }
+              },
+              {
+                text: "Habitat type",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Size",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Distinctiveness",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Condition",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Units",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              },
+              {
+                text: "Status",
+                attributes: {
+                  "aria-sort": "none"
+                }
+              }
+            ],
+            rows: watercourseRows
+          }) -}}
+      {% else %}
+        <p class="govuk-body">No watercourse data uploaded.</p>
+      {% endif %}
+      {% endset -%}
+
       {{ govukTabs({
         items: [
           {
@@ -172,7 +226,7 @@
           {
             label: "Watercourses",
             id: "watercourses",
-            panel: { html: "<div></div>" }
+            panel: { html: watercourses }
           }
         ]
       }) }}

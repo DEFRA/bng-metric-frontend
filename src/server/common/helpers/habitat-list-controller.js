@@ -68,6 +68,28 @@ function buildHedgerowRow(hedgerow, projectId, uploadType) {
   ]
 }
 
+function buildWatercourseRow(watercourse, projectId, uploadType) {
+  return [
+    {
+      html: `<a class="govuk-link" href="${featureDetailsHref(uploadType, watercourse.featureId, projectId)}">${watercourse.ref}</a>`,
+      attributes: {
+        'data-sort-value': watercourse.ref
+      }
+    },
+    { text: watercourse.type ?? '' },
+    {
+      text: formatLengthKm(watercourse.sizeMetres),
+      attributes: {
+        'data-sort-value': watercourse.sizeMetres
+      }
+    },
+    { text: watercourse.distinctiveness ?? '' },
+    { text: watercourse.condition ?? '' },
+    { text: formatHabitatUnits(watercourse.units) },
+    { text: watercourse.status ?? '' }
+  ]
+}
+
 function createHabitatListController(uploadType) {
   return {
     async handler(request, h) {
@@ -112,7 +134,14 @@ function createHabitatListController(uploadType) {
           )
         : null
 
-      return h.view('habitat-list/habitat-list', {
+      const watercourses = habitatsData?.watercourses ?? null
+      const watercourseRows = watercourses?.length
+        ? watercourses.map((watercourse) =>
+            buildWatercourseRow(watercourse, id, uploadType)
+          )
+        : null
+
+      return h.view(uploadType.listView, {
         pageTitle: uploadType.pageHeading,
         heading: uploadType.pageHeading,
         caption: projectName,
@@ -122,7 +151,8 @@ function createHabitatListController(uploadType) {
         totalSizes,
         totalUnits,
         habitatRows,
-        hedgerowRows
+        hedgerowRows,
+        watercourseRows
       })
     }
   }

@@ -39,10 +39,25 @@ function listHref(uploadType, projectId) {
 }
 
 function adaptListHref(href, uploadType, projectId) {
-  return href.replace(
-    `/projects/${projectId}/habitat-list`,
-    listHref(uploadType, projectId)
-  )
+  return href
+    .replace(
+      `/projects/${projectId}/habitat-list`,
+      listHref(uploadType, projectId)
+    )
+    .replace(
+      `/projects/${projectId}/baseline-habitat-list`,
+      listHref(uploadType, projectId)
+    )
+}
+
+function habitatListAnchorFor(payload, featureId) {
+  if (payload?.type === 'hedgerow') {
+    return '#hedgerows'
+  }
+  if (payload?.type === 'watercourse') {
+    return '#watercourses'
+  }
+  return `#habitat-${featureId}`
 }
 
 function createGetController(uploadType) {
@@ -101,24 +116,29 @@ function createPostController(uploadType) {
       const { projectId, featureId, broadHabitat, habitatType, condition } =
         request.payload
 
-      const { res } = await wreck.put(
-        `${backendUrl}/${uploadType.backendSavePath(projectId, featureId)}`,
-        {
-          headers: { 'Content-Type': 'application/json' },
-          payload: JSON.stringify({
-            broadType: broadHabitat || null,
-            habitatType: habitatType || null,
-            condition: condition || null
-          })
+      let payload
+      try {
+        const result = await wreck.put(
+          `${backendUrl}/${uploadType.backendSavePath(projectId, featureId)}`,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            payload: JSON.stringify({
+              broadType: broadHabitat || null,
+              habitatType: habitatType || null,
+              condition: condition || null
+            })
+          }
+        )
+        payload = result.payload
+      } catch (err) {
+        if (err?.output?.statusCode === statusCodes.conflict) {
+          throw Boom.conflict('Another user is editing this project')
         }
-      )
-
-      if (res.statusCode >= statusCodes.badRequest) {
         throw Boom.badGateway('Failed to save habitat')
       }
 
       return h.redirect(
-        `${listHref(uploadType, projectId)}#habitat-${featureId}`
+        `${listHref(uploadType, projectId)}${habitatListAnchorFor(payload, featureId)}`
       )
     }
   }

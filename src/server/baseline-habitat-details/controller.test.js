@@ -1,5 +1,9 @@
 import Boom from '@hapi/boom'
 
+import {
+  REQUIRED_ELEMENT_IDS_AREA,
+  REQUIRED_ELEMENT_IDS_HEDGEROW
+} from '../../client/javascripts/baseline-habitat-details.js'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
@@ -256,7 +260,7 @@ describe('#baselineHabitatDetails - GET', () => {
     })
     expect(result).toContain('Save')
     expect(result).toContain(
-      `href="/projects/${projectId}/habitat-list#habitat-${habitatId}"`
+      `href="/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}"`
     )
   })
 
@@ -266,7 +270,9 @@ describe('#baselineHabitatDetails - GET', () => {
       url,
       auth: authedAuth
     })
-    expect(result).toContain(`href="/projects/${projectId}/habitat-list"`)
+    expect(result).toContain(
+      `href="/projects/${projectId}/baseline-habitat-list"`
+    )
   })
 
   test('Calls the conditions endpoint with the combined "Broad - Type" key', async () => {
@@ -464,17 +470,19 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(calls.some((u) => u.includes('/reference/conditions'))).toBe(false)
   })
 
-  test('Embeds habitatTypesByBroad data for the client-side dropdown JS', async () => {
+  test('Embeds the habitat-types reference data for the client-side dropdown JS', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
     expect(result).toContain('id="bhd-reference-data"')
-    // Each broad's types should appear in the embedded JSON
+    // Each habitat type should appear in the embedded JSON, with its parent
+    // broad annotated on the entry.
     expect(result).toContain('Modified grassland')
     expect(result).toContain('Cereal crops')
-    expect(result).toContain('habitatTypesByBroad')
+    expect(result).toContain('habitatTypes')
+    expect(result).toContain('"broad":"Grassland"')
     expect(result).toContain('tradingRulesByBand')
   })
 
@@ -488,6 +496,18 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Choose habitat type')
     expect(result).toContain('Choose condition')
   })
+
+  test.each(REQUIRED_ELEMENT_IDS_AREA)(
+    'Renders id="%s" so the client JS can find it',
+    async (id) => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toContain(`id="${id}"`)
+    }
+  )
 })
 
 describe('#baselineHabitatDetails - validation', () => {
@@ -645,9 +665,21 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
       auth: authedAuth
     })
     expect(result).toContain(
-      `href="/projects/${projectId}/habitat-list#hedgerows"`
+      `href="/projects/${projectId}/baseline-habitat-list#hedgerows"`
     )
   })
+
+  test.each(REQUIRED_ELEMENT_IDS_HEDGEROW)(
+    'Renders id="%s" so the client JS can find it',
+    async (id) => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url: hedgerowUrl,
+        auth: authedAuth
+      })
+      expect(result).toContain(`id="${id}"`)
+    }
+  )
 })
 
 describe('#baselineHabitatDetails - authentication', () => {
@@ -705,7 +737,10 @@ describe('#baselineHabitatDetails - POST', () => {
     _resetReferenceCache()
     vi.mocked(wreck.put).mockResolvedValue({
       res: { statusCode: 200 },
-      payload: { ...mockHabitat, habitatUnits: 7.5, status: 'Complete' }
+      payload: {
+        type: 'habitat',
+        feature: { ...mockHabitat, units: 7.5, status: 'Complete' }
+      }
     })
     crumb = await primeCrumb(server)
   })
@@ -714,7 +749,7 @@ describe('#baselineHabitatDetails - POST', () => {
     vi.restoreAllMocks()
   })
 
-  test('Saves the dropdown values and redirects to the habitat list', async () => {
+  test('Saves area habitat edits via the unified features endpoint and redirects to the row anchor', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url: '/baseline-habitat-details',
@@ -732,13 +767,10 @@ describe('#baselineHabitatDetails - POST', () => {
 
     expect(statusCode).toBe(302)
     expect(headers.location).toBe(
-      `/projects/${projectId}/habitat-list#habitat-${habitatId}`
+      `/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}`
     )
     expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
-      // BMD-501 will unify the save endpoint behind /features/{id} too;
-      // BMD-500 keeps the area save route untouched so the existing area
-      // journey continues to work without behaviour change.
-      expect.stringContaining(`/projects/${projectId}/habitats/${habitatId}`),
+      expect.stringContaining(`/projects/${projectId}/features/${habitatId}`),
       expect.objectContaining({
         payload: JSON.stringify({
           broadType: 'Grassland',
@@ -746,6 +778,105 @@ describe('#baselineHabitatDetails - POST', () => {
           condition: 'Good'
         })
       })
+    )
+  })
+
+  test('Redirects to the Hedgerows tab when the backend reports a hedgerow edit', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        type: 'hedgerow',
+        feature: {
+          featureId: habitatId,
+          ref: 'H1',
+          type: 'Native hedgerow',
+          condition: 'Good',
+          status: 'Incomplete',
+          units: 0
+        }
+      }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        habitatType: 'Native hedgerow',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(
+      `/projects/${projectId}/baseline-habitat-list#hedgerows`
+    )
+  })
+
+  test('Redirects to the Watercourses tab when the backend reports a watercourse edit', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        type: 'watercourse',
+        feature: {
+          featureId: habitatId,
+          ref: 'WC1',
+          type: 'Ditch',
+          condition: 'Good',
+          status: 'Incomplete',
+          units: 0
+        }
+      }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        habitatType: 'Ditch',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(
+      `/projects/${projectId}/baseline-habitat-list#watercourses`
+    )
+  })
+
+  test('Falls back to the area row anchor when the backend response has no type', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { feature: { ...mockHabitat, units: 7.5 } }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland',
+        habitatType: 'Lowland meadows',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(
+      `/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}`
     )
   })
 
@@ -778,9 +909,10 @@ describe('#baselineHabitatDetails - POST', () => {
   })
 
   test('Returns 502 when the backend save fails', async () => {
-    vi.mocked(wreck.put).mockResolvedValue({
-      res: { statusCode: 500 },
-      payload: { error: 'boom' }
+    vi.mocked(wreck.put).mockRejectedValue({
+      isBoom: true,
+      output: { statusCode: 500 },
+      data: { payload: { error: 'boom' } }
     })
 
     const { statusCode } = await server.inject({
@@ -799,6 +931,34 @@ describe('#baselineHabitatDetails - POST', () => {
     })
 
     expect(statusCode).toBe(statusCodes.badGateway)
+  })
+
+  test('Returns 409 (not 5xx) when the backend reports a concurrent-edit conflict', async () => {
+    vi.mocked(wreck.put).mockRejectedValue({
+      isBoom: true,
+      output: { statusCode: statusCodes.conflict },
+      data: {
+        payload: { message: 'Another edit for this project is in progress' }
+      }
+    })
+
+    const { statusCode, result } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.conflict)
+    expect(result).toContain('Another user is editing this')
   })
 
   test('Rejects POST with 403 when crumb is missing', async () => {
