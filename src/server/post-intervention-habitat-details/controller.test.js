@@ -78,7 +78,7 @@ describe('#postInterventionHabitatDetailsController', () => {
       )
     )
     expect(h.view).toHaveBeenCalledWith(
-      'baseline-habitat-details/baseline-habitat-details',
+      'habitat-details/habitat-details',
       expect.objectContaining({
         formAction: '/post-intervention-habitat-details',
         detailsSectionHeading: 'Post-intervention Details',

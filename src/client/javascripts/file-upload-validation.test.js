@@ -7,7 +7,7 @@ import { renderTemplateIntoDocument } from '../../server/test-helpers/render-tem
 // actually sees. View model fields below are the ones the template
 // (and its `layouts/page.njk` parent) require to render the form.
 function createUploadForm() {
-  renderTemplateIntoDocument('upload-baseline-file/upload-baseline-file.njk', {
+  renderTemplateIntoDocument('habitat-upload-file/habitat-upload-file.njk', {
     pageTitle: 'Upload Baseline File',
     heading: 'Upload Baseline File',
     caption: 'Test Project',

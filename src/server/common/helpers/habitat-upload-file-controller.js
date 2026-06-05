@@ -50,7 +50,7 @@ function createUploadFileController(uploadType) {
       )
 
       return h
-        .view('upload-baseline-file/upload-baseline-file', {
+        .view('habitat-upload-file/habitat-upload-file', {
           ...viewData(id, projectName, uploadType),
           uploadUrl: uploadSession.uploadUrl,
           error: uploadError ? { text: uploadError } : undefined

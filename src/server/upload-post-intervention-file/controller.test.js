@@ -66,7 +66,7 @@ describe('upload-post-intervention-file controller', () => {
       'abc-123'
     )
     expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
+      'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
         uploadUrl: '/upload-and-scan/abc-123',
         instructionText: expect.stringContaining('post-intervention')

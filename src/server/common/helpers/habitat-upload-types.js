@@ -11,7 +11,7 @@ const HABITAT_UPLOAD_TYPES = {
     uploadRoute: 'upload-baseline-file',
     uploadReceivedRoute: 'upload-received',
     listRoute: 'baseline-habitat-list',
-    listView: 'baseline-habitat-list/baseline-habitat-list',
+    listView: 'habitat-list/habitat-list',
     detailsRoute: 'baseline-habitat-details',
     backendValidatePath: 'baseline',
     backendFeaturePath: (projectId, featureId) =>
@@ -37,7 +37,7 @@ const HABITAT_UPLOAD_TYPES = {
     uploadRoute: 'upload-post-intervention-file',
     uploadReceivedRoute: 'post-intervention-upload-received',
     listRoute: 'post-intervention-habitat-list',
-    listView: 'baseline-habitat-list/baseline-habitat-list',
+    listView: 'habitat-list/habitat-list',
     detailsRoute: 'post-intervention-habitat-details',
     backendValidatePath: 'post-intervention',
     backendFeaturePath: (projectId, featureId) =>

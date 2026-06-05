@@ -103,7 +103,7 @@ function buildAreaViewModel({
 
 function renderPage(overrides = {}) {
   renderTemplateIntoDocument(
-    'baseline-habitat-details/baseline-habitat-details.njk',
+    'habitat-details/habitat-details.njk',
     buildAreaViewModel(overrides)
   )
 }
@@ -369,7 +369,7 @@ function buildHedgerowViewModel({
 
 function renderHedgerowPage(overrides = {}) {
   renderTemplateIntoDocument(
-    'baseline-habitat-details/baseline-habitat-details.njk',
+    'habitat-details/habitat-details.njk',
     buildHedgerowViewModel(overrides)
   )
 }
