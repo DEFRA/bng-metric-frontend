@@ -14,6 +14,10 @@ function sessionScheme() {
       )
 
       if (!user) {
+        request.logger.info(
+          { hasSession: Boolean(session), path: request.path },
+          'Auth: request has no authenticated session, redirecting to /auth/forbidden'
+        )
         return h.redirect('/auth/forbidden').takeover()
       }
 

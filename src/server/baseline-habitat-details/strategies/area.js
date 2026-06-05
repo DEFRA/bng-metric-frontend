@@ -25,13 +25,19 @@ function fetchStaticReference() {
       wreck.get(`${backendUrl}/reference/habitat-types-by-broad`),
       wreck.get(`${backendUrl}/reference/trading-rules`)
     ])
-      .then(([types, rules]) => ({
-        habitatTypesByBroad: types.payload,
-        broadHabitats: Object.keys(types.payload).sort((a, b) =>
-          a.localeCompare(b)
-        ),
-        tradingRules: rules.payload
-      }))
+      .then(([types, rules]) => {
+        const typesByBroad = types.payload
+        const habitatTypes = Object.entries(typesByBroad).flatMap(
+          ([broad, list]) => list.map((t) => ({ ...t, broad }))
+        )
+        return {
+          habitatTypes,
+          broadHabitats: Object.keys(typesByBroad).sort((a, b) =>
+            a.localeCompare(b)
+          ),
+          tradingRules: rules.payload
+        }
+      })
       .catch((err) => {
         // Drop the cached rejection so the next request retries.
         staticReferencePromise = null
@@ -65,10 +71,7 @@ async function loadReference(habitat) {
 
   return {
     broadHabitats: staticRef.broadHabitats,
-    habitatTypes: habitat.broadType
-      ? (staticRef.habitatTypesByBroad[habitat.broadType] ?? [])
-      : [],
-    habitatTypesByBroad: staticRef.habitatTypesByBroad,
+    habitatTypes: staticRef.habitatTypes,
     conditions: conditions.payload,
     tradingRules: staticRef.tradingRules
   }
@@ -91,7 +94,9 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
   // (BMD-426 / bng-metric-engine). When the value is absent the display falls
   // through to an empty cell, signalling "not yet calculated" rather than the
   // misleading "0.00".
-  const habitatTypeNames = reference.habitatTypes.map((t) => t.name)
+  const habitatTypeNames = reference.habitatTypes
+    .filter((t) => t.broad === habitat.broadType)
+    .map((t) => t.name)
   const habitatRef = habitat.ref ?? ''
   return {
     headingPrefix: 'Habitat',
@@ -130,11 +135,11 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
       }))
     ],
     referenceJson: JSON.stringify({
-      habitatTypesByBroad: reference.habitatTypesByBroad,
+      habitatTypes: reference.habitatTypes,
       tradingRulesByBand: reference.tradingRules
     }),
-    backHref: `/projects/${projectId}/habitat-list`,
-    cancelHref: `/projects/${projectId}/habitat-list#habitat-${habitat.featureId}`,
+    backHref: `/projects/${projectId}/baseline-habitat-list`,
+    cancelHref: `/projects/${projectId}/baseline-habitat-list#habitat-${habitat.featureId}`,
     featureId: habitat.featureId
   }
 }

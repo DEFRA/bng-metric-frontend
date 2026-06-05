@@ -76,7 +76,7 @@ const authedAuth = {
 }
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
-const url = `/projects/${projectId}/habitat-list`
+const url = `/projects/${projectId}/baseline-habitat-list`
 
 describe('#habitatListController - GET', () => {
   let server
@@ -449,9 +449,9 @@ describe('#habitatListController - GET', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain('Show map')
     expect(result).toContain('Upload a different file')
     expect(result).toContain('Continue')
+    expect(result).not.toContain('Show map')
   })
 })
 
@@ -470,7 +470,7 @@ describe('#habitatListController - validation', () => {
   test('rejects an invalid project id with 400', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/projects/not-a-uuid/habitat-list',
+      url: '/projects/not-a-uuid/baseline-habitat-list',
       auth: authedAuth
     })
 
@@ -808,5 +808,435 @@ describe('#habitatListController - hedgerow rows', () => {
 
     // 1234.567 m → 1.234567 km
     expect(result).toContain('>1.234567<')
+  })
+})
+
+describe('#habitatListController - tab labels and column headers', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProject
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('renders the Areas tab label', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Areas')
+  })
+
+  test('renders the Hedgerows tab label', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Hedgerows')
+  })
+
+  test('renders the Watercourses tab label', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Watercourses')
+  })
+
+  test('renders the Area (ha) column header in the area habitats tab', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Area (ha)')
+  })
+
+  test('renders the Length (km) column header in the hedgerows tab', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Length (km)')
+  })
+
+  test('renders the Size column header in the watercourses tab', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Size')
+  })
+
+  test('renders the Status column header in all tabs', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    const statusMatches = result.match(/\bStatus\b/g) ?? []
+    expect(statusMatches.length).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('#habitatListController - watercourse rows', () => {
+  let server
+
+  const mockWatercourse = {
+    featureId: 'water-1234',
+    ref: 'WC-1',
+    type: 'Ditch',
+    sizeMetres: 500,
+    distinctiveness: 'Medium',
+    condition: 'Moderate',
+    units: 1.5,
+    status: 'Complete'
+  }
+
+  const mockWatercourseNullFields = {
+    featureId: 'water-5678',
+    ref: 'WC-2',
+    type: null,
+    sizeMetres: null,
+    distinctiveness: null,
+    condition: null,
+    units: null,
+    status: null
+  }
+
+  const mockProjectWithWatercourses = {
+    project: {
+      name: 'Watercourse Project',
+      baseline: {
+        watercourses: [mockWatercourse]
+      }
+    }
+  }
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjectWithWatercourses
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('renders a baseline-habitat-details link for each watercourse using featureId', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/baseline-habitat-details?featureId=${mockWatercourse.featureId}&projectId=${projectId}"`
+    )
+  })
+
+  test('renders the watercourse ref as the link text', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('>WC-1<')
+  })
+
+  test('renders data-sort-value with the ref on the ref cell', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('data-sort-value="WC-1"')
+  })
+
+  test('renders size in km for each watercourse', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // 500 m → 0.5 km
+    expect(result).toContain('>0.5<')
+  })
+
+  test('renders raw sizeMetres as data-sort-value on the size cell', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('data-sort-value="500"')
+  })
+
+  test('renders type, distinctiveness and condition', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Ditch')
+    expect(result).toContain('Medium')
+    expect(result).toContain('Moderate')
+  })
+
+  test('renders units formatted to 2 decimal places', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // units 1.5 → '1.50'
+    expect(result).toContain('>1.50<')
+  })
+
+  test('renders status', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Complete')
+  })
+
+  test('renders empty strings for null type, distinctiveness, condition, units and status', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Watercourse Project',
+          baseline: { watercourses: [mockWatercourseNullFields] }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('>null<')
+  })
+
+  test('does not render watercourse rows when baseline watercourses are absent', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'Empty Project' } }
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).not.toContain('WC-1')
+    expect(result).toContain('No watercourse data uploaded.')
+  })
+
+  test('renders multiple watercourse rows', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Watercourse Project',
+          baseline: {
+            watercourses: [mockWatercourse, mockWatercourseNullFields]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/baseline-habitat-details?featureId=${mockWatercourse.featureId}&projectId=${projectId}"`
+    )
+    expect(result).toContain(
+      `href="/baseline-habitat-details?featureId=${mockWatercourseNullFields.featureId}&projectId=${projectId}"`
+    )
+  })
+})
+
+describe('#habitatListController - no watercourse data', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('shows "No watercourse data uploaded." when watercourses is absent from the baseline', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'No Watercourse Project',
+          baseline: {
+            habitats: [],
+            hedgerows: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No watercourse data uploaded.')
+  })
+
+  test('shows "No watercourse data uploaded." when watercourses is an empty array', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Empty Watercourses Project',
+          baseline: {
+            watercourses: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No watercourse data uploaded.')
+  })
+
+  test('shows "No watercourse data uploaded." when the entire baseline is absent', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'No Baseline Project' } }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No watercourse data uploaded.')
+  })
+
+  test('does not show the watercourse table when there are no watercourses', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'No Watercourse Project',
+          baseline: { watercourses: [] }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('id="watercourses" class="govuk-table"')
+  })
+
+  test('does not show "No watercourse data uploaded." when watercourses are present', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Watercourse Project',
+          baseline: {
+            watercourses: [
+              {
+                featureId: 'wc-abc',
+                ref: 'WC-1',
+                type: 'Ditch',
+                sizeMetres: 200,
+                distinctiveness: 'Low',
+                condition: 'Good',
+                units: 1,
+                status: 'Complete'
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('No watercourse data uploaded.')
   })
 })

@@ -4,11 +4,11 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
 /**
  * @openapi
- * /projects/{id}/habitat-list:
+ * /projects/{id}/baseline-habitat-list:
  *   get:
  *     tags:
  *       - Habitat
- *     summary: Habitat list
+ *     summary: Baseline habitat list
  *     parameters:
  *       - in: path
  *         name: id
@@ -18,7 +18,7 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *           format: uuid
  *     responses:
  *       200:
- *         description: Renders the habitat list page
+ *         description: Renders the baseline habitat list page
  *       302:
  *         description: Redirects to login if not authenticated
  */
@@ -27,14 +27,14 @@ const protectedRouteOptions = {
   pre: [requireBngCompleterRole]
 }
 
-export const habitatList = {
+export const baselineHabitatList = {
   plugin: {
-    name: 'habitat-list',
+    name: 'baseline-habitat-list',
     register(server) {
       server.route([
         {
           method: 'GET',
-          path: '/projects/{id}/habitat-list',
+          path: '/projects/{id}/baseline-habitat-list',
           options: {
             ...protectedRouteOptions,
             validate: {
