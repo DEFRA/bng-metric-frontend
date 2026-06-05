@@ -13,20 +13,24 @@ ARG PORT_DEBUG
 ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
-COPY --chown=node:node --chmod=755 package*.json ./
+USER root
+RUN corepack enable
+USER node
+
+COPY --chown=node:node --chmod=755 package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 # Strip our postinstall hook (dev-only husky/gitleaks setup) before install —
 # scripts/ is not in this image, and the hooks are not needed inside the container.
-RUN npm pkg delete scripts.postinstall && npm install
+RUN pnpm pkg delete scripts.postinstall && pnpm install --frozen-lockfile
 COPY --chown=node:node --chmod=755 . .
-RUN npm run build:frontend
+RUN pnpm run build:frontend
 
-CMD [ "npm", "run", "docker:dev" ]
+CMD [ "pnpm", "run", "docker:dev" ]
 
 FROM development AS production_build
 
 ENV NODE_ENV=production
 
-RUN npm run build:frontend
+RUN pnpm run build:frontend
 
 FROM defradigital/node:${PARENT_VERSION} AS production
 ARG PARENT_VERSION
@@ -38,15 +42,16 @@ ENV TZ="Europe/London"
 # CDP PLATFORM HEALTHCHECK REQUIREMENT
 USER root
 RUN apk add --no-cache curl
+RUN corepack enable
 USER node
 
-COPY --from=production_build /home/node/package*.json ./
+COPY --from=production_build /home/node/package.json /home/node/pnpm-lock.yaml /home/node/pnpm-workspace.yaml /home/node/.npmrc ./
 COPY --from=production_build /home/node/src ./src/
 COPY --from=production_build /home/node/.public/ ./.public/
 
 # Strip our postinstall hook (dev-only husky/gitleaks setup) before install —
 # scripts/ is not shipped in the production image, and the hooks are not needed at runtime.
-RUN npm pkg delete scripts.postinstall && npm ci --omit=dev
+RUN pnpm pkg delete scripts.postinstall && pnpm install --frozen-lockfile --prod
 
 ARG PORT
 ENV PORT=${PORT}
