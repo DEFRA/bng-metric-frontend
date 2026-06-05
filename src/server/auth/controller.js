@@ -27,6 +27,8 @@ const scope = useStub
   ? config.get('oidc.scopes')
   : `${config.get('oidc.scopes')} ${clientId}`.trim()
 
+const FORBIDDEN_PATH = '/auth/forbidden'
+
 function describeOidcError(error) {
   const cause = error.cause
   const parts = []
@@ -106,8 +108,65 @@ export const loginController = {
     } catch (error) {
       logOidcError(request, error, 'OIDC login initiation failed')
       await recordLoginFailure(request, LOGIN_FAILURE_REASON.initiation)
-      return h.redirect('/auth/forbidden')
+      return h.redirect(FORBIDDEN_PATH)
     }
+  }
+}
+
+async function exchangeCodeForSession(request, h, pending) {
+  try {
+    const oidcConfig = await getOidcConfig()
+    const currentUrl = new URL(redirectUri)
+    currentUrl.search = request.url.search
+
+    const checks = {
+      pkceCodeVerifier: pending.codeVerifier,
+      expectedState: pending.state
+    }
+    if (!useStub) {
+      checks.expectedNonce = pending.nonce
+    }
+    const tokens = await authorizationCodeGrant(oidcConfig, currentUrl, checks)
+
+    const claims = tokens.claims()
+
+    if (useStub && claims.nonce && claims.nonce !== pending.nonce) {
+      throw new Error(
+        `Nonce mismatch: expected ${pending.nonce}, got ${claims.nonce}`
+      )
+    }
+
+    request.logger.info(
+      {
+        sub: claims?.sub,
+        hasNonce: Boolean(claims?.nonce),
+        roleCount: Array.isArray(claims?.roles) ? claims.roles.length : 0,
+        hasIdToken: Boolean(tokens.id_token),
+        hasRefreshToken: Boolean(tokens.refresh_token)
+      },
+      'OIDC callback: token exchange succeeded'
+    )
+
+    request.yar.set('auth', {
+      user: claims,
+      idToken: tokens.id_token,
+      refreshToken: tokens.refresh_token
+    })
+    request.yar.clear('oidc')
+
+    const stored = request.yar.get('auth')
+    request.logger.info(
+      { sessionEstablished: Boolean(stored?.user), yarId: request.yar.id },
+      'OIDC callback: session established, redirecting to /manage-projects'
+    )
+
+    await recordLoginSuccess(request)
+    return h.redirect('/manage-projects')
+  } catch (error) {
+    logOidcError(request, error, 'OIDC callback failed')
+    request.yar.clear('oidc')
+    await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
+    return h.redirect(FORBIDDEN_PATH)
   }
 }
 
@@ -127,7 +186,7 @@ export const callbackController = {
       )
       request.yar.clear('oidc')
       await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
-      return h.redirect('/auth/forbidden')
+      return h.redirect(FORBIDDEN_PATH)
     }
 
     const pending = request.yar.get('oidc')
@@ -153,64 +212,7 @@ export const callbackController = {
       'OIDC callback: received authorization response, exchanging code for tokens'
     )
 
-    try {
-      const oidcConfig = await getOidcConfig()
-      const currentUrl = new URL(redirectUri)
-      currentUrl.search = request.url.search
-
-      const checks = {
-        pkceCodeVerifier: pending.codeVerifier,
-        expectedState: pending.state
-      }
-      if (!useStub) {
-        checks.expectedNonce = pending.nonce
-      }
-      const tokens = await authorizationCodeGrant(
-        oidcConfig,
-        currentUrl,
-        checks
-      )
-
-      const claims = tokens.claims()
-
-      if (useStub && claims.nonce && claims.nonce !== pending.nonce) {
-        throw new Error(
-          `Nonce mismatch: expected ${pending.nonce}, got ${claims.nonce}`
-        )
-      }
-
-      request.logger.info(
-        {
-          sub: claims?.sub,
-          hasNonce: Boolean(claims?.nonce),
-          roleCount: Array.isArray(claims?.roles) ? claims.roles.length : 0,
-          hasIdToken: Boolean(tokens.id_token),
-          hasRefreshToken: Boolean(tokens.refresh_token)
-        },
-        'OIDC callback: token exchange succeeded'
-      )
-
-      request.yar.set('auth', {
-        user: claims,
-        idToken: tokens.id_token,
-        refreshToken: tokens.refresh_token
-      })
-      request.yar.clear('oidc')
-
-      const stored = request.yar.get('auth')
-      request.logger.info(
-        { sessionEstablished: Boolean(stored?.user), yarId: request.yar.id },
-        'OIDC callback: session established, redirecting to /manage-projects'
-      )
-
-      await recordLoginSuccess(request)
-      return h.redirect('/manage-projects')
-    } catch (error) {
-      logOidcError(request, error, 'OIDC callback failed')
-      request.yar.clear('oidc')
-      await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
-      return h.redirect('/auth/forbidden')
-    }
+    return exchangeCodeForSession(request, h, pending)
   }
 }
 
