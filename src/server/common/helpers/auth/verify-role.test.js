@@ -44,7 +44,7 @@ describe('#hasBngCompleterRole', () => {
 })
 
 describe('#requireBngCompleterRole', () => {
-  const mockLogger = { debug: vi.fn() }
+  const mockLogger = { debug: vi.fn(), warn: vi.fn() }
 
   const buildToolkit = () => {
     const continueSymbol = Symbol('continue')

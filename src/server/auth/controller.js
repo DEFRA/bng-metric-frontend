@@ -19,6 +19,7 @@ import { statusCodes } from '../common/constants.js'
 
 const redirectUri = config.get('oidc.redirectUri')
 const postLogoutRedirectUri = config.get('oidc.postLogoutRedirectUri')
+const discoveryUrl = config.get('oidc.discoveryUrl')
 const clientId = config.get('oidc.clientId')
 const serviceId = config.get('oidc.serviceId')
 const useStub = config.get('oidc.useStub')
@@ -55,6 +56,18 @@ function logOidcError(request, error, baseMessage) {
 
 export const loginController = {
   async handler(request, h) {
+    request.logger.info(
+      {
+        discoveryUrl,
+        clientId,
+        redirectUri,
+        scope,
+        serviceId: serviceId || null,
+        useStub
+      },
+      'OIDC login: initiating authorization code flow'
+    )
+
     try {
       const oidcConfig = await getOidcConfig()
 
@@ -80,6 +93,15 @@ export const loginController = {
 
       const authorizationUrl = buildAuthorizationUrl(oidcConfig, parameters)
 
+      request.logger.info(
+        {
+          authorizationHost: authorizationUrl.host,
+          authorizationPath: authorizationUrl.pathname,
+          state
+        },
+        'OIDC login: redirecting to identity provider authorization endpoint'
+      )
+
       return h.redirect(authorizationUrl.href)
     } catch (error) {
       logOidcError(request, error, 'OIDC login initiation failed')
@@ -91,11 +113,45 @@ export const loginController = {
 
 export const callbackController = {
   async handler(request, h) {
+    const params = request.url.searchParams
+    const idpError = params.get('error')
+
+    if (idpError) {
+      request.logger.warn(
+        {
+          error: idpError,
+          errorDescription: params.get('error_description'),
+          state: params.get('state')
+        },
+        'OIDC callback: identity provider returned an error response'
+      )
+      request.yar.clear('oidc')
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
+      return h.redirect('/auth/forbidden')
+    }
+
     const pending = request.yar.get('oidc')
 
     if (!pending?.codeVerifier || !pending?.state) {
+      request.logger.warn(
+        {
+          hasPendingState: Boolean(pending),
+          hasCode: params.has('code'),
+          hasState: params.has('state'),
+          yarId: request.yar?.id
+        },
+        'OIDC callback: no pending login state in session, redirecting to /auth/login (the session cookie may not be surviving the round-trip to the identity provider)'
+      )
       return h.redirect('/auth/login')
     }
+
+    request.logger.info(
+      {
+        hasCode: params.has('code'),
+        stateMatches: params.get('state') === pending.state
+      },
+      'OIDC callback: received authorization response, exchanging code for tokens'
+    )
 
     try {
       const oidcConfig = await getOidcConfig()
@@ -123,11 +179,13 @@ export const callbackController = {
         )
       }
 
-      request.logger.debug(
+      request.logger.info(
         {
           sub: claims?.sub,
           hasNonce: Boolean(claims?.nonce),
-          roles: claims?.roles
+          roleCount: Array.isArray(claims?.roles) ? claims.roles.length : 0,
+          hasIdToken: Boolean(tokens.id_token),
+          hasRefreshToken: Boolean(tokens.refresh_token)
         },
         'OIDC callback: token exchange succeeded'
       )
@@ -140,9 +198,9 @@ export const callbackController = {
       request.yar.clear('oidc')
 
       const stored = request.yar.get('auth')
-      request.logger.debug(
-        { storedUser: Boolean(stored?.user), yarId: request.yar.id },
-        'OIDC callback: session stored, redirecting to /manage-projects'
+      request.logger.info(
+        { sessionEstablished: Boolean(stored?.user), yarId: request.yar.id },
+        'OIDC callback: session established, redirecting to /manage-projects'
       )
 
       await recordLoginSuccess(request)
@@ -159,6 +217,13 @@ export const callbackController = {
 export const logoutController = {
   async handler(request, h) {
     const session = request.yar.get('auth')
+    request.logger.info(
+      {
+        hadSession: Boolean(session?.user),
+        hasIdToken: Boolean(session?.idToken)
+      },
+      'OIDC logout: clearing session and redirecting to end-session endpoint'
+    )
     request.yar.reset()
 
     try {

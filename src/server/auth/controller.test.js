@@ -68,7 +68,12 @@ function buildRequest(overrides = {}) {
   }
   return {
     yar,
-    logger: { error: vi.fn(), debug: vi.fn() },
+    logger: {
+      error: vi.fn(),
+      warn: vi.fn(),
+      info: vi.fn(),
+      debug: vi.fn()
+    },
     url: new URL('http://localhost:3000/auth/callback?code=abc&state=STATE'),
     ...overrides
   }
@@ -139,7 +144,7 @@ describe('#loginController', () => {
 })
 
 describe('#callbackController', () => {
-  test('redirects to /auth/login when no pending oidc state is present', async () => {
+  test('redirects to /auth/login and warns when no pending oidc state is present', async () => {
     const request = buildRequest()
     const h = buildToolkit()
 
@@ -147,6 +152,35 @@ describe('#callbackController', () => {
 
     expect(h.redirect).toHaveBeenCalledWith('/auth/login')
     expect(authorizationCodeGrant).not.toHaveBeenCalled()
+    expect(request.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ hasPendingState: false }),
+      expect.stringContaining('no pending login state in session')
+    )
+  })
+
+  test('redirects to /auth/forbidden when the identity provider returns an error', async () => {
+    const request = buildRequest({
+      url: new URL(
+        'http://localhost:3000/auth/callback?error=access_denied&error_description=User%20cancelled&state=STATE'
+      )
+    })
+    const h = buildToolkit()
+
+    await callbackController.handler(request, h)
+
+    expect(authorizationCodeGrant).not.toHaveBeenCalled()
+    expect(request.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: 'access_denied',
+        errorDescription: 'User cancelled'
+      }),
+      expect.stringContaining('identity provider returned an error')
+    )
+    expect(recordLoginFailure).toHaveBeenCalledWith(
+      request,
+      LOGIN_FAILURE_REASON.callback
+    )
+    expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
 
   test('stores user claims + tokens in yar and redirects to /manage-projects', async () => {
