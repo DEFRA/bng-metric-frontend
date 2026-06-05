@@ -1,0 +1,13 @@
+allowBuilds:
+  '@defra/cdp-auditing': true
+  '@defra/cdp-metrics': true
+  '@defra/hapi-secure-context': true
+  '@defra/hapi-tracing': true
+  '@parcel/watcher': true
+  '@scarf/scarf': true
+  esbuild: true
+  unrs-resolver: true
+overrides:
+  '@hapi/wreck': '18.1.2'
+  vitest: '4.1.7'
+  '@vitest/coverage-v8': '4.1.7'

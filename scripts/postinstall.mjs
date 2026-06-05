@@ -5,6 +5,6 @@ if (process.env.CI || !existsSync('.git')) {
   process.exit(0)
 }
 
-execSync('npm run setup:husky && npm run install:gitleaks', {
+execSync('pnpm run setup:husky && pnpm run install:gitleaks', {
   stdio: 'inherit'
 })
