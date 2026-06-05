@@ -46,17 +46,16 @@ The frontend runs on `http://localhost:3000`. The discovery URL, client ID, secr
 
 ### Debugging
 
-Run with debug logging to see auth-related messages:
+The login flow logs each milestone at **`info`**, so you can follow it at the
+default log level without any extra config — see
+[Logging & troubleshooting](#logging--troubleshooting) for the full set of
+messages and what they mean. To additionally surface the high-frequency
+per-request lines (`Auth scheme: checking session` and the role-pass line),
+raise the level to `debug`:
 
 ```shell
 OIDC_USE_STUB=true LOG_LEVEL=debug npm run dev
 ```
-
-Key log messages:
-
-- `Auth scheme: checking session` - logged on every request to a protected route, shows whether a session was found.
-- `OIDC callback: token exchange succeeded` - logged after successful code exchange, includes `sub`, `roles`, and whether a nonce was present.
-- `Role check: inspecting credentials` - logged by the route pre-handler, shows the roles array from the token.
 
 ## Configuration
 
@@ -240,6 +239,38 @@ const { statusCode } = await server.inject({
   auth: authedAuth
 })
 ```
+
+## Logging & troubleshooting
+
+The whole login flow emits structured logs at **`info`**, so a full attempt is
+traceable in OpenSearch/Grafana at the default `LOG_LEVEL`. Every line carries
+the CDP `trace.id`, so filter by a single `trace.id` to follow one attempt end
+to end. A healthy login looks like:
+
+```
+OIDC login: initiating authorization code flow            (discoveryUrl, clientId, redirectUri, scope, serviceId, useStub)
+OIDC discovery: fetching provider configuration           (first attempt only — the config is cached)
+OIDC discovery: provider configuration loaded
+OIDC login: redirecting to identity provider authorization endpoint  (authorizationHost, state)
+OIDC callback: received authorization response, exchanging code for tokens
+OIDC callback: token exchange succeeded                   (sub, roleCount, hasIdToken, hasRefreshToken)
+OIDC callback: session established, redirecting to /manage-projects
+```
+
+When something breaks, look for these signals instead:
+
+| Log (level)                                                                     | Likely cause                                                                                                                                                              |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OIDC discovery failed for …` (error)                                           | `OIDC_DISCOVERY_URL` wrong/unreachable, or TLS/proxy issue reaching Defra ID                                                                                              |
+| `OIDC login: initiating …` shows an unexpected `clientId`/`scope`/`redirectUri` | Wrong `OIDC_CLIENT_ID` / `OIDC_SCOPES` / `OIDC_REDIRECT_URI` env value                                                                                                    |
+| `OIDC callback: identity provider returned an error response` (warn)            | Defra ID rejected the request — read `error` / `errorDescription` (e.g. `invalid_client`, `unauthorized_client`, consent failure)                                         |
+| `OIDC callback: no pending login state in session …` (warn)                     | The session cookie didn't survive the round-trip — check `SESSION_COOKIE_SECURE` vs scheme, `SameSite`, Redis reachability. This is the classic silent **redirect loop**. |
+| `OIDC callback failed :: …` (error)                                             | Token exchange/validation failed — the message includes `code`, `causeCode`, `causeMessage`, `causeBody`, `causeClaims` from `openid-client`                              |
+| `Role check failed: user lacks the bng completer role …` (warn)                 | Auth succeeded but the user has no `bng completer` role — the `roles` field shows what the token actually carried                                                         |
+| `Auth: request has no authenticated session …` (info)                           | A protected route was hit without a valid session                                                                                                                         |
+
+For the high-frequency per-request session check (`Auth scheme: checking
+session`) and the role-pass line, set `LOG_LEVEL=debug` to make them visible.
 
 ## Key files
 

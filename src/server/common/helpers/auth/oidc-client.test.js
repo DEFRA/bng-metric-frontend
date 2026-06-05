@@ -9,6 +9,17 @@ vi.mock('../../../../config/config.js', () => ({
   config: { get: vi.fn() }
 }))
 
+const loggerMock = () => ({
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn()
+})
+
+vi.mock('../logging/logger.js', () => ({
+  createLogger: () => loggerMock()
+}))
+
 const { discovery } = await import('openid-client')
 const { config } = await import('../../../../config/config.js')
 
@@ -27,6 +38,10 @@ beforeEach(async () => {
 
   vi.doMock('../../../../config/config.js', () => ({
     config: { get: config.get }
+  }))
+
+  vi.doMock('../logging/logger.js', () => ({
+    createLogger: () => loggerMock()
   }))
 
   const mod = await import('./oidc-client.js')

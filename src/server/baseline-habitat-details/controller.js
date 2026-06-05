@@ -76,9 +76,8 @@ export const getController = {
 }
 
 // POST handler validation accepts the superset of fields across all feature
-// types — the backend enforces strict per-type rules. BMD-501 will wire up
-// the per-type strategy on save; for BMD-500 (page load only) we keep the
-// area POST shape so the existing area Save journey continues to work.
+// types — the backend enforces strict per-type rules and reports back which
+// type was actually edited so we can pick the right redirect anchor.
 export const postController = {
   options: {
     validate: {
@@ -96,26 +95,58 @@ export const postController = {
     const { projectId, featureId, broadHabitat, habitatType, condition } =
       request.payload
 
-    const { res } = await wreck.put(
-      `${backendUrl}/projects/${projectId}/habitats/${featureId}`,
-      {
-        headers: { 'Content-Type': 'application/json' },
-        payload: JSON.stringify({
-          broadType: broadHabitat || null,
-          habitatType: habitatType || null,
-          condition: condition || null
-        })
+    let payload
+    try {
+      const result = await wreck.put(
+        `${backendUrl}/projects/${projectId}/features/${featureId}`,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          payload: JSON.stringify({
+            broadType: broadHabitat || null,
+            habitatType: habitatType || null,
+            condition: condition || null
+          })
+        }
+      )
+      payload = result.payload
+    } catch (err) {
+      // Backend serializes concurrent edits on the same project with a row
+      // lock and returns 409 when it can't be acquired. Surface that as a 409
+      // to the user instead of a generic 5xx so they're prompted to retry.
+      if (err?.output?.statusCode === statusCodes.conflict) {
+        throw Boom.conflict('Another user is editing this project')
       }
-    )
-
-    if (res.statusCode >= statusCodes.badRequest) {
       throw Boom.badGateway('Failed to save habitat')
     }
 
     return h.redirect(
-      `/projects/${projectId}/habitat-list#habitat-${featureId}`
+      `/projects/${projectId}/baseline-habitat-list${habitatListAnchorFor(payload, featureId)}`
     )
   }
+}
+
+// Pick the URL fragment that lands the user on the right place in the
+// habitat-list after a save. The unified PUT returns `{ type, feature }`.
+//
+// Hedgerow: AC6 asks for the Hedgerows tab to be opened (`#hedgerows`
+//   matches the govuk-tabs panel id in habitat-list.njk).
+// Area:     preserves the legacy `#habitat-{featureId}` row-anchor used
+//   by the area save flow before BMD-501. The row IDs aren't rendered in
+//   the template today so the anchor effectively scrolls to the top of
+//   the page; a future ticket can wire up real row anchors.
+// Missing type: defaults to the area branch so a malformed response still
+//   lands somewhere sensible.
+//
+// `wreck-client.js` configures `json: true`, so `payload` is always the
+// parsed response object here — no string/Buffer parsing needed.
+function habitatListAnchorFor(payload, featureId) {
+  if (payload?.type === 'hedgerow') {
+    return '#hedgerows'
+  }
+  if (payload?.type === 'watercourse') {
+    return '#watercourses'
+  }
+  return `#habitat-${featureId}`
 }
 
 // Thin proxy to the backend's /reference/conditions endpoint so the client

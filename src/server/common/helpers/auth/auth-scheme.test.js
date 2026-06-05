@@ -27,7 +27,7 @@ function buildServer() {
 function buildRequest(session = undefined) {
   return {
     yar: { get: vi.fn().mockReturnValue(session) },
-    logger: { debug: vi.fn() }
+    logger: { debug: vi.fn(), info: vi.fn() }
   }
 }
 
@@ -154,7 +154,10 @@ describe('#authScheme', () => {
 
     test('redirects to /auth/forbidden when yar is missing', () => {
       setup()
-      const request = { yar: undefined, logger: { debug: vi.fn() } }
+      const request = {
+        yar: undefined,
+        logger: { debug: vi.fn(), info: vi.fn() }
+      }
       const h = buildToolkit()
 
       authenticate(request, h)
