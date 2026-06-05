@@ -7,7 +7,7 @@
 {% block beforeContent %}
   {{ super() }}
   <nav>
-    <a class="govuk-back-link" href="/add-project-details/{{ projectId }}">Back</a>
+    <a class="govuk-back-link" href="{{ backHref }}">Back</a>
   </nav>
 {% endblock %}
 
@@ -71,7 +71,7 @@
               text: "Continue"
             }) }}
 
-            <a class="govuk-link" href="/add-project-details/{{ projectId }}">Cancel</a>
+            <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>
           </div>
         </form>
       {% else %}

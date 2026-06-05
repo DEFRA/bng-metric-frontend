@@ -135,6 +135,7 @@ describe('upload-received controller', () => {
       pageTitle: 'Checking your file',
       heading: 'Checking your file',
       projectId: 'proj-123',
+      backHref: '/projects/proj-123/upload-baseline-file',
       refreshInterval: 5
     })
   })
@@ -152,6 +153,7 @@ describe('upload-received controller', () => {
       pageTitle: 'Checking your file',
       heading: 'Checking your file',
       projectId: 'proj-123',
+      backHref: '/projects/proj-123/upload-baseline-file',
       refreshInterval: 5
     })
   })
@@ -189,6 +191,7 @@ describe('upload-received controller', () => {
       pageTitle: 'Checking your file',
       heading: 'Checking your file',
       projectId: 'proj-123',
+      backHref: '/projects/proj-123/upload-baseline-file',
       refreshInterval: 5
     })
   })

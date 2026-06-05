@@ -55,7 +55,7 @@ describe('upload-baseline-file controller', () => {
       redirect: '/projects/proj-123/upload-received',
       s3Bucket: 'baseline-files',
       s3Path: 'baseline/',
-      metadata: { projectId: 'proj-123' }
+      metadata: { projectId: 'proj-123', uploadType: 'baseline' }
     })
     expect(request.yar.set).toHaveBeenCalledWith('pendingUploadId', 'abc-123')
     expect(h.view).toHaveBeenCalledWith(

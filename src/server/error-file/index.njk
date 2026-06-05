@@ -12,7 +12,7 @@
           errorList: errorList
         }) }}
 
-        <h1 class="govuk-heading-l">We couldn't accept your baseline file</h1>
+        <h1 class="govuk-heading-l">We couldn't accept your {{ fileLabel }} file</h1>
 
         <p class="govuk-body">
           Your file is a valid GeoPackage, but we found problems with its
@@ -49,7 +49,7 @@
         {% if projectId %}
           {{ govukButton({
             text: "Upload a different file",
-            href: "/projects/" + projectId + "/upload-baseline-file"
+            href: uploadHref
           }) }}
           <a class="govuk-link" href="/add-project-details/{{ projectId }}">Back to project</a>
         {% else %}
