@@ -6,6 +6,7 @@ import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { _resetReferenceCache as resetAreaReferenceCache } from './strategies/area.js'
 import { _resetReferenceCache as resetHedgerowReferenceCache } from './strategies/hedgerow.js'
+import { _resetReferenceCache as resetWatercourseReferenceCache } from './strategies/watercourse.js'
 import { getStrategy } from './strategies/index.js'
 
 // Re-exported so tests can clear the per-strategy in-process reference caches
@@ -13,6 +14,7 @@ import { getStrategy } from './strategies/index.js'
 export function _resetReferenceCache() {
   resetAreaReferenceCache()
   resetHedgerowReferenceCache()
+  resetWatercourseReferenceCache()
 }
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
@@ -87,13 +89,22 @@ export const postController = {
         broadHabitat: Joi.string().allow('').optional(),
         habitatType: Joi.string().allow('').optional(),
         condition: Joi.string().allow('').optional(),
+        watercourseEncroachment: Joi.string().allow('').optional(),
+        riparianEncroachment: Joi.string().allow('').optional(),
         crumb: Joi.string().optional()
       })
     }
   },
   async handler(request, h) {
-    const { projectId, featureId, broadHabitat, habitatType, condition } =
-      request.payload
+    const {
+      projectId,
+      featureId,
+      broadHabitat,
+      habitatType,
+      condition,
+      watercourseEncroachment,
+      riparianEncroachment
+    } = request.payload
 
     let payload
     try {
@@ -104,7 +115,9 @@ export const postController = {
           payload: JSON.stringify({
             broadType: broadHabitat || null,
             habitatType: habitatType || null,
-            condition: condition || null
+            condition: condition || null,
+            watercourseEncroachment: watercourseEncroachment || null,
+            riparianEncroachment: riparianEncroachment || null
           })
         }
       )
@@ -157,7 +170,9 @@ export const conditionsProxyController = {
     validate: {
       query: Joi.object({
         habitatType: Joi.string().min(1).required(),
-        featureType: Joi.string().valid('habitat', 'hedgerow').optional()
+        featureType: Joi.string()
+          .valid('habitat', 'hedgerow', 'watercourse')
+          .optional()
       })
     }
   },
