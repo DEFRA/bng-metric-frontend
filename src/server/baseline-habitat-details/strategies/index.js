@@ -2,10 +2,12 @@ import Boom from '@hapi/boom'
 
 import { areaStrategy } from './area.js'
 import { hedgerowStrategy } from './hedgerow.js'
+import { watercourseStrategy } from './watercourse.js'
 
 const STRATEGIES = {
   habitat: areaStrategy,
-  hedgerow: hedgerowStrategy
+  hedgerow: hedgerowStrategy,
+  watercourse: watercourseStrategy
 }
 
 /**

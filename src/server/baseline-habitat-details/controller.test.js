@@ -775,7 +775,9 @@ describe('#baselineHabitatDetails - POST', () => {
         payload: JSON.stringify({
           broadType: 'Grassland',
           habitatType: 'Modified grassland',
-          condition: 'Good'
+          condition: 'Good',
+          watercourseEncroachment: null,
+          riparianEncroachment: null
         })
       })
     )
@@ -902,7 +904,40 @@ describe('#baselineHabitatDetails - POST', () => {
         payload: JSON.stringify({
           broadType: null,
           habitatType: null,
-          condition: null
+          condition: null,
+          watercourseEncroachment: null,
+          riparianEncroachment: null
+        })
+      })
+    )
+  })
+
+  test('Forwards watercourse encroachment fields to the backend', async () => {
+    await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        habitatType: 'Priority habitat',
+        condition: 'Good',
+        watercourseEncroachment: 'Minor',
+        riparianEncroachment: 'Minor/Minor',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
+      expect.stringContaining(`/projects/${projectId}/features/${habitatId}`),
+      expect.objectContaining({
+        payload: JSON.stringify({
+          broadType: null,
+          habitatType: 'Priority habitat',
+          condition: 'Good',
+          watercourseEncroachment: 'Minor',
+          riparianEncroachment: 'Minor/Minor'
         })
       })
     )
