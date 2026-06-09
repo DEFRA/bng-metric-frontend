@@ -119,7 +119,7 @@ export const getController = {
       : null
 
     const hedgerows = baseline?.hedgerows ?? null
-    const hedgerowRows = hedgerows
+    const hedgerowRows = hedgerows?.length
       ? hedgerows.map((hedgerow) => buildHedgerowRow(hedgerow, id))
       : null
 

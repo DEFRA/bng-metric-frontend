@@ -1111,6 +1111,136 @@ describe('#habitatListController - watercourse rows', () => {
   })
 })
 
+describe('#habitatListController - no hedgerow data', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('shows "No hedgerow data uploaded." when hedgerows is absent from the baseline', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'No Hedgerow Project',
+          baseline: {
+            habitats: [],
+            watercourses: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No hedgerow data uploaded.')
+  })
+
+  test('shows "No hedgerow data uploaded." when hedgerows is an empty array', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Empty Hedgerows Project',
+          baseline: {
+            hedgerows: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No hedgerow data uploaded.')
+  })
+
+  test('shows "No hedgerow data uploaded." when the entire baseline is absent', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { project: { name: 'No Baseline Project' } }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('No hedgerow data uploaded.')
+  })
+
+  test('does not show the hedgerow table when there are no hedgerows', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'No Hedgerow Project',
+          baseline: { hedgerows: [] }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('Length (km)')
+  })
+
+  test('does not show "No hedgerow data uploaded." when hedgerows are present', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Hedgerow Project',
+          baseline: {
+            hedgerows: [
+              {
+                featureId: 'hedge-abc',
+                ref: 'H-1',
+                type: 'Native hedgerow',
+                sizeMetres: 500,
+                distinctiveness: 'Low',
+                condition: 'Good',
+                units: 1,
+                status: 'Complete'
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('No hedgerow data uploaded.')
+  })
+})
+
 describe('#habitatListController - no watercourse data', () => {
   let server
 
