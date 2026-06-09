@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest:*)",
+      "Bash(npm install:*)",
+      "Bash(gh pr:*)",
+      "Bash(brew list:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:patch-diff.githubusercontent.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\")",
+      "Bash(gh --version)",
+      "WebFetch(domain:api.github.com)",
+      "WebSearch",
+      "WebFetch(domain:ngageoint.github.io)",
+      "WebFetch(domain:docs.geoserver.org)",
+      "WebFetch(domain:help.wetransform.to)",
+      "WebFetch(domain:www.geopackage.org)",
+      "WebFetch(domain:ecodiv.earth)",
+      "WebFetch(domain:design-system.service.gov.uk)",
+      "WebFetch(domain:www.gov.uk)",
+      "WebFetch(domain:www.w3.org)",
+      "Bash(gh api:*)",
+      "Bash(grep -E '\\\\.njk$')",
+      "Bash(gh auth:*)"
+    ]
+  }
+}

@@ -15,6 +15,13 @@ const govukFrontendPath = path.dirname(
   require.resolve('govuk-frontend/package.json')
 )
 
+const interactiveMapPath = path.join(
+  dirname,
+  'node_modules',
+  '@defra',
+  'interactive-map'
+)
+
 const ruleTypeAssetResource = 'asset/resource'
 
 export default {
@@ -164,6 +171,18 @@ export default {
         {
           from: path.join(govukFrontendPath, 'dist/govuk/assets'),
           to: 'assets'
+        },
+        {
+          from: path.join(interactiveMapPath, 'dist/umd'),
+          to: 'interactive-map/core'
+        },
+        {
+          from: path.join(interactiveMapPath, 'providers/maplibre/dist/umd'),
+          to: 'interactive-map/maplibre'
+        },
+        {
+          from: path.join(interactiveMapPath, 'dist/css/index.css'),
+          to: 'interactive-map/interactive-map.css'
         }
       ]
     })

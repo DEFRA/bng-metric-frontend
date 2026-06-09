@@ -325,6 +325,15 @@ export const config = convict({
       default: 'baseline/',
       env: 'CDP_UPLOADER_S3_PATH'
     }
+  },
+  map: {
+    osApiKey: {
+      doc: 'OS Data Hub API key for the OS Maps Vector Tile API. Held server-side and injected by the /os-base-map proxy; never sent to the browser.',
+      format: String,
+      default: '',
+      env: 'OS_API_KEY',
+      sensitive: true
+    }
   }
 })
 

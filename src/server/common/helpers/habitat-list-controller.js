@@ -155,7 +155,7 @@ function buildTotalUnits(habitatsData) {
   }
 }
 
-function createHabitatListController(uploadType) {
+function createHabitatListController(uploadType, extraViewData) {
   return {
     async handler(request, h) {
       const { id } = request.params
@@ -196,7 +196,8 @@ function createHabitatListController(uploadType) {
           id,
           uploadType,
           buildLinearFeatureRow
-        )
+        ),
+        ...(extraViewData?.(request) ?? {})
       })
     }
   }
