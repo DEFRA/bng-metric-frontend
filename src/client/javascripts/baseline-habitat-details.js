@@ -1,16 +1,19 @@
-// Client-side dropdown behaviour on the Habitat Details page. Used by both
-// the area-habitat form (BMD-480) and the hedgerow form (BMD-501); the only
-// structural difference is whether the broad-habitat select is in the DOM.
+// Client-side dropdown behaviour on the Habitat Details page. Used by the
+// area-habitat (BMD-480), hedgerow (BMD-501) and watercourse (BMD-502) forms.
 //
 // Embedded reference-data (#bhd-reference-data):
 //   {
+//     featureType: 'area' | 'hedgerow' | 'watercourse',
 //     habitatTypes: Array<{ name, distinctiveness, distinctivenessScore,
 //                           broad: string | null }>,
 //     tradingRulesByBand: { [band]: string }
 //   }
 //
 // `broad` is the parent broad-habitat for area entries and null for hedgerow
-// entries. The area form filters by `broad`; the hedgerow form ignores it.
+// and watercourse entries. Only the area variant uses the broad-habitat
+// dropdown — the watercourse page renders a placeholder broad row per its
+// spec, so we can't infer the variant from the DOM; `featureType` is the
+// source of truth.
 //
 // All changes are display-only; persistence happens on form submit (POST
 // handler in baseline-habitat-details/controller.js).
@@ -65,7 +68,7 @@ export function initBaselineHabitatDetails() {
   const habitatTypes = data.habitatTypes ?? []
   const tradingRulesByBand = data.tradingRulesByBand ?? {}
 
-  if (broadSelect) {
+  if (data.featureType === 'area') {
     initAreaVariant({
       broadSelect,
       typeSelect,
@@ -73,8 +76,12 @@ export function initBaselineHabitatDetails() {
       habitatTypes,
       tradingRulesByBand
     })
-  } else {
-    initHedgerowVariant({
+  } else if (
+    data.featureType === 'hedgerow' ||
+    data.featureType === 'watercourse'
+  ) {
+    initFlatTypeVariant({
+      featureType: data.featureType,
       typeSelect,
       conditionSelect,
       habitatTypes,
@@ -109,14 +116,16 @@ function initAreaVariant({
   })
 }
 
-function initHedgerowVariant({
+function initFlatTypeVariant({
+  featureType,
   typeSelect,
   conditionSelect,
   habitatTypes,
   tradingRulesByBand
 }) {
   typeSelect.addEventListener('change', () => {
-    handleHedgerowTypeChange({
+    handleFlatTypeChange({
+      featureType,
       typeSelect,
       conditionSelect,
       habitatTypes,
@@ -173,7 +182,8 @@ async function handleAreaTypeChange({
   populateConditionOptions(conditionSelect, conditions)
 }
 
-async function handleHedgerowTypeChange({
+async function handleFlatTypeChange({
+  featureType,
   typeSelect,
   conditionSelect,
   habitatTypes,
@@ -182,17 +192,17 @@ async function handleHedgerowTypeChange({
   const type = typeSelect.value
   resetSelect(conditionSelect, CHOOSE_CONDITION_LABEL)
 
-  // AC3 — deselecting the habitat type clears the derived display fields and
+  // Deselecting the habitat type clears the derived display fields and
   // leaves the condition dropdown at its placeholder. No fetch needed.
   if (!type) {
     hideDerived()
     return
   }
 
-  // AC2 — habitat-type metadata travels with the reference JSON on page load
-  // (the engine's hedgerow type list is short), so distinctiveness + trading
-  // rules can update without a round trip; only the condition options need
-  // to be refetched per type.
+  // Habitat-type metadata travels with the reference JSON on page load
+  // (the engine's hedgerow and watercourse type lists are short), so
+  // distinctiveness + trading rules can update without a round trip; only
+  // the condition options need to be refetched per type.
   const meta = habitatTypes.find((t) => t.name === type)
   if (meta) {
     showDistinctiveness(meta.distinctiveness, meta.distinctivenessScore)
@@ -203,7 +213,7 @@ async function handleHedgerowTypeChange({
 
   const conditions = await loadConditions({
     habitatType: type,
-    featureType: 'hedgerow'
+    featureType
   })
   populateConditionOptions(conditionSelect, conditions)
 }
