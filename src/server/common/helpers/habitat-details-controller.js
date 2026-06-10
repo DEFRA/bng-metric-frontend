@@ -125,10 +125,9 @@ function createPostController(uploadType) {
         riparianEncroachment
       } = request.payload
 
-      // Only the watercourse form submits the encroachment fields. Sending
-      // them on area/hedgerow saves trips the backend's strict-keys
-      // featureEditPayload schema and returns 400 (which the catch below would
-      // turn into a 502, blocking the save).
+      // Only include the encroachment fields when the form actually sent them.
+      // They belong to the watercourse form only; the backend rejects them on
+      // area/hedgerow saves because its payload schema doesn't expect them there.
       const body = {
         broadType: broadHabitat || null,
         habitatType: habitatType || null,
