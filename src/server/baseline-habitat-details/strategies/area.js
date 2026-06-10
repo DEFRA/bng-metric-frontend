@@ -6,6 +6,7 @@ import {
   formatAreaHectares,
   formatHabitatUnits
 } from '../../common/helpers/format-habitat-values.js'
+import { stripConditionPrefix } from '../../common/helpers/strip-condition-prefix.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -98,6 +99,7 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
     .filter((t) => t.broad === habitat.broadType)
     .map((t) => t.name)
   const habitatRef = habitat.ref ?? ''
+  const savedCondition = stripConditionPrefix(habitat.condition)
   return {
     headingPrefix: 'Habitat',
     projectId,
@@ -127,11 +129,11 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
       'Choose habitat type'
     ),
     conditionOptions: [
-      { value: '', text: 'Choose condition', selected: !habitat.condition },
+      { value: '', text: 'Choose condition', selected: !savedCondition },
       ...reference.conditions.map((c) => ({
         value: c.condition,
         text: `${c.condition} (${c.score})`,
-        selected: c.condition === habitat.condition
+        selected: c.condition === savedCondition
       }))
     ],
     referenceJson: JSON.stringify({
