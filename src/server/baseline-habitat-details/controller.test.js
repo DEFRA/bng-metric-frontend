@@ -775,9 +775,7 @@ describe('#baselineHabitatDetails - POST', () => {
         payload: JSON.stringify({
           broadType: 'Grassland',
           habitatType: 'Modified grassland',
-          condition: 'Good',
-          watercourseEncroachment: null,
-          riparianEncroachment: null
+          condition: 'Good'
         })
       })
     )
@@ -904,12 +902,31 @@ describe('#baselineHabitatDetails - POST', () => {
         payload: JSON.stringify({
           broadType: null,
           habitatType: null,
-          condition: null,
-          watercourseEncroachment: null,
-          riparianEncroachment: null
+          condition: null
         })
       })
     )
+  })
+
+  test('Does not send watercourse encroachment fields on a hedgerow save (backend rejects unknown keys → 400 → 502 regression seen in BMD-502)', async () => {
+    await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        habitatType: 'Native hedgerow',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    const [, putOpts] = vi.mocked(wreck.put).mock.calls[0]
+    const sent = JSON.parse(putOpts.payload)
+    expect(sent).not.toHaveProperty('watercourseEncroachment')
+    expect(sent).not.toHaveProperty('riparianEncroachment')
   })
 
   test('Forwards watercourse encroachment fields to the backend', async () => {
