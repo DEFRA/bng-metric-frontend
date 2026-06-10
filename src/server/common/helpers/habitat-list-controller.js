@@ -56,7 +56,7 @@ function buildHedgerowRow(hedgerow, projectId, uploadType) {
     },
     { text: hedgerow.type ?? '' },
     {
-      text: formatLengthKm(hedgerow.sizeMetres),
+      text: formatLengthKm(hedgerow.sizeMetres) + 'km',
       attributes: {
         'data-sort-value': hedgerow.sizeMetres
       }
@@ -78,7 +78,7 @@ function buildWatercourseRow(watercourse, projectId, uploadType) {
     },
     { text: watercourse.type ?? '' },
     {
-      text: formatLengthKm(watercourse.sizeMetres),
+      text: formatLengthKm(watercourse.sizeMetres)  + 'km',
       attributes: {
         'data-sort-value': watercourse.sizeMetres
       }

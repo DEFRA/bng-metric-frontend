@@ -807,7 +807,7 @@ describe('#habitatListController - hedgerow rows', () => {
     })
 
     // 1234.567 m → 1.234567 km
-    expect(result).toContain('>1.234567<')
+    expect(result).toContain('>1.234567km<')
   })
 })
 
@@ -1000,7 +1000,7 @@ describe('#habitatListController - watercourse rows', () => {
     })
 
     // 500 m → 0.5 km
-    expect(result).toContain('>0.5<')
+    expect(result).toContain('>0.5km<')
   })
 
   test('renders raw sizeMetres as data-sort-value on the size cell', async () => {
