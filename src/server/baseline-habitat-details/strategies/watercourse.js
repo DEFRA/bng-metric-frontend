@@ -6,6 +6,7 @@ import {
   formatHabitatUnits,
   formatLengthKm
 } from '../../common/helpers/format-habitat-values.js'
+import { stripConditionPrefix } from '../../common/helpers/strip-condition-prefix.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -82,6 +83,7 @@ function buildSelectItems(values, selectedValue, defaultText) {
 function buildViewModel(watercourse, reference, { projectId, projectName }) {
   const habitatTypeNames = reference.habitatTypes.map((t) => t.name)
   const habitatRef = watercourse.ref ?? ''
+  const savedCondition = stripConditionPrefix(watercourse.condition)
   return {
     headingPrefix: 'Watercourse',
     projectId,
@@ -118,11 +120,11 @@ function buildViewModel(watercourse, reference, { projectId, projectName }) {
       'Choose habitat type'
     ),
     conditionOptions: [
-      { value: '', text: 'Choose condition', selected: !watercourse.condition },
+      { value: '', text: 'Choose condition', selected: !savedCondition },
       ...reference.conditions.map((c) => ({
         value: c.condition,
         text: `${c.condition} (${c.score})`,
-        selected: c.condition === watercourse.condition
+        selected: c.condition === savedCondition
       }))
     ],
     // BMD-502 AC text says encroachment options are "per watercourse habitat"

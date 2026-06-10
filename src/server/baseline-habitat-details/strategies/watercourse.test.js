@@ -202,6 +202,16 @@ describe('watercourseStrategy.buildViewModel', () => {
     expect(selected.value).toBe('Priority habitat')
   })
 
+  test('matches the saved condition even when the stored value carries a "N. " prefix', () => {
+    const vm = watercourseStrategy.buildViewModel(
+      { condition: '3. Moderate' },
+      reference,
+      ctx
+    )
+    const selected = vm.conditionOptions.find((o) => o.selected)
+    expect(selected.value).toBe('Moderate')
+  })
+
   test('marks the saved riparian encroachment as selected', () => {
     const vm = watercourseStrategy.buildViewModel(
       { riparianEncroachment: 'Minor/Minor' },

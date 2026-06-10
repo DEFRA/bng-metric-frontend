@@ -138,6 +138,16 @@ describe('hedgerowStrategy.buildViewModel', () => {
     expect(selected.value).toBe('Native hedgerow')
   })
 
+  test('matches the saved condition even when the stored value carries a "N. " prefix', () => {
+    const vm = hedgerowStrategy.buildViewModel(
+      { condition: '5. Poor' },
+      reference,
+      ctx
+    )
+    const selected = vm.conditionOptions.find((o) => o.selected)
+    expect(selected.value).toBe('Poor')
+  })
+
   test('back and cancel hrefs return to the hedgerows tab on the habitat list', () => {
     const vm = hedgerowStrategy.buildViewModel(
       { featureId: 'h-1' },

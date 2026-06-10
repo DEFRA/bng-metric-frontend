@@ -6,6 +6,7 @@ import {
   formatHabitatUnits,
   formatLengthKm
 } from '../../common/helpers/format-habitat-values.js'
+import { stripConditionPrefix } from '../../common/helpers/strip-condition-prefix.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -74,6 +75,7 @@ function buildSelectItems(values, selectedValue, defaultText) {
 function buildViewModel(hedgerow, reference, { projectId, projectName }) {
   const habitatTypeNames = reference.habitatTypes.map((t) => t.name)
   const habitatRef = hedgerow.ref ?? ''
+  const savedCondition = stripConditionPrefix(hedgerow.condition)
   return {
     headingPrefix: 'Hedgerow',
     projectId,
@@ -98,11 +100,11 @@ function buildViewModel(hedgerow, reference, { projectId, projectName }) {
       'Choose habitat type'
     ),
     conditionOptions: [
-      { value: '', text: 'Choose condition', selected: !hedgerow.condition },
+      { value: '', text: 'Choose condition', selected: !savedCondition },
       ...reference.conditions.map((c) => ({
         value: c.condition,
         text: `${c.condition} (${c.score})`,
-        selected: c.condition === hedgerow.condition
+        selected: c.condition === savedCondition
       }))
     ],
     referenceJson: JSON.stringify({

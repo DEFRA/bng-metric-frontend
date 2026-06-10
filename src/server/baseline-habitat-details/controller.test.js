@@ -238,6 +238,38 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('id="condition"')
   })
 
+  test('Renders the "Units in this habitat" row label', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(result).toContain('Units in this habitat')
+  })
+
+  test('Pre-selects the saved condition even when the stored value carries a "N. " prefix', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/features/${habitatId}`)) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: {
+            type: 'habitat',
+            feature: { ...mockHabitat, condition: '3. Moderate' }
+          }
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(result).toContain('<option value="Moderate" selected>')
+    expect(result).not.toContain('<option value="" selected>Choose condition')
+  })
+
   test('Renders habitat-type options with the type name and selects the persisted type', async () => {
     const { result } = await server.inject({
       method: 'GET',
