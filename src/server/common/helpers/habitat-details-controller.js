@@ -108,13 +108,22 @@ function createPostController(uploadType) {
           broadHabitat: Joi.string().allow('').optional(),
           habitatType: Joi.string().allow('').optional(),
           condition: Joi.string().allow('').optional(),
+          watercourseEncroachment: Joi.string().allow('').optional(),
+          riparianEncroachment: Joi.string().allow('').optional(),
           crumb: Joi.string().optional()
         })
       }
     },
     async handler(request, h) {
-      const { projectId, featureId, broadHabitat, habitatType, condition } =
-        request.payload
+      const {
+        projectId,
+        featureId,
+        broadHabitat,
+        habitatType,
+        condition,
+        watercourseEncroachment,
+        riparianEncroachment
+      } = request.payload
 
       let payload
       try {
@@ -125,7 +134,9 @@ function createPostController(uploadType) {
             payload: JSON.stringify({
               broadType: broadHabitat || null,
               habitatType: habitatType || null,
-              condition: condition || null
+              condition: condition || null,
+              watercourseEncroachment: watercourseEncroachment || null,
+              riparianEncroachment: riparianEncroachment || null
             })
           }
         )

@@ -25,14 +25,23 @@ export function hasBngCompleterRole(user) {
 export const requireBngCompleterRole = {
   method(request, h) {
     const creds = request.auth.credentials
-    request.logger.debug(
-      { roles: creds?.roles },
-      'Role check: inspecting credentials'
-    )
 
     if (hasBngCompleterRole(creds)) {
+      request.logger.debug(
+        { sub: creds?.sub },
+        'Role check passed: user has the bng completer role'
+      )
       return h.continue
     }
+
+    request.logger.warn(
+      {
+        sub: creds?.sub,
+        roles: creds?.roles,
+        requiredRole: bngCompleterRole
+      },
+      'Role check failed: user lacks the bng completer role, redirecting to /auth/forbidden'
+    )
     return h.redirect('/auth/forbidden').takeover()
   },
   assign: 'roleCheck'

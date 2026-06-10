@@ -128,7 +128,7 @@ function createHabitatListController(uploadType) {
         : null
 
       const hedgerows = habitatsData?.hedgerows ?? null
-      const hedgerowRows = hedgerows
+      const hedgerowRows = hedgerows?.length
         ? hedgerows.map((hedgerow) =>
             buildHedgerowRow(hedgerow, id, uploadType)
           )

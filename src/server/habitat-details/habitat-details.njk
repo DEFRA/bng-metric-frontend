@@ -67,6 +67,34 @@
     }) }}
   {% endset %}
 
+  {# Watercourse-only rows: a saved riparian/watercourse encroachment selection
+     plus the saved value's multiplier are stored on the feature; the dropdowns
+     let the user see alternatives. Story-excluded for now: choosing a new
+     value (no reactive recalc) and saving the change (the unified PUT does
+     not yet accept encroachment fields). The selects are still rendered so
+     the page matches the spec's "Display of … riparian encroachment,
+     watercourse encroachment". #}
+  {% if showWatercourseEncroachmentRows %}
+    {% set riparianEncroachmentHtml %}
+      {{ govukSelect({
+        id: "riparianEncroachment",
+        name: "riparianEncroachment",
+        label: { text: "Riparian encroachment", classes: "govuk-visually-hidden" },
+        items: riparianEncroachmentOptions,
+        formGroup: { classes: "govuk-!-margin-bottom-0" }
+      }) }}
+    {% endset %}
+    {% set watercourseEncroachmentHtml %}
+      {{ govukSelect({
+        id: "watercourseEncroachment",
+        name: "watercourseEncroachment",
+        label: { text: "Watercourse encroachment", classes: "govuk-visually-hidden" },
+        items: watercourseEncroachmentOptions,
+        formGroup: { classes: "govuk-!-margin-bottom-0" }
+      }) }}
+    {% endset %}
+  {% endif %}
+
   {% set distinctivenessHtml %}
     <span id="distinctivenessDisplay">{{ distinctivenessDisplay }}</span>
   {% endset %}
@@ -87,8 +115,12 @@
   {% set summaryRows = (summaryRows.push({ key: { text: "Habitat type" }, value: { html: habitatTypeHtml } }), summaryRows) %}
   {% set summaryRows = (summaryRows.push({ key: { text: "Distinctiveness" }, value: { html: distinctivenessHtml } }), summaryRows) %}
   {% set summaryRows = (summaryRows.push({ key: { text: "Condition" }, value: { html: conditionHtml } }), summaryRows) %}
+  {% if showWatercourseEncroachmentRows %}
+    {% set summaryRows = (summaryRows.push({ key: { text: "Riparian encroachment" }, value: { html: riparianEncroachmentHtml } }), summaryRows) %}
+    {% set summaryRows = (summaryRows.push({ key: { text: "Watercourse encroachment" }, value: { html: watercourseEncroachmentHtml } }), summaryRows) %}
+  {% endif %}
   {% set summaryRows = (summaryRows.push({ key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } }), summaryRows) %}
-  {% set summaryRows = (summaryRows.push({ key: { text: "Trading rules" }, value: { html: tradingRuleHtml } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Required action to meet trading rules" }, value: { html: tradingRuleHtml } }), summaryRows) %}
   {% set summaryRows = (summaryRows.push({ key: { text: "Habitat units" }, value: { text: habitatUnitsDisplay } }), summaryRows) %}
 
   <div class="govuk-grid-row">
