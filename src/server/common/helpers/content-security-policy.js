@@ -16,12 +16,16 @@ const contentSecurityPolicy = {
     fontSrc: ['self', 'data:'],
     connectSrc: ['self', 'wss', 'data:'],
     mediaSrc: ['self'],
-    styleSrc: ['self'],
+    // maplibre-gl (loaded via @defra/interactive-map for BMD-546) injects
+    // inline styles for map controls and creates its tile-parsing worker
+    // from a blob: URL. Both are required for the OS Maps tile renderer.
+    styleSrc: ['self', "'unsafe-inline'"],
+    workerSrc: ['self', 'blob:'],
     scriptSrc: [
       'self',
       "'sha256-GUQ5ad8JK5KmEWmROf3LZd9ge94daqNvd8xy9YS1iDw='"
     ],
-    imgSrc: ['self', 'data:'],
+    imgSrc: ['self', 'data:', 'blob:'],
     frameSrc: ['self', 'data:'],
     objectSrc: ['none'],
     frameAncestors: ['none'],

@@ -27,13 +27,20 @@ function getDefraApi() {
 }
 
 function fitToFeatures(map, layers) {
-  const bounds = layers
+  const tuple = layers
     .flatMap((fc) => fc?.features ?? [])
     .reduce((acc, feature) => extendBounds(acc, feature.geometry), null)
-  if (!bounds) {
+  if (!tuple) {
     return
   }
-  map.fitBounds(bounds, { padding: 32, maxZoom: 16, duration: 0 })
+  const [minLon, minLat, maxLon, maxLat] = tuple
+  map.fitBounds(
+    [
+      [minLon, minLat],
+      [maxLon, maxLat]
+    ],
+    { padding: 32, maxZoom: 15, duration: 0 }
+  )
 }
 
 function extendBounds(acc, geometry) {
@@ -53,10 +60,7 @@ function extendBounds(acc, geometry) {
     if (lon > maxLon) maxLon = lon
     if (lat > maxLat) maxLat = lat
   }
-  return [
-    [minLon, minLat],
-    [maxLon, maxLat]
-  ]
+  return [minLon, minLat, maxLon, maxLat]
 }
 
 function flattenCoords(geometry) {
