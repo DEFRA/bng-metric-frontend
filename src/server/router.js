@@ -9,10 +9,14 @@ import { projects } from './projects/index.js'
 import { defineProjectName } from './project-name/index.js'
 import { changeProjectName } from './change-project-name/index.js'
 import { uploadBaselineFile } from './upload-baseline-file/index.js'
+import { uploadPostInterventionFile } from './upload-post-intervention-file/index.js'
 import { uploadReceived } from './upload-received/index.js'
+import { postInterventionUploadReceived } from './post-intervention-upload-received/index.js'
 import { baselineHabitatDetails } from './baseline-habitat-details/index.js'
+import { postInterventionHabitatDetails } from './post-intervention-habitat-details/index.js'
 import { invalidFile } from './error-file/index.js'
 import { baselineHabitatList } from './baseline-habitat-list/index.js'
+import { postInterventionHabitatList } from './post-intervention-habitat-list/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -36,9 +40,13 @@ export const router = {
         defineProjectName,
         changeProjectName,
         uploadBaselineFile,
+        uploadPostInterventionFile,
         uploadReceived,
+        postInterventionUploadReceived,
         baselineHabitatDetails,
+        postInterventionHabitatDetails,
         baselineHabitatList,
+        postInterventionHabitatList,
         invalidFile
       ])
 

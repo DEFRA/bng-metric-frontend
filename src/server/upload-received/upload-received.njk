@@ -10,7 +10,7 @@
 {% block beforeContent %}
   {{ super() }}
   <nav>
-    <a class="govuk-back-link" href="/projects/{{ projectId }}/upload-baseline-file">Back</a>
+    <a class="govuk-back-link" href="{{ backHref }}">Back</a>
   </nav>
 {% endblock %}
 

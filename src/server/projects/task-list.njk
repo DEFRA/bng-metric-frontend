@@ -58,9 +58,12 @@
               title: {
                 text: "On-site post intervention habitats"
               },
-              status: {
-                text: "Cannot start yet",
-                classes: "govuk-task-list__status--cannot-start-yet"
+              href: ("/projects/" + id + "/post-intervention-habitat-list") if isPostInterventionUploaded else ("/projects/" + id + "/upload-post-intervention-file"),
+              status: { text: "Completed" } if isPostInterventionUploaded else {
+                tag: {
+                  text: "Not yet started",
+                  classes: "govuk-tag--blue"
+                }
               }
             }
           ]

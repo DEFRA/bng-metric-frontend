@@ -1,5 +1,5 @@
 import { getUploadStatus } from '../common/services/uploader.js'
-import { validateBaseline } from '../common/services/baseline.js'
+import { validatePostIntervention } from '../common/services/baseline.js'
 
 vi.mock('../common/services/uploader.js')
 vi.mock('../common/services/baseline.js')
@@ -16,7 +16,7 @@ const createMockRequest = (
   projectId = 'proj-123',
   sessionData = {}
 ) => {
-  const store = { pendingUploadId: uploadId, ...sessionData }
+  const store = { postInterventionPendingUploadId: uploadId, ...sessionData }
   return {
     params: { id: projectId },
     yar: {
@@ -31,69 +31,91 @@ const createMockRequest = (
   }
 }
 
-describe('upload-received controller', () => {
-  it('should redirect to upload page when no uploadId in session', async () => {
+describe('post-intervention-upload-received controller', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('redirects to post-intervention upload page when no uploadId is in session', async () => {
     const h = createMockH()
     const request = createMockRequest(null)
 
     await getController.handler(request, h)
 
     expect(h.redirect).toHaveBeenCalledWith(
-      '/projects/proj-123/upload-baseline-file'
+      '/projects/proj-123/upload-post-intervention-file'
     )
   })
 
-  it('should validate and redirect to habitat list when status is ready', async () => {
+  test('validates and redirects to post-intervention habitat list when ready', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
-    vi.mocked(validateBaseline).mockResolvedValue({ valid: true })
+    vi.mocked(validatePostIntervention).mockResolvedValue({ valid: true })
 
     await getController.handler(request, h)
 
-    expect(getUploadStatus).toHaveBeenCalledWith('test-upload-id')
-    expect(validateBaseline).toHaveBeenCalledWith('proj-123', 'test-upload-id')
-    expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
-    expect(h.redirect).toHaveBeenCalledWith(
-      '/projects/proj-123/baseline-habitat-list'
+    expect(validatePostIntervention).toHaveBeenCalledWith(
+      'proj-123',
+      'test-upload-id'
     )
-    expect(h.view).not.toHaveBeenCalled()
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'postInterventionPendingUploadId'
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/post-intervention-habitat-list'
+    )
   })
 
-  it('should redirect to dropout page with structured errors when validation fails', async () => {
+  test('clears post-intervention upload timer after successful upload', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id', 'proj-123', {
+      postInterventionUploadStartedAt: Date.now() - 10 * 1000
+    })
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({ valid: true })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'postInterventionUploadStartedAt'
+    )
+  })
+
+  test('stores post-intervention validation errors before dropout redirect', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
-    const errors = [
-      { code: 'NO_HABITAT_AREAS', ac: 'AC3', message: 'No habitat areas' }
-    ]
+    const errors = [{ code: 'NO_HABITAT_AREAS', message: 'No habitats' }]
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
-    vi.mocked(validateBaseline).mockResolvedValue({
+    vi.mocked(validatePostIntervention).mockResolvedValue({
       valid: false,
       errors
     })
 
     await getController.handler(request, h)
 
-    expect(validateBaseline).toHaveBeenCalledWith('proj-123', 'test-upload-id')
-    expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineValidationErrors',
+      'postInterventionValidationErrors',
       errors
     )
     expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineValidationErrorsProjectId',
+      'postInterventionValidationErrorsProjectId',
       'proj-123'
+    )
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'validationUploadType',
+      'postIntervention'
     )
     expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
-  it.each([['GPKG_INVALID_FILE'], ['GPKG_NOT_A_GEOPACKAGE']])(
-    'should redirect to the upload page with the format-error flash when validation fails with %s',
+  test.each([['GPKG_INVALID_FILE'], ['GPKG_NOT_A_GEOPACKAGE']])(
+    'redirects to the post-intervention upload page with the format-error flash when validation fails with %s',
     async (code) => {
       const h = createMockH()
       const request = createMockRequest('test-upload-id')
       vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
-      vi.mocked(validateBaseline).mockResolvedValue({
+      vi.mocked(validatePostIntervention).mockResolvedValue({
         valid: false,
         errors: [{ code, message: 'File is not a valid GeoPackage' }]
       })
@@ -101,32 +123,35 @@ describe('upload-received controller', () => {
       await getController.handler(request, h)
 
       expect(request.yar.set).toHaveBeenCalledWith(
-        'uploadError',
+        'postInterventionUploadError',
         'The selected file must be a GeoPackage (.gpkg)'
       )
       expect(request.yar.set).not.toHaveBeenCalledWith(
-        'baselineValidationErrors',
+        'postInterventionValidationErrors',
         expect.anything()
       )
       expect(h.redirect).toHaveBeenCalledWith(
-        '/projects/proj-123/upload-baseline-file'
+        '/projects/proj-123/upload-post-intervention-file'
       )
     }
   )
 
-  it('should default to an empty errors array when validation fails without errors', async () => {
+  test('defaults to an empty errors array when post-intervention validation fails without errors', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
-    vi.mocked(validateBaseline).mockResolvedValue({ valid: false })
+    vi.mocked(validatePostIntervention).mockResolvedValue({ valid: false })
 
     await getController.handler(request, h)
 
-    expect(request.yar.set).toHaveBeenCalledWith('baselineValidationErrors', [])
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionValidationErrors',
+      []
+    )
     expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
-  it('should render processing view when status is pending', async () => {
+  test('renders processing view with post-intervention upload back link', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'pending' })
@@ -137,30 +162,12 @@ describe('upload-received controller', () => {
       pageTitle: 'Checking your file',
       heading: 'Checking your file',
       projectId: 'proj-123',
-      backHref: '/projects/proj-123/upload-baseline-file',
+      backHref: '/projects/proj-123/upload-post-intervention-file',
       refreshInterval: 5
     })
   })
 
-  it('should render processing view when status is initiated', async () => {
-    const h = createMockH()
-    const request = createMockRequest('test-upload-id')
-    vi.mocked(getUploadStatus).mockResolvedValue({
-      uploadStatus: 'initiated'
-    })
-
-    await getController.handler(request, h)
-
-    expect(h.view).toHaveBeenCalledWith('upload-received/upload-received', {
-      pageTitle: 'Checking your file',
-      heading: 'Checking your file',
-      projectId: 'proj-123',
-      backHref: '/projects/proj-123/upload-baseline-file',
-      refreshInterval: 5
-    })
-  })
-
-  it('should redirect to dropout page when status is rejected', async () => {
+  test('redirects to dropout page when post-intervention upload is rejected', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({
@@ -170,16 +177,25 @@ describe('upload-received controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
-    expect(request.yar.set).toHaveBeenCalledWith('baselineValidationErrors', [])
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'postInterventionPendingUploadId'
+    )
     expect(request.yar.set).toHaveBeenCalledWith(
-      'baselineValidationErrorsProjectId',
+      'postInterventionValidationErrors',
+      []
+    )
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionValidationErrorsProjectId',
       'proj-123'
+    )
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'validationUploadType',
+      'postIntervention'
     )
     expect(h.redirect).toHaveBeenCalledWith('/error-file')
   })
 
-  it('should render processing view for unrecognised status', async () => {
+  test('renders processing view for unrecognised post-intervention upload status', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({
@@ -193,42 +209,33 @@ describe('upload-received controller', () => {
       pageTitle: 'Checking your file',
       heading: 'Checking your file',
       projectId: 'proj-123',
-      backHref: '/projects/proj-123/upload-baseline-file',
+      backHref: '/projects/proj-123/upload-post-intervention-file',
       refreshInterval: 5
     })
   })
 
-  it('should redirect with timeout error when max wait time exceeded', async () => {
+  test('redirects with post-intervention timeout error when max wait time exceeded', async () => {
     const h = createMockH()
     const expiredStart = Date.now() - 121 * 1000
     const request = createMockRequest('test-upload-id', 'proj-123', {
-      uploadStartedAt: expiredStart
+      postInterventionUploadStartedAt: expiredStart
     })
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'pending' })
 
     await getController.handler(request, h)
 
-    expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
-    expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'postInterventionPendingUploadId'
+    )
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'postInterventionUploadStartedAt'
+    )
     expect(request.yar.set).toHaveBeenCalledWith(
-      'uploadError',
+      'postInterventionUploadError',
       'The file check timed out. Please try again.'
     )
     expect(h.redirect).toHaveBeenCalledWith(
-      '/projects/proj-123/upload-baseline-file'
+      '/projects/proj-123/upload-post-intervention-file'
     )
-  })
-
-  it('should clear uploadStartedAt on successful upload', async () => {
-    const h = createMockH()
-    const request = createMockRequest('test-upload-id', 'proj-123', {
-      uploadStartedAt: Date.now() - 10 * 1000
-    })
-    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
-    vi.mocked(validateBaseline).mockResolvedValue({ valid: true })
-
-    await getController.handler(request, h)
-
-    expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
   })
 })

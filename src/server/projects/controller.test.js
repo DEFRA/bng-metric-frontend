@@ -391,6 +391,53 @@ describe('#projectTaskListController', () => {
     expect(completedMatches.length).toBeGreaterThanOrEqual(2)
   })
 
+  test('Should contain a link to upload post-intervention habitats when not uploaded', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(
+      expect.stringContaining(
+        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-post-intervention-file"`
+      )
+    )
+  })
+
+  test('Should link to post-intervention habitat list when uploaded', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        ...mockProjects[0],
+        project: {
+          ...mockProjects[0].project,
+          postIntervention: {
+            uploadId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            importedAt: '2026-05-01T12:00:00.000Z'
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: projectTaskListurl,
+      auth: authedAuth
+    })
+
+    expect(result).toEqual(
+      expect.stringContaining(
+        `href="/projects/${mockProjects[0].id}/post-intervention-habitat-list"`
+      )
+    )
+    expect(result).not.toEqual(
+      expect.stringContaining(
+        `href="/projects/${mockProjects[0].id}/upload-post-intervention-file"`
+      )
+    )
+  })
+
   test('Should return bad request when project id is not a UUID', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',

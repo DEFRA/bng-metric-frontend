@@ -9,7 +9,7 @@
   {{ super() }}
   {{ govukBackLink({
     text: "Back",
-    href: "/add-project-details/" + projectId
+    href: backHref
   }) }}
 {% endblock %}
 
@@ -245,7 +245,7 @@
       {{ govukButton({
         text: "Upload a different file",
         classes: "govuk-button--secondary",
-        href: "/projects/" + projectId + "/upload-baseline-file"
+        href: uploadDifferentHref
       }) }}
     </div>
   </div>

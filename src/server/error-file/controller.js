@@ -1,3 +1,5 @@
+import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
+
 // Per-error renderers — mirror the backend's formatting so each offender
 // can be shown on its own line under the error-type heading rather than
 // crammed into a single comma-separated string.
@@ -143,24 +145,40 @@ function buildBlock(err) {
 
 export const invalidFileController = {
   handler(request, h) {
+    const requestedUploadType = request.yar.get('validationUploadType')
+    const uploadType =
+      requestedUploadType === HABITAT_UPLOAD_TYPES.postIntervention.key
+        ? HABITAT_UPLOAD_TYPES.postIntervention
+        : HABITAT_UPLOAD_TYPES.baseline
     const baselineValidationErrors =
-      request.yar.get('baselineValidationErrors') ?? []
+      request.yar.get(
+        HABITAT_UPLOAD_TYPES.baseline.validationErrorsSessionKey
+      ) ?? []
+    const postInterventionValidationErrors =
+      request.yar.get(
+        HABITAT_UPLOAD_TYPES.postIntervention.validationErrorsSessionKey
+      ) ?? []
+    const validationErrors =
+      uploadType.key === HABITAT_UPLOAD_TYPES.postIntervention.key
+        ? postInterventionValidationErrors
+        : baselineValidationErrors
     const projectId =
-      request.yar.get('baselineValidationErrorsProjectId') ?? null
+      request.yar.get(uploadType.validationErrorsProjectIdSessionKey) ?? null
 
     // Errors are one-shot — clear them so a refresh or back-nav doesn't
     // resurrect a stale rejection.
-    request.yar.clear('baselineValidationErrors')
-    request.yar.clear('baselineValidationErrorsProjectId')
+    for (const type of Object.values(HABITAT_UPLOAD_TYPES)) {
+      request.yar.clear(type.validationErrorsSessionKey)
+      request.yar.clear(type.validationErrorsProjectIdSessionKey)
+    }
+    request.yar.clear(uploadType.validationUploadTypeSessionKey)
 
-    const hasParcelsOutside = baselineValidationErrors.some(
+    const hasParcelsOutside = validationErrors.some(
       (e) => e.code === 'AREA_PARCELS_OUTSIDE_REDLINE'
     )
     const visibleErrors = hasParcelsOutside
-      ? baselineValidationErrors.filter(
-          (e) => e.code !== 'SLIVERS_OUTSIDE_REDLINE'
-        )
-      : baselineValidationErrors
+      ? validationErrors.filter((e) => e.code !== 'SLIVERS_OUTSIDE_REDLINE')
+      : validationErrors
 
     const errorBlocks = visibleErrors.map(buildBlock)
     const errorList = errorBlocks.map((b) => ({
@@ -171,7 +189,11 @@ export const invalidFileController = {
       pageTitle: 'There is a problem with your file',
       errorList,
       errorBlocks,
-      projectId
+      projectId,
+      fileLabel: uploadType.label,
+      uploadHref: projectId
+        ? `/projects/${projectId}/${uploadType.uploadRoute}`
+        : null
     })
   }
 }

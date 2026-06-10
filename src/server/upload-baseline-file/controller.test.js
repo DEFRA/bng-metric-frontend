@@ -55,11 +55,11 @@ describe('upload-baseline-file controller', () => {
       redirect: '/projects/proj-123/upload-received',
       s3Bucket: 'baseline-files',
       s3Path: 'baseline/',
-      metadata: { projectId: 'proj-123' }
+      metadata: { projectId: 'proj-123', uploadType: 'baseline' }
     })
     expect(request.yar.set).toHaveBeenCalledWith('pendingUploadId', 'abc-123')
     expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
+      'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
         uploadUrl: '/upload-and-scan/abc-123',
         heading: 'Upload a GeoPackage (.gpkg) file'
@@ -96,7 +96,7 @@ describe('upload-baseline-file controller', () => {
     await getController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
+      'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
         caption: 'My BNG Project'
       })
@@ -116,7 +116,7 @@ describe('upload-baseline-file controller', () => {
     await getController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
+      'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
         caption: 'Project'
       })
@@ -139,7 +139,7 @@ describe('upload-baseline-file controller', () => {
     await getController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
+      'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
         caption: 'Project'
       })
@@ -168,7 +168,7 @@ describe('upload-baseline-file controller', () => {
 
     expect(request.yar.clear).toHaveBeenCalledWith('uploadError')
     expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
+      'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
         error: { text: 'File must be a GeoPackage' }
       })
@@ -188,7 +188,7 @@ describe('upload-baseline-file controller', () => {
 
     expect(request.yar.clear).not.toHaveBeenCalledWith('uploadError')
     expect(h.view).toHaveBeenCalledWith(
-      'upload-baseline-file/upload-baseline-file',
+      'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
         error: undefined
       })

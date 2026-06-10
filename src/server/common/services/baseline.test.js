@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 
-import { validateBaseline } from './baseline.js'
+import { validateBaseline, validatePostIntervention } from './baseline.js'
 import { wreck } from '../helpers/wreck-client.js'
 
 vi.mock('../helpers/wreck-client.js', () => ({
@@ -133,6 +133,31 @@ describe('#validateBaseline', () => {
 
     expect(wreck.post).toHaveBeenCalledWith(
       expect.any(String),
+      expect.objectContaining({
+        payload: JSON.stringify({ projectId }),
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json'
+        })
+      })
+    )
+  })
+})
+
+describe('#validatePostIntervention', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Should call the post-intervention backend validation URL', async () => {
+    vi.mocked(wreck.post).mockResolvedValue({
+      payload: { valid: true }
+    })
+
+    const result = await validatePostIntervention(projectId, uploadId)
+
+    expect(result).toEqual({ valid: true })
+    expect(wreck.post).toHaveBeenCalledWith(
+      expect.stringContaining(`/post-intervention/validate/${uploadId}`),
       expect.objectContaining({
         payload: JSON.stringify({ projectId }),
         headers: expect.objectContaining({
