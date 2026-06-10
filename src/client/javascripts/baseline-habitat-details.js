@@ -68,6 +68,8 @@ export function initBaselineHabitatDetails() {
   const habitatTypes = data.habitatTypes ?? []
   const tradingRulesByBand = data.tradingRulesByBand ?? {}
 
+  // Unknown / missing featureType falls through to a no-op: the page still
+  // renders server-side, we just don't wire up interactive handlers.
   if (data.featureType === 'area') {
     initAreaVariant({
       broadSelect,
@@ -76,10 +78,9 @@ export function initBaselineHabitatDetails() {
       habitatTypes,
       tradingRulesByBand
     })
-  } else if (
-    data.featureType === 'hedgerow' ||
-    data.featureType === 'watercourse'
-  ) {
+    return
+  }
+  if (data.featureType === 'hedgerow' || data.featureType === 'watercourse') {
     initFlatTypeVariant({
       featureType: data.featureType,
       typeSelect,
