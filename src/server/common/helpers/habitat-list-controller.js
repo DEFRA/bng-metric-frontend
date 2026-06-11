@@ -78,7 +78,7 @@ function buildWatercourseRow(watercourse, projectId, uploadType) {
     },
     { text: watercourse.type ?? '' },
     {
-      text: formatLengthKm(watercourse.sizeMetres)  + 'km',
+      text: formatLengthKm(watercourse.sizeMetres) + 'km',
       attributes: {
         'data-sort-value': watercourse.sizeMetres
       }
