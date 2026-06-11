@@ -874,14 +874,14 @@ describe('#habitatListController - tab labels and column headers', () => {
     expect(result).toContain('Area (ha)')
   })
 
-  test('renders the Length (km) column header in the hedgerows tab', async () => {
+  test('renders the Length column header in the hedgerows tab', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
 
-    expect(result).toContain('Length (km)')
+    expect(result).toContain('Length')
   })
 
   test('renders the Size column header in the watercourses tab', async () => {
@@ -1204,7 +1204,7 @@ describe('#habitatListController - no hedgerow data', () => {
       auth: authedAuth
     })
 
-    expect(result).not.toContain('Length (km)')
+    expect(result).not.toContain('Length')
   })
 
   test('does not show "No hedgerow data uploaded." when hedgerows are present', async () => {
