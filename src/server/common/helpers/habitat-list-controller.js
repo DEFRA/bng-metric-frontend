@@ -4,7 +4,8 @@ import {
   formatTotalLengthSize,
   formatAreaHectares,
   formatLengthKm,
-  formatHabitatUnits
+  formatHabitatUnits,
+  KM_UNIT
 } from './format-habitat-values.js'
 
 const NO_DATA_DISPLAY = 'No data'
@@ -56,7 +57,7 @@ function buildHedgerowRow(hedgerow, projectId, uploadType) {
     },
     { text: hedgerow.type ?? '' },
     {
-      text: formatLengthKm(hedgerow.sizeMetres) + 'km',
+      text: formatLengthKm(hedgerow.sizeMetres) + KM_UNIT,
       attributes: {
         'data-sort-value': hedgerow.sizeMetres
       }
@@ -78,7 +79,7 @@ function buildWatercourseRow(watercourse, projectId, uploadType) {
     },
     { text: watercourse.type ?? '' },
     {
-      text: formatLengthKm(watercourse.sizeMetres) + 'km',
+      text: formatLengthKm(watercourse.sizeMetres) + KM_UNIT,
       attributes: {
         'data-sort-value': watercourse.sizeMetres
       }
