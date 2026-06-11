@@ -108,6 +108,7 @@ function buildViewModel(hedgerow, reference, { projectId, projectName }) {
       }))
     ],
     referenceJson: JSON.stringify({
+      featureType: 'hedgerow',
       habitatTypes: reference.habitatTypes,
       tradingRulesByBand: reference.tradingRules
     }),

@@ -137,6 +137,7 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
       }))
     ],
     referenceJson: JSON.stringify({
+      featureType: 'area',
       habitatTypes: reference.habitatTypes,
       tradingRulesByBand: reference.tradingRules
     }),
