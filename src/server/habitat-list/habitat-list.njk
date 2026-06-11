@@ -58,11 +58,11 @@
         <tbody class="govuk-table__body">
           {% for row in habitatRows %}
             <tr class="govuk-table__row">
-              {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr }}="{{ val }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+              {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
             </tr>
           {% endfor %}
         </tbody>
-        <tfoot>
+        <tfoot class="govuk-table__foot">
           <tr class="govuk-table__row">
             <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
             <td class="govuk-table__cell"></td>
@@ -86,7 +86,7 @@
             <tr class="govuk-table__row">
               <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
-              <th class="govuk-table__header" scope="col" aria-sort="none">Length (km)</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Length</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Condition</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Units</th>
@@ -96,11 +96,11 @@
           <tbody class="govuk-table__body">
             {% for row in hedgerowRows %}
               <tr class="govuk-table__row">
-                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr }}="{{ val }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
               </tr>
             {% endfor %}
           </tbody>
-          <tfoot>
+          <tfoot class="govuk-table__foot">
             <tr class="govuk-table__row">
               <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
               <td class="govuk-table__cell"></td>
@@ -137,11 +137,11 @@
           <tbody class="govuk-table__body">
             {% for row in watercourseRows %}
               <tr class="govuk-table__row">
-                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr }}="{{ val }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
               </tr>
             {% endfor %}
           </tbody>
-          <tfoot>
+          <tfoot class="govuk-table__foot">
             <tr class="govuk-table__row">
               <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
               <td class="govuk-table__cell"></td>
