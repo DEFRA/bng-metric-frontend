@@ -12,6 +12,7 @@ const LENGTH_SIGNIFICANT_FIGURES = 7
 const LENGTH_TOTAL_SIGNIFICANT_FIGURES = 7
 const HABITAT_UNITS_DECIMAL_PLACES = 2
 const HABITAT_UNITS_SIGNIFICANT_FIGURES = 7
+const KM_UNIT = 'km'
 
 const EMPTY_DISPLAY = ''
 const NO_DATA_DISPLAY = 'No data'
@@ -100,7 +101,7 @@ function formatTotalLengthSize(metres) {
   const rounded = Number(
     kilometres.toPrecision(LENGTH_TOTAL_SIGNIFICANT_FIGURES)
   )
-  return `${rounded}km`
+  return `${rounded}${KM_UNIT}`
 }
 
 export {
@@ -108,5 +109,6 @@ export {
   formatLengthKm,
   formatHabitatUnits,
   formatTotalAreaSize,
-  formatTotalLengthSize
+  formatTotalLengthSize,
+  KM_UNIT
 }
