@@ -141,6 +141,7 @@ function buildViewModel(watercourse, reference, { projectId, projectName }) {
       'Choose riparian encroachment'
     ),
     referenceJson: JSON.stringify({
+      featureType: 'watercourse',
       habitatTypes: reference.habitatTypes,
       tradingRulesByBand: reference.tradingRules,
       watercourseEncroachments: reference.watercourseEncroachments,

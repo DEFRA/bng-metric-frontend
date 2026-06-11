@@ -125,19 +125,28 @@ function createPostController(uploadType) {
         riparianEncroachment
       } = request.payload
 
+      // Only include the encroachment fields when the form actually sent them.
+      // They belong to the watercourse form only; the backend rejects them on
+      // area/hedgerow saves because its payload schema doesn't expect them there.
+      const body = {
+        broadType: broadHabitat || null,
+        habitatType: habitatType || null,
+        condition: condition || null
+      }
+      if (watercourseEncroachment !== undefined) {
+        body.watercourseEncroachment = watercourseEncroachment || null
+      }
+      if (riparianEncroachment !== undefined) {
+        body.riparianEncroachment = riparianEncroachment || null
+      }
+
       let payload
       try {
         const result = await wreck.put(
           `${backendUrl}/${uploadType.backendSavePath(projectId, featureId)}`,
           {
             headers: { 'Content-Type': 'application/json' },
-            payload: JSON.stringify({
-              broadType: broadHabitat || null,
-              habitatType: habitatType || null,
-              condition: condition || null,
-              watercourseEncroachment: watercourseEncroachment || null,
-              riparianEncroachment: riparianEncroachment || null
-            })
+            payload: JSON.stringify(body)
           }
         )
         payload = result.payload

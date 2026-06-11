@@ -3,6 +3,7 @@ import { initBaselineHabitatDetails } from './baseline-habitat-details.js'
 import { renderTemplateIntoDocument } from '../../server/test-helpers/render-template.js'
 
 const REFERENCE_DATA = {
+  featureType: 'area',
   habitatTypes: [
     {
       name: 'Cereal crops',
@@ -301,6 +302,7 @@ describe('initBaselineHabitatDetails', () => {
 })
 
 const HEDGEROW_REFERENCE_DATA = {
+  featureType: 'hedgerow',
   habitatTypes: [
     {
       name: 'Native hedgerow',
@@ -483,5 +485,159 @@ describe('initBaselineHabitatDetails — hedgerow variant', () => {
     )
     const options = Array.from(document.getElementById('condition').options)
     expect(options.map((o) => o.value)).toEqual([''])
+  })
+})
+
+const WATERCOURSE_REFERENCE_DATA = {
+  featureType: 'watercourse',
+  habitatTypes: [
+    {
+      name: 'Other rivers and streams',
+      broad: null,
+      distinctiveness: 'High',
+      distinctivenessScore: 8
+    },
+    {
+      name: 'Headwaters',
+      broad: null,
+      distinctiveness: 'V.High',
+      distinctivenessScore: 10
+    }
+  ],
+  tradingRulesByBand: {
+    High: 'Same broad habitat or higher distinctiveness',
+    'V.High': 'Same habitat required'
+  },
+  watercourseEncroachments: ['None', 'Minor'],
+  riparianEncroachments: ['None', 'Minor']
+}
+
+// Mirrors the watercourse strategy's view model. It renders a placeholder
+// broad-habitat row (per the BMD-502 story spec) — these tests cover the
+// regression where that row tricked the client JS into the area code path,
+// which built a malformed lookup key and omitted featureType=watercourse,
+// leaving the condition dropdown empty.
+function buildWatercourseViewModel({
+  selectedType = 'Other rivers and streams',
+  selectedCondition = 'Fairly Poor'
+} = {}) {
+  const types = ['Other rivers and streams', 'Headwaters']
+  const conditions = CONDITIONS_FIXTURE
+  return {
+    pageTitle: 'Watercourse R1',
+    heading: 'Watercourse R1',
+    caption: 'Test Project',
+    headingPrefix: 'Watercourse',
+    projectId: 'aa0e8400-e29b-41d4-a716-446655440000',
+    projectName: 'Test Project',
+    habitatRef: 'R1',
+    sizeLabel: 'Length (km)',
+    sizeDisplay: '0.085',
+    showBroadHabitatRow: true,
+    broadHabitatOptions: [
+      { value: '', text: 'Choose broad habitat', selected: true }
+    ],
+    showWatercourseEncroachmentRows: true,
+    distinctivenessDisplay: 'High (8)',
+    strategicSignificanceDisplay: 'Low (1)',
+    tradingRule: 'Same broad habitat or higher distinctiveness',
+    habitatUnitsDisplay: '0.77',
+    habitatTypeOptions: [
+      { value: '', text: 'Choose habitat type', selected: !selectedType },
+      ...types.map((value) => ({
+        value,
+        text: value,
+        selected: value === selectedType
+      }))
+    ],
+    conditionOptions: [
+      { value: '', text: 'Choose condition', selected: !selectedCondition },
+      ...conditions.map((c) => ({
+        value: c.condition,
+        text: `${c.condition} (${c.score})`,
+        selected: c.condition === selectedCondition
+      }))
+    ],
+    watercourseEncroachmentOptions: [
+      { value: '', text: 'Choose watercourse encroachment', selected: true }
+    ],
+    riparianEncroachmentOptions: [
+      { value: '', text: 'Choose riparian encroachment', selected: true }
+    ],
+    referenceJson: JSON.stringify(WATERCOURSE_REFERENCE_DATA),
+    backHref: '/projects/test/baseline-habitat-list#watercourses',
+    cancelHref: '/projects/test/baseline-habitat-list#watercourses',
+    featureId: 'cc0e8400-e29b-41d4-a716-446655440003'
+  }
+}
+
+function renderWatercoursePage(overrides = {}) {
+  renderTemplateIntoDocument(
+    'habitat-details/habitat-details.njk',
+    buildWatercourseViewModel(overrides)
+  )
+}
+
+describe('initBaselineHabitatDetails — watercourse variant', () => {
+  beforeEach(() => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(CONDITIONS_FIXTURE)
+      })
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('fetches conditions for the new type with featureType=watercourse (regression: was hitting the area code path and returning empty)', async () => {
+    renderWatercoursePage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Headwaters')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/reference/conditions?habitatType=Headwaters&featureType=watercourse',
+      expect.anything()
+    )
+    const conditionOptions = Array.from(
+      document.getElementById('condition').options
+    )
+    expect(conditionOptions.map((o) => o.value)).toEqual([
+      '',
+      'Good',
+      'Moderate',
+      'Poor'
+    ])
+  })
+
+  test('shows distinctiveness + trading rule for the new watercourse type', async () => {
+    renderWatercoursePage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Headwaters')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(document.getElementById('distinctivenessDisplay').textContent).toBe(
+      'V.High (10)'
+    )
+    expect(document.getElementById('tradingRuleDisplay').textContent).toBe(
+      'Same habitat required'
+    )
+  })
+
+  test('changing the placeholder broad-habitat dropdown does not trigger a fetch (no area handler wired)', () => {
+    renderWatercoursePage()
+    initBaselineHabitatDetails()
+
+    setValue('broadHabitat', '')
+    fireChange('broadHabitat')
+
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 })
