@@ -37,8 +37,10 @@
       <div class="govuk-grid-column-full">
         <h2 class="govuk-heading-m">Map</h2>
         <div id="bhm-container"
-             data-geo-json-url="{{ mapConfig.geoJsonUrl }}"
+             data-geometry-url="{{ mapConfig.geometryUrl }}"
+             data-post-intervention-geometry-url="{{ mapConfig.postInterventionGeometryUrl }}"
              data-os-style-url="{{ mapConfig.osStyleUrl }}"
+             data-stage="{{ mapConfig.stage }}"
              style="height: 480px; margin-bottom: 1.5rem;">
           <div id="bhm-map" style="height: 100%;"></div>
         </div>

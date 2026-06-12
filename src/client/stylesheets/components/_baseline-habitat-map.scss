@@ -1,0 +1,14 @@
+// BMD-546 spike: row-highlight for the two-way table↔map selection on the
+// habitat list page. The map highlight is drawn on a dedicated overlay
+// layer (see baseline-habitat-map.js); this class is the matching
+// table-side cue.
+@use 'govuk-frontend' as *;
+
+.bhm-row-highlighted > * {
+  background-color: govuk-colour('yellow');
+}
+
+.bhm-stage-toggle {
+  border: 0;
+  padding: 0;
+}
