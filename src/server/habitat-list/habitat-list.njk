@@ -43,56 +43,37 @@
       <h2 class="govuk-heading-m">
         Area habitats
       </h2>
-      {{ govukTable({
-          attributes: {
-            "data-module": "moj-sortable-table"
-          },
-          head: [
-            {
-              text: "Ref",
-              attributes: {
-                "aria-sort": "ascending"
-              }
-            },
-            {
-              text: "Habitat type",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Area (ha)",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Distinctiveness",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Condition",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Units",
-              attributes: {
-                "aria-sort": "none"
-              }
-            },
-            {
-              text: "Status",
-              attributes: {
-                "aria-sort": "none"
-              }
-            }
-          ],
-          rows: habitatRows
-        }) -}}
+      <table class="govuk-table" data-module="moj-sortable-table">
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+            <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
+            <th class="govuk-table__header" scope="col" aria-sort="none">Area (ha)</th>
+            <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
+            <th class="govuk-table__header" scope="col" aria-sort="none">Condition</th>
+            <th class="govuk-table__header" scope="col" aria-sort="none">Units</th>
+            <th class="govuk-table__header" scope="col" aria-sort="none">Status</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for row in habitatRows %}
+            <tr class="govuk-table__row">
+              {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="govuk-table__foot">
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+            <td class="govuk-table__cell"></td>
+            <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.areaHabitats }}</td>
+            <td class="govuk-table__cell"></td>
+            <td class="govuk-table__cell"></td>
+            <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalUnits.areaHabitats }}</td>
+            <td class="govuk-table__cell"></td>
+          </tr>
+        </tfoot>
+      </table>
       {% endset -%}
 
       {% set hedgerows %}
@@ -100,56 +81,37 @@
         Hedgerows
       </h2>
       {% if hedgerowRows %}
-        {{ govukTable({
-            attributes: {
-              "data-module": "moj-sortable-table"
-            },
-            head: [
-              {
-                text: "Ref",
-                attributes: {
-                  "aria-sort": "ascending"
-                }
-              },
-              {
-                text: "Habitat type",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Length (km)",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Distinctiveness",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Condition",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Units",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Status",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              }
-            ],
-            rows: hedgerowRows
-          }) -}}
+        <table class="govuk-table" data-module="moj-sortable-table">
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Length</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Condition</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Units</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Status</th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for row in hedgerowRows %}
+              <tr class="govuk-table__row">
+                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="govuk-table__foot">
+            <tr class="govuk-table__row">
+              <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+              <td class="govuk-table__cell"></td>
+              <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.hedgerows }}</td>
+              <td class="govuk-table__cell"></td>
+              <td class="govuk-table__cell"></td>
+              <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalUnits.hedgerows }}</td>
+              <td class="govuk-table__cell"></td>
+            </tr>
+          </tfoot>
+        </table>
       {% else %}
         <p class="govuk-body">No hedgerow data uploaded.</p>
       {% endif %}
@@ -160,56 +122,37 @@
         Watercourses
       </h2>
       {% if watercourseRows %}
-        {{ govukTable({
-            attributes: {
-              "data-module": "moj-sortable-table"
-            },
-            head: [
-              {
-                text: "Ref",
-                attributes: {
-                  "aria-sort": "ascending"
-                }
-              },
-              {
-                text: "Habitat type",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Size",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Distinctiveness",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Condition",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Units",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              },
-              {
-                text: "Status",
-                attributes: {
-                  "aria-sort": "none"
-                }
-              }
-            ],
-            rows: watercourseRows
-          }) -}}
+        <table class="govuk-table" data-module="moj-sortable-table">
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Size</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Condition</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Units</th>
+              <th class="govuk-table__header" scope="col" aria-sort="none">Status</th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for row in watercourseRows %}
+              <tr class="govuk-table__row">
+                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="govuk-table__foot">
+            <tr class="govuk-table__row">
+              <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+              <td class="govuk-table__cell"></td>
+              <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.watercourses }}</td>
+              <td class="govuk-table__cell"></td>
+              <td class="govuk-table__cell"></td>
+              <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalUnits.watercourses }}</td>
+              <td class="govuk-table__cell"></td>
+            </tr>
+          </tfoot>
+        </table>
       {% else %}
         <p class="govuk-body">No watercourse data uploaded.</p>
       {% endif %}

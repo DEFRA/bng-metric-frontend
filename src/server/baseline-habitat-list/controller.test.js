@@ -807,7 +807,7 @@ describe('#habitatListController - hedgerow rows', () => {
     })
 
     // 1234.567 m → 1.234567 km
-    expect(result).toContain('>1.234567<')
+    expect(result).toContain('>1.234567km<')
   })
 })
 
@@ -874,14 +874,14 @@ describe('#habitatListController - tab labels and column headers', () => {
     expect(result).toContain('Area (ha)')
   })
 
-  test('renders the Length (km) column header in the hedgerows tab', async () => {
+  test('renders the Length column header in the hedgerows tab', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
 
-    expect(result).toContain('Length (km)')
+    expect(result).toContain('Length')
   })
 
   test('renders the Size column header in the watercourses tab', async () => {
@@ -1000,7 +1000,7 @@ describe('#habitatListController - watercourse rows', () => {
     })
 
     // 500 m → 0.5 km
-    expect(result).toContain('>0.5<')
+    expect(result).toContain('>0.5km<')
   })
 
   test('renders raw sizeMetres as data-sort-value on the size cell', async () => {
@@ -1204,7 +1204,7 @@ describe('#habitatListController - no hedgerow data', () => {
       auth: authedAuth
     })
 
-    expect(result).not.toContain('Length (km)')
+    expect(result).not.toContain('Length')
   })
 
   test('does not show "No hedgerow data uploaded." when hedgerows are present', async () => {
