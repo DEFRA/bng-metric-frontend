@@ -2,14 +2,16 @@ import Joi from 'joi'
 import Boom from '@hapi/boom'
 import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
-import { wreck } from '../common/helpers/wreck-client.js'
+import { backendRequest } from '../common/helpers/auth/backend-request.js'
 
 const backendUrl = config.get('backend').url
 
 export const projectsListController = {
   async handler(request, h) {
     const userId = request.auth.credentials.sub
-    const { res, payload: projects } = await wreck.get(
+    const { res, payload: projects } = await backendRequest(
+      request,
+      'get',
       `${backendUrl}/users/${userId}/projects`
     )
 
@@ -40,7 +42,11 @@ export const projectTaskListController = {
   async handler(request, h) {
     const { id } = request.params
     try {
-      const { payload: data } = await wreck.get(`${backendUrl}/projects/${id}`)
+      const { payload: data } = await backendRequest(
+        request,
+        'get',
+        `${backendUrl}/projects/${id}`
+      )
       const isBaselineUploaded = Boolean(data?.project?.baseline)
       const isPostInterventionUploaded = Boolean(
         data?.project?.postIntervention

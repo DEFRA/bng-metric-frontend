@@ -3,23 +3,29 @@ import Joi from 'joi'
 
 import { config } from '../../../config/config.js'
 import { statusCodes } from '../constants.js'
-import { wreck } from './wreck-client.js'
+import { backendRequest } from './auth/backend-request.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
-async function fetchProjectName(projectId) {
+async function fetchProjectName(request, projectId) {
   try {
-    const { payload } = await wreck.get(`${backendUrl}/projects/${projectId}`)
+    const { payload } = await backendRequest(
+      request,
+      'get',
+      `${backendUrl}/projects/${projectId}`
+    )
     return payload?.project?.name ?? 'Project'
   } catch {
     return 'Project'
   }
 }
 
-async function fetchFeature(uploadType, projectId, featureId) {
+async function fetchFeature(request, uploadType, projectId, featureId) {
   try {
-    const { payload } = await wreck.get(
+    const { payload } = await backendRequest(
+      request,
+      'get',
       `${backendUrl}/${uploadType.backendFeaturePath(projectId, featureId)}`
     )
     return payload
@@ -73,8 +79,8 @@ function createGetController(uploadType) {
     async handler(request, h) {
       const { featureId, projectId } = request.query
       const [{ type, feature }, projectName] = await Promise.all([
-        fetchFeature(uploadType, projectId, featureId),
-        fetchProjectName(projectId)
+        fetchFeature(request, uploadType, projectId, featureId),
+        fetchProjectName(request, projectId)
       ])
 
       const strategy = getStrategy(type)
@@ -142,7 +148,9 @@ function createPostController(uploadType) {
 
       let payload
       try {
-        const result = await wreck.put(
+        const result = await backendRequest(
+          request,
+          'put',
           `${backendUrl}/${uploadType.backendSavePath(projectId, featureId)}`,
           {
             headers: { 'Content-Type': 'application/json' },

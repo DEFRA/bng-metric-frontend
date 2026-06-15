@@ -18,7 +18,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 const authCredentials = {
   sub: 'test-user-123',
   email: 'test@example.com',
-  roles: ['aaa-bbb:bng completer:1']
+  roles: ['aaa-bbb:bng completer:3']
 }
 
 const authedAuth = {
@@ -160,7 +160,9 @@ describe('#defineProjectNamePostController', () => {
     expect(url).toContain('/projects/new')
     expect(options.headers['Content-Type']).toBe('application/json')
     expect(body.project).toEqual({ name: 'My Valid Project' })
-    expect(body.userId).toBe('test-user-123')
+    // Identity is derived by the backend from the verified token — the body no
+    // longer carries a userId.
+    expect(body.userId).toBeUndefined()
   })
 
   test('Should redirect to project dashboard on valid input', async () => {

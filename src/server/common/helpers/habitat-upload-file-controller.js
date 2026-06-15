@@ -1,13 +1,17 @@
 import { initiateUpload } from '../services/uploader.js'
 import { config } from '../../../config/config.js'
-import { wreck } from './wreck-client.js'
+import { backendRequest } from './auth/backend-request.js'
 
 const backendUrl = config.get('backend').url
 const appBaseUrl = config.get('appBaseUrl')
 
-async function fetchProjectName(id) {
+async function fetchProjectName(request, id) {
   try {
-    const { payload: data } = await wreck.get(`${backendUrl}/projects/${id}`)
+    const { payload: data } = await backendRequest(
+      request,
+      'get',
+      `${backendUrl}/projects/${id}`
+    )
     return data.project?.name ?? 'Project'
   } catch {
     return 'Project'
@@ -30,7 +34,7 @@ function createUploadFileController(uploadType) {
   return {
     async handler(request, h) {
       const { id } = request.params
-      const projectName = await fetchProjectName(id)
+      const projectName = await fetchProjectName(request, id)
       const uploadError = request.yar.get(uploadType.uploadErrorSessionKey)
 
       if (uploadError) {

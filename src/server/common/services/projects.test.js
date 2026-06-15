@@ -8,23 +8,41 @@ vi.mock('../helpers/wreck-client.js', () => ({
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const mockPayload = { project: { name: 'Test Project' } }
 
+function makeRequest(idToken = 'test-id-token') {
+  return { yar: { get: vi.fn().mockReturnValue({ idToken }) } }
+}
+
 describe('fetchProject', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  test('returns the payload on success', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({ payload: mockPayload })
+  test('returns the payload and forwards the bearer token', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockPayload
+    })
 
-    const result = await fetchProject(projectId)
+    const result = await fetchProject(makeRequest(), projectId)
 
     expect(result).toEqual(mockPayload)
+    expect(wreck.get).toHaveBeenCalledWith(
+      expect.stringContaining(`/projects/${projectId}`),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-id-token'
+        })
+      })
+    )
   })
 
   test('returns null when payload is null', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({ payload: null })
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: null
+    })
 
-    const result = await fetchProject(projectId)
+    const result = await fetchProject(makeRequest(), projectId)
 
     expect(result).toBeNull()
   })
@@ -32,7 +50,7 @@ describe('fetchProject', () => {
   test('returns null when the request throws', async () => {
     vi.mocked(wreck.get).mockRejectedValue(new Error('network error'))
 
-    const result = await fetchProject(projectId)
+    const result = await fetchProject(makeRequest(), projectId)
 
     expect(result).toBeNull()
   })

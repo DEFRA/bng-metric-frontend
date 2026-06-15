@@ -95,7 +95,7 @@ function createHabitatListController(uploadType) {
   return {
     async handler(request, h) {
       const { id } = request.params
-      const project = await fetchProject(id)
+      const project = await fetchProject(request, id)
       const projectName = project?.project?.name ?? 'Project'
       const habitatsData = project?.project?.[uploadType.projectKey]
       const habitatSizes = habitatsData?.habitatSizes
