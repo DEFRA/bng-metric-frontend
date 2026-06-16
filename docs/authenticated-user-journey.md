@@ -114,6 +114,17 @@ from the verified token (`currentRelationshipId`), never from the request body.
 Single-row endpoints return **404** (not 403) when a project exists but isn't
 visible, to avoid leaking its existence.
 
+The backend is **secure by default**: it sets `defra-jwt` as the server-wide
+default auth strategy, so _every_ route requires a verified token unless it
+explicitly opts out (only `/health` and the static `/reference/*` lookups do).
+This means the frontend forwards the bearer on the upload and validation calls
+too — `initiateUpload` / `getUploadStatus`
+(`src/server/common/services/uploader.js`) and `validateBaseline` /
+`validatePostIntervention` (`src/server/common/services/baseline.js`) all go
+through `backendRequest`. See the backend's
+[auth route policy](../../bng-metric-backend/docs/auth-route-policy.md) for the
+allowlist and the guard test that enforces it.
+
 ### 5. Token expiry & silent refresh (frontend)
 
 The stored id_token is the bearer for all backend calls and expires (~hours). On

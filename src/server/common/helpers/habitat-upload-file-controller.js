@@ -41,7 +41,7 @@ function createUploadFileController(uploadType) {
         request.yar.clear(uploadType.uploadErrorSessionKey)
       }
 
-      const uploadSession = await initiateUpload({
+      const uploadSession = await initiateUpload(request, {
         redirect: `${appBaseUrl}/projects/${id}/${uploadType.uploadReceivedRoute}`,
         s3Bucket: config.get('cdpUploader.bucket'),
         s3Path: config.get('cdpUploader.s3Path'),

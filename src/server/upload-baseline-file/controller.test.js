@@ -51,7 +51,7 @@ describe('upload-baseline-file controller', () => {
 
     await getController.handler(request, h)
 
-    expect(initiateUpload).toHaveBeenCalledWith({
+    expect(initiateUpload).toHaveBeenCalledWith(request, {
       redirect: '/projects/proj-123/upload-received',
       s3Bucket: 'baseline-files',
       s3Path: 'baseline/',

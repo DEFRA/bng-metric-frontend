@@ -41,7 +41,7 @@ async function handleReadyUpload(
   id,
   uploadId
 ) {
-  const result = await validateUpload(id, uploadId)
+  const result = await validateUpload(request, id, uploadId)
 
   clearUploadSession(request, uploadType)
 
@@ -118,7 +118,7 @@ function createUploadReceivedController(uploadType, validateUpload) {
         return h.redirect(uploadHref(uploadType, id))
       }
 
-      const response = await getUploadStatus(uploadId)
+      const response = await getUploadStatus(request, uploadId)
       const uploadStatus = response.uploadStatus
 
       logger.info(
