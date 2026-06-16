@@ -78,6 +78,14 @@ describe('#hasBngCompleterRole', () => {
     const user = { roles: ['no-colons', '', 123, null] }
     expect(hasBngCompleterRole(user)).toBe(false)
   })
+
+  test('denies a role whose status is a non-numeric word (CDP stub UI)', () => {
+    // The CDP Defra ID stub's registration UI emits the status as a word
+    // ("complete"/"pending"/…) rather than a 1–7 code; such a role is dropped
+    // rather than parsed to NaN, so it never grants access.
+    const user = { roles: ['ccc-ddd:bng completer:complete'] }
+    expect(hasBngCompleterRole(user)).toBe(false)
+  })
 })
 
 describe('#requireBngCompleterRole', () => {

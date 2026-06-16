@@ -9,10 +9,31 @@ export const ROLE_STATUS_APPROVED = 3
 
 const ROLE_MIN_FIELDS = 3
 
+// Valid enrolment status codes span 1–7. A non-numeric or out-of-range status is
+// dropped rather than coerced to NaN. Mirrors the backend parser
+// (bng-metric-backend src/services/defra-id/claims.js); the CDP Defra ID stub's
+// registration UI emits word labels ("complete", "pending", …) not codes.
+const ROLE_STATUS_MIN = 1
+const ROLE_STATUS_MAX = 7
+
+// Coerce the trailing status field to a number, but only when it is a clean
+// integer in the valid 1–7 range; otherwise return null so the role is dropped.
+function parseStatus(raw) {
+  if (!/^\d+$/.test(raw)) {
+    return null
+  }
+  const status = Number(raw)
+  if (status < ROLE_STATUS_MIN || status > ROLE_STATUS_MAX) {
+    return null
+  }
+  return status
+}
+
 /**
  * Parse a Defra ID role string "relationshipId:roleName:status". The role name
  * is rebuilt from the middle field(s) (so a stray colon can't shift the status),
- * lower-cased and trimmed; the status is coerced to a number.
+ * lower-cased and trimmed; the status is coerced to a number. Roles whose status
+ * is not a valid 1–7 code are dropped (returns null).
  */
 function parseRole(entry) {
   if (typeof entry !== 'string') {
@@ -22,6 +43,10 @@ function parseRole(entry) {
   if (parts.length < ROLE_MIN_FIELDS) {
     return null
   }
+  const status = parseStatus(parts[parts.length - 1])
+  if (status === null) {
+    return null
+  }
   return {
     relationshipId: parts[0],
     name: parts
@@ -29,7 +54,7 @@ function parseRole(entry) {
       .join(':')
       .trim()
       .toLowerCase(),
-    status: Number(parts[parts.length - 1])
+    status
   }
 }
 
