@@ -23,18 +23,37 @@
     <div class="govuk-grid-column-full">
       <h2 class="govuk-heading-m">Summary</h2>
 
-      {{ govukTable({
-        head: [
-          { text: "Unit type" },
-          { text: "Size" },
-          { text: "Units" }
-        ],
-        rows: [
-          [{ text: "Area habitats" }, { text: totalSizes.areaHabitats }, { text: totalUnits.areaHabitats }],
-          [{ text: "Hedgerows" }, { text: totalSizes.hedgerows }, { text: totalUnits.hedgerows }],
-          [{ text: "Watercourses" }, { text: totalSizes.watercourses }, { text: totalUnits.watercourses }]
-        ]
-      }) }}
+      {% if isPostIntervention %}
+        {{ govukTable({
+          head: [
+            { text: "Unit type" },
+            { text: "Size" },
+            { text: "Baseline units" },
+            { text: "Post-intervention units" },
+            { text: "Net unit change" },
+            { text: "Net % change" },
+            { text: "Trading rules satisfied" }
+          ],
+          rows: [
+            [{ text: "Area habitats" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
+            [{ text: "Hedgerows" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
+            [{ text: "Watercourses" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }]
+          ]
+        }) }}
+      {% else %}
+        {{ govukTable({
+          head: [
+            { text: "Unit type" },
+            { text: "Size" },
+            { text: "Units" }
+          ],
+          rows: [
+            [{ text: "Area habitats" }, { text: totalSizes.areaHabitats }, { text: totalUnits.areaHabitats }],
+            [{ text: "Hedgerows" }, { text: totalSizes.hedgerows }, { text: totalUnits.hedgerows }],
+            [{ text: "Watercourses" }, { text: totalSizes.watercourses }, { text: totalUnits.watercourses }]
+          ]
+        }) }}
+      {% endif %}
     </div>
     <div class="govuk-grid-column-full">
       <h2 class="govuk-heading-m">Habitat details</h2>

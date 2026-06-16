@@ -149,6 +149,7 @@ function createHabitatListController(uploadType) {
         projectId: id,
         backHref: `/add-project-details/${id}`,
         uploadDifferentHref: `/projects/${id}/${uploadType.uploadRoute}`,
+        isPostIntervention: uploadType.key === 'postIntervention',
         totalSizes,
         totalUnits,
         habitatRows,
