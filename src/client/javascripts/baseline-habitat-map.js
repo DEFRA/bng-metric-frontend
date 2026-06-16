@@ -1,19 +1,31 @@
-// BMD-546 spike: render baseline + post-intervention geometry on the
-// habitat list page using @defra/interactive-map. The library is loaded
-// via separate <script> tags in the page template and registers
-// globalThis.defra at runtime — we never import it through webpack (its
-// UMD bundles aren't designed for that).
+// BMD-546 spike: render baseline and post-intervention geometry on the
+// habitat list page using @defra/interactive-map. The library is loaded via
+// separate <script> tags in the page template and registers globalThis.defra
+// at runtime — we never import it through webpack (its UMD bundles aren't
+// designed for that).
+//
+// Both stages render as parallel maplibre source/layer sets. A checkbox panel
+// overlaid on the map toggles per-layer-per-stage visibility, so the user can
+// view either stage alone or both at once. When both are visible, baseline
+// switches to a dashed-grey "ghost" outline so the PI UKHab fills read on
+// top — making the difference between the two stages visible at a glance.
 
 import {
+  broadHabitatPalette,
   broadHabitatSublayers,
+  detailedHabitatPalette,
   detailedHabitatSublayers,
+  hedgerowPalette,
   hedgerowSublayers,
   PATTERNS,
+  watercoursePalette,
   watercourseSublayers
 } from './ukhab-palette.js'
 
 const CONTAINER_ID = 'bhm-container'
-const STAGE_TOGGLE_NAME = 'bhm-stage'
+const LAYER_PANEL_ID = 'bhm-layer-panel'
+const LEGEND_ID = 'bhm-legend'
+const WRAPPER_CLASS = 'bhm-wrapper'
 
 const RED_LINE_PAINT = {
   'line-color': '#d4351c',
@@ -21,29 +33,80 @@ const RED_LINE_PAINT = {
   'line-dasharray': [2, 2]
 }
 
-const HIGHLIGHT_FILL_PAINT = {
-  'fill-color': '#ffdd00',
-  'fill-opacity': 0.5,
-  'fill-outline-color': '#0b0c0c'
+const GHOST_PAINT = {
+  'line-color': '#0b0c0c',
+  'line-width': 1.5,
+  'line-dasharray': [3, 2],
+  'line-opacity': 0.7
+}
+
+// Selected-feature highlight: bright turquoise border with a thin white halo
+// behind it so the border reads against any UKHab fill colour. For polygons
+// the border is drawn as a separate line layer on the polygon source (fills
+// can't carry a thick outline). A subtle turquoise tint keeps the interior
+// visually associated with the selection without obscuring its habitat fill.
+const HIGHLIGHT_TURQUOISE = '#00e5cc'
+const HIGHLIGHT_HALO_COLOR = '#ffffff'
+const HIGHLIGHT_BORDER_WIDTH = 4
+const HIGHLIGHT_HALO_WIDTH = 7
+const HIGHLIGHT_LINE_WIDTH = 5
+const HIGHLIGHT_LINE_HALO_WIDTH = 9
+
+const HIGHLIGHT_FILL_TINT_PAINT = {
+  'fill-color': HIGHLIGHT_TURQUOISE,
+  'fill-opacity': 0.15
+}
+const HIGHLIGHT_FILL_HALO_PAINT = {
+  'line-color': HIGHLIGHT_HALO_COLOR,
+  'line-width': HIGHLIGHT_HALO_WIDTH
+}
+const HIGHLIGHT_FILL_BORDER_PAINT = {
+  'line-color': HIGHLIGHT_TURQUOISE,
+  'line-width': HIGHLIGHT_BORDER_WIDTH
+}
+const HIGHLIGHT_LINE_HALO_PAINT = {
+  'line-color': HIGHLIGHT_HALO_COLOR,
+  'line-width': HIGHLIGHT_LINE_HALO_WIDTH
 }
 const HIGHLIGHT_LINE_PAINT = {
-  'line-color': '#ffdd00',
-  'line-width': 5
+  'line-color': HIGHLIGHT_TURQUOISE,
+  'line-width': HIGHLIGHT_LINE_WIDTH
 }
 
 const LAYER_DEFS = [
-  { layer: 'areaHabitats', type: 'fill', sublayerProperty: 'broadHabitatType' },
-  { layer: 'hedgerows', type: 'line', sublayerProperty: 'habitatType' },
-  { layer: 'watercourses', type: 'line', sublayerProperty: 'habitatType' }
+  {
+    layer: 'areaHabitats',
+    type: 'fill',
+    sublayerProperty: 'broadHabitatType',
+    label: 'Area habitats',
+    sublayerFactory: broadHabitatSublayers
+  },
+  {
+    layer: 'hedgerows',
+    type: 'line',
+    sublayerProperty: 'habitatType',
+    label: 'Hedgerows',
+    sublayerFactory: hedgerowSublayers
+  },
+  {
+    layer: 'watercourses',
+    type: 'line',
+    sublayerProperty: 'habitatType',
+    label: 'Watercourses',
+    sublayerFactory: watercourseSublayers
+  }
 ]
+
+const STAGE_PREFIX = { baseline: 'baseline', postIntervention: 'pi' }
 
 const PATTERN_TILE_SIZE = 16
 
-// Two-colour SVG tile generators for the named patterns declared in
-// ukhab-palette.js. Each returns a 16x16 SVG that maplibre will tile across
-// the fill via the fill-pattern paint property. Background colour matches
-// the parent broad-habitat fill so the detailed pattern reads as an overlay
-// on top of the broad colour rather than replacing it.
+// ---------------------------------------------------------------------------
+// Pattern tile generators for the detailed (Level 4) habitat fills.
+// Background colour matches the parent broad-habitat fill so the detailed
+// pattern reads as an overlay on top of the broad colour.
+// ---------------------------------------------------------------------------
+
 function patternSvg(name, fg, bg, size = PATTERN_TILE_SIZE) {
   const background = `<rect width="${size}" height="${size}" fill="${bg}"/>`
   if (name === PATTERNS.CROSS_HATCH) {
@@ -109,27 +172,20 @@ async function preloadDetailedHabitatPatterns(map) {
   )
 }
 
-function getDefraApi() {
-  const defraApi = globalThis?.defra
-  if (!defraApi?.InteractiveMap || !defraApi?.maplibreProvider) {
-    return null
-  }
-  return defraApi
-}
+// ---------------------------------------------------------------------------
+// Bounds helpers — used to fit the camera to all the data the page has.
+// ---------------------------------------------------------------------------
 
-function fitToFeatures(map, layers) {
-  const tuple = layers
-    .flatMap((fc) => fc?.features ?? [])
-    .reduce((acc, feature) => extendBounds(acc, feature.geometry), null)
-  if (!tuple) return
-  const [minLon, minLat, maxLon, maxLat] = tuple
-  map.fitBounds(
-    [
-      [minLon, minLat],
-      [maxLon, maxLat]
-    ],
-    { padding: 32, maxZoom: 15, duration: 0 }
-  )
+function flattenCoords(geometry) {
+  if (!geometry) return []
+  const { type, coordinates } = geometry
+  if (type === 'Point') return [coordinates]
+  if (type === 'LineString' || type === 'MultiPoint') return coordinates
+  if (type === 'Polygon' || type === 'MultiLineString') {
+    return coordinates.flat()
+  }
+  if (type === 'MultiPolygon') return coordinates.flat(2)
+  return []
 }
 
 function extendBounds(acc, geometry) {
@@ -150,45 +206,48 @@ function extendBounds(acc, geometry) {
   return [minLon, minLat, maxLon, maxLat]
 }
 
-function flattenCoords(geometry) {
-  if (!geometry) return []
-  const { type, coordinates } = geometry
-  if (type === 'Point') return [coordinates]
-  if (type === 'LineString' || type === 'MultiPoint') return coordinates
-  if (type === 'Polygon' || type === 'MultiLineString') {
-    return coordinates.flat()
+function fitToFeatureCollections(map, featureCollections) {
+  const tuple = featureCollections
+    .flatMap((fc) => fc?.features ?? [])
+    .reduce((acc, feature) => extendBounds(acc, feature.geometry), null)
+  if (!tuple) return
+  const [minLon, minLat, maxLon, maxLat] = tuple
+  map.fitBounds(
+    [
+      [minLon, minLat],
+      [maxLon, maxLat]
+    ],
+    { padding: 32, maxZoom: 15, duration: 0 }
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Source + layer building. Each stage registers its own sources and layers
+// under a stage prefix; baseline additionally gets a "ghost" line layer per
+// data source that draws a dashed outline (used when PI is overlaid on top).
+// ---------------------------------------------------------------------------
+
+function getDefraApi() {
+  const defraApi = globalThis?.defra
+  if (!defraApi?.InteractiveMap || !defraApi?.maplibreProvider) {
+    return null
   }
-  if (type === 'MultiPolygon') return coordinates.flat(2)
-  return []
+  return defraApi
 }
 
 function emptyFeatureCollection() {
   return { type: 'FeatureCollection', features: [] }
 }
 
-function addSourceIfMissing(map, sourceId, data) {
-  if (!data?.features?.length) return false
-  if (map.getSource(sourceId)) {
-    map.getSource(sourceId).setData(data)
-  } else {
-    map.addSource(sourceId, { type: 'geojson', data })
+function createLayerRegistry() {
+  const perLayer = () =>
+    Object.fromEntries(LAYER_DEFS.map((def) => [def.layer, []]))
+  return {
+    redLine: [],
+    baselineFull: perLayer(),
+    baselineGhost: perLayer(),
+    piFull: perLayer()
   }
-  return true
-}
-
-function addRedLineLayer(map, sourceId, fc) {
-  if (!addSourceIfMissing(map, sourceId, fc)) return
-  if (map.getLayer(sourceId)) return
-  map.addLayer({
-    id: sourceId,
-    type: 'line',
-    source: sourceId,
-    paint: RED_LINE_PAINT
-  })
-}
-
-function maplibreFilterFromSublayer(sublayer) {
-  return sublayer.filter
 }
 
 function paintFromFillSublayer(style) {
@@ -210,47 +269,73 @@ function paintFromStrokeSublayer(style) {
   return paint
 }
 
-function addSublayerStack(map, sourceId, fc, layerDef) {
-  if (!addSourceIfMissing(map, sourceId, fc)) return
-  const sublayers =
-    layerDef.layer === 'areaHabitats'
-      ? broadHabitatSublayers(layerDef.sublayerProperty)
-      : layerDef.layer === 'hedgerows'
-        ? hedgerowSublayers(layerDef.sublayerProperty)
-        : watercourseSublayers(layerDef.sublayerProperty)
+function addGeoJsonSource(map, sourceId, data) {
+  if (!data?.features?.length) return false
+  if (map.getSource(sourceId)) {
+    map.getSource(sourceId).setData(data)
+  } else {
+    map.addSource(sourceId, { type: 'geojson', data })
+  }
+  return true
+}
 
-  for (const sublayer of sublayers) {
-    const layerId = `${sourceId}-${sublayer.id}`
-    if (map.getLayer(layerId)) continue
-    if (layerDef.type === 'fill') {
-      map.addLayer({
-        id: layerId,
-        type: 'fill',
-        source: sourceId,
-        filter: maplibreFilterFromSublayer(sublayer),
-        paint: paintFromFillSublayer(sublayer.style)
-      })
-    } else {
-      map.addLayer({
-        id: layerId,
-        type: 'line',
-        source: sourceId,
-        filter: maplibreFilterFromSublayer(sublayer),
-        paint: paintFromStrokeSublayer(sublayer.style)
-      })
+function addRedLineLayer(map, registry, payload) {
+  const sourceId = 'red-line'
+  if (!addGeoJsonSource(map, sourceId, payload?.redLine)) return
+  if (map.getLayer(sourceId)) return
+  map.addLayer({
+    id: sourceId,
+    type: 'line',
+    source: sourceId,
+    paint: RED_LINE_PAINT
+  })
+  registry.redLine.push(sourceId)
+}
+
+function addFullStageLayers(map, stage, payload, registry) {
+  const prefix = STAGE_PREFIX[stage]
+  const group = stage === 'baseline' ? registry.baselineFull : registry.piFull
+  for (const def of LAYER_DEFS) {
+    const sourceId = `${prefix}-${def.layer}`
+    const fc = payload?.[def.layer]
+    if (!addGeoJsonSource(map, sourceId, fc)) continue
+    const sublayers = def.sublayerFactory(def.sublayerProperty)
+    for (const sublayer of sublayers) {
+      const layerId = `${sourceId}-${sublayer.id}`
+      if (map.getLayer(layerId)) continue
+      if (def.type === 'fill') {
+        map.addLayer({
+          id: layerId,
+          type: 'fill',
+          source: sourceId,
+          filter: sublayer.filter,
+          paint: paintFromFillSublayer(sublayer.style)
+        })
+      } else {
+        map.addLayer({
+          id: layerId,
+          type: 'line',
+          source: sourceId,
+          filter: sublayer.filter,
+          paint: paintFromStrokeSublayer(sublayer.style)
+        })
+      }
+      group[def.layer].push(layerId)
     }
   }
 }
 
 // Detailed (Level 4) sublayers paint on top of the broad fills using
-// fill-pattern. Their filter only matches features whose habitatType is in
-// the detailed palette, so features without a detailed entry are unaffected
-// and the broad colour beneath shows through. Layer order matters here —
-// this must be called after addSublayerStack for areaHabitats so the
-// patterns appear above the solid broad fills in the maplibre layer stack.
-function addDetailedHabitatLayers(map, sourceId, fc) {
-  if (!fc?.features?.length) return
+// fill-pattern. Patterns must already be registered on the map by the time
+// these layers reference them. Filter only matches features whose habitatType
+// is in the detailed palette, so features without a detailed entry are
+// unaffected and the broad colour beneath shows through.
+function addDetailedHabitatLayers(map, stage, payload, registry) {
+  const prefix = STAGE_PREFIX[stage]
+  const sourceId = `${prefix}-areaHabitats`
   if (!map.getSource(sourceId)) return
+  if (!payload?.areaHabitats?.features?.length) return
+  const group = stage === 'baseline' ? registry.baselineFull : registry.piFull
   const sublayers = detailedHabitatSublayers('habitatType')
   for (const sublayer of sublayers) {
     const layerId = `${sourceId}-${sublayer.id}`
@@ -270,6 +355,26 @@ function addDetailedHabitatLayers(map, sourceId, fc) {
         'fill-outline-color': sublayer.style.stroke
       }
     })
+    group.areaHabitats.push(layerId)
+  }
+}
+
+// One ghost line layer per baseline source — drawn on top of the full layers
+// so dashed baseline outlines remain visible over PI fills. Toggled into view
+// only when PI is also visible for the same data layer.
+function addBaselineGhostLayers(map, registry) {
+  for (const def of LAYER_DEFS) {
+    const sourceId = `baseline-${def.layer}`
+    if (!map.getSource(sourceId)) continue
+    const layerId = `${sourceId}-ghost`
+    if (map.getLayer(layerId)) continue
+    map.addLayer({
+      id: layerId,
+      type: 'line',
+      source: sourceId,
+      paint: GHOST_PAINT
+    })
+    registry.baselineGhost[def.layer].push(layerId)
   }
 }
 
@@ -279,17 +384,38 @@ function ensureHighlightLayers(map) {
       type: 'geojson',
       data: emptyFeatureCollection()
     })
+    // Layer order matters — halo first, then turquoise border on top, with
+    // the subtle tint underneath both. A line layer on a polygon source
+    // draws the polygon outline, which is how we get a thick border.
     map.addLayer({
       id: 'bhm-highlight-fill',
       type: 'fill',
       source: 'bhm-highlight-fill',
-      paint: HIGHLIGHT_FILL_PAINT
+      paint: HIGHLIGHT_FILL_TINT_PAINT
+    })
+    map.addLayer({
+      id: 'bhm-highlight-fill-halo',
+      type: 'line',
+      source: 'bhm-highlight-fill',
+      paint: HIGHLIGHT_FILL_HALO_PAINT
+    })
+    map.addLayer({
+      id: 'bhm-highlight-fill-border',
+      type: 'line',
+      source: 'bhm-highlight-fill',
+      paint: HIGHLIGHT_FILL_BORDER_PAINT
     })
   }
   if (!map.getSource('bhm-highlight-line')) {
     map.addSource('bhm-highlight-line', {
       type: 'geojson',
       data: emptyFeatureCollection()
+    })
+    map.addLayer({
+      id: 'bhm-highlight-line-halo',
+      type: 'line',
+      source: 'bhm-highlight-line',
+      paint: HIGHLIGHT_LINE_HALO_PAINT
     })
     map.addLayer({
       id: 'bhm-highlight-line',
@@ -300,85 +426,360 @@ function ensureHighlightLayers(map) {
   }
 }
 
-async function renderStage(map, payload) {
-  addRedLineLayer(map, 'red-line', payload.redLine)
-  for (const layerDef of LAYER_DEFS) {
-    const fc = payload[layerDef.layer] ?? emptyFeatureCollection()
-    addSublayerStack(map, layerDef.layer, fc, layerDef)
-  }
+async function renderAll(map, payloads, registry) {
+  addRedLineLayer(map, registry, payloads.baseline ?? payloads.postIntervention)
+  addFullStageLayers(map, 'baseline', payloads.baseline, registry)
+  addFullStageLayers(
+    map,
+    'postIntervention',
+    payloads.postIntervention,
+    registry
+  )
   // Patterns must be registered with the map before the detailed-habitat
   // layers reference them via fill-pattern; otherwise maplibre fires
   // styleimagemissing and the layer renders blank until the image arrives.
   await preloadDetailedHabitatPatterns(map)
+  addDetailedHabitatLayers(map, 'baseline', payloads.baseline, registry)
   addDetailedHabitatLayers(
     map,
-    'areaHabitats',
-    payload.areaHabitats ?? emptyFeatureCollection()
+    'postIntervention',
+    payloads.postIntervention,
+    registry
   )
+  addBaselineGhostLayers(map, registry)
   ensureHighlightLayers(map)
-  fitToFeatures(map, [
-    payload.redLine,
-    payload.areaHabitats,
-    payload.hedgerows,
-    payload.watercourses
+  fitToFeatureCollections(map, [
+    payloads.baseline?.redLine,
+    payloads.baseline?.areaHabitats,
+    payloads.baseline?.hedgerows,
+    payloads.baseline?.watercourses,
+    payloads.postIntervention?.redLine,
+    payloads.postIntervention?.areaHabitats,
+    payloads.postIntervention?.hedgerows,
+    payloads.postIntervention?.watercourses
   ])
 }
 
-function setStageData(map, payload) {
-  if (map.getSource('red-line') && payload.redLine) {
-    map.getSource('red-line').setData(payload.redLine)
-  }
-  for (const layerDef of LAYER_DEFS) {
-    const source = map.getSource(layerDef.layer)
-    if (source) {
-      source.setData(payload[layerDef.layer] ?? emptyFeatureCollection())
-    } else {
-      // Stage was empty on initial render; build the layers now.
-      addSublayerStack(
-        map,
-        layerDef.layer,
-        payload[layerDef.layer] ?? emptyFeatureCollection(),
-        layerDef
-      )
+// ---------------------------------------------------------------------------
+// Visibility model. State is { redLine: bool, areaHabitats: {baseline, pi},
+// hedgerows: {…}, watercourses: {…} }. When both stages are checked for a
+// data layer, baseline collapses to its dashed ghost line so the PI UKHab
+// fills read on top.
+// ---------------------------------------------------------------------------
+
+function setLayerListVisibility(map, layerIds, visible) {
+  const value = visible ? 'visible' : 'none'
+  for (const id of layerIds) {
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, 'visibility', value)
     }
   }
-  // Detailed habitat patterns reference the areaHabitats source — if the
-  // source was just created above, the detailed layers don't exist yet, so
-  // build them now. Patterns are preloaded once at init, so this stays
-  // synchronous after the first render.
-  addDetailedHabitatLayers(
-    map,
-    'areaHabitats',
-    payload.areaHabitats ?? emptyFeatureCollection()
+}
+
+function applyVisibility(map, registry, state, piAvailable) {
+  setLayerListVisibility(map, registry.redLine, state.redLine === true)
+  for (const def of LAYER_DEFS) {
+    const baselineOn = state[def.layer]?.baseline === true
+    const piOn = piAvailable && state[def.layer]?.pi === true
+    const baselineFullVisible = baselineOn && !piOn
+    const baselineGhostVisible = baselineOn && piOn
+    const piFullVisible = piOn
+    setLayerListVisibility(
+      map,
+      registry.baselineFull[def.layer],
+      baselineFullVisible
+    )
+    setLayerListVisibility(
+      map,
+      registry.baselineGhost[def.layer],
+      baselineGhostVisible
+    )
+    setLayerListVisibility(map, registry.piFull[def.layer], piFullVisible)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Checkbox layer panel — sits as a map overlay (top-right of the map). One
+// checkbox per layer per available stage; baseline + PI for each non-redline
+// data layer. When PI data isn't loaded, only baseline checkboxes render.
+// ---------------------------------------------------------------------------
+
+function buildInitialState(piAvailable) {
+  const state = { redLine: true }
+  for (const def of LAYER_DEFS) {
+    state[def.layer] = { baseline: true, pi: piAvailable }
+  }
+  return state
+}
+
+function ensureMapWrapper(container) {
+  const parent = container.parentElement
+  if (parent?.classList.contains(WRAPPER_CLASS)) return parent
+  const wrapper = document.createElement('div')
+  wrapper.className = WRAPPER_CLASS
+  container.parentNode.insertBefore(wrapper, container)
+  wrapper.appendChild(container)
+  return wrapper
+}
+
+function renderStageCheckbox(layerKey, stageKey, label, checked) {
+  const id = `bhm-toggle-${layerKey}-${stageKey}`
+  return `
+    <div class="bhm-layer-panel__option">
+      <input class="bhm-layer-panel__checkbox" type="checkbox" id="${id}"
+             data-layer="${layerKey}" data-stage="${stageKey}"
+             ${checked ? 'checked' : ''}>
+      <label class="bhm-layer-panel__option-label" for="${id}">${label}</label>
+    </div>
+  `
+}
+
+function renderRedLineRow(state) {
+  return `
+    <div class="bhm-layer-panel__option">
+      <input class="bhm-layer-panel__checkbox" type="checkbox" id="bhm-toggle-redLine"
+             data-layer="redLine" ${state.redLine ? 'checked' : ''}>
+      <label class="bhm-layer-panel__option-label" for="bhm-toggle-redLine">Red line boundary</label>
+    </div>
+  `
+}
+
+function renderStageSection(stageKey, stageLabel, state) {
+  const rows = LAYER_DEFS.map((def) =>
+    renderStageCheckbox(
+      def.layer,
+      stageKey,
+      def.label,
+      state[def.layer]?.[stageKey]
+    )
+  ).join('')
+  return `
+    <div class="bhm-layer-panel__group">
+      <div class="bhm-layer-panel__group-title">${stageLabel}</div>
+      ${rows}
+    </div>
+  `
+}
+
+function renderLayerPanel(wrapper, state, piAvailable, onChange) {
+  const existing = document.getElementById(LAYER_PANEL_ID)
+  if (existing) existing.remove()
+  const panel = document.createElement('div')
+  panel.id = LAYER_PANEL_ID
+  panel.className = 'bhm-layer-panel'
+  panel.setAttribute('aria-label', 'Map layers')
+  const sections = [
+    renderStageSection('baseline', 'Baseline', state),
+    piAvailable ? renderStageSection('pi', 'Post-intervention', state) : ''
+  ].join('')
+  panel.innerHTML = `
+    <div class="bhm-layer-panel__title">Layers</div>
+    ${renderRedLineRow(state)}
+    ${sections}
+  `
+  wrapper.appendChild(panel)
+  panel.addEventListener('change', (event) => {
+    const target = event.target
+    if (!target || target.type !== 'checkbox') return
+    const layer = target.dataset?.layer
+    const stage = target.dataset?.stage
+    if (!layer) return
+    if (layer === 'redLine') {
+      state.redLine = target.checked
+    } else if (stage && state[layer]) {
+      state[layer][stage] = target.checked
+    }
+    onChange()
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Legend overlay — a second map overlay describing what each visible fill,
+// pattern and line stroke means. Only entries that actually appear in the
+// loaded data are shown, so the panel scales with the project rather than
+// listing the entire palette.
+// ---------------------------------------------------------------------------
+
+const SWATCH_W = 22
+const SWATCH_H = 14
+
+function svgWrap(inner) {
+  return `<svg width="${SWATCH_W}" height="${SWATCH_H}" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">${inner}</svg>`
+}
+
+function broadSwatchSvg(fill, stroke) {
+  return svgWrap(
+    `<rect width="${SWATCH_W}" height="${SWATCH_H}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`
   )
 }
 
-function runWhenStyleReady(map, callback) {
-  if (map.isStyleLoaded()) {
-    callback()
-    return
+function detailedSwatchOverlay(name, fg) {
+  if (name === PATTERNS.CROSS_HATCH) {
+    return `<path d="M0 0L${SWATCH_W} ${SWATCH_H}M${SWATCH_W} 0L0 ${SWATCH_H}" stroke="${fg}" stroke-width="1" fill="none"/>`
   }
-  map.once('style.load', callback)
+  if (name === PATTERNS.HORIZONTAL) {
+    return `<path d="M0 4L${SWATCH_W} 4M0 10L${SWATCH_W} 10" stroke="${fg}" stroke-width="1" fill="none"/>`
+  }
+  if (name === PATTERNS.VERTICAL) {
+    return `<path d="M6 0L6 ${SWATCH_H}M16 0L16 ${SWATCH_H}" stroke="${fg}" stroke-width="1" fill="none"/>`
+  }
+  if (name === PATTERNS.DOTS) {
+    return `<circle cx="5" cy="4" r="1.3" fill="${fg}"/><circle cx="11" cy="10" r="1.3" fill="${fg}"/><circle cx="17" cy="4" r="1.3" fill="${fg}"/>`
+  }
+  return ''
 }
 
-async function loadGeometry(url) {
-  if (!url) return null
-  const response = await fetch(url, {
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' }
-  })
-  if (!response.ok) {
-    throw new Error(`Geometry fetch failed: ${response.status}`)
-  }
-  return response.json()
+function detailedSwatchSvg(entry) {
+  const base = `<rect width="${SWATCH_W}" height="${SWATCH_H}" fill="${entry.fillPatternBackgroundColor}" stroke="${entry.stroke}" stroke-width="0.5"/>`
+  const overlay = detailedSwatchOverlay(
+    entry.fillPattern,
+    entry.fillPatternForegroundColor
+  )
+  return svgWrap(base + overlay)
 }
 
-function findFeatureByRef(payload, ref) {
-  for (const key of ['areaHabitats', 'hedgerows', 'watercourses']) {
-    const feature = payload?.[key]?.features?.find(
-      (f) => f.properties?.ref === ref
-    )
-    if (feature) return { feature, layer: key }
+function lineSwatchSvg(stroke, dashArray) {
+  const dash = dashArray ? `stroke-dasharray="${dashArray.join(' ')}"` : ''
+  const mid = SWATCH_H / 2
+  return svgWrap(
+    `<line x1="1" y1="${mid}" x2="${SWATCH_W - 1}" y2="${mid}" stroke="${stroke}" stroke-width="2.5" ${dash}/>`
+  )
+}
+
+function collectUniqueValues(payloads, layerKey, propertyName) {
+  const values = new Set()
+  for (const stage of [payloads.baseline, payloads.postIntervention]) {
+    for (const feature of stage?.[layerKey]?.features ?? []) {
+      const value = feature.properties?.[propertyName]
+      if (value) values.add(value)
+    }
+  }
+  return [...values].sort((a, b) => a.localeCompare(b))
+}
+
+function collectLegendEntries(payloads) {
+  const broadValues = collectUniqueValues(
+    payloads,
+    'areaHabitats',
+    'broadHabitatType'
+  )
+  const detailedValues = collectUniqueValues(
+    payloads,
+    'areaHabitats',
+    'habitatType'
+  ).filter((name) => detailedHabitatPalette[name])
+  const hedgerowValues = collectUniqueValues(
+    payloads,
+    'hedgerows',
+    'habitatType'
+  )
+  const watercourseValues = collectUniqueValues(
+    payloads,
+    'watercourses',
+    'habitatType'
+  )
+  return {
+    broad: broadValues,
+    detailed: detailedValues,
+    hedgerows: hedgerowValues,
+    watercourses: watercourseValues
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function legendRow(swatchSvg, label) {
+  return `<div class="bhm-legend__entry">${swatchSvg}<span class="bhm-legend__label">${escapeHtml(label)}</span></div>`
+}
+
+function renderBroadSection(values) {
+  if (values.length === 0) return ''
+  const rows = values
+    .map((name) => {
+      const entry = broadHabitatPalette[name]
+      const swatch = entry
+        ? broadSwatchSvg(entry.fill, entry.stroke)
+        : broadSwatchSvg('#cccccc', '#666666')
+      return legendRow(swatch, name)
+    })
+    .join('')
+  return `<div class="bhm-legend__group"><div class="bhm-legend__group-title">Area habitats</div>${rows}</div>`
+}
+
+function renderDetailedSection(values) {
+  if (values.length === 0) return ''
+  const rows = values
+    .map((name) => {
+      const entry = detailedHabitatPalette[name]
+      return legendRow(detailedSwatchSvg(entry), name)
+    })
+    .join('')
+  return `<div class="bhm-legend__group"><div class="bhm-legend__group-title">Detailed habitats</div>${rows}</div>`
+}
+
+function renderLinearSection(title, values, palette) {
+  if (values.length === 0) return ''
+  const rows = values
+    .map((name) => {
+      const entry = palette[name]
+      const swatch = entry
+        ? lineSwatchSvg(entry.stroke, entry.dashArray)
+        : lineSwatchSvg('#666666')
+      return legendRow(swatch, name)
+    })
+    .join('')
+  return `<div class="bhm-legend__group"><div class="bhm-legend__group-title">${escapeHtml(title)}</div>${rows}</div>`
+}
+
+function renderLegendPanel(wrapper, entries) {
+  const totalEntries =
+    entries.broad.length +
+    entries.detailed.length +
+    entries.hedgerows.length +
+    entries.watercourses.length
+  if (totalEntries === 0) return
+  const existing = document.getElementById(LEGEND_ID)
+  if (existing) existing.remove()
+  const panel = document.createElement('div')
+  panel.id = LEGEND_ID
+  panel.className = 'bhm-legend'
+  panel.setAttribute('aria-label', 'Map legend')
+  panel.innerHTML = `
+    <div class="bhm-legend__title">Legend</div>
+    ${renderBroadSection(entries.broad)}
+    ${renderDetailedSection(entries.detailed)}
+    ${renderLinearSection('Hedgerows', entries.hedgerows, hedgerowPalette)}
+    ${renderLinearSection('Watercourses', entries.watercourses, watercoursePalette)}
+  `
+  wrapper.appendChild(panel)
+}
+
+// ---------------------------------------------------------------------------
+// Highlight + table wiring. The habitat-list page shows one table per data
+// layer for whichever stage the page is built around. We search both stages
+// when resolving a ref, preferring the page's primary stage so that ties go
+// to the table the user is looking at.
+// ---------------------------------------------------------------------------
+
+function findFeatureByRef(payloads, primaryStage, ref) {
+  const order =
+    primaryStage === 'postIntervention'
+      ? ['postIntervention', 'baseline']
+      : ['baseline', 'postIntervention']
+  for (const stage of order) {
+    const payload = payloads[stage]
+    if (!payload) continue
+    for (const key of ['areaHabitats', 'hedgerows', 'watercourses']) {
+      const feature = payload[key]?.features?.find(
+        (f) => f.properties?.ref === ref
+      )
+      if (feature) return { feature, layer: key, stage }
+    }
   }
   return null
 }
@@ -435,36 +836,41 @@ function annotateTableRowsWithRef() {
   }
 }
 
-function wireTableToMap(map, stageGetter) {
+function fitToFeatureBounds(map, geometry) {
+  const bbox = extendBounds(null, geometry)
+  if (!bbox) return
+  map.fitBounds(
+    [
+      [bbox[0], bbox[1]],
+      [bbox[2], bbox[3]]
+    ],
+    { padding: 64, maxZoom: 17, duration: 250 }
+  )
+}
+
+function wireTableToMap(map, payloads, primaryStage) {
   annotateTableRowsWithRef()
   document.addEventListener('click', (event) => {
     const row = event.target.closest('tr[data-ref]')
     if (!row) return
     if (event.target.closest('a, button, input')) return
     const ref = row.dataset.ref
-    const payload = stageGetter()
-    const found = findFeatureByRef(payload, ref)
+    const found = findFeatureByRef(payloads, primaryStage, ref)
     if (!found) return
     event.preventDefault()
     setHighlight(map, found.feature)
     highlightRowByRef(ref)
-    const bbox = extendBounds(null, found.feature.geometry)
-    if (bbox) {
-      map.fitBounds(
-        [
-          [bbox[0], bbox[1]],
-          [bbox[2], bbox[3]]
-        ],
-        { padding: 64, maxZoom: 17, duration: 250 }
-      )
-    }
+    fitToFeatureBounds(map, found.feature.geometry)
   })
 }
 
-function wireMapToTable(map) {
-  const clickableLayers = LAYER_DEFS.map((d) => d.layer)
-  for (const layer of clickableLayers) {
-    map.on('click', layer, (e) => {
+function wireMapToTable(map, registry) {
+  const clickableLayers = [
+    ...Object.values(registry.baselineFull).flat(),
+    ...Object.values(registry.piFull).flat()
+  ]
+  for (const layerId of clickableLayers) {
+    map.on('click', layerId, (e) => {
       const feature = e.features?.[0]
       if (!feature) return
       const ref = feature.properties?.ref
@@ -472,40 +878,64 @@ function wireMapToTable(map) {
       setHighlight(map, feature)
       highlightRowByRef(ref)
     })
-    map.on('mouseenter', layer, () => {
+    map.on('mouseenter', layerId, () => {
       map.getCanvas().style.cursor = 'pointer'
     })
-    map.on('mouseleave', layer, () => {
+    map.on('mouseleave', layerId, () => {
       map.getCanvas().style.cursor = ''
     })
   }
 }
 
-function renderStageToggle(container, initialStage, onChange) {
-  if (document.getElementById('bhm-stage-toggle')) return
-  const wrapper = document.createElement('fieldset')
-  wrapper.id = 'bhm-stage-toggle'
-  wrapper.className = 'govuk-fieldset govuk-!-margin-bottom-2 bhm-stage-toggle'
-  wrapper.innerHTML = `
-    <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">
-      Stage
-    </legend>
-    <div class="govuk-radios govuk-radios--inline" data-module="govuk-radios">
-      <div class="govuk-radios__item">
-        <input class="govuk-radios__input" id="bhm-stage-baseline" name="${STAGE_TOGGLE_NAME}" type="radio" value="baseline" ${initialStage === 'baseline' ? 'checked' : ''}>
-        <label class="govuk-label govuk-radios__label" for="bhm-stage-baseline">Baseline</label>
-      </div>
-      <div class="govuk-radios__item">
-        <input class="govuk-radios__input" id="bhm-stage-pi" name="${STAGE_TOGGLE_NAME}" type="radio" value="postIntervention" ${initialStage === 'postIntervention' ? 'checked' : ''}>
-        <label class="govuk-label govuk-radios__label" for="bhm-stage-pi">Post-intervention</label>
-      </div>
-    </div>
-  `
-  container.parentNode.insertBefore(wrapper, container)
-  wrapper.addEventListener('change', (event) => {
-    const stage = event.target?.value
-    if (stage) onChange(stage)
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
+function runWhenStyleReady(map, callback) {
+  if (map.isStyleLoaded()) {
+    callback()
+    return
+  }
+  map.once('style.load', callback)
+}
+
+async function loadGeometry(url) {
+  if (!url) return null
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' }
   })
+  if (!response.ok) {
+    throw new Error(`Geometry fetch failed: ${response.status}`)
+  }
+  return response.json()
+}
+
+async function loadAllPayloads(geometryUrl, postInterventionGeometryUrl) {
+  const payloads = { baseline: null, postIntervention: null }
+  payloads.baseline = await loadGeometry(geometryUrl)
+  if (postInterventionGeometryUrl) {
+    payloads.postIntervention = await loadGeometry(
+      postInterventionGeometryUrl
+    ).catch((err) => {
+      // PI is optional — if the project hasn't been through PI yet, the
+      // endpoint may return 404 or no features. Log and fall back to
+      // baseline-only rendering.
+      console.warn('[baseline-habitat-map] post-intervention fetch failed', err)
+      return null
+    })
+  }
+  return payloads
+}
+
+function payloadHasAnyFeatures(payload) {
+  if (!payload) return false
+  return (
+    Boolean(payload.redLine?.features?.length) ||
+    Boolean(payload.areaHabitats?.features?.length) ||
+    Boolean(payload.hedgerows?.features?.length) ||
+    Boolean(payload.watercourses?.features?.length)
+  )
 }
 
 export async function initBaselineHabitatMap() {
@@ -516,14 +946,14 @@ export async function initBaselineHabitatMap() {
     geometryUrl,
     postInterventionGeometryUrl,
     osStyleUrl,
-    stage: initialStageAttr
+    stage: stageAttr
   } = container.dataset
   if (!geometryUrl || !osStyleUrl) {
     console.warn('[baseline-habitat-map] missing data-* attributes; skipping')
     return
   }
-  const initialStage =
-    initialStageAttr === 'postIntervention' ? 'postIntervention' : 'baseline'
+  const primaryStage =
+    stageAttr === 'postIntervention' ? 'postIntervention' : 'baseline'
 
   const defraApi = getDefraApi()
   if (!defraApi) {
@@ -531,20 +961,9 @@ export async function initBaselineHabitatMap() {
     return
   }
 
-  const stages = { baseline: null, postIntervention: null }
+  let payloads
   try {
-    stages.baseline = await loadGeometry(geometryUrl)
-    if (postInterventionGeometryUrl) {
-      stages.postIntervention = await loadGeometry(
-        postInterventionGeometryUrl
-      ).catch((err) => {
-        console.warn(
-          '[baseline-habitat-map] post-intervention fetch failed',
-          err
-        )
-        return null
-      })
-    }
+    payloads = await loadAllPayloads(geometryUrl, postInterventionGeometryUrl)
   } catch (err) {
     console.error('[baseline-habitat-map] failed to load geometries', err)
     container.innerHTML =
@@ -552,8 +971,8 @@ export async function initBaselineHabitatMap() {
     return
   }
 
-  let currentStage = initialStage
-  const stageGetter = () => stages[currentStage] ?? stages.baseline
+  const piAvailable = payloadHasAnyFeatures(payloads.postIntervention)
+  const wrapper = ensureMapWrapper(container)
 
   const osAttribution = `&copy; Crown copyright and database rights ${new Date().getFullYear()} Ordnance Survey`
   const mapStyle = {
@@ -571,19 +990,8 @@ export async function initBaselineHabitatMap() {
     mapStyles: [mapStyle]
   })
 
-  if (stages.postIntervention) {
-    renderStageToggle(container, currentStage, (nextStage) => {
-      currentStage = nextStage
-      const payload = stageGetter()
-      if (!payload) return
-      const map = interactiveMap?._map ?? interactiveMap?.map
-      if (map) {
-        setStageData(map, payload)
-        setHighlight(map, null)
-        highlightRowByRef(null)
-      }
-    })
-  }
+  const state = buildInitialState(piAvailable)
+  const registry = createLayerRegistry()
 
   interactiveMap.on('map:ready', (event) => {
     const map = event?.map
@@ -593,9 +1001,16 @@ export async function initBaselineHabitatMap() {
     }
     runWhenStyleReady(map, async () => {
       try {
-        await renderStage(map, stageGetter())
-        wireTableToMap(map, stageGetter)
-        wireMapToTable(map)
+        await renderAll(map, payloads, registry)
+        applyVisibility(map, registry, state, piAvailable)
+        renderLayerPanel(wrapper, state, piAvailable, () => {
+          applyVisibility(map, registry, state, piAvailable)
+          setHighlight(map, null)
+          highlightRowByRef(null)
+        })
+        renderLegendPanel(wrapper, collectLegendEntries(payloads))
+        wireTableToMap(map, payloads, primaryStage)
+        wireMapToTable(map, registry)
       } catch (err) {
         console.error('[baseline-habitat-map] failed to add layers', err)
       }
