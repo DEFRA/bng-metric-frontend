@@ -19,6 +19,7 @@
     "git:pre-commit-hook": "npm run security-audit && npm run format:check && npm run lint && npm test",
     "install:gitleaks": "node scripts/install-gitleaks.mjs",
     "postinstall": "node scripts/postinstall.mjs",
+    "seed:stub-users": "node scripts/seed-stub-users.mjs",
     "lint": "run-s lint:js lint:scss",
     "lint:js": "eslint .",
     "lint:js:fix": "eslint . --fix",
