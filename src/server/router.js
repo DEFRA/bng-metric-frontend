@@ -17,6 +17,7 @@ import { postInterventionHabitatDetails } from './post-intervention-habitat-deta
 import { invalidFile } from './error-file/index.js'
 import { baselineHabitatList } from './baseline-habitat-list/index.js'
 import { postInterventionHabitatList } from './post-intervention-habitat-list/index.js'
+import { projectDetails } from './project-details/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -47,7 +48,8 @@ export const router = {
         postInterventionHabitatDetails,
         baselineHabitatList,
         postInterventionHabitatList,
-        invalidFile
+        invalidFile,
+        projectDetails
       ])
 
       // Static assets
