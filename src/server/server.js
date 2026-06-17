@@ -24,11 +24,13 @@ export async function createServer() {
     host: config.get('host'),
     port: config.get('port'),
     routes: {
-      // No routes.payload.maxBytes by design: uploads bypass Hapi (browser →
-      // CDP Uploader → S3) and routes here only proxy small JSON, so Hapi's
-      // ~1 MB default is the right limit. The 100 MB cap is enforced client-side
-      // (client/javascripts/file-validation-rules.js) and by the backend's S3
-      // download guard.
+      // Cap incoming request bodies explicitly instead of relying on Hapi's
+      // ~1 MB default. File uploads bypass this app (browser → CDP Uploader →
+      // S3), so routes here only ever receive small JSON/form bodies; 2 MB is
+      // ample headroom. This is separate from the upload file-size limit.
+      payload: {
+        maxBytes: config.get('requestPayloadMaxBytes')
+      },
       validate: {
         options: {
           abortEarly: false

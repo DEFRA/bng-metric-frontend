@@ -8,6 +8,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const fourHoursMs = 14400000
 const oneWeekMs = 604800000
+const twoMbInBytes = 2 * 1024 * 1024
 
 const isProduction = process.env.NODE_ENV === 'production'
 const isTest = process.env.NODE_ENV === 'test'
@@ -38,6 +39,12 @@ export const config = convict({
     format: 'port',
     default: 3000,
     env: 'PORT'
+  },
+  requestPayloadMaxBytes: {
+    doc: 'Maximum size in bytes for incoming request payloads. Separate from the upload file-size limit: file uploads bypass this app and go to the CDP Uploader, so this only caps the small JSON/form bodies the app actually receives.',
+    format: Number,
+    default: twoMbInBytes,
+    env: 'REQUEST_PAYLOAD_MAX_BYTES'
   },
   backend: {
     url: {
