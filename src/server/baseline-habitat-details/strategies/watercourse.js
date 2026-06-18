@@ -91,18 +91,8 @@ function buildViewModel(watercourse, reference, { projectId, projectName }) {
     habitatRef,
     sizeDisplay: formatLengthKm(watercourse.sizeMetres),
     sizeLabel: 'Length (km)',
-    // BMD-502 story lists "broad habitat" as a dropdown alongside habitat type,
-    // but the engine bundles a flat watercourse habitat-type table — no broad
-    // parent exists today. Rendering the row anyway (per the story spec) with
-    // a placeholder-only dropdown until PO clarifies the intended source. If
-    // it turns out to be a copy-paste from BMD-500's area ACs, flip this flag
-    // to false and the row drops out.
-    showBroadHabitatRow: true,
-    broadHabitatOptions: buildSelectItems(
-      [],
-      watercourse.broadType,
-      'Choose broad habitat'
-    ),
+    // Watercourses have no broad habitat dimension.
+    showBroadHabitatRow: false,
     showWatercourseEncroachmentRows: true,
     distinctivenessDisplay:
       watercourse.distinctiveness &&

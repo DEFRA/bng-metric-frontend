@@ -154,15 +154,12 @@ describe('watercourseStrategy.buildViewModel', () => {
     expect(vm.headingPrefix).toBe('Watercourse')
   })
 
-  test('renders a placeholder-only broad habitat row until PO confirms the source', () => {
-    // Story lists "broad habitat" as a watercourse dropdown but the engine has
-    // no broad parent for watercourses. Row stays visible; the dropdown holds
-    // only the "Choose broad habitat" placeholder.
+  test('omits the broad habitat row (not a valid field for watercourses)', () => {
+    // Broad habitat is not a valid dimension for watercourses (the engine's
+    // watercourse habitat-type table is flat).
     const vm = watercourseStrategy.buildViewModel({}, reference, ctx)
-    expect(vm.showBroadHabitatRow).toBe(true)
-    expect(vm.broadHabitatOptions).toEqual([
-      { value: '', text: 'Choose broad habitat', selected: true }
-    ])
+    expect(vm.showBroadHabitatRow).toBe(false)
+    expect(vm.broadHabitatOptions).toBeUndefined()
   })
 
   test('flags watercourse-encroachment rows for the shell template', () => {
