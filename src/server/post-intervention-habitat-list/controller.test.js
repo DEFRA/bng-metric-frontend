@@ -88,6 +88,16 @@ describe('#postInterventionHabitatListController - GET', () => {
       `/projects/${projectId}/upload-post-intervention-file`
     )
   })
+
+  test('Continue button links to backHref', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(`href="/add-project-details/${projectId}"`)
+  })
 })
 
 describe('#postInterventionHabitatListController - summary table', () => {
