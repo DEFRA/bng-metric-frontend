@@ -453,6 +453,16 @@ describe('#habitatListController - GET', () => {
     expect(result).toContain('Continue')
     expect(result).not.toContain('Show map')
   })
+
+  test('Continue button links to backHref', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(`href="/add-project-details/${projectId}"`)
+  })
 })
 
 describe('#habitatListController - validation', () => {
