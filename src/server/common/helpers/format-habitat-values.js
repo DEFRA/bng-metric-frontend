@@ -33,7 +33,7 @@ function formatAreaHectares(squareMetres) {
     return EMPTY_DISPLAY
   }
   const hectares = squareMetres / SQUARE_METRES_PER_HECTARE
-  return Number(hectares.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()
+  return `${Number(hectares.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()}ha`
 }
 
 /**

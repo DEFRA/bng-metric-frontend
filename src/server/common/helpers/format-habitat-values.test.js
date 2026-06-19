@@ -9,20 +9,20 @@ import {
 } from './format-habitat-values.js'
 
 describe('formatAreaHectares', () => {
-  test('Converts whole square metres to hectares', () => {
-    expect(formatAreaHectares(10000)).toBe('1')
-    expect(formatAreaHectares(25000)).toBe('2.5')
+  test('Converts whole square metres to hectares and appends "ha"', () => {
+    expect(formatAreaHectares(10000)).toBe('1ha')
+    expect(formatAreaHectares(25000)).toBe('2.5ha')
   })
 
   test('Rounds to 10 significant figures (trailing zeros stripped)', () => {
     // 1.234567894e9 m² → 123456.7894 hectares (already 10 sig figs)
-    expect(formatAreaHectares(1234567894)).toBe('123456.7894')
+    expect(formatAreaHectares(1234567894)).toBe('123456.7894ha')
     // 11 sig figs in the source — rounded to 10
-    expect(formatAreaHectares(12345678945)).toBe('1234567.894')
+    expect(formatAreaHectares(12345678945)).toBe('1234567.894ha')
   })
 
   test('Handles small areas without scientific notation oddities', () => {
-    expect(formatAreaHectares(1)).toBe('0.0001')
+    expect(formatAreaHectares(1)).toBe('0.0001ha')
   })
 
   test('Returns empty string for null, undefined or non-finite input', () => {
