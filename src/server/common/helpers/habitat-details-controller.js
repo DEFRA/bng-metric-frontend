@@ -35,8 +35,9 @@ async function fetchFeature(request, uploadType, projectId, featureId) {
       err.data?.res?.statusCode === statusCodes.notFound
     ) {
       throw Boom.notFound(`Feature ${featureId} not found`)
+    } else {
+      throw err
     }
-    throw err
   }
 }
 
@@ -59,11 +60,61 @@ function adaptListHref(href, uploadType, projectId) {
 function habitatListAnchorFor(payload, featureId) {
   if (payload?.type === 'hedgerow') {
     return '#hedgerows'
-  }
-  if (payload?.type === 'watercourse') {
+  } else if (payload?.type === 'watercourse') {
     return '#watercourses'
+  } else {
+    return `#habitat-${featureId}`
   }
-  return `#habitat-${featureId}`
+}
+
+/**
+ * Return a flattened feature shape that strategies can consume, promoting
+ * `proposed.*` fields to top level while preserving the raw `proposed` and
+ * `baseline` sub-objects for comparison rendering.
+ *
+ * @param {object} feature
+ * @returns {object}
+ */
+export function normalizePostInterventionFeatureForDisplay(feature) {
+  const proposed = feature.proposed ?? {}
+  return {
+    ...feature,
+    ...proposed,
+    baseline: feature.baseline,
+    proposed: feature.proposed
+  }
+}
+
+/**
+ * Return the baseline feature unchanged (no normalisation needed).
+ *
+ * @param {object} feature
+ * @returns {object}
+ */
+export function normalizeBaselineFeatureForDisplay(feature) {
+  return feature
+}
+
+function buildSaveBody({
+  broadHabitat,
+  habitatType,
+  condition,
+  watercourseEncroachment,
+  riparianEncroachment
+}) {
+  const body = {
+    broadType: broadHabitat || null,
+    habitatType: habitatType || null,
+    condition: condition || null
+  }
+  // Only the watercourse form submits encroachment fields.
+  if (watercourseEncroachment !== undefined) {
+    body.watercourseEncroachment = watercourseEncroachment || null
+  }
+  if (riparianEncroachment !== undefined) {
+    body.riparianEncroachment = riparianEncroachment || null
+  }
+  return body
 }
 
 function createGetController(uploadType) {
@@ -78,11 +129,14 @@ function createGetController(uploadType) {
     },
     async handler(request, h) {
       const { featureId, projectId } = request.query
-      const [{ type, feature }, projectName] = await Promise.all([
+      const [{ type, feature: rawFeature }, projectName] = await Promise.all([
         fetchFeature(request, uploadType, projectId, featureId),
         fetchProjectName(request, projectId)
       ])
 
+      const feature = uploadType.isPostIntervention
+        ? normalizePostInterventionFeatureForDisplay(rawFeature)
+        : normalizeBaselineFeatureForDisplay(rawFeature)
       const strategy = getStrategy(type)
       const reference = await strategy.loadReference(feature)
       const viewModel = strategy.buildViewModel(feature, reference, {
@@ -131,20 +185,13 @@ function createPostController(uploadType) {
         riparianEncroachment
       } = request.payload
 
-      // Only include the encroachment fields when the form actually sent them.
-      // They belong to the watercourse form only; the backend rejects them on
-      // area/hedgerow saves because its payload schema doesn't expect them there.
-      const body = {
-        broadType: broadHabitat || null,
-        habitatType: habitatType || null,
-        condition: condition || null
-      }
-      if (watercourseEncroachment !== undefined) {
-        body.watercourseEncroachment = watercourseEncroachment || null
-      }
-      if (riparianEncroachment !== undefined) {
-        body.riparianEncroachment = riparianEncroachment || null
-      }
+      const body = buildSaveBody({
+        broadHabitat,
+        habitatType,
+        condition,
+        watercourseEncroachment,
+        riparianEncroachment
+      })
 
       let payload
       try {
@@ -161,8 +208,9 @@ function createPostController(uploadType) {
       } catch (err) {
         if (err?.output?.statusCode === statusCodes.conflict) {
           throw Boom.conflict('Another user is editing this project')
+        } else {
+          throw Boom.badGateway('Failed to save habitat')
         }
-        throw Boom.badGateway('Failed to save habitat')
       }
 
       return h.redirect(

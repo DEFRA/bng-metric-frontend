@@ -10,11 +10,41 @@ import {
 
 const NO_DATA_DISPLAY = 'No data'
 
-function formatLinearUnits(features, total) {
-  if (!features?.length) {
-    return NO_DATA_DISPLAY
+/**
+ * Resolve display fields for a baseline feature (reads top-level properties).
+ *
+ * @param {object} feature
+ * @returns {{ type: string|null, distinctiveness: string|null, condition: string|null }}
+ */
+export function resolveBaselineDisplayFields(feature) {
+  return {
+    type: feature.type ?? null,
+    distinctiveness: feature.distinctiveness ?? null,
+    condition: feature.condition ?? null
   }
-  return formatHabitatUnits(total)
+}
+
+/**
+ * Resolve display fields for a post-intervention feature (reads the `proposed`
+ * sub-object).
+ *
+ * @param {object} feature
+ * @returns {{ type: string|null, distinctiveness: string|null, condition: string|null }}
+ */
+export function resolveProposedDisplayFields(feature) {
+  const src = feature.proposed ?? {}
+  return {
+    type: src.type ?? null,
+    distinctiveness: src.distinctiveness ?? null,
+    condition: src.condition ?? null
+  }
+}
+
+function formatLinearUnits(features, total) {
+  if (features?.length) {
+    return formatHabitatUnits(total)
+  }
+  return NO_DATA_DISPLAY
 }
 
 function featureDetailsHref(uploadType, featureId, projectId) {
@@ -25,70 +55,55 @@ function featureDetailsHref(uploadType, featureId, projectId) {
   return `/${uploadType.detailsRoute}?${params.toString()}`
 }
 
+function buildRefLinkCell(feature, projectId, uploadType) {
+  return {
+    html: `<a class="govuk-link" href="${featureDetailsHref(uploadType, feature.featureId, projectId)}">${feature.ref}</a>`,
+    attributes: {
+      'data-sort-value': feature.ref
+    }
+  }
+}
+
+function buildFeatureRow(feature, projectId, uploadType, sizeCell) {
+  const display = uploadType.isPostIntervention
+    ? resolveProposedDisplayFields(feature)
+    : resolveBaselineDisplayFields(feature)
+  return [
+    buildRefLinkCell(feature, projectId, uploadType),
+    { text: display.type ?? '' },
+    sizeCell,
+    { text: display.distinctiveness ?? '' },
+    { text: display.condition ?? '' },
+    { text: formatHabitatUnits(feature.units) },
+    { text: feature.status ?? '' }
+  ]
+}
+
+function buildLinearSizeCell(sizeMetres) {
+  return {
+    text: formatLengthKm(sizeMetres) + KM_UNIT,
+    attributes: {
+      'data-sort-value': sizeMetres
+    }
+  }
+}
+
 function buildHabitatRow(habitat, projectId, uploadType) {
-  return [
-    {
-      html: `<a class="govuk-link" href="${featureDetailsHref(uploadType, habitat.featureId, projectId)}">${habitat.ref}</a>`,
-      attributes: {
-        'data-sort-value': habitat.ref
-      }
-    },
-    { text: habitat.type ?? '' },
-    {
-      text: formatAreaHectares(habitat.sizeSquareMetres),
-      attributes: {
-        'data-sort-value': habitat.sizeSquareMetres
-      }
-    },
-    { text: habitat.distinctiveness ?? '' },
-    { text: habitat.condition ?? '' },
-    { text: formatHabitatUnits(habitat.units) },
-    { text: habitat.status ?? '' }
-  ]
+  return buildFeatureRow(habitat, projectId, uploadType, {
+    text: formatAreaHectares(habitat.sizeSquareMetres),
+    attributes: {
+      'data-sort-value': habitat.sizeSquareMetres
+    }
+  })
 }
 
-function buildHedgerowRow(hedgerow, projectId, uploadType) {
-  return [
-    {
-      html: `<a class="govuk-link" href="${featureDetailsHref(uploadType, hedgerow.featureId, projectId)}">${hedgerow.ref}</a>`,
-      attributes: {
-        'data-sort-value': hedgerow.ref
-      }
-    },
-    { text: hedgerow.type ?? '' },
-    {
-      text: formatLengthKm(hedgerow.sizeMetres) + KM_UNIT,
-      attributes: {
-        'data-sort-value': hedgerow.sizeMetres
-      }
-    },
-    { text: hedgerow.distinctiveness ?? '' },
-    { text: hedgerow.condition ?? '' },
-    { text: formatHabitatUnits(hedgerow.units) },
-    { text: hedgerow.status ?? '' }
-  ]
-}
-
-function buildWatercourseRow(watercourse, projectId, uploadType) {
-  return [
-    {
-      html: `<a class="govuk-link" href="${featureDetailsHref(uploadType, watercourse.featureId, projectId)}">${watercourse.ref}</a>`,
-      attributes: {
-        'data-sort-value': watercourse.ref
-      }
-    },
-    { text: watercourse.type ?? '' },
-    {
-      text: formatLengthKm(watercourse.sizeMetres) + KM_UNIT,
-      attributes: {
-        'data-sort-value': watercourse.sizeMetres
-      }
-    },
-    { text: watercourse.distinctiveness ?? '' },
-    { text: watercourse.condition ?? '' },
-    { text: formatHabitatUnits(watercourse.units) },
-    { text: watercourse.status ?? '' }
-  ]
+function buildLinearFeatureRow(feature, projectId, uploadType) {
+  return buildFeatureRow(
+    feature,
+    projectId,
+    uploadType,
+    buildLinearSizeCell(feature.sizeMetres)
+  )
 }
 
 function createHabitatListController(uploadType) {
@@ -131,14 +146,14 @@ function createHabitatListController(uploadType) {
       const hedgerows = habitatsData?.hedgerows ?? null
       const hedgerowRows = hedgerows?.length
         ? hedgerows.map((hedgerow) =>
-            buildHedgerowRow(hedgerow, id, uploadType)
+            buildLinearFeatureRow(hedgerow, id, uploadType)
           )
         : null
 
       const watercourses = habitatsData?.watercourses ?? null
       const watercourseRows = watercourses?.length
         ? watercourses.map((watercourse) =>
-            buildWatercourseRow(watercourse, id, uploadType)
+            buildLinearFeatureRow(watercourse, id, uploadType)
           )
         : null
 
@@ -149,7 +164,7 @@ function createHabitatListController(uploadType) {
         projectId: id,
         backHref: `/add-project-details/${id}`,
         uploadDifferentHref: `/projects/${id}/${uploadType.uploadRoute}`,
-        isPostIntervention: uploadType.key === 'postIntervention',
+        isPostIntervention: uploadType.isPostIntervention,
         totalSizes,
         totalUnits,
         habitatRows,
