@@ -25,7 +25,10 @@ The stub does not ship with default users. You must register one through its UI:
 3. After creating the user, add a **relationship** to the registration.
 4. Within that relationship, add a **role** with:
    - **roleName**: `bng completer`
-   - **roleStatus**: `1` (or any non-zero value)
+   - **roleStatus**: `3` — **Complete – approved**. This is required: the
+     service treats any other status as unauthorised (see
+     [Role checking](#role-checking)). A role left at `1` (Pending) lets you
+     sign in but blocks every BNG page with "Access denied".
 5. Note the email address you used - you will log in with it.
 
 ### Start the frontend
@@ -135,7 +138,9 @@ relationshipId:roleName:roleStatus
 
 For example: `23950a2d-...:bng completer:3`
 
-The `hasBngCompleterRole()` helper parses the second segment (case-insensitive, trimmed) and checks for `bng completer`. If the role is missing, the user is redirected to `/auth/forbidden`.
+The `hasBngCompleterRole()` helper requires an **approved** role: the role name (middle segment, case-insensitive and trimmed) must be `bng completer` **and** the status (last segment) must be `3` (Complete – approved). When the token carries a `currentRelationshipId`, the approved role must belong to that relationship — matching the backend, which scopes project visibility per relationship. Any other status (`1`, `2`, `4`–`7`) — pending, rejected, or removed — is treated as unauthorised and the user is redirected to `/auth/forbidden`.
+
+> **Why approval matters end to end:** the backend independently verifies the same id_token and only returns projects whose relationship has an approved (status 3) role (`bng-metric-backend/src/db/project-visibility.js`). Without this front-end gate, a pending user would sign in, reach the pages, and then see empty lists / 404s from the backend. Gating on approval turns that into a clear "Access denied" instead. See [Authenticated user journey](./authenticated-user-journey.md) for the full lifecycle.
 
 ### Logout (`/auth/logout`)
 
@@ -229,7 +234,9 @@ const authedAuth = {
   credentials: {
     sub: 'test-user-123',
     email: 'test@example.com',
-    roles: ['aaa-bbb:bng completer:1']
+    // Status must be 3 (approved) — requireBngCompleterRole now rejects any
+    // other status and redirects to /auth/forbidden.
+    roles: ['aaa-bbb:bng completer:3']
   }
 }
 

@@ -3,7 +3,7 @@ import Boom from '@hapi/boom'
 
 import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
-import { wreck } from '../common/helpers/wreck-client.js'
+import { backendRequest } from '../common/helpers/auth/backend-request.js'
 import { projectNameSchema } from '../common/helpers/project-name.js'
 
 const backendUrl = config.get('backend').url
@@ -18,7 +18,9 @@ export const changeProjectNameController = {
   },
   async handler(request, h) {
     const { id } = request.params
-    const { res, payload: data } = await wreck.get(
+    const { res, payload: data } = await backendRequest(
+      request,
+      'get',
       `${backendUrl}/projects/${id}`
     )
 
@@ -78,10 +80,15 @@ export const changeProjectNamePostController = {
     const { id } = request.params
     const { projectName } = request.payload
 
-    const { res } = await wreck.patch(`${backendUrl}/projects/${id}`, {
-      headers: { 'Content-Type': 'application/json' },
-      payload: JSON.stringify({ project: { name: projectName } })
-    })
+    const { res } = await backendRequest(
+      request,
+      'patch',
+      `${backendUrl}/projects/${id}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        payload: JSON.stringify({ project: { name: projectName } })
+      }
+    )
 
     if (res.statusCode >= statusCodes.badRequest) {
       throw Boom.badGateway('Failed to update project name')

@@ -1,7 +1,7 @@
 import Boom from '@hapi/boom'
 import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
-import { wreck } from '../common/helpers/wreck-client.js'
+import { backendRequest } from '../common/helpers/auth/backend-request.js'
 import { validateProjectName } from '../common/helpers/project-name.js'
 
 const backendUrl = config.get('backend').url
@@ -30,13 +30,17 @@ export const defineProjectNamePostController = {
       })
     }
 
-    const { res } = await wreck.post(`${backendUrl}/projects/new`, {
-      headers: { 'Content-Type': 'application/json' },
-      payload: JSON.stringify({
-        project: { name: projectName },
-        userId: request.auth.credentials.sub
-      })
-    })
+    // Identity (userId / org / relationship) is derived by the backend from the
+    // verified Bearer token, so the body carries only the project document.
+    const { res } = await backendRequest(
+      request,
+      'post',
+      `${backendUrl}/projects/new`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        payload: JSON.stringify({ project: { name: projectName } })
+      }
+    )
 
     if (res.statusCode >= statusCodes.badRequest) {
       throw Boom.badGateway('Failed to create project')

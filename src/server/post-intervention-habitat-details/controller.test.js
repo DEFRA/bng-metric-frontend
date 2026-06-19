@@ -75,7 +75,8 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(wreck.get).toHaveBeenCalledWith(
       expect.stringContaining(
         `/projects/${projectId}/post-intervention/features/${featureId}`
-      )
+      ),
+      expect.objectContaining({ headers: expect.any(Object) })
     )
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/habitat-details',

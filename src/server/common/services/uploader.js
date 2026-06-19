@@ -2,7 +2,7 @@ import Boom from '@hapi/boom'
 
 import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
-import { wreck } from '../helpers/wreck-client.js'
+import { backendRequest } from '../helpers/auth/backend-request.js'
 
 const logger = createLogger()
 
@@ -26,6 +26,7 @@ function buildUploadUrl(path) {
 
 /**
  * Initiate an upload session via the backend
+ * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {object} options - Upload options
  * @param {string} options.redirect - URL to redirect to after upload
  * @param {string} options.s3Bucket - Destination S3 bucket
@@ -34,7 +35,10 @@ function buildUploadUrl(path) {
  * @returns {Promise<{uploadId: string, uploadUrl: string}>}
  * @throws {Boom} badGateway if the backend is unreachable or returns an error
  */
-export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
+export async function initiateUpload(
+  request,
+  { redirect, s3Bucket, s3Path, metadata }
+) {
   const url = `${backendUrl}/upload/initiate`
 
   logger.info(
@@ -42,7 +46,7 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
   )
 
   try {
-    const { payload } = await wreck.post(url, {
+    const { payload } = await backendRequest(request, 'post', url, {
       payload: JSON.stringify({
         redirect,
         s3Bucket,
@@ -76,16 +80,17 @@ export async function initiateUpload({ redirect, s3Bucket, s3Path, metadata }) {
 
 /**
  * Get the upload status from the backend
+ * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {string} uploadId - The upload ID to check status for
  * @returns {Promise<{uploadStatus: string, error?: string}>}
  */
-export async function getUploadStatus(uploadId) {
+export async function getUploadStatus(request, uploadId) {
   const url = `${backendUrl}/upload/${uploadId}/status`
 
   logger.info(`Fetching upload status - url: ${url}, uploadId: ${uploadId}`)
 
   try {
-    const { payload } = await wreck.get(url)
+    const { payload } = await backendRequest(request, 'get', url)
 
     if (payload.numberOfRejectedFiles > 0) {
       logger.info(

@@ -9,6 +9,16 @@ import govukButton %} {% block content %} {{ appHeading({ text: heading }) }}
         Signed in as
         <strong>{{ user.email or user.preferred_username or user.sub }}</strong>
       </p>
+      {% if orgName %}
+      <p class="govuk-body" data-testid="user-org">
+        Organisation: <strong>{{ orgName }}</strong>
+      </p>
+      {% endif %}
+      {% if relationshipType %}
+      <p class="govuk-body" data-testid="user-relationship">
+        Account type: <strong>{{ relationshipType }}</strong>
+      </p>
+      {% endif %}
       <p>
         <a class="govuk-link" href="/manage-projects">View all projects</a>
       </p>

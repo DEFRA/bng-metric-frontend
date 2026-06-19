@@ -3,14 +3,14 @@ import Boom from '@hapi/boom'
 import { config } from '../../../config/config.js'
 import { statusCodes } from '../constants.js'
 import { createLogger } from '../helpers/logging/logger.js'
-import { wreck } from '../helpers/wreck-client.js'
+import { backendRequest } from '../helpers/auth/backend-request.js'
 import { HABITAT_UPLOAD_TYPES } from '../helpers/habitat-upload-types.js'
 
 const logger = createLogger()
 
 const backendUrl = config.get('backend').url
 
-async function validateHabitatUpload(uploadType, projectId, uploadId) {
+async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
   const url = `${backendUrl}/${uploadType.backendValidatePath}/validate/${uploadId}`
 
   logger.info(
@@ -18,7 +18,7 @@ async function validateHabitatUpload(uploadType, projectId, uploadId) {
   )
 
   try {
-    const { payload } = await wreck.post(url, {
+    const { payload } = await backendRequest(request, 'post', url, {
       payload: JSON.stringify({ projectId }),
       headers: { 'Content-Type': 'application/json' }
     })
@@ -74,12 +74,14 @@ async function validateHabitatUpload(uploadType, projectId, uploadId) {
  * validation fails, the backend returns structured errors and nothing is
  * persisted.
  *
+ * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {string} projectId - The project to persist the baseline against
  * @param {string} uploadId - The upload ID to validate
  * @returns {Promise<{valid: boolean, errors?: object[]}>}
  */
-export async function validateBaseline(projectId, uploadId) {
+export async function validateBaseline(request, projectId, uploadId) {
   return validateHabitatUpload(
+    request,
     HABITAT_UPLOAD_TYPES.baseline,
     projectId,
     uploadId
@@ -89,12 +91,14 @@ export async function validateBaseline(projectId, uploadId) {
 /**
  * Call the backend to validate an uploaded post-intervention habitats file.
  *
+ * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {string} projectId - The project to persist the post-intervention data against
  * @param {string} uploadId - The upload ID to validate
  * @returns {Promise<{valid: boolean, errors?: object[]}>}
  */
-export async function validatePostIntervention(projectId, uploadId) {
+export async function validatePostIntervention(request, projectId, uploadId) {
   return validateHabitatUpload(
+    request,
     HABITAT_UPLOAD_TYPES.postIntervention,
     projectId,
     uploadId
