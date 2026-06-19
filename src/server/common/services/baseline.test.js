@@ -16,6 +16,12 @@ vi.mock('../helpers/wreck-client.js', () => ({
 const projectId = '11111111-2222-3333-4444-555555555555'
 const uploadId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
+// backendRequest reads the id_token from the yar session and forwards it as a
+// Bearer header, so the validation calls now take a request as first arg.
+function makeRequest(idToken = 'test-id-token') {
+  return { yar: { get: vi.fn().mockReturnValue({ idToken }) } }
+}
+
 describe('#validateBaseline', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -26,7 +32,7 @@ describe('#validateBaseline', () => {
       payload: { valid: true }
     })
 
-    const result = await validateBaseline(projectId, uploadId)
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(result).toEqual({ valid: true })
   })
@@ -45,7 +51,7 @@ describe('#validateBaseline', () => {
       payload: { valid: false, errors }
     })
 
-    const result = await validateBaseline(projectId, uploadId)
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(result).toEqual({ valid: false, errors })
   })
@@ -55,7 +61,7 @@ describe('#validateBaseline', () => {
       payload: { valid: false }
     })
 
-    const result = await validateBaseline(projectId, uploadId)
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(result).toEqual({ valid: false, errors: [] })
   })
@@ -68,7 +74,7 @@ describe('#validateBaseline', () => {
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
-    const result = await validateBaseline(projectId, uploadId)
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(result).toEqual({ valid: false, errors })
   })
@@ -80,7 +86,7 @@ describe('#validateBaseline', () => {
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
-    const result = await validateBaseline(projectId, uploadId)
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(result.valid).toBe(false)
     expect(result.errors).toEqual([
@@ -96,7 +102,9 @@ describe('#validateBaseline', () => {
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
-    await expect(validateBaseline(projectId, uploadId)).rejects.toMatchObject({
+    await expect(
+      validateBaseline(makeRequest(), projectId, uploadId)
+    ).rejects.toMatchObject({
       isBoom: true,
       output: { statusCode: 502 }
     })
@@ -105,7 +113,9 @@ describe('#validateBaseline', () => {
   test('Should throw a Boom badGateway error on network failure', async () => {
     vi.mocked(wreck.post).mockRejectedValue(new Error('Network failure'))
 
-    await expect(validateBaseline(projectId, uploadId)).rejects.toMatchObject({
+    await expect(
+      validateBaseline(makeRequest(), projectId, uploadId)
+    ).rejects.toMatchObject({
       isBoom: true,
       output: { statusCode: 502 }
     })
@@ -116,7 +126,7 @@ describe('#validateBaseline', () => {
       payload: { valid: true }
     })
 
-    await validateBaseline(projectId, uploadId)
+    await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(wreck.post).toHaveBeenCalledWith(
       expect.stringContaining(`/baseline/validate/${uploadId}`),
@@ -129,7 +139,7 @@ describe('#validateBaseline', () => {
       payload: { valid: true }
     })
 
-    await validateBaseline(projectId, uploadId)
+    await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(wreck.post).toHaveBeenCalledWith(
       expect.any(String),
@@ -153,7 +163,11 @@ describe('#validatePostIntervention', () => {
       payload: { valid: true }
     })
 
-    const result = await validatePostIntervention(projectId, uploadId)
+    const result = await validatePostIntervention(
+      makeRequest(),
+      projectId,
+      uploadId
+    )
 
     expect(result).toEqual({ valid: true })
     expect(wreck.post).toHaveBeenCalledWith(

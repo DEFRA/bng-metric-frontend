@@ -13,6 +13,12 @@ vi.mock('../helpers/wreck-client.js', () => ({
 
 const { initiateUpload, getUploadStatus } = await import('./uploader.js')
 
+// backendRequest reads the id_token from the yar session and forwards it as a
+// Bearer header, so the upload service calls now take a request as first arg.
+function makeRequest(idToken = 'test-id-token') {
+  return { yar: { get: vi.fn().mockReturnValue({ idToken }) } }
+}
+
 describe('initiateUpload', () => {
   it('should call backend and return uploadId and uploadUrl', async () => {
     vi.mocked(wreck.post).mockResolvedValue({
@@ -23,7 +29,7 @@ describe('initiateUpload', () => {
       }
     })
 
-    const result = await initiateUpload({
+    const result = await initiateUpload(makeRequest(), {
       redirect: '/projects/1/upload-received',
       s3Bucket: 'baseline-files',
       s3Path: 'baseline/',
@@ -44,7 +50,10 @@ describe('initiateUpload', () => {
           s3Path: 'baseline/',
           metadata: { projectId: '1' }
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer test-id-token'
+        })
       })
     )
   })
@@ -66,7 +75,7 @@ describe('initiateUpload', () => {
       }
     })
 
-    const result = await initiateUpload({
+    const result = await initiateUpload(makeRequest(), {
       redirect: '/projects/1/upload-received',
       s3Bucket: 'baseline-files'
     })
@@ -80,7 +89,7 @@ describe('initiateUpload', () => {
     vi.mocked(wreck.post).mockRejectedValue(new Error('Connection refused'))
 
     await expect(
-      initiateUpload({
+      initiateUpload(makeRequest(), {
         redirect: '/projects/1/upload-received',
         s3Bucket: 'baseline-files'
       })
@@ -95,11 +104,16 @@ describe('getUploadStatus', () => {
       payload: { uploadStatus: 'ready', numberOfRejectedFiles: 0 }
     })
 
-    const result = await getUploadStatus('abc-123')
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
 
     expect(result).toEqual({ uploadStatus: 'ready' })
     expect(wreck.get).toHaveBeenCalledWith(
-      expect.stringContaining('/upload/abc-123/status')
+      expect.stringContaining('/upload/abc-123/status'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-id-token'
+        })
+      })
     )
   })
 
@@ -113,7 +127,7 @@ describe('getUploadStatus', () => {
       }
     })
 
-    const result = await getUploadStatus('abc-123')
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
 
     expect(result).toEqual({
       uploadStatus: 'rejected',
@@ -127,7 +141,7 @@ describe('getUploadStatus', () => {
       payload: {}
     })
 
-    const result = await getUploadStatus('abc-123')
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
 
     expect(result).toEqual({ uploadStatus: 'unknown' })
   })
@@ -135,7 +149,7 @@ describe('getUploadStatus', () => {
   it('should return error status when backend call fails', async () => {
     vi.mocked(wreck.get).mockRejectedValue(new Error('Connection refused'))
 
-    const result = await getUploadStatus('abc-123')
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
 
     expect(result).toEqual({
       uploadStatus: 'error',

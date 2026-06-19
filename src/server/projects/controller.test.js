@@ -17,7 +17,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 const authCredentials = {
   sub: 'test-user',
   email: 'test@example.com',
-  roles: ['aaa-bbb:bng completer:1']
+  roles: ['aaa-bbb:bng completer:3']
 }
 
 const authedAuth = {
@@ -97,7 +97,8 @@ describe('#projectsListController', () => {
     })
 
     expect(wreck.get).toHaveBeenCalledWith(
-      expect.stringContaining(`/users/${authCredentials.sub}/projects`)
+      expect.stringContaining(`/users/${authCredentials.sub}/projects`),
+      expect.objectContaining({ headers: expect.any(Object) })
     )
   })
 

@@ -31,7 +31,7 @@ const authedAuth = {
   credentials: {
     sub: 'csrf-test-user',
     email: 'csrf@example.com',
-    roles: ['aaa-bbb:bng completer:1']
+    roles: ['aaa-bbb:bng completer:3']
   }
 }
 

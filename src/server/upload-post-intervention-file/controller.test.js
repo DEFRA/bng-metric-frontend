@@ -55,7 +55,7 @@ describe('upload-post-intervention-file controller', () => {
 
     await getController.handler(request, h)
 
-    expect(initiateUpload).toHaveBeenCalledWith({
+    expect(initiateUpload).toHaveBeenCalledWith(request, {
       redirect: '/projects/proj-123/post-intervention-upload-received',
       s3Bucket: 'baseline-files',
       s3Path: 'baseline/',

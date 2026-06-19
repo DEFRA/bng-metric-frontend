@@ -116,8 +116,8 @@
   {% set summaryRows = (summaryRows.push({ key: { text: "Distinctiveness" }, value: { html: distinctivenessHtml } }), summaryRows) %}
   {% set summaryRows = (summaryRows.push({ key: { text: "Condition" }, value: { html: conditionHtml } }), summaryRows) %}
   {% if showWatercourseEncroachmentRows %}
-    {% set summaryRows = (summaryRows.push({ key: { text: "Riparian encroachment" }, value: { html: riparianEncroachmentHtml } }), summaryRows) %}
     {% set summaryRows = (summaryRows.push({ key: { text: "Watercourse encroachment" }, value: { html: watercourseEncroachmentHtml } }), summaryRows) %}
+    {% set summaryRows = (summaryRows.push({ key: { text: "Riparian encroachment" }, value: { html: riparianEncroachmentHtml } }), summaryRows) %}
   {% endif %}
   {% set summaryRows = (summaryRows.push({ key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } }), summaryRows) %}
   {% set summaryRows = (summaryRows.push({ key: { text: "Required action to meet trading rules" }, value: { html: tradingRuleHtml } }), summaryRows) %}

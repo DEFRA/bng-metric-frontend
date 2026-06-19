@@ -67,7 +67,7 @@ const mockProjectWithHabitats = {
 const authCredentials = {
   sub: 'test-user',
   email: 'test@example.com',
-  roles: ['aaa-bbb:bng completer:1']
+  roles: ['aaa-bbb:bng completer:3']
 }
 
 const authedAuth = {

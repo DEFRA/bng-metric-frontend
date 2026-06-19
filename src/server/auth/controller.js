@@ -15,6 +15,7 @@ import {
   recordLoginFailure,
   LOGIN_FAILURE_REASON
 } from '../common/helpers/auth/auth-metrics.js'
+import { persistBackendSession } from '../common/helpers/auth/persist-session.js'
 import { statusCodes } from '../common/constants.js'
 
 const redirectUri = config.get('oidc.redirectUri')
@@ -153,6 +154,10 @@ async function exchangeCodeForSession(request, h, pending) {
       refreshToken: tokens.refresh_token
     })
     request.yar.clear('oidc')
+
+    // Best-effort: persist the user's identity / relationships / roles in the
+    // backend. Never block sign-in on a backend hiccup.
+    await persistBackendSession(request, tokens.id_token)
 
     const stored = request.yar.get('auth')
     request.logger.info(

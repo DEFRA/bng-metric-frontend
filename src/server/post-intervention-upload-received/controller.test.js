@@ -56,6 +56,7 @@ describe('post-intervention-upload-received controller', () => {
     await getController.handler(request, h)
 
     expect(validatePostIntervention).toHaveBeenCalledWith(
+      request,
       'proj-123',
       'test-upload-id'
     )
