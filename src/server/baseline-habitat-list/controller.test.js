@@ -639,8 +639,8 @@ describe('#habitatListController - habitat rows', () => {
       auth: authedAuth
     })
 
-    // 25 000 m² → 2.5 ha
-    expect(result).toContain('>2.5<')
+    // 25 000 m² → 2.5ha
+    expect(result).toContain('>2.5ha<')
   })
 
   test('renders units formatted to 2 decimal places', async () => {
@@ -864,14 +864,14 @@ describe('#habitatListController - tab labels and column headers', () => {
     expect(result).toContain('Watercourses')
   })
 
-  test('renders the Area (ha) column header in the area habitats tab', async () => {
+  test('renders the Area column header in the area habitats tab', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
 
-    expect(result).toContain('Area (ha)')
+    expect(result).toContain('>Area<')
   })
 
   test('renders the Length column header in the hedgerows tab', async () => {
