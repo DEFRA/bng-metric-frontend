@@ -1,5 +1,6 @@
 import { config } from '../../../config/config.js'
 import { wreck } from '../helpers/wreck-client.js'
+import { makeUnexpiredIdToken } from '../test-helpers/fake-id-token.js'
 
 vi.mock('../helpers/wreck-client.js', () => ({
   wreck: {
@@ -13,9 +14,10 @@ vi.mock('../helpers/wreck-client.js', () => ({
 
 const { initiateUpload, getUploadStatus } = await import('./uploader.js')
 
-// backendRequest reads the id_token from the yar session and forwards it as a
-// Bearer header, so the upload service calls now take a request as first arg.
-function makeRequest(idToken = 'test-id-token') {
+// backendRequest reads the id_token from the yar session, confirms it is
+// unexpired, and forwards it as signed x-defra-id-* headers, so the upload
+// service calls take a request as first arg and need a structurally-valid token.
+function makeRequest(idToken = makeUnexpiredIdToken()) {
   return { yar: { get: vi.fn().mockReturnValue({ idToken }) } }
 }
 
@@ -52,10 +54,13 @@ describe('initiateUpload', () => {
         }),
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
-          Authorization: 'Bearer test-id-token'
+          'x-defra-id-token': expect.any(String),
+          'x-defra-id-signature': expect.stringMatching(/^[0-9a-f]{64}$/)
         })
       })
     )
+    const [, sentOptions] = vi.mocked(wreck.post).mock.calls[0]
+    expect(sentOptions.headers).not.toHaveProperty('Authorization')
   })
 
   it('should prepend CDP_UPLOADER_URL when configured', async () => {
@@ -111,10 +116,13 @@ describe('getUploadStatus', () => {
       expect.stringContaining('/upload/abc-123/status'),
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: 'Bearer test-id-token'
+          'x-defra-id-token': expect.any(String),
+          'x-defra-id-signature': expect.stringMatching(/^[0-9a-f]{64}$/)
         })
       })
     )
+    const [, sentOptions] = vi.mocked(wreck.get).mock.calls[0]
+    expect(sentOptions.headers).not.toHaveProperty('Authorization')
   })
 
   it('should return rejected with errorMessage when files are rejected', async () => {

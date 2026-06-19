@@ -1,4 +1,5 @@
 import { wreck } from '../helpers/wreck-client.js'
+import { makeUnexpiredIdToken } from '../test-helpers/fake-id-token.js'
 import { fetchProject } from './projects.js'
 
 vi.mock('../helpers/wreck-client.js', () => ({
@@ -8,7 +9,7 @@ vi.mock('../helpers/wreck-client.js', () => ({
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const mockPayload = { project: { name: 'Test Project' } }
 
-function makeRequest(idToken = 'test-id-token') {
+function makeRequest(idToken = makeUnexpiredIdToken()) {
   return { yar: { get: vi.fn().mockReturnValue({ idToken }) } }
 }
 
@@ -17,7 +18,7 @@ describe('fetchProject', () => {
     vi.restoreAllMocks()
   })
 
-  test('returns the payload and forwards the bearer token', async () => {
+  test('returns the payload and forwards the signed Defra ID headers', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: mockPayload
@@ -30,10 +31,13 @@ describe('fetchProject', () => {
       expect.stringContaining(`/projects/${projectId}`),
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: 'Bearer test-id-token'
+          'x-defra-id-token': expect.any(String),
+          'x-defra-id-signature': expect.stringMatching(/^[0-9a-f]{64}$/)
         })
       })
     )
+    const [, sentOptions] = vi.mocked(wreck.get).mock.calls[0]
+    expect(sentOptions.headers).not.toHaveProperty('Authorization')
   })
 
   test('returns null when payload is null', async () => {

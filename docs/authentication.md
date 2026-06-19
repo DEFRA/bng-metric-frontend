@@ -142,6 +142,31 @@ The `hasBngCompleterRole()` helper requires an **approved** role: the role name 
 
 > **Why approval matters end to end:** the backend independently verifies the same id_token and only returns projects whose relationship has an approved (status 3) role (`bng-metric-backend/src/db/project-visibility.js`). Without this front-end gate, a pending user would sign in, reach the pages, and then see empty lists / 404s from the backend. Gating on approval turns that into a clear "Access denied" instead. See [Authenticated user journey](./authenticated-user-journey.md) for the full lifecycle.
 
+### Forwarding the token to the backend
+
+The backend sits in a private subnet and makes **no** network calls of its own,
+so it cannot reach the IdP to verify the id_token. Instead the frontend (which
+already verified the token at login) forwards it on every backend call and
+proves the forward is genuine with a shared-secret signature. The header pair is
+built in one place — `src/server/common/helpers/auth/build-auth-headers.js` —
+and replaces the old `Authorization: Bearer` header:
+
+| Header                 | Value                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| `x-defra-id-token`     | standard base64 of the compact id_token string (`header.payload.signature`)      |
+| `x-defra-id-signature` | lowercase-hex HMAC-SHA256 over the `x-defra-id-token` value, keyed by the secret |
+
+The secret comes from `AUTH_FORWARD_SECRET` (config `auth.forwardSecret`) and
+must be byte-for-byte identical to the backend's value. It is never logged. The
+backend recomputes the HMAC and compares it in constant time, then reads the
+claims locally (no JWKS, no discovery, no network).
+
+Before forwarding, `backendRequest()` confirms the token is unexpired
+(`confirm-token-valid.js`) and, when it is expired or near expiry, refreshes it
+via the existing `refresh_token` grant (`refresh-session.js`). An expired token
+that cannot be refreshed is never forwarded — the call returns 401 and the user
+is sent back to sign in.
+
 ### Logout (`/auth/logout`)
 
 1. Reads the `idToken` from the yar session.

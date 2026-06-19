@@ -60,6 +60,15 @@ export const config = convict({
       env: 'BACKEND_TIMEOUT_MS'
     }
   },
+  auth: {
+    forwardSecret: {
+      doc: 'Shared secret used to sign forwarded Defra ID tokens (HMAC-SHA256 in the x-defra-id-signature header). Must be identical to the backend value. Set a strong random value via AUTH_FORWARD_SECRET in deployed environments.',
+      format: String,
+      default: 'local-dev-only-auth-forward-secret-change-me',
+      env: 'AUTH_FORWARD_SECRET',
+      sensitive: true
+    }
+  },
   staticCacheTimeout: {
     doc: 'Static cache timeout in milliseconds',
     format: Number,
@@ -329,3 +338,25 @@ export const config = convict({
 })
 
 config.validate({ allowed: 'strict' })
+
+const MIN_FORWARD_SECRET_LENGTH = 16
+const FORWARD_SECRET_DEV_DEFAULT =
+  'local-dev-only-auth-forward-secret-change-me'
+
+// Fail fast in production if the shared forwarding secret is missing or trivial.
+// In dev/test a baked-in placeholder is acceptable. The secret value is never
+// logged — only its presence/length is checked.
+function validateAuthForwardSecret() {
+  if (!isProduction) {
+    return
+  }
+  const secret = config.get('auth.forwardSecret')
+  const tooShort = !secret || secret.length < MIN_FORWARD_SECRET_LENGTH
+  if (tooShort || secret === FORWARD_SECRET_DEV_DEFAULT) {
+    throw new Error(
+      'AUTH_FORWARD_SECRET must be set to a strong, non-default value in production'
+    )
+  }
+}
+
+validateAuthForwardSecret()

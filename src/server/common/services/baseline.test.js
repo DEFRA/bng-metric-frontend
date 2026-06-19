@@ -2,6 +2,7 @@ import { vi } from 'vitest'
 
 import { validateBaseline, validatePostIntervention } from './baseline.js'
 import { wreck } from '../helpers/wreck-client.js'
+import { makeUnexpiredIdToken } from '../test-helpers/fake-id-token.js'
 
 vi.mock('../helpers/wreck-client.js', () => ({
   wreck: {
@@ -16,9 +17,10 @@ vi.mock('../helpers/wreck-client.js', () => ({
 const projectId = '11111111-2222-3333-4444-555555555555'
 const uploadId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
-// backendRequest reads the id_token from the yar session and forwards it as a
-// Bearer header, so the validation calls now take a request as first arg.
-function makeRequest(idToken = 'test-id-token') {
+// backendRequest reads the id_token from the yar session, confirms it is
+// unexpired, and forwards it as signed x-defra-id-* headers, so the validation
+// calls take a request as first arg and need a structurally-valid token.
+function makeRequest(idToken = makeUnexpiredIdToken()) {
   return { yar: { get: vi.fn().mockReturnValue({ idToken }) } }
 }
 

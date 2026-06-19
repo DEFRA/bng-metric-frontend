@@ -31,7 +31,8 @@ export const defineProjectNamePostController = {
     }
 
     // Identity (userId / org / relationship) is derived by the backend from the
-    // verified Bearer token, so the body carries only the project document.
+    // signed, forwarded Defra ID token, so the body carries only the project
+    // document.
     const { res } = await backendRequest(
       request,
       'post',

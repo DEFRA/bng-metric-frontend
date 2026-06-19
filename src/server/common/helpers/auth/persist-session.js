@@ -2,6 +2,7 @@ import { config } from '../../../../config/config.js'
 import { statusCodes } from '../../constants.js'
 import { wreck } from '../wreck-client.js'
 import { recordSessionPersistFailure } from './auth-metrics.js'
+import { buildAuthHeaders } from './build-auth-headers.js'
 
 const backendUrl = config.get('backend').url
 
@@ -12,7 +13,7 @@ const backendUrl = config.get('backend').url
  * caller continue to redirect the user. Never logs the token or claims (PII).
  *
  * @param {import('@hapi/hapi').Request} request
- * @param {string} idToken the OIDC id_token to forward as a Bearer credential
+ * @param {string} idToken the OIDC id_token to forward (signed, not as Bearer)
  * @returns {Promise<void>}
  */
 export async function persistBackendSession(request, idToken) {
@@ -21,7 +22,7 @@ export async function persistBackendSession(request, idToken) {
   }
   try {
     const { res } = await wreck.post(`${backendUrl}/auth/session`, {
-      headers: { Authorization: `Bearer ${idToken}` }
+      headers: buildAuthHeaders(idToken)
     })
     if (res.statusCode >= statusCodes.badRequest) {
       request.logger.warn(
