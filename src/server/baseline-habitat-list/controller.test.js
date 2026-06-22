@@ -1142,13 +1142,14 @@ describe('#habitatListController - individual trees', () => {
         habitats: [mockHabitat],
         trees: [mockTree],
         habitatSizes: {
-          areaHabitats: { totalSquareMetres: 25000 },
+          // Total area size = parcels (25000) + trees (163); Site = parcels only
+          areaHabitats: { totalSquareMetres: 25163 },
           trees: {
             totalSquareMetres: 163,
             urbanSquareMetres: 163,
             ruralSquareMetres: 0
           },
-          site: { totalSquareMetres: 25163 }
+          site: { totalSquareMetres: 25000 }
         },
         units: {
           totalUnits: 2.7,
@@ -1207,25 +1208,25 @@ describe('#habitatListController - individual trees', () => {
     expect(result).toContain('>0.0163ha<')
   })
 
-  test('renders a Site size that includes trees (25163 m² → 2.5163ha)', async () => {
+  test('renders an Area habitats (total area) size that includes trees (25163 m² → 2.5163ha)', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
 
-    expect(result).toContain('Site')
     expect(result).toContain('2.5163ha')
   })
 
-  test('keeps the Area habitats size to parcels only (25000 m² → 2.5ha)', async () => {
+  test('renders a Site size that excludes trees (parcels only, 25000 m² → 2.5ha)', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
 
-    // Area habitats summary row stays parcels-only; Site row is the larger total
+    // Site row = habitat parcels only (excludes special tree habitats)
+    expect(result).toContain('Site')
     expect(result).toContain('2.5ha')
   })
 })
