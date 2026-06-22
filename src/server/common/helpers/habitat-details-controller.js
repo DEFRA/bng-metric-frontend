@@ -35,9 +35,8 @@ async function fetchFeature(request, uploadType, projectId, featureId) {
       err.data?.res?.statusCode === statusCodes.notFound
     ) {
       throw Boom.notFound(`Feature ${featureId} not found`)
-    } else {
-      throw err
     }
+    throw err
   }
 }
 
@@ -85,16 +84,6 @@ export function normalizePostInterventionFeatureForDisplay(feature) {
   }
 }
 
-/**
- * Return the baseline feature unchanged (no normalisation needed).
- *
- * @param {object} feature
- * @returns {object}
- */
-export function normalizeBaselineFeatureForDisplay(feature) {
-  return feature
-}
-
 function buildSaveBody({
   broadHabitat,
   habitatType,
@@ -136,7 +125,7 @@ function createGetController(uploadType) {
 
       const feature = uploadType.isPostIntervention
         ? normalizePostInterventionFeatureForDisplay(rawFeature)
-        : normalizeBaselineFeatureForDisplay(rawFeature)
+        : rawFeature
       const strategy = getStrategy(type)
       const reference = await strategy.loadReference(feature)
       const viewModel = strategy.buildViewModel(feature, reference, {
@@ -208,9 +197,8 @@ function createPostController(uploadType) {
       } catch (err) {
         if (err?.output?.statusCode === statusCodes.conflict) {
           throw Boom.conflict('Another user is editing this project')
-        } else {
-          throw Boom.badGateway('Failed to save habitat')
         }
+        throw Boom.badGateway('Failed to save habitat')
       }
 
       return h.redirect(
