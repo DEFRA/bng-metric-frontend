@@ -116,11 +116,11 @@ function createHabitatListController(uploadType) {
       const habitatSizes = habitatsData?.habitatSizes
       const unitsTotals = habitatsData?.units
 
-      // Individual trees are a special area habitat: their notional areas are
-      // excluded from the "Area habitats" size (which feeds the future total
-      // area vs red line boundary check) but included in the overall "Site"
-      // size, so Site ≥ Area habitats whenever trees are present.
-      const areaTabUnitsTotal =
+      // Individual trees are a special area habitat. Their notional areas/units
+      // are included in the "Area habitats" total area size (parcels + trees),
+      // but the "Site" size is parcels only (excludes special habitats) — the
+      // figure that is compared against the red line boundary.
+      const areaHabitatsUnitsTotal =
         (unitsTotals?.habitatsTotal ?? 0) + (unitsTotals?.treesTotal ?? 0)
 
       const totalSizes = {
@@ -135,10 +135,9 @@ function createHabitatListController(uploadType) {
       }
 
       const totalUnits = {
-        areaHabitats: formatHabitatUnits(unitsTotals?.habitatsTotal),
-        // The Areas tab table lists parcels and trees together, so its footer
-        // total spans both.
-        areaTab: formatHabitatUnits(areaTabUnitsTotal),
+        // Includes individual tree units — the Areas tab lists parcels and trees
+        // together, so the summary row and the table footer span both.
+        areaHabitats: formatHabitatUnits(areaHabitatsUnitsTotal),
         hedgerows: formatLinearUnits(
           habitatsData?.hedgerows,
           unitsTotals?.hedgerowsTotal
