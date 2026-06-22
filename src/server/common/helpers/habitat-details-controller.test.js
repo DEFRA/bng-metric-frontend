@@ -3,14 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { backendRequest } from './auth/backend-request.js'
 import {
   createHabitatDetailsControllers,
-  normalizeBaselineFeatureForDisplay,
   normalizePostInterventionFeatureForDisplay
 } from './habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
-import {
-  BASELINE_FEATURE,
-  PI_FEATURE
-} from '../test-helpers/habitat-feature-fixtures.js'
+import { PI_FEATURE } from '../test-helpers/habitat-feature-fixtures.js'
 
 vi.mock('./auth/backend-request.js', () => ({
   backendRequest: vi.fn()
@@ -28,13 +24,6 @@ vi.mock('../../baseline-habitat-details/strategies/index.js', () => ({
 
 const projectId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 const featureId = PI_FEATURE.featureId
-
-describe('normalizeBaselineFeatureForDisplay', () => {
-  it('returns the feature unchanged', () => {
-    const result = normalizeBaselineFeatureForDisplay(BASELINE_FEATURE)
-    expect(result).toBe(BASELINE_FEATURE)
-  })
-})
 
 describe('normalizePostInterventionFeatureForDisplay', () => {
   it('promotes proposed fields to top level', () => {
