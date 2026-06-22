@@ -6,6 +6,8 @@ import { watercourseStrategy } from './watercourse.js'
 
 const STRATEGIES = {
   habitat: areaStrategy,
+  // Individual trees are treated as an area habitat on the details page too.
+  tree: areaStrategy,
   hedgerow: hedgerowStrategy,
   watercourse: watercourseStrategy
 }

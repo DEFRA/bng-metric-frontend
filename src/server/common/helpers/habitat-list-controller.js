@@ -116,7 +116,15 @@ function createHabitatListController(uploadType) {
       const habitatSizes = habitatsData?.habitatSizes
       const unitsTotals = habitatsData?.units
 
+      // Individual trees are a special area habitat: their notional areas are
+      // excluded from the "Area habitats" size (which feeds the future total
+      // area vs red line boundary check) but included in the overall "Site"
+      // size, so Site ≥ Area habitats whenever trees are present.
+      const areaTabUnitsTotal =
+        (unitsTotals?.habitatsTotal ?? 0) + (unitsTotals?.treesTotal ?? 0)
+
       const totalSizes = {
+        site: formatTotalAreaSize(habitatSizes?.site?.totalSquareMetres),
         areaHabitats: formatTotalAreaSize(
           habitatSizes?.areaHabitats?.totalSquareMetres
         ),
@@ -128,6 +136,9 @@ function createHabitatListController(uploadType) {
 
       const totalUnits = {
         areaHabitats: formatHabitatUnits(unitsTotals?.habitatsTotal),
+        // The Areas tab table lists parcels and trees together, so its footer
+        // total spans both.
+        areaTab: formatHabitatUnits(areaTabUnitsTotal),
         hedgerows: formatLinearUnits(
           habitatsData?.hedgerows,
           unitsTotals?.hedgerowsTotal
@@ -138,9 +149,16 @@ function createHabitatListController(uploadType) {
         )
       }
 
-      const habitats = habitatsData?.habitats ?? null
-      const habitatRows = habitats
-        ? habitats.map((habitat) => buildHabitatRow(habitat, id, uploadType))
+      // Trees are listed as their own rows in the Areas tab, treated the same
+      // as any other area habitat (one row per tree).
+      const areaFeatures = [
+        ...(habitatsData?.habitats ?? []),
+        ...(habitatsData?.trees ?? [])
+      ]
+      const habitatRows = areaFeatures.length
+        ? areaFeatures.map((habitat) =>
+            buildHabitatRow(habitat, id, uploadType)
+          )
         : null
 
       const hedgerows = habitatsData?.hedgerows ?? null
