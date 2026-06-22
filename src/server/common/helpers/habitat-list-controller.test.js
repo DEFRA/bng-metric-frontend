@@ -155,6 +155,7 @@ describe('createHabitatListController', () => {
       expect.objectContaining({
         isPostIntervention: true,
         totalSizes: {
+          site: '',
           areaHabitats: '0.785014ha',
           hedgerows: 'No data',
           watercourses: 'No data'
