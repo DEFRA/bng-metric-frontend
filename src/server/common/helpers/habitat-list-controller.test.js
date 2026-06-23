@@ -269,4 +269,30 @@ describe('createHabitatListController', () => {
       })
     )
   })
+
+  it('shows an empty area-habitats units cell (not "0.00") when units are not yet calculated', async () => {
+    vi.mocked(fetchProject).mockResolvedValue({
+      project: {
+        name: 'Test Project',
+        postIntervention: {
+          habitatSizes: {
+            areaHabitats: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
+          },
+          // No `units` field — project has not been enriched yet.
+          habitats: [PI_FEATURE],
+          hedgerows: [],
+          watercourses: []
+        }
+      }
+    })
+
+    await callHandler()
+
+    expect(h.view).toHaveBeenCalledWith(
+      uploadType.listView,
+      expect.objectContaining({
+        totalUnits: expect.objectContaining({ areaHabitats: '' })
+      })
+    )
+  })
 })

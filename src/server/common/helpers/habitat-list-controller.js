@@ -134,9 +134,14 @@ function buildTotalUnits(habitatsData) {
   const unitsTotals = habitatsData?.units
   // Individual tree units are included in the area-habitats total — the Areas
   // tab lists parcels and trees together (summary row and table footer span
-  // both).
+  // both). Stay null when neither total is present so formatHabitatUnits keeps
+  // showing an empty "not yet calculated" cell rather than a misleading "0.00".
+  const habitatsTotal = unitsTotals?.habitatsTotal
+  const treesTotal = unitsTotals?.treesTotal
   const areaHabitatsUnitsTotal =
-    (unitsTotals?.habitatsTotal ?? 0) + (unitsTotals?.treesTotal ?? 0)
+    habitatsTotal == null && treesTotal == null
+      ? null
+      : (habitatsTotal ?? 0) + (treesTotal ?? 0)
   return {
     areaHabitats: formatHabitatUnits(areaHabitatsUnitsTotal),
     hedgerows: formatLinearUnits(
