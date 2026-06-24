@@ -256,7 +256,8 @@ export const forbiddenController = {
     return h
       .view('auth/forbidden', {
         pageTitle: 'Access denied',
-        heading: 'Access denied'
+        heading: 'Access denied',
+        navigation: []
       })
       .code(statusCodes.forbidden)
   }

@@ -363,6 +363,15 @@ describe('#forbiddenController', () => {
     )
     expect(h._response.code).toHaveBeenCalledWith(403)
   })
+
+  test('passes an empty navigation array to hide the Projects link', () => {
+    const h = buildToolkit()
+    forbiddenController.handler({}, h)
+    expect(h.view).toHaveBeenCalledWith(
+      'auth/forbidden',
+      expect.objectContaining({ navigation: [] })
+    )
+  })
 })
 
 describe('with OIDC_USE_STUB=true', () => {

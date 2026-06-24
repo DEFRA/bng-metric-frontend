@@ -25,9 +25,9 @@
     useTudorCrown: true
   }) }}
 
-  {% set navItems = navigation %}
+  {% set navItems = [] %}
   {% if isAuthenticated %}
-    {% set navItems = navItems.concat([{
+    {% set navItems = navigation.concat([{
       text: "Sign out",
       href: "/auth/logout",
       current: false
