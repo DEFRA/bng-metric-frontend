@@ -51,6 +51,7 @@ const defaultContext = {
   navigation: [],
   user: null,
   isAuthenticated: false,
+  canSelectDifferentOrganisation: false,
   getAssetPath: (asset) => `/public/${asset}`
 }
 
