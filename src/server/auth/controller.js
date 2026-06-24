@@ -94,6 +94,10 @@ export const loginController = {
         parameters.serviceId = serviceId
       }
 
+      if (request.query?.forceReselection === 'true') {
+        parameters.forceReselection = 'true'
+      }
+
       const authorizationUrl = buildAuthorizationUrl(oidcConfig, parameters)
 
       request.logger.info(
