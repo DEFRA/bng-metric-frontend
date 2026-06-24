@@ -106,6 +106,55 @@ function buildLinearFeatureRow(feature, projectId, uploadType) {
   )
 }
 
+/**
+ * Map a feature list to table rows, or null when there are none (the template
+ * shows an empty-state message for null).
+ */
+function mapRowsOrNull(features, projectId, uploadType, buildRow) {
+  if (!features?.length) {
+    return null
+  }
+  return features.map((feature) => buildRow(feature, projectId, uploadType))
+}
+
+function buildTotalSizes(habitatSizes) {
+  return {
+    // "Site" is parcels only (excludes special habitats); "Area habitats" is the
+    // total area size (parcels + individual trees).
+    site: formatTotalAreaSize(habitatSizes?.site?.totalSquareMetres),
+    areaHabitats: formatTotalAreaSize(
+      habitatSizes?.areaHabitats?.totalSquareMetres
+    ),
+    hedgerows: formatTotalLengthSize(habitatSizes?.hedgerows?.totalMetres),
+    watercourses: formatTotalLengthSize(habitatSizes?.watercourses?.totalMetres)
+  }
+}
+
+function buildTotalUnits(habitatsData) {
+  const unitsTotals = habitatsData?.units
+  // Individual tree units are included in the area-habitats total — the Areas
+  // tab lists parcels and trees together (summary row and table footer span
+  // both). Stay null when neither total is present so formatHabitatUnits keeps
+  // showing an empty "not yet calculated" cell rather than a misleading "0.00".
+  const habitatsTotal = unitsTotals?.habitatsTotal
+  const treesTotal = unitsTotals?.treesTotal
+  const areaHabitatsUnitsTotal =
+    habitatsTotal == null && treesTotal == null
+      ? null
+      : (habitatsTotal ?? 0) + (treesTotal ?? 0)
+  return {
+    areaHabitats: formatHabitatUnits(areaHabitatsUnitsTotal),
+    hedgerows: formatLinearUnits(
+      habitatsData?.hedgerows,
+      unitsTotals?.hedgerowsTotal
+    ),
+    watercourses: formatLinearUnits(
+      habitatsData?.watercourses,
+      unitsTotals?.watercoursesTotal
+    )
+  }
+}
+
 function createHabitatListController(uploadType) {
   return {
     async handler(request, h) {
@@ -113,50 +162,13 @@ function createHabitatListController(uploadType) {
       const project = await fetchProject(request, id)
       const projectName = project?.project?.name ?? 'Project'
       const habitatsData = project?.project?.[uploadType.projectKey]
-      const habitatSizes = habitatsData?.habitatSizes
-      const unitsTotals = habitatsData?.units
 
-      const totalSizes = {
-        areaHabitats: formatTotalAreaSize(
-          habitatSizes?.areaHabitats?.totalSquareMetres
-        ),
-        hedgerows: formatTotalLengthSize(habitatSizes?.hedgerows?.totalMetres),
-        watercourses: formatTotalLengthSize(
-          habitatSizes?.watercourses?.totalMetres
-        )
-      }
-
-      const totalUnits = {
-        areaHabitats: formatHabitatUnits(unitsTotals?.habitatsTotal),
-        hedgerows: formatLinearUnits(
-          habitatsData?.hedgerows,
-          unitsTotals?.hedgerowsTotal
-        ),
-        watercourses: formatLinearUnits(
-          habitatsData?.watercourses,
-          unitsTotals?.watercoursesTotal
-        )
-      }
-
-      const habitats = habitatsData?.habitats ?? null
-      const habitatRows = habitats
-        ? habitats.map((habitat) => buildHabitatRow(habitat, id, uploadType))
-        : null
-
-      const hedgerows = habitatsData?.hedgerows ?? null
-      const hedgerowRows = hedgerows?.length
-        ? hedgerows.map((hedgerow) =>
-            buildLinearFeatureRow(hedgerow, id, uploadType)
-          )
-        : null
-
-      const watercourses = habitatsData?.watercourses ?? null
-      const watercourseRows = watercourses?.length
-        ? watercourses.map((watercourse) =>
-            buildLinearFeatureRow(watercourse, id, uploadType)
-          )
-        : null
-
+      // Trees are listed as their own rows in the Areas tab, treated the same as
+      // any other area habitat (one row per tree).
+      const areaFeatures = [
+        ...(habitatsData?.habitats ?? []),
+        ...(habitatsData?.trees ?? [])
+      ]
       return h.view(uploadType.listView, {
         pageTitle: uploadType.pageHeading,
         heading: uploadType.pageHeading,
@@ -165,11 +177,26 @@ function createHabitatListController(uploadType) {
         backHref: `/add-project-details/${id}`,
         uploadDifferentHref: `/projects/${id}/${uploadType.uploadRoute}`,
         isPostIntervention: uploadType.isPostIntervention,
-        totalSizes,
-        totalUnits,
-        habitatRows,
-        hedgerowRows,
-        watercourseRows
+        totalSizes: buildTotalSizes(habitatsData?.habitatSizes),
+        totalUnits: buildTotalUnits(habitatsData),
+        habitatRows: mapRowsOrNull(
+          areaFeatures,
+          id,
+          uploadType,
+          buildHabitatRow
+        ),
+        hedgerowRows: mapRowsOrNull(
+          habitatsData?.hedgerows,
+          id,
+          uploadType,
+          buildLinearFeatureRow
+        ),
+        watercourseRows: mapRowsOrNull(
+          habitatsData?.watercourses,
+          id,
+          uploadType,
+          buildLinearFeatureRow
+        )
       })
     }
   }
