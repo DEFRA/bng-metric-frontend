@@ -1121,6 +1121,116 @@ describe('#habitatListController - watercourse rows', () => {
   })
 })
 
+describe('#habitatListController - individual trees', () => {
+  let server
+
+  const mockTree = {
+    featureId: 'tree-1111-1111-1111-111111111111',
+    ref: 'T-1',
+    type: 'Urban tree',
+    sizeSquareMetres: 163,
+    distinctiveness: 'Medium',
+    condition: 'Good',
+    units: 0.2,
+    status: 'Complete'
+  }
+
+  const mockProjectWithTrees = {
+    project: {
+      name: 'Tree Project',
+      baseline: {
+        habitats: [mockHabitat],
+        trees: [mockTree],
+        habitatSizes: {
+          // Total area size = parcels (25000) + trees (163); Site = parcels only
+          areaHabitats: { totalSquareMetres: 25163 },
+          trees: {
+            totalSquareMetres: 163,
+            urbanSquareMetres: 163,
+            ruralSquareMetres: 0
+          },
+          site: { totalSquareMetres: 25000 }
+        },
+        units: {
+          totalUnits: 2.7,
+          habitatsTotal: 2.5,
+          hedgerowsTotal: 0,
+          watercoursesTotal: 0,
+          treesTotal: 0.2,
+          treesUrbanTotal: 0.2,
+          treesRuralTotal: 0
+        }
+      }
+    }
+  }
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(() => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjectWithTrees
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('lists each tree as its own row in the Areas tab, linked to its details', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/baseline-habitat-details?featureId=${mockTree.featureId}&projectId=${projectId}"`
+    )
+    expect(result).toContain('>T-1<')
+    expect(result).toContain('Urban tree')
+  })
+
+  test('renders the tree notional area in hectares (163 m² → 0.0163ha)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('>0.0163ha<')
+  })
+
+  test('renders an Area habitats (total area) size that includes trees (25163 m² → 2.5163ha)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('2.5163ha')
+  })
+
+  test('renders a Site size that excludes trees (parcels only, 25000 m² → 2.5ha)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    // Site row = habitat parcels only (excludes special tree habitats)
+    expect(result).toContain('Site')
+    expect(result).toContain('2.5ha')
+  })
+})
+
 describe('#habitatListController - no hedgerow data', () => {
   let server
 

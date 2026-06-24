@@ -155,6 +155,7 @@ describe('createHabitatListController', () => {
       expect.objectContaining({
         isPostIntervention: true,
         totalSizes: {
+          site: '',
           areaHabitats: '0.785014ha',
           hedgerows: 'No data',
           watercourses: 'No data'
@@ -265,6 +266,32 @@ describe('createHabitatListController', () => {
         hedgerowRows: null,
         watercourseRows: null,
         caption: 'Project'
+      })
+    )
+  })
+
+  it('shows an empty area-habitats units cell (not "0.00") when units are not yet calculated', async () => {
+    vi.mocked(fetchProject).mockResolvedValue({
+      project: {
+        name: 'Test Project',
+        postIntervention: {
+          habitatSizes: {
+            areaHabitats: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
+          },
+          // No `units` field — project has not been enriched yet.
+          habitats: [PI_FEATURE],
+          hedgerows: [],
+          watercourses: []
+        }
+      }
+    })
+
+    await callHandler()
+
+    expect(h.view).toHaveBeenCalledWith(
+      uploadType.listView,
+      expect.objectContaining({
+        totalUnits: expect.objectContaining({ areaHabitats: '' })
       })
     )
   })
