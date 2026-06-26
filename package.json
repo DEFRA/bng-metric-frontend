@@ -60,7 +60,7 @@
     "cross-env": "10.1.0",
     "cssnano": "8.0.2",
     "cssnano-preset-default": "7.0.10",
-    "date-fns": "4.1.0",
+    "date-fns": "4.4.0",
     "global-agent": "3.0.0",
     "govuk-frontend": "5.13.0",
     "hapi-pino": "13.0.0",
