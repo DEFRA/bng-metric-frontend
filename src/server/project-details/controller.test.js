@@ -17,7 +17,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 const authCredentials = {
   sub: 'test-user',
   email: 'test@example.com',
-  roles: ['aaa-bbb:bng completer:1']
+  roles: ['aaa-bbb:bng completer:3']
 }
 
 const authedAuth = {
@@ -126,14 +126,14 @@ describe('#projectDetailsController', () => {
     expect(statusCode).toBe(statusCodes.badGateway)
   })
 
-  test('rethrows boom errors from the backend', async () => {
+  test('returns 502 when backend throws a boom error', async () => {
     vi.mocked(wreck.get).mockRejectedValue(Boom.gatewayTimeout('timeout'))
     const { statusCode } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
-    expect(statusCode).toBe(statusCodes.gatewayTimeout)
+    expect(statusCode).toBe(statusCodes.badGateway)
   })
 })
 
