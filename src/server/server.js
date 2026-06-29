@@ -10,6 +10,7 @@ import { nunjucksConfig } from '../config/nunjucks/nunjucks.js'
 import { setupProxy } from './common/helpers/proxy/setup-proxy.js'
 import { requestTracing } from './common/helpers/request-tracing.js'
 import { requestLogger } from './common/helpers/logging/request-logger.js'
+import { sessionCorrelation } from './common/helpers/logging/session-correlation.js'
 import { sessionCache } from './common/helpers/session-cache/session-cache.js'
 import { getCacheEngine } from './common/helpers/session-cache/cache-engine.js'
 import { authScheme } from './common/helpers/auth/auth-scheme.js'
@@ -70,6 +71,7 @@ export async function createServer() {
     secureContext,
     pulse,
     sessionCache,
+    sessionCorrelation,
     authScheme,
     csrf,
     nunjucksConfig,
