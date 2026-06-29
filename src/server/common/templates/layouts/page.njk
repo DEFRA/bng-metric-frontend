@@ -27,8 +27,9 @@
 
   {% set navItems = [] %}
   {% if isAuthenticated %}
+    {% set navItems = navigation %}
     {% if canSelectDifferentOrganisation %}
-      {% set navItems = navigation.concat([{
+      {% set navItems = navItems.concat([{
         text: "Change organisation",
         href: "/auth/login?forceReselection=true",
         current: false
