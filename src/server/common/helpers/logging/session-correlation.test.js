@@ -86,4 +86,3 @@ describe('#sessionCorrelation', () => {
     expect(getCorrelationId()).toBeNull()
   })
 })
-
