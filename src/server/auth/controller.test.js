@@ -141,6 +141,26 @@ describe('#loginController', () => {
     )
     expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
+
+  test('passes forceReselection when requested', async () => {
+    randomPKCECodeVerifier.mockReturnValue('verifier')
+    calculatePKCECodeChallenge.mockResolvedValue('challenge')
+    randomState.mockReturnValue('state')
+    randomNonce.mockReturnValue('nonce')
+    buildAuthorizationUrl.mockReturnValue(new URL('https://idp/authorize?x=1'))
+
+    const request = buildRequest({ query: { forceReselection: 'true' } })
+    const h = buildToolkit()
+
+    await loginController.handler(request, h)
+
+    expect(buildAuthorizationUrl).toHaveBeenCalledWith(
+      fakeOidcConfig,
+      expect.objectContaining({
+        forceReselection: 'true'
+      })
+    )
+  })
 })
 
 describe('#callbackController', () => {
@@ -362,6 +382,15 @@ describe('#forbiddenController', () => {
       expect.objectContaining({ pageTitle: 'Access denied' })
     )
     expect(h._response.code).toHaveBeenCalledWith(403)
+  })
+
+  test('passes an empty navigation array to hide the Projects link', () => {
+    const h = buildToolkit()
+    forbiddenController.handler({}, h)
+    expect(h.view).toHaveBeenCalledWith(
+      'auth/forbidden',
+      expect.objectContaining({ navigation: [] })
+    )
   })
 })
 

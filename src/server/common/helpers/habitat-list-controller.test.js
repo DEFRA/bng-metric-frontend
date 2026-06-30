@@ -7,7 +7,10 @@ import {
   resolveProposedDisplayFields
 } from './habitat-list-controller.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
-import { PI_FEATURE } from '../test-helpers/habitat-feature-fixtures.js'
+import {
+  PI_FEATURE,
+  PI_TREE_FEATURE
+} from '../test-helpers/habitat-feature-fixtures.js'
 
 vi.mock('../services/projects.js', () => ({
   fetchProject: vi.fn()
@@ -175,6 +178,37 @@ describe('createHabitatListController', () => {
           ])
         ]
       })
+    )
+  })
+
+  it('lists post-intervention trees as their own area-habitat rows using proposed fields', async () => {
+    vi.mocked(fetchProject).mockResolvedValue({
+      project: {
+        name: 'Test Project',
+        postIntervention: {
+          habitatSizes: {
+            areaHabitats: {
+              totalSquareMetres:
+                PI_FEATURE.sizeSquareMetres + PI_TREE_FEATURE.sizeSquareMetres
+            },
+            site: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
+          },
+          units: { habitatsTotal: 0, treesTotal: PI_TREE_FEATURE.units },
+          habitats: [PI_FEATURE],
+          trees: [PI_TREE_FEATURE],
+          hedgerows: [],
+          watercourses: []
+        }
+      }
+    })
+
+    await callHandler()
+
+    const viewModel = h.view.mock.calls[0][1]
+    // Parcel + tree => one row each, tree using its proposed habitat type.
+    expect(viewModel.habitatRows).toHaveLength(2)
+    expect(viewModel.habitatRows[1]).toEqual(
+      expect.arrayContaining([expect.objectContaining({ text: 'Urban tree' })])
     )
   })
 

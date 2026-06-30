@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { config } from '../../config.js'
 import { buildNavigation } from './build-navigation.js'
 import { createLogger } from '../../../server/common/helpers/logging/logger.js'
+import { canSelectDifferentOrganisation } from '../../../server/common/helpers/auth/organisation-reselection.js'
 
 const logger = createLogger()
 const assetPath = config.get('assetPath')
@@ -38,6 +39,7 @@ export function context(request) {
     navigation: buildNavigation(request),
     user,
     isAuthenticated: Boolean(user),
+    canSelectDifferentOrganisation: canSelectDifferentOrganisation(user),
     getAssetPath(asset) {
       const webpackAssetPath = webpackManifest?.[asset]
       return `${assetPath}/${webpackAssetPath ?? asset}`

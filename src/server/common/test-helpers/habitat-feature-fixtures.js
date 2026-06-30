@@ -29,6 +29,43 @@ export const PI_FEATURE = {
   properties: {}
 }
 
+export const PI_TREE_FEATURE = {
+  featureId: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+  ref: 'T1',
+  area: 163,
+  sizeSquareMetres: 163,
+  units: 0.2,
+  status: 'Complete',
+  count: 1,
+  baseline: {
+    type: 'Urban tree',
+    broadType: 'Individual trees',
+    condition: 'Good',
+    conditionScore: 3,
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    treeSize: 'Small',
+    ruralOrUrban: 'Urban',
+    sizeSquareMetres: 41,
+    area: 41
+  },
+  proposed: {
+    type: 'Urban tree',
+    broadType: 'Individual trees',
+    condition: 'Good',
+    conditionScore: 3,
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    treeSize: 'Medium',
+    ruralOrUrban: 'Urban',
+    sizeSquareMetres: 163,
+    area: 163,
+    advanceYears: 0,
+    delayYears: 0
+  },
+  properties: {}
+}
+
 export const BASELINE_FEATURE = {
   featureId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
   ref: 'P1',

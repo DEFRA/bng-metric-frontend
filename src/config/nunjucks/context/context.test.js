@@ -56,7 +56,8 @@ describe('context and cache', () => {
           serviceName: 'Biodiversity Net Gain',
           serviceUrl: '/',
           user: null,
-          isAuthenticated: false
+          isAuthenticated: false,
+          canSelectDifferentOrganisation: false
         })
       })
 
@@ -142,7 +143,8 @@ describe('context and cache', () => {
           serviceName: 'Biodiversity Net Gain',
           serviceUrl: '/',
           user: null,
-          isAuthenticated: false
+          isAuthenticated: false,
+          canSelectDifferentOrganisation: false
         })
       })
     })

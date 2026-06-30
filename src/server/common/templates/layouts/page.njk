@@ -25,8 +25,16 @@
     useTudorCrown: true
   }) }}
 
-  {% set navItems = navigation %}
+  {% set navItems = [] %}
   {% if isAuthenticated %}
+    {% set navItems = navigation %}
+    {% if canSelectDifferentOrganisation %}
+      {% set navItems = navItems.concat([{
+        text: "Change organisation",
+        href: "/auth/login?forceReselection=true",
+        current: false
+      }]) %}
+    {% endif %}
     {% set navItems = navItems.concat([{
       text: "Sign out",
       href: "/auth/logout",
