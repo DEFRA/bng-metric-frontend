@@ -3,6 +3,9 @@ import { backendRequest } from '../helpers/auth/backend-request.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
+const HTTP_SUCCESS_MIN = 200
+const HTTP_SUCCESS_MAX = 300
+
 /**
  * Fetch a project from the backend by id, forwarding the user's bearer token.
  * Returns the full response payload, or null if the request fails.
@@ -18,7 +21,10 @@ export async function fetchProject(request, id) {
       'get',
       `${backendUrl}/projects/${id}`
     )
-    if (res.statusCode < 200 || res.statusCode >= 300) {
+    if (
+      res.statusCode < HTTP_SUCCESS_MIN ||
+      res.statusCode >= HTTP_SUCCESS_MAX
+    ) {
       return null
     }
     return payload ?? null
