@@ -8,6 +8,10 @@ const logConfig = config.get('log')
 const serviceName = config.get('serviceName')
 const serviceVersion = config.get('serviceVersion')
 
+function hasTraceBinding(logger) {
+  return Boolean(logger?.bindings?.()?.trace?.id)
+}
+
 const formatters = {
   ecs: {
     ...ecsFormat({
@@ -28,8 +32,12 @@ export const loggerOptions = {
   level: logConfig.level,
   ...formatters[logConfig.format],
   nesting: true,
-  mixin() {
+  mixin(_mergeObject, _level, logger) {
     const mixinValues = {}
+    if (hasTraceBinding(logger)) {
+      return mixinValues
+    }
+
     const traceId = getCorrelationId() ?? getTraceId()
     if (traceId) {
       mixinValues.trace = { id: traceId }
