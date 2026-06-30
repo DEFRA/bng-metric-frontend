@@ -106,7 +106,7 @@ describe('#projectDetailsController', () => {
   test('returns 502 when backend returns a non-2xx response', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 503 },
-      payload: null
+      payload: { error: 'Service Unavailable' }
     })
     const { statusCode } = await server.inject({
       method: 'GET',

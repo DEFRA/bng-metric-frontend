@@ -13,11 +13,14 @@ const backendUrl = config.get('backend').url.replace(/\/$/, '')
  */
 export async function fetchProject(request, id) {
   try {
-    const { payload } = await backendRequest(
+    const { res, payload } = await backendRequest(
       request,
       'get',
       `${backendUrl}/projects/${id}`
     )
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      return null
+    }
     return payload ?? null
   } catch {
     return null
