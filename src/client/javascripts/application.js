@@ -4,7 +4,6 @@ import {
   Checkboxes,
   ErrorSummary,
   FileUpload,
-  Header,
   Radios,
   ServiceNavigation,
   SkipLink,
@@ -20,7 +19,6 @@ createAll(Button)
 createAll(Checkboxes)
 createAll(ErrorSummary)
 createAll(FileUpload)
-createAll(Header)
 createAll(Radios)
 createAll(ServiceNavigation)
 createAll(SkipLink)
