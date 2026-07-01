@@ -14,3 +14,5 @@ export const statusCodes = {
 }
 
 export const MAX_FILE_SIZE_BYTES = 104857600 // 100 MB
+
+export const HTTP_SUCCESS_MAX = 300

@@ -25,7 +25,7 @@ describe('fetchProject', () => {
 
     const result = await fetchProject(makeRequest(), projectId)
 
-    expect(result).toEqual(mockPayload)
+    expect(result).toEqual({ statusCode: 200, payload: mockPayload })
     expect(wreck.get).toHaveBeenCalledWith(
       expect.stringContaining(`/projects/${projectId}`),
       expect.objectContaining({
@@ -36,7 +36,7 @@ describe('fetchProject', () => {
     )
   })
 
-  test('returns null when payload is null', async () => {
+  test('returns null payload when backend payload is null', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: null
@@ -44,7 +44,7 @@ describe('fetchProject', () => {
 
     const result = await fetchProject(makeRequest(), projectId)
 
-    expect(result).toBeNull()
+    expect(result).toEqual({ statusCode: 200, payload: null })
   })
 
   test('returns null when the request throws', async () => {
