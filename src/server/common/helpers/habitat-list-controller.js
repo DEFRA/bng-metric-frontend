@@ -160,8 +160,8 @@ function createHabitatListController(uploadType) {
     async handler(request, h) {
       const { id } = request.params
       const project = await fetchProject(request, id)
-      const projectName = project?.project?.name ?? 'Project'
-      const habitatsData = project?.project?.[uploadType.projectKey]
+      const projectName = project?.payload?.project?.name ?? 'Project'
+      const habitatsData = project?.payload?.project?.[uploadType.projectKey]
 
       // Trees are listed as their own rows in the Areas tab, treated the same as
       // any other area habitat (one row per tree).

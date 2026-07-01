@@ -103,6 +103,19 @@ describe('#projectDetailsController', () => {
     expect(result).not.toContain('govuk-caption-l')
   })
 
+  test('returns 404 when backend returns 404', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 404 },
+      payload: null
+    })
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.notFound)
+  })
+
   test('returns 502 when backend returns a non-2xx response', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 503 },

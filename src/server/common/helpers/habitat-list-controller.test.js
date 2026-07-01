@@ -133,20 +133,23 @@ describe('createHabitatListController', () => {
 
   it('uses proposed display fields and upload type flag in the view model', async () => {
     vi.mocked(fetchProject).mockResolvedValue({
-      project: {
-        name: 'Test Project',
-        postIntervention: {
-          habitatSizes: {
-            areaHabitats: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
-          },
-          units: {
-            habitatsTotal: PI_FEATURE.units,
-            hedgerowsTotal: 0,
-            watercoursesTotal: 0
-          },
-          habitats: [PI_FEATURE],
-          hedgerows: [],
-          watercourses: []
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitatSizes: {
+              areaHabitats: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
+            },
+            units: {
+              habitatsTotal: PI_FEATURE.units,
+              hedgerowsTotal: 0,
+              watercoursesTotal: 0
+            },
+            habitats: [PI_FEATURE],
+            hedgerows: [],
+            watercourses: []
+          }
         }
       }
     })
@@ -183,21 +186,24 @@ describe('createHabitatListController', () => {
 
   it('lists post-intervention trees as their own area-habitat rows using proposed fields', async () => {
     vi.mocked(fetchProject).mockResolvedValue({
-      project: {
-        name: 'Test Project',
-        postIntervention: {
-          habitatSizes: {
-            areaHabitats: {
-              totalSquareMetres:
-                PI_FEATURE.sizeSquareMetres + PI_TREE_FEATURE.sizeSquareMetres
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitatSizes: {
+              areaHabitats: {
+                totalSquareMetres:
+                  PI_FEATURE.sizeSquareMetres + PI_TREE_FEATURE.sizeSquareMetres
+              },
+              site: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
             },
-            site: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
-          },
-          units: { habitatsTotal: 0, treesTotal: PI_TREE_FEATURE.units },
-          habitats: [PI_FEATURE],
-          trees: [PI_TREE_FEATURE],
-          hedgerows: [],
-          watercourses: []
+            units: { habitatsTotal: 0, treesTotal: PI_TREE_FEATURE.units },
+            habitats: [PI_FEATURE],
+            trees: [PI_TREE_FEATURE],
+            hedgerows: [],
+            watercourses: []
+          }
         }
       }
     })
@@ -214,20 +220,23 @@ describe('createHabitatListController', () => {
 
   it('builds hedgerow rows from proposed fields', async () => {
     vi.mocked(fetchProject).mockResolvedValue({
-      project: {
-        name: 'Test Project',
-        postIntervention: {
-          habitatSizes: {
-            hedgerows: { totalMetres: HEDGEROW_FEATURE.sizeMetres }
-          },
-          units: {
-            habitatsTotal: 0,
-            hedgerowsTotal: HEDGEROW_FEATURE.units,
-            watercoursesTotal: 0
-          },
-          habitats: [],
-          hedgerows: [HEDGEROW_FEATURE],
-          watercourses: []
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitatSizes: {
+              hedgerows: { totalMetres: HEDGEROW_FEATURE.sizeMetres }
+            },
+            units: {
+              habitatsTotal: 0,
+              hedgerowsTotal: HEDGEROW_FEATURE.units,
+              watercoursesTotal: 0
+            },
+            habitats: [],
+            hedgerows: [HEDGEROW_FEATURE],
+            watercourses: []
+          }
         }
       }
     })
@@ -252,20 +261,23 @@ describe('createHabitatListController', () => {
 
   it('builds watercourse rows from proposed fields', async () => {
     vi.mocked(fetchProject).mockResolvedValue({
-      project: {
-        name: 'Test Project',
-        postIntervention: {
-          habitatSizes: {
-            watercourses: { totalMetres: WATERCOURSE_FEATURE.sizeMetres }
-          },
-          units: {
-            habitatsTotal: 0,
-            hedgerowsTotal: 0,
-            watercoursesTotal: WATERCOURSE_FEATURE.units
-          },
-          habitats: [],
-          hedgerows: [],
-          watercourses: [WATERCOURSE_FEATURE]
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitatSizes: {
+              watercourses: { totalMetres: WATERCOURSE_FEATURE.sizeMetres }
+            },
+            units: {
+              habitatsTotal: 0,
+              hedgerowsTotal: 0,
+              watercoursesTotal: WATERCOURSE_FEATURE.units
+            },
+            habitats: [],
+            hedgerows: [],
+            watercourses: [WATERCOURSE_FEATURE]
+          }
         }
       }
     })
@@ -306,16 +318,19 @@ describe('createHabitatListController', () => {
 
   it('shows an empty area-habitats units cell (not "0.00") when units are not yet calculated', async () => {
     vi.mocked(fetchProject).mockResolvedValue({
-      project: {
-        name: 'Test Project',
-        postIntervention: {
-          habitatSizes: {
-            areaHabitats: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
-          },
-          // No `units` field — project has not been enriched yet.
-          habitats: [PI_FEATURE],
-          hedgerows: [],
-          watercourses: []
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitatSizes: {
+              areaHabitats: { totalSquareMetres: PI_FEATURE.sizeSquareMetres }
+            },
+            // No `units` field — project has not been enriched yet.
+            habitats: [PI_FEATURE],
+            hedgerows: [],
+            watercourses: []
+          }
         }
       }
     })
