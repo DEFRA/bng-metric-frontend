@@ -14,6 +14,20 @@ const backendUrl = config.get('backend').url.replace(/\/$/, '')
 // and hedgerow strategies. The variable significance multipliers come later.
 const FIXED_STRATEGIC_SIGNIFICANCE = { label: 'Low', score: 1 }
 
+// Culverts carry a single "N/A - Culvert" encroachment value on both the
+// watercourse and riparian dropdowns; every other watercourse habitat type
+// excludes it and shows the graded options (BMD-597 AC set 1). The client JS
+// mirrors this filter on habitat-type change.
+const CULVERT_TYPE = 'Culvert'
+const CULVERT_ENCROACHMENT = 'N/A - Culvert'
+
+function encroachmentOptionsFor(watercourseType, allOptions) {
+  if (watercourseType === CULVERT_TYPE) {
+    return allOptions.filter((option) => option === CULVERT_ENCROACHMENT)
+  }
+  return allOptions.filter((option) => option !== CULVERT_ENCROACHMENT)
+}
+
 // Static slice (habitat types + trading rules + the two encroachment lists)
 // caches in a module-level promise; the conditions lookup is per-habitat-type
 // and stays uncached.
@@ -117,18 +131,18 @@ function buildViewModel(watercourse, reference, { projectId, projectName }) {
         selected: c.condition === savedCondition
       }))
     ],
-    // BMD-502 AC text says encroachment options are "per watercourse habitat"
-    // — the engine bundles only flat global lookup tables, so the dropdown
-    // shows every option for every habitat type. If the engine later ships a
-    // per-type filter, the strategy can pass `watercourse.type` to a refined
-    // reference fetch and trim these lists.
+    // The encroachment options depend on the saved habitat type: culverts show
+    // only "N/A - Culvert", every other type excludes it (BMD-597 AC set 1).
     watercourseEncroachmentOptions: buildSelectItems(
-      reference.watercourseEncroachments,
+      encroachmentOptionsFor(
+        watercourse.type,
+        reference.watercourseEncroachments
+      ),
       watercourse.watercourseEncroachment,
       'Choose watercourse encroachment'
     ),
     riparianEncroachmentOptions: buildSelectItems(
-      reference.riparianEncroachments,
+      encroachmentOptionsFor(watercourse.type, reference.riparianEncroachments),
       watercourse.riparianEncroachment,
       'Choose riparian encroachment'
     ),
