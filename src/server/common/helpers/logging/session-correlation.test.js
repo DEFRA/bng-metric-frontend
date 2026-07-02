@@ -36,16 +36,22 @@ describe('#getSessionCorrelationId', () => {
     expect(getSessionCorrelationId(request)).toBe('session-123')
   })
 
+  test('falls back to the correlationId claim', () => {
+    const request = buildRequest({ correlationId: 'correlation-123' })
+
+    expect(getSessionCorrelationId(request)).toBe('correlation-123')
+  })
+
   test('falls back to the sid claim', () => {
     const request = buildRequest({ sid: 'sid-123' })
 
     expect(getSessionCorrelationId(request)).toBe('sid-123')
   })
 
-  test('falls back to the cid claim', () => {
+  test('does not use cid as a session correlation id', () => {
     const request = buildRequest({ cid: 'cid-123' })
 
-    expect(getSessionCorrelationId(request)).toBe('cid-123')
+    expect(getSessionCorrelationId(request)).toBeNull()
   })
 
   test('ignores empty session identifiers', () => {
