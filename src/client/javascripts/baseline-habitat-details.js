@@ -78,10 +78,8 @@ export function initBaselineHabitatDetails() {
     return
   }
 
-  let data
-  try {
-    data = JSON.parse(dataEl.textContent || '{}')
-  } catch {
+  const data = parseReferenceData(dataEl)
+  if (!data) {
     return
   }
 
@@ -91,12 +89,27 @@ export function initBaselineHabitatDetails() {
     return
   }
 
+  wireVariant({ data, typeSelect, conditionSelect })
+}
+
+// Parse the embedded reference JSON, returning null on malformed input so the
+// caller bails out rather than wiring up handlers against garbage.
+function parseReferenceData(dataEl) {
+  try {
+    return JSON.parse(dataEl.textContent || '{}')
+  } catch {
+    return null
+  }
+}
+
+// Dispatch to the per-featureType wiring. Unknown / missing featureType falls
+// through to a no-op: the page still renders server-side, we just don't wire
+// up interactive handlers.
+function wireVariant({ data, typeSelect, conditionSelect }) {
   const broadSelect = document.getElementById(BROAD_ID)
   const habitatTypes = data.habitatTypes ?? []
   const tradingRulesByBand = data.tradingRulesByBand ?? {}
 
-  // Unknown / missing featureType falls through to a no-op: the page still
-  // renders server-side, we just don't wire up interactive handlers.
   if (data.featureType === 'area') {
     initAreaVariant({
       broadSelect,
