@@ -1,5 +1,8 @@
 // @vitest-environment happy-dom
-import { initBaselineHabitatDetails } from './baseline-habitat-details.js'
+import {
+  initBaselineHabitatDetails,
+  REQUIRED_ELEMENT_IDS_WATERCOURSE
+} from './baseline-habitat-details.js'
 import { renderTemplateIntoDocument } from '../../server/test-helpers/render-template.js'
 
 const REFERENCE_DATA = {
@@ -502,14 +505,30 @@ const WATERCOURSE_REFERENCE_DATA = {
       broad: null,
       distinctiveness: 'V.High',
       distinctivenessScore: 10
+    },
+    {
+      name: 'Culvert',
+      broad: null,
+      distinctiveness: 'Low',
+      distinctivenessScore: 2
     }
   ],
   tradingRulesByBand: {
     High: 'Same broad habitat or higher distinctiveness',
-    'V.High': 'Same habitat required'
+    'V.High': 'Same habitat required',
+    Low: 'Better distinctiveness habitat required'
   },
-  watercourseEncroachments: ['None', 'Minor'],
-  riparianEncroachments: ['None', 'Minor']
+  watercourseEncroachments: [
+    'No Encroachment',
+    'Minor',
+    'Major',
+    'N/A - Culvert'
+  ],
+  riparianEncroachments: [
+    'Minor/Minor',
+    'No Encroachment/No Encroachment',
+    'N/A - Culvert'
+  ]
 }
 
 // Mirrors the watercourse strategy's view model. It renders a placeholder
@@ -521,7 +540,7 @@ function buildWatercourseViewModel({
   selectedType = 'Other rivers and streams',
   selectedCondition = 'Fairly Poor'
 } = {}) {
-  const types = ['Other rivers and streams', 'Headwaters']
+  const types = ['Other rivers and streams', 'Headwaters', 'Culvert']
   const conditions = CONDITIONS_FIXTURE
   return {
     pageTitle: 'Watercourse R1',
@@ -639,5 +658,94 @@ describe('initBaselineHabitatDetails — watercourse variant', () => {
     fireChange('broadHabitat')
 
     expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  test.each(REQUIRED_ELEMENT_IDS_WATERCOURSE)(
+    'renders id="%s" so the client JS can find it',
+    (id) => {
+      renderWatercoursePage()
+      expect(document.getElementById(id)).not.toBeNull()
+    }
+  )
+
+  test('repopulates both encroachment dropdowns, excluding "N/A - Culvert", for a non-culvert type', async () => {
+    renderWatercoursePage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Headwaters')
+    fireChange('habitatType')
+    await flushAsync()
+
+    const watercourseOptions = Array.from(
+      document.getElementById('watercourseEncroachment').options
+    ).map((o) => o.value)
+    const riparianOptions = Array.from(
+      document.getElementById('riparianEncroachment').options
+    ).map((o) => o.value)
+    expect(watercourseOptions).toEqual([
+      '',
+      'No Encroachment',
+      'Minor',
+      'Major'
+    ])
+    expect(riparianOptions).toEqual([
+      '',
+      'Minor/Minor',
+      'No Encroachment/No Encroachment'
+    ])
+  })
+
+  test('narrows both encroachment dropdowns to only "N/A - Culvert" for a culvert', async () => {
+    renderWatercoursePage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Culvert')
+    fireChange('habitatType')
+    await flushAsync()
+
+    const watercourseOptions = Array.from(
+      document.getElementById('watercourseEncroachment').options
+    ).map((o) => o.value)
+    const riparianOptions = Array.from(
+      document.getElementById('riparianEncroachment').options
+    ).map((o) => o.value)
+    expect(watercourseOptions).toEqual(['', 'N/A - Culvert'])
+    expect(riparianOptions).toEqual(['', 'N/A - Culvert'])
+  })
+
+  test('resets encroachment dropdowns to the placeholder only when the habitat type is deselected', async () => {
+    renderWatercoursePage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', '')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(
+      Array.from(
+        document.getElementById('watercourseEncroachment').options
+      ).map((o) => o.value)
+    ).toEqual([''])
+    expect(
+      Array.from(document.getElementById('riparianEncroachment').options).map(
+        (o) => o.value
+      )
+    ).toEqual([''])
+  })
+
+  test('resets a previously selected encroachment value when the habitat type changes', async () => {
+    renderWatercoursePage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Headwaters')
+    fireChange('habitatType')
+    await flushAsync()
+    setValue('watercourseEncroachment', 'Minor')
+
+    setValue('habitatType', 'Other rivers and streams')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(document.getElementById('watercourseEncroachment').value).toBe('')
   })
 })
