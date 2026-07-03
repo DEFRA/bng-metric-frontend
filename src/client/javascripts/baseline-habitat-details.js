@@ -22,6 +22,10 @@
 // All changes are display-only; persistence happens on form submit (POST
 // handler in baseline-habitat-details/controller.js).
 
+// Encroachment filtering is shared with the server strategy so the two sides
+// cannot drift; webpack bundles this cross-boundary import into the client.
+import { encroachmentOptionsFor } from '../../server/baseline-habitat-details/encroachment.js'
+
 // Element IDs this module reads from the rendered page. Exported so the
 // server-side controller test can assert the template still renders each
 // one — without that, a renamed `id="..."` on the template would leave the
@@ -57,20 +61,6 @@ const CHOOSE_TYPE_LABEL = 'Choose habitat type'
 const CHOOSE_CONDITION_LABEL = 'Choose condition'
 const CHOOSE_WATERCOURSE_ENCROACHMENT_LABEL = 'Choose watercourse encroachment'
 const CHOOSE_RIPARIAN_ENCROACHMENT_LABEL = 'Choose riparian encroachment'
-
-// Culverts carry a single "N/A - Culvert" encroachment value on both the
-// watercourse and riparian dropdowns; every other watercourse habitat type
-// excludes it. Mirrors the server-side filter in the watercourse strategy so
-// the option lists stay consistent after a habitat-type change (BMD-597).
-const CULVERT_TYPE = 'Culvert'
-const CULVERT_ENCROACHMENT = 'N/A - Culvert'
-
-function encroachmentOptionsFor(watercourseType, allOptions) {
-  if (watercourseType === CULVERT_TYPE) {
-    return allOptions.filter((option) => option === CULVERT_ENCROACHMENT)
-  }
-  return allOptions.filter((option) => option !== CULVERT_ENCROACHMENT)
-}
 
 export function initBaselineHabitatDetails() {
   const dataEl = document.getElementById(REFERENCE_DATA_ID)

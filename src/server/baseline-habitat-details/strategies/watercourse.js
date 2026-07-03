@@ -7,26 +7,13 @@ import {
   formatLengthKm
 } from '../../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../../common/helpers/strip-condition-prefix.js'
+import { encroachmentOptionsFor } from '../encroachment.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
 // Strategic significance is fixed at Low (1) in MVS, mirroring AC9 on the area
 // and hedgerow strategies. The variable significance multipliers come later.
 const FIXED_STRATEGIC_SIGNIFICANCE = { label: 'Low', score: 1 }
-
-// Culverts carry a single "N/A - Culvert" encroachment value on both the
-// watercourse and riparian dropdowns; every other watercourse habitat type
-// excludes it and shows the graded options (BMD-597 AC set 1). The client JS
-// mirrors this filter on habitat-type change.
-const CULVERT_TYPE = 'Culvert'
-const CULVERT_ENCROACHMENT = 'N/A - Culvert'
-
-function encroachmentOptionsFor(watercourseType, allOptions) {
-  if (watercourseType === CULVERT_TYPE) {
-    return allOptions.filter((option) => option === CULVERT_ENCROACHMENT)
-  }
-  return allOptions.filter((option) => option !== CULVERT_ENCROACHMENT)
-}
 
 // Static slice (habitat types + trading rules + the two encroachment lists)
 // caches in a module-level promise; the conditions lookup is per-habitat-type
