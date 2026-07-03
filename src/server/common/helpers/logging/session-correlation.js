@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 const correlationContext = new AsyncLocalStorage()
-const SESSION_CORRELATION_CLAIM_NAMES = ['sessionId', 'sid', 'cid']
+const SESSION_CORRELATION_CLAIM_NAMES = ['sessionId', 'correlationId', 'sid']
 const pluginName = 'session-correlation'
 
 export function getSessionCorrelationId(request) {
