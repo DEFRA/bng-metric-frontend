@@ -45,7 +45,7 @@ function bindSessionCorrelationId(server, request) {
 
   request.logger = server.logger.child({
     req: request,
-    trace: { id: correlationId }
+    session: { id: correlationId }
   })
 }
 
