@@ -91,7 +91,7 @@ describe('#sessionCorrelation', () => {
     expect(result).toBe(h.continue)
   })
 
-  test('binds the session correlation id to the request logger', () => {
+  test('binds the session correlation id to the request logger as session.id', () => {
     const server = buildServer()
     const request = buildRequest({ sessionId: 'session-123' })
     const h = { continue: Symbol('continue') }
@@ -101,7 +101,7 @@ describe('#sessionCorrelation', () => {
 
     expect(server.logger.child).toHaveBeenCalledWith({
       req: request,
-      trace: { id: 'session-123' }
+      session: { id: 'session-123' }
     })
     expect(request.logger).toBe('session-logger')
   })

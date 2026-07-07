@@ -12,6 +12,10 @@ function hasTraceBinding(logger) {
   return Boolean(logger?.bindings?.()?.trace?.id)
 }
 
+function hasSessionBinding(logger) {
+  return Boolean(logger?.bindings?.()?.session?.id)
+}
+
 const formatters = {
   ecs: {
     ...ecsFormat({
@@ -34,14 +38,17 @@ export const loggerOptions = {
   nesting: true,
   mixin(_mergeObject, _level, logger) {
     const mixinValues = {}
-    if (hasTraceBinding(logger)) {
-      return mixinValues
-    }
+    const traceId = getTraceId()
+    const sessionId = getCorrelationId()
 
-    const traceId = getCorrelationId() ?? getTraceId()
-    if (traceId) {
+    if (!hasTraceBinding(logger) && traceId) {
       mixinValues.trace = { id: traceId }
     }
+
+    if (!hasSessionBinding(logger) && sessionId) {
+      mixinValues.session = { id: sessionId }
+    }
+
     return mixinValues
   }
 }
