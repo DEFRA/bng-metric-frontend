@@ -333,6 +333,13 @@ export const config = convict({
       default: '',
       env: 'OS_API_KEY',
       sensitive: true
+    },
+    aerialToken: {
+      doc: 'Getmapping APGB licence token for the aerial photography WMTS. Held server-side and injected by the /aerial-base-map proxy; never sent to the browser. When empty the aerial layer is hidden.',
+      format: String,
+      default: '',
+      env: 'AERIAL_APGB_TOKEN',
+      sensitive: true
     }
   }
 })

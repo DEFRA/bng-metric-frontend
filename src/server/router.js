@@ -20,6 +20,7 @@ import { postInterventionHabitatList } from './post-intervention-habitat-list/in
 import { projectDetails } from './project-details/index.js'
 import { geometryProxy } from './geometry-proxy/index.js'
 import { osBaseMap } from './os-base-map/index.js'
+import { aerialBaseMap } from './aerial-base-map/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -52,6 +53,7 @@ export const router = {
         postInterventionHabitatList,
         geometryProxy,
         osBaseMap,
+        aerialBaseMap,
         invalidFile,
         projectDetails
       ])

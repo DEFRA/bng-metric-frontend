@@ -10,7 +10,9 @@ export const getController = createHabitatListController(
       geometryUrl: `/api/projects/${request.params.id}/baseline/geometry`,
       postInterventionGeometryUrl: `/api/projects/${request.params.id}/post-intervention/geometry`,
       osStyleUrl: '/os-base-map/resources/styles?srs=3857',
-      osApiKeyConfigured: Boolean(config.get('map.osApiKey'))
+      osApiKeyConfigured: Boolean(config.get('map.osApiKey')),
+      aerialTileUrl: '/aerial-base-map/{z}/{y}/{x}',
+      aerialConfigured: Boolean(config.get('map.aerialToken'))
     }
   })
 )

@@ -40,6 +40,7 @@
              data-geometry-url="{{ mapConfig.geometryUrl }}"
              data-post-intervention-geometry-url="{{ mapConfig.postInterventionGeometryUrl }}"
              data-os-style-url="{{ mapConfig.osStyleUrl }}"
+             {% if mapConfig.aerialConfigured %}data-aerial-url="{{ mapConfig.aerialTileUrl }}"{% endif %}
              data-stage="{{ mapConfig.stage }}"
              style="height: 480px; margin-bottom: 1.5rem;">
           <div id="bhm-map" style="height: 100%;"></div>

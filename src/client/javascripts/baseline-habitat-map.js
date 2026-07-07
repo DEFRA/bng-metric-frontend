@@ -27,6 +27,16 @@ const LAYER_PANEL_ID = 'bhm-layer-panel'
 const LEGEND_ID = 'bhm-legend'
 const WRAPPER_CLASS = 'bhm-wrapper'
 
+// Getmapping APGB aerial photography, proxied same-origin (see the
+// aerial-base-map server plugin). Added beneath the BNG data as a raster base
+// layer and toggled from the layer panel; off by default so OS Maps stays the
+// default backdrop.
+const AERIAL_SOURCE_ID = 'bhm-aerial'
+const AERIAL_LAYER_ID = 'bhm-aerial'
+const AERIAL_TILE_SIZE = 256
+const AERIAL_MAX_ZOOM = 20
+const AERIAL_ATTRIBUTION = 'Aerial imagery &copy; Getmapping plc / APGB'
+
 const RED_LINE_PAINT = {
   'line-color': '#d4351c',
   'line-width': 2,
@@ -279,6 +289,26 @@ function addGeoJsonSource(map, sourceId, data) {
   return true
 }
 
+// Raster aerial base layer. Added first (see renderAll) so it sits at the
+// bottom of our layer stack — above the OS vector base, beneath every BNG data
+// layer. Hidden initially; applyVisibility drives it from state.aerial.
+function addAerialLayer(map, aerialUrl) {
+  if (!aerialUrl || map.getSource(AERIAL_SOURCE_ID)) return
+  map.addSource(AERIAL_SOURCE_ID, {
+    type: 'raster',
+    tiles: [aerialUrl],
+    tileSize: AERIAL_TILE_SIZE,
+    maxzoom: AERIAL_MAX_ZOOM,
+    attribution: AERIAL_ATTRIBUTION
+  })
+  map.addLayer({
+    id: AERIAL_LAYER_ID,
+    type: 'raster',
+    source: AERIAL_SOURCE_ID,
+    layout: { visibility: 'none' }
+  })
+}
+
 function addRedLineLayer(map, registry, payload) {
   const sourceId = 'red-line'
   if (!addGeoJsonSource(map, sourceId, payload?.redLine)) return
@@ -426,7 +456,8 @@ function ensureHighlightLayers(map) {
   }
 }
 
-async function renderAll(map, payloads, registry) {
+async function renderAll(map, payloads, registry, aerialUrl) {
+  addAerialLayer(map, aerialUrl)
   addRedLineLayer(map, registry, payloads.baseline ?? payloads.postIntervention)
   addFullStageLayers(map, 'baseline', payloads.baseline, registry)
   addFullStageLayers(
@@ -477,6 +508,7 @@ function setLayerListVisibility(map, layerIds, visible) {
 }
 
 function applyVisibility(map, registry, state, piAvailable) {
+  setLayerListVisibility(map, [AERIAL_LAYER_ID], state.aerial === true)
   setLayerListVisibility(map, registry.redLine, state.redLine === true)
   for (const def of LAYER_DEFS) {
     const baselineOn = state[def.layer]?.baseline === true
@@ -505,7 +537,7 @@ function applyVisibility(map, registry, state, piAvailable) {
 // ---------------------------------------------------------------------------
 
 function buildInitialState(piAvailable) {
-  const state = { redLine: true }
+  const state = { redLine: true, aerial: false }
   for (const def of LAYER_DEFS) {
     state[def.layer] = { baseline: true, pi: piAvailable }
   }
@@ -544,6 +576,19 @@ function renderRedLineRow(state) {
   `
 }
 
+function renderBaseMapSection(state) {
+  return `
+    <div class="bhm-layer-panel__group">
+      <div class="bhm-layer-panel__group-title">Base map</div>
+      <div class="bhm-layer-panel__option">
+        <input class="bhm-layer-panel__checkbox" type="checkbox" id="bhm-toggle-aerial"
+               data-layer="aerial" ${state.aerial ? 'checked' : ''}>
+        <label class="bhm-layer-panel__option-label" for="bhm-toggle-aerial">Aerial photography</label>
+      </div>
+    </div>
+  `
+}
+
 function renderStageSection(stageKey, stageLabel, state) {
   const rows = LAYER_DEFS.map((def) =>
     renderStageCheckbox(
@@ -561,7 +606,13 @@ function renderStageSection(stageKey, stageLabel, state) {
   `
 }
 
-function renderLayerPanel(wrapper, state, piAvailable, onChange) {
+function renderLayerPanel(
+  wrapper,
+  state,
+  piAvailable,
+  onChange,
+  aerialAvailable
+) {
   const existing = document.getElementById(LAYER_PANEL_ID)
   if (existing) existing.remove()
   const panel = document.createElement('div')
@@ -575,6 +626,7 @@ function renderLayerPanel(wrapper, state, piAvailable, onChange) {
   panel.innerHTML = `
     <div class="bhm-layer-panel__title">Layers</div>
     ${renderRedLineRow(state)}
+    ${aerialAvailable ? renderBaseMapSection(state) : ''}
     ${sections}
   `
   wrapper.appendChild(panel)
@@ -586,6 +638,8 @@ function renderLayerPanel(wrapper, state, piAvailable, onChange) {
     if (!layer) return
     if (layer === 'redLine') {
       state.redLine = target.checked
+    } else if (layer === 'aerial') {
+      state.aerial = target.checked
     } else if (stage && state[layer]) {
       state[layer][stage] = target.checked
     }
@@ -946,6 +1000,7 @@ export async function initBaselineHabitatMap() {
     geometryUrl,
     postInterventionGeometryUrl,
     osStyleUrl,
+    aerialUrl,
     stage: stageAttr
   } = container.dataset
   if (!geometryUrl || !osStyleUrl) {
@@ -972,6 +1027,7 @@ export async function initBaselineHabitatMap() {
   }
 
   const piAvailable = payloadHasAnyFeatures(payloads.postIntervention)
+  const aerialAvailable = Boolean(aerialUrl)
   const wrapper = ensureMapWrapper(container)
 
   const osAttribution = `&copy; Crown copyright and database rights ${new Date().getFullYear()} Ordnance Survey`
@@ -1001,13 +1057,19 @@ export async function initBaselineHabitatMap() {
     }
     runWhenStyleReady(map, async () => {
       try {
-        await renderAll(map, payloads, registry)
+        await renderAll(map, payloads, registry, aerialUrl)
         applyVisibility(map, registry, state, piAvailable)
-        renderLayerPanel(wrapper, state, piAvailable, () => {
-          applyVisibility(map, registry, state, piAvailable)
-          setHighlight(map, null)
-          highlightRowByRef(null)
-        })
+        renderLayerPanel(
+          wrapper,
+          state,
+          piAvailable,
+          () => {
+            applyVisibility(map, registry, state, piAvailable)
+            setHighlight(map, null)
+            highlightRowByRef(null)
+          },
+          aerialAvailable
+        )
         renderLegendPanel(wrapper, collectLegendEntries(payloads))
         wireTableToMap(map, payloads, primaryStage)
         wireMapToTable(map, registry)
