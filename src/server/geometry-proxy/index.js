@@ -2,7 +2,7 @@ import Boom from '@hapi/boom'
 import Joi from 'joi'
 
 import { config } from '../../config/config.js'
-import { wreck } from '../common/helpers/wreck-client.js'
+import { backendRequest } from '../common/helpers/auth/backend-request.js'
 import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
@@ -26,7 +26,9 @@ function makeProxy({ publicPath, upstreamStage, label }) {
         const { id } = request.params
         try {
           const upstream = `${backendUrl}/projects/${id}/${upstreamStage}/geometry`
-          const { payload } = await wreck.get(upstream)
+          // Forward the user's bearer token (and refresh-retry on 401) — the
+          // backend requires auth on every route via server.auth.default.
+          const { payload } = await backendRequest(request, 'get', upstream)
           return h.response(payload).type('application/json')
         } catch (err) {
           if (err?.output?.statusCode === 404) {
