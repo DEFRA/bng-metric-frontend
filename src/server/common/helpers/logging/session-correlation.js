@@ -5,12 +5,17 @@ const SESSION_CORRELATION_CLAIM_NAMES = ['sessionId', 'correlationId', 'sid']
 const pluginName = 'session-correlation'
 
 export function getSessionCorrelationId(request) {
-  const user = request.yar?.get('auth')?.user
+  const claimSources = [
+    request.auth?.credentials,
+    request.yar?.get('auth')?.user
+  ]
 
   for (const claimName of SESSION_CORRELATION_CLAIM_NAMES) {
-    const value = user?.[claimName]
-    if (typeof value === 'string' && value.trim()) {
-      return value
+    for (const claims of claimSources) {
+      const value = claims?.[claimName]
+      if (typeof value === 'string' && value.trim()) {
+        return value
+      }
     }
   }
 
@@ -32,19 +37,20 @@ function wrapCycle(request, cycle, store) {
   }
 }
 
-function bindSessionCorrelationId(server, request) {
+function bindSessionCorrelationId(request) {
   const correlationId = getSessionCorrelationId(request)
   setCorrelationId(correlationId)
 
   request.plugins ??= {}
   request.plugins[pluginName] = { correlationId }
 
-  if (!correlationId || typeof server.logger?.child !== 'function') {
+  if (!correlationId || typeof request.logger?.child !== 'function') {
     return
   }
 
-  request.logger = server.logger.child({
-    req: request,
+  // hapi-pino emits response logs from request.logger, so bind here as well as
+  // the ALS mixin in logger-options.js. The response-log test protects this.
+  request.logger = request.logger.child({
     session: { id: correlationId }
   })
 }
@@ -61,8 +67,8 @@ export const sessionCorrelation = {
         return h.continue
       })
 
-      server.ext('onPreAuth', (request, h) => {
-        bindSessionCorrelationId(server, request)
+      server.ext('onPostAuth', (request, h) => {
+        bindSessionCorrelationId(request)
         return h.continue
       })
     }
