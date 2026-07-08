@@ -243,14 +243,42 @@ describe('watercourseStrategy.buildViewModel', () => {
     })
   })
 
-  test('exposes engine-order encroachment options in the dropdown', () => {
-    const vm = watercourseStrategy.buildViewModel({}, reference, ctx)
+  test('exposes engine-order encroachment options, excluding "N/A - Culvert", for a non-culvert type', () => {
+    const vm = watercourseStrategy.buildViewModel(
+      { type: 'Other rivers and streams' },
+      reference,
+      ctx
+    )
     // Strip the placeholder before comparing.
     expect(
       vm.watercourseEncroachmentOptions.slice(1).map((o) => o.value)
-    ).toEqual(mockWatercourseEncroachments)
+    ).toEqual(mockWatercourseEncroachments.filter((o) => o !== 'N/A - Culvert'))
     expect(vm.riparianEncroachmentOptions.slice(1).map((o) => o.value)).toEqual(
-      mockRiparianEncroachments
+      mockRiparianEncroachments.filter((o) => o !== 'N/A - Culvert')
+    )
+  })
+
+  test('excludes "N/A - Culvert" when no habitat type is saved yet', () => {
+    const vm = watercourseStrategy.buildViewModel({}, reference, ctx)
+    expect(vm.watercourseEncroachmentOptions.map((o) => o.value)).not.toContain(
+      'N/A - Culvert'
+    )
+    expect(vm.riparianEncroachmentOptions.map((o) => o.value)).not.toContain(
+      'N/A - Culvert'
+    )
+  })
+
+  test('offers only "N/A - Culvert" on both encroachment dropdowns for a culvert', () => {
+    const vm = watercourseStrategy.buildViewModel(
+      { type: 'Culvert' },
+      reference,
+      ctx
+    )
+    expect(
+      vm.watercourseEncroachmentOptions.slice(1).map((o) => o.value)
+    ).toEqual(['N/A - Culvert'])
+    expect(vm.riparianEncroachmentOptions.slice(1).map((o) => o.value)).toEqual(
+      ['N/A - Culvert']
     )
   })
 
