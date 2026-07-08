@@ -5,7 +5,7 @@ const SESSION_CORRELATION_CLAIM_NAMES = ['sessionId', 'correlationId', 'sid']
 const pluginName = 'session-correlation'
 
 export function getSessionCorrelationId(request) {
-  const user = request.yar?.get('auth')?.user
+  const user = request.auth?.credentials ?? request.yar?.get('auth')?.user
 
   for (const claimName of SESSION_CORRELATION_CLAIM_NAMES) {
     const value = user?.[claimName]
@@ -32,19 +32,18 @@ function wrapCycle(request, cycle, store) {
   }
 }
 
-function bindSessionCorrelationId(server, request) {
+function bindSessionCorrelationId(request) {
   const correlationId = getSessionCorrelationId(request)
   setCorrelationId(correlationId)
 
   request.plugins ??= {}
   request.plugins[pluginName] = { correlationId }
 
-  if (!correlationId || typeof server.logger?.child !== 'function') {
+  if (!correlationId || typeof request.logger?.child !== 'function') {
     return
   }
 
-  request.logger = server.logger.child({
-    req: request,
+  request.logger = request.logger.child({
     session: { id: correlationId }
   })
 }
@@ -61,8 +60,8 @@ export const sessionCorrelation = {
         return h.continue
       })
 
-      server.ext('onPreAuth', (request, h) => {
-        bindSessionCorrelationId(server, request)
+      server.ext('onPostAuth', (request, h) => {
+        bindSessionCorrelationId(request)
         return h.continue
       })
     }
