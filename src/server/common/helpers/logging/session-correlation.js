@@ -5,12 +5,17 @@ const SESSION_CORRELATION_CLAIM_NAMES = ['sessionId', 'correlationId', 'sid']
 const pluginName = 'session-correlation'
 
 export function getSessionCorrelationId(request) {
-  const user = request.auth?.credentials ?? request.yar?.get('auth')?.user
+  const claimSources = [
+    request.auth?.credentials,
+    request.yar?.get('auth')?.user
+  ]
 
   for (const claimName of SESSION_CORRELATION_CLAIM_NAMES) {
-    const value = user?.[claimName]
-    if (typeof value === 'string' && value.trim()) {
-      return value
+    for (const claims of claimSources) {
+      const value = claims?.[claimName]
+      if (typeof value === 'string' && value.trim()) {
+        return value
+      }
     }
   }
 
@@ -43,6 +48,8 @@ function bindSessionCorrelationId(request) {
     return
   }
 
+  // hapi-pino emits response logs from request.logger, so bind here as well as
+  // the ALS mixin in logger-options.js. The response-log test protects this.
   request.logger = request.logger.child({
     session: { id: correlationId }
   })

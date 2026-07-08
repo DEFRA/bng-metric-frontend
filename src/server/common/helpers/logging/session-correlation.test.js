@@ -48,6 +48,15 @@ describe('#getSessionCorrelationId', () => {
     expect(getSessionCorrelationId(request)).toBe('session-123')
   })
 
+  test('falls back claim-by-claim when authenticated credentials are missing the id', () => {
+    const request = buildRequest(
+      { sessionId: 'yar-session-123' },
+      { sub: 'user-123' }
+    )
+
+    expect(getSessionCorrelationId(request)).toBe('yar-session-123')
+  })
+
   test('falls back to the correlationId claim', () => {
     const request = buildRequest({ correlationId: 'correlation-123' })
 
@@ -173,6 +182,8 @@ function captureLogStream() {
 
 describe('#sessionCorrelation response logging', () => {
   test('emits session.id on the hapi-pino response log', async () => {
+    // hapi-pino currently reads request.logger when it emits the response log.
+    // Keep this test so an upgrade cannot silently drop session.id.
     const { stream, logs } = captureLogStream()
     const server = Hapi.server()
 
