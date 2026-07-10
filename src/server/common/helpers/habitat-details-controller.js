@@ -215,4 +215,4 @@ function createHabitatDetailsControllers(uploadType) {
   }
 }
 
-export { createHabitatDetailsControllers }
+export { createHabitatDetailsControllers, fetchFeature, fetchProjectName }
