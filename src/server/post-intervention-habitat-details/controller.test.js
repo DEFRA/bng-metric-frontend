@@ -20,7 +20,16 @@ const createMockH = () => ({
   redirect: vi.fn().mockReturnThis()
 })
 
+const baselineFeatureId = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
 const projectPayload = { payload: { project: { name: 'Test Project' } } }
+const projectWithBaselinePayload = {
+  payload: {
+    project: {
+      name: 'Test Project',
+      baseline: { habitats: [{ featureId: baselineFeatureId, ref: 'P-1' }] }
+    }
+  }
+}
 
 function isProjectUrl(url) {
   return (
@@ -59,7 +68,7 @@ describe('#postInterventionHabitatDetailsController', () => {
         })
       }
       if (isProjectUrl(url)) {
-        return Promise.resolve(projectPayload)
+        return Promise.resolve(projectWithBaselinePayload)
       }
       throw new Error(`Unexpected URL ${url}`)
     })
@@ -81,12 +90,39 @@ describe('#postInterventionHabitatDetailsController', () => {
         conditionDisplay: 'Good (3)',
         strategicSignificanceDisplay: 'Low (1)',
         habitatUnitsDisplay: '2.50',
-        viewBaselineHref: `/baseline-habitat-details?featureId=${featureId}&projectId=${projectId}`,
+        // Baseline feature resolved by ref, not the PI featureId.
+        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
         backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
       })
     )
     // View-only: no form action is passed to the template.
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
+  })
+
+  test('GET omits the baseline link when no baseline feature shares the ref', async () => {
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: {
+            type: 'habitat',
+            feature: { featureId, ref: 'P-99', proposed: {} }
+          }
+        })
+      }
+      if (isProjectUrl(url)) {
+        // Baseline has a different parcel ref, so there is no match.
+        return Promise.resolve(projectWithBaselinePayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details',
+      expect.objectContaining({ viewBaselineHref: null })
+    )
   })
 
   test('GET shows the unsupported-feature message for an individual tree', async () => {

@@ -31,8 +31,18 @@ function withMultiplier(value, score) {
   return value
 }
 
-function baselineDetailsHref(featureId, projectId) {
-  const params = new URLSearchParams({ featureId, projectId })
+// Baseline and post-intervention are separate uploads, so a parcel gets a
+// different featureId in each document; the baseline feature is resolved by
+// ref by the caller and passed in here. Null means no matching baseline
+// feature (e.g. no baseline uploaded), in which case the link is hidden.
+function baselineDetailsHref(baselineFeatureId, projectId) {
+  if (!baselineFeatureId) {
+    return null
+  }
+  const params = new URLSearchParams({
+    featureId: baselineFeatureId,
+    projectId
+  })
   return `/baseline-habitat-details?${params.toString()}`
 }
 
@@ -42,16 +52,15 @@ function baselineDetailsHref(featureId, projectId) {
  * govukSummaryList with no form controls.
  *
  * @param {object} feature the raw feature from the PI feature endpoint
- * @param {{ projectId: string, projectName: string }} ctx
+ * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx
  * @returns {object}
  */
 export function buildAreaViewOnlyViewModel(
   feature,
-  { projectId, projectName }
+  { projectId, projectName, baselineFeatureId }
 ) {
   const proposed = feature.proposed ?? {}
   const baseline = feature.baseline ?? {}
-  const { featureId } = feature
   return {
     pageTitle: `Biodiversity Net Gain - ${PI_DETAILS_HEADING}`,
     heading: PI_DETAILS_HEADING,
@@ -71,7 +80,7 @@ export function buildAreaViewOnlyViewModel(
     ),
     strategicSignificanceDisplay: FIXED_STRATEGIC_SIGNIFICANCE,
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
-    viewBaselineHref: baselineDetailsHref(featureId, projectId),
+    viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
     backHref: `/projects/${projectId}/post-intervention-habitat-list${AREAS_TAB_ANCHOR}`
   }
 }

@@ -1,7 +1,7 @@
 import {
   createHabitatDetailsControllers,
   fetchFeature,
-  fetchProjectName
+  fetchProject
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
@@ -18,6 +18,22 @@ const AREAS_TAB_ANCHOR = '#area-habitats'
 const UNSUPPORTED_MESSAGE =
   'Individual tree and IGGI features are not yet supported in this view.'
 
+/**
+ * Resolve the baseline feature that corresponds to a post-intervention parcel.
+ * Baseline and PI are separate uploads with independent featureIds, so the
+ * only stable join key is the parcel ref. Returns null when no baseline has
+ * been uploaded or no baseline feature shares the ref.
+ */
+function resolveBaselineFeatureId(project, ref) {
+  if (!ref) {
+    return null
+  }
+  const baseline = project?.project?.baseline
+  const candidates = [...(baseline?.habitats ?? []), ...(baseline?.trees ?? [])]
+  const match = candidates.find((feature) => feature.ref === ref)
+  return match?.featureId ?? null
+}
+
 function renderUnsupportedFeature(h, { projectId, projectName }) {
   return h.view('habitat-details/pi-feature-unsupported', {
     pageTitle: `Biodiversity Net Gain - ${PI_DETAILS_HEADING}`,
@@ -32,16 +48,21 @@ const getController = {
   options: shared.getController.options,
   async handler(request, h) {
     const { featureId, projectId } = request.query
-    const [{ type, feature }, projectName] = await Promise.all([
+    const [{ type, feature }, project] = await Promise.all([
       fetchFeature(request, uploadType, projectId, featureId),
-      fetchProjectName(request, projectId)
+      fetchProject(request, projectId)
     ])
+    const projectName = project?.project?.name ?? 'Project'
 
     // Retained area habitat: the view-only page this story delivers (BMD-608).
     if (type === AREA_HABITAT_TYPE) {
       return h.view(
         'habitat-details/pi-habitat-details',
-        buildAreaViewOnlyViewModel(feature, { projectId, projectName })
+        buildAreaViewOnlyViewModel(feature, {
+          projectId,
+          projectName,
+          baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
+        })
       )
     }
 
