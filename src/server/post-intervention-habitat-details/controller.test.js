@@ -125,6 +125,53 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
+  test('GET falls back gracefully when the project fetch fails', async () => {
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: {
+            type: 'habitat',
+            feature: { featureId, ref: 'P-1', proposed: {} }
+          }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.reject(new Error('backend down'))
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details',
+      expect.objectContaining({ caption: 'Project', viewBaselineHref: null })
+    )
+  })
+
+  test('GET omits the baseline link when the area feature has no ref', async () => {
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: { type: 'habitat', feature: { featureId, proposed: {} } }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve(projectWithBaselinePayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details',
+      expect.objectContaining({ viewBaselineHref: null })
+    )
+  })
+
   test('GET shows the unsupported-feature message for an individual tree', async () => {
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {
