@@ -37,9 +37,11 @@
         ]
       }) }}
 
-      <p class="govuk-body">
-        <a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a>
-      </p>
+      {% if viewBaselineHref %}
+        <p class="govuk-body">
+          <a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a>
+        </p>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
