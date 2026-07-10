@@ -1,0 +1,27 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+
+{% block beforeContent %}
+  {{ super() }}
+  {{ govukBackLink({
+    text: "Back",
+    href: backHref
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: caption
+  }) }}
+
+  {# Individual trees and IGGIs are excluded from the retained-area details
+     page (BMD-608). Until their own details pages exist, show a placeholder
+     message rather than the area layout. #}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <p class="govuk-body">{{ message }}</p>
+    </div>
+  </div>
+{% endblock %}
