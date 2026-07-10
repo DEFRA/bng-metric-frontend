@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { backendRequest } from './auth/backend-request.js'
 import {
   createHabitatDetailsControllers,
-  normalizePostInterventionFeatureForDisplay
+  normalizePostInterventionFeatureForDisplay,
+  fetchProject
 } from './habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
 import { PI_FEATURE } from '../test-helpers/habitat-feature-fixtures.js'
@@ -24,6 +25,31 @@ vi.mock('../../baseline-habitat-details/strategies/index.js', () => ({
 
 const projectId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 const featureId = PI_FEATURE.featureId
+
+describe('fetchProject', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('returns the backend payload', async () => {
+    const payload = { project: { name: 'Test Project' } }
+    vi.mocked(backendRequest).mockResolvedValue({ payload })
+
+    await expect(fetchProject({}, projectId)).resolves.toBe(payload)
+  })
+
+  it('returns null when the response carries no payload', async () => {
+    vi.mocked(backendRequest).mockResolvedValue({})
+
+    await expect(fetchProject({}, projectId)).resolves.toBeNull()
+  })
+
+  it('returns null when the request fails', async () => {
+    vi.mocked(backendRequest).mockRejectedValue(new Error('boom'))
+
+    await expect(fetchProject({}, projectId)).resolves.toBeNull()
+  })
+})
 
 describe('normalizePostInterventionFeatureForDisplay', () => {
   it('promotes proposed fields to top level', () => {
