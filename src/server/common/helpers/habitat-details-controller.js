@@ -21,6 +21,28 @@ async function fetchProjectName(request, projectId) {
   }
 }
 
+/**
+ * Fetch the full project payload, or null when the request fails. Callers that
+ * only need the name should use fetchProjectName; this is for callers that also
+ * need the stored feature lists (e.g. resolving a baseline feature by ref).
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {string} projectId
+ * @returns {Promise<object|null>}
+ */
+async function fetchProject(request, projectId) {
+  try {
+    const { payload } = await backendRequest(
+      request,
+      'get',
+      `${backendUrl}/projects/${projectId}`
+    )
+    return payload ?? null
+  } catch {
+    return null
+  }
+}
+
 async function fetchFeature(request, uploadType, projectId, featureId) {
   try {
     const { payload } = await backendRequest(
@@ -215,4 +237,9 @@ function createHabitatDetailsControllers(uploadType) {
   }
 }
 
-export { createHabitatDetailsControllers }
+export {
+  createHabitatDetailsControllers,
+  fetchFeature,
+  fetchProjectName,
+  fetchProject
+}
