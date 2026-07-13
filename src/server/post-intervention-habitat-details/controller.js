@@ -5,12 +5,14 @@ import {
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
+import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 
 const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
 const shared = createHabitatDetailsControllers(uploadType)
 
 // Feature-type discriminators returned by the PI feature endpoint.
 const AREA_HABITAT_TYPE = 'habitat'
+const HEDGEROW_TYPE = 'hedgerow'
 const TREE_TYPE = 'tree'
 
 const PI_DETAILS_HEADING = 'Post-intervention habitat details'
@@ -44,6 +46,14 @@ function renderUnsupportedFeature(h, { projectId, projectName }) {
   })
 }
 
+// Read-only builders keyed by feature type: retained area habitats (BMD-608)
+// and retained hedgerows (BMD-723) both render the view-only pi-habitat-details
+// page, differing only in the view model they produce.
+const VIEW_ONLY_BUILDERS = {
+  [AREA_HABITAT_TYPE]: buildAreaViewOnlyViewModel,
+  [HEDGEROW_TYPE]: buildHedgerowViewOnlyViewModel
+}
+
 const getController = {
   options: shared.getController.options,
   async handler(request, h) {
@@ -54,11 +64,13 @@ const getController = {
     ])
     const projectName = project?.project?.name ?? 'Project'
 
-    // Retained area habitat: the view-only page this story delivers (BMD-608).
-    if (type === AREA_HABITAT_TYPE) {
+    // Retained area habitats and hedgerows: the view-only pages (BMD-608 /
+    // BMD-723).
+    const buildViewOnlyModel = VIEW_ONLY_BUILDERS[type]
+    if (buildViewOnlyModel) {
       return h.view(
         'habitat-details/pi-habitat-details',
-        buildAreaViewOnlyViewModel(feature, {
+        buildViewOnlyModel(feature, {
           projectId,
           projectName,
           baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
@@ -71,8 +83,8 @@ const getController = {
       return renderUnsupportedFeature(h, { projectId, projectName })
     }
 
-    // Hedgerows and watercourses keep their existing editable page until their
-    // own view-only stories (BMD-723 / BMD-724) land.
+    // Watercourses keep their existing editable page until their own view-only
+    // story (BMD-724) lands.
     return shared.getController.handler(request, h)
   }
 }

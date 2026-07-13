@@ -17,25 +17,32 @@
     caption: caption
   }) }}
 
-  {# View-only page (BMD-608): retained post-intervention area habitat. No
-     dropdowns or Save button — every value is read-only. "Intervention" is
-     added and "Trading rules" removed relative to the baseline details page.
-     "View baseline details" links to the baseline equivalent for this feature. #}
+  {# View-only page: retained post-intervention habitat (area — BMD-608,
+     hedgerow — BMD-723). No dropdowns or Save button — every value is
+     read-only. "Intervention" is added and "Trading rules" removed relative
+     to the baseline details page. "View baseline details" links to the
+     baseline equivalent for this feature.
+
+     The "Broad habitat" row only renders for area habitats; hedgerows have no
+     broad-habitat dimension. The size row's label swaps between
+     "Area (hectares)" and "Length (km)" via the view model's sizeLabel. #}
+  {% set summaryRows = [
+    { key: { text: "Reference" }, value: { text: habitatRef } },
+    { key: { text: "Intervention" }, value: { text: interventionDisplay } },
+    { key: { text: sizeLabel }, value: { text: sizeDisplay } }
+  ] %}
+  {% if showBroadHabitatRow %}
+    {% set summaryRows = (summaryRows.push({ key: { text: "Broad habitat" }, value: { text: broadHabitatDisplay } }), summaryRows) %}
+  {% endif %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Habitat type" }, value: { text: habitatTypeDisplay } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Condition" }, value: { text: conditionDisplay } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } }), summaryRows) %}
+  {% set summaryRows = (summaryRows.push({ key: { text: "Units in this habitat" }, value: { text: habitatUnitsDisplay } }), summaryRows) %}
+
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      {{ govukSummaryList({
-        rows: [
-          { key: { text: "Reference" }, value: { text: habitatRef } },
-          { key: { text: "Intervention" }, value: { text: interventionDisplay } },
-          { key: { text: "Area (hectares)" }, value: { text: sizeDisplay } },
-          { key: { text: "Broad habitat" }, value: { text: broadHabitatDisplay } },
-          { key: { text: "Habitat type" }, value: { text: habitatTypeDisplay } },
-          { key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } },
-          { key: { text: "Condition" }, value: { text: conditionDisplay } },
-          { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
-          { key: { text: "Units in this habitat" }, value: { text: habitatUnitsDisplay } }
-        ]
-      }) }}
+      {{ govukSummaryList({ rows: summaryRows }) }}
 
       {% if viewBaselineHref %}
         <p class="govuk-body">

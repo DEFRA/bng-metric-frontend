@@ -30,6 +30,14 @@ const projectWithBaselinePayload = {
     }
   }
 }
+const projectWithBaselineHedgerowPayload = {
+  payload: {
+    project: {
+      name: 'Test Project',
+      baseline: { habitats: [{ featureId: baselineFeatureId, ref: 'H-1' }] }
+    }
+  }
+}
 
 function isProjectUrl(url) {
   return (
@@ -198,7 +206,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
-  test('GET delegates hedgerows to the shared editable details page', async () => {
+  test('GET renders the read-only hedgerow details page for a retained hedgerow', async () => {
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {
         return Promise.resolve({
@@ -207,23 +215,22 @@ describe('#postInterventionHabitatDetailsController', () => {
             feature: {
               featureId,
               ref: 'H-1',
-              sizeMetres: 100,
-              proposed: { type: 'Native hedgerow' }
+              sizeMetres: 2500,
+              units: 3.5,
+              baseline: { retentionCategory: 'Retained' },
+              proposed: {
+                type: 'Native hedgerow',
+                condition: 'Good',
+                conditionScore: 3,
+                distinctiveness: 'Low',
+                distinctivenessScore: 2
+              }
             }
           }
         })
       }
       if (isProjectUrl(url)) {
-        return Promise.resolve(projectPayload)
-      }
-      if (url.includes('/reference/hedgerow-types')) {
-        return Promise.resolve({ payload: [] })
-      }
-      if (url.includes('/reference/trading-rules')) {
-        return Promise.resolve({ payload: {} })
-      }
-      if (url.includes('/reference/conditions')) {
-        return Promise.resolve({ payload: [] })
+        return Promise.resolve(projectWithBaselineHedgerowPayload)
       }
       throw new Error(`Unexpected URL ${url}`)
     })
@@ -232,12 +239,27 @@ describe('#postInterventionHabitatDetailsController', () => {
     await getController.handler({ query: { projectId, featureId } }, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/habitat-details',
+      'habitat-details/pi-habitat-details',
       expect.objectContaining({
-        formAction: '/post-intervention-habitat-details',
-        detailsSectionHeading: 'Post-intervention Details'
+        heading: 'Post-intervention habitat details',
+        caption: 'Test Project',
+        habitatRef: 'H-1',
+        interventionDisplay: 'Retained',
+        sizeLabel: 'Length (km)',
+        sizeDisplay: '2.5',
+        showBroadHabitatRow: false,
+        habitatTypeDisplay: 'Native hedgerow',
+        distinctivenessDisplay: 'Low (2)',
+        conditionDisplay: 'Good (3)',
+        strategicSignificanceDisplay: 'Low (1)',
+        habitatUnitsDisplay: '3.50',
+        // Baseline hedgerow resolved by ref, not the PI featureId.
+        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
+        backHref: `/projects/${projectId}/post-intervention-habitat-list#hedgerows`
       })
     )
+    // View-only: no form action is passed to the template.
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
   test('POST saves to the post-intervention habitat endpoint', async () => {
