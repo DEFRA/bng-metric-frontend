@@ -3,6 +3,7 @@ import {
   formatHabitatUnits
 } from '../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
+import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
 
 // Fixed for MVS, matching the baseline area details page (BMD-315 AC9).
 const FIXED_STRATEGIC_SIGNIFICANCE = 'Low (1)'
@@ -10,8 +11,6 @@ const FIXED_STRATEGIC_SIGNIFICANCE = 'Low (1)'
 // area habitats, so fall back to this label when the feature carries no
 // retention category (e.g. a baseline has not yet been uploaded).
 const DEFAULT_INTERVENTION = 'Retained'
-const PI_DETAILS_HEADING = 'Post-intervention habitat details'
-const AREAS_TAB_ANCHOR = '#area-habitats'
 
 /**
  * Render a value with its multiplier in brackets ("Low (2)"), or just the value
