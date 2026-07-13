@@ -80,7 +80,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "8.0.2",
-    "@vitest/coverage-v8": "4.1.7",
+    "@vitest/coverage-v8": "4.1.10",
     "autoprefixer": "10.5.2",
     "babel-loader": "10.1.1",
     "cheerio": "1.2.0",
@@ -111,6 +111,6 @@
   "overrides": {
     "@hapi/wreck": "18.1.2",
     "vitest": "4.1.9",
-    "@vitest/coverage-v8": "4.1.7"
+    "@vitest/coverage-v8": "4.1.10"
   }
 }
