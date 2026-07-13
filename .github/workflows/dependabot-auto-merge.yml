@@ -29,8 +29,13 @@ jobs:
         # Only auto-merge patch and minor bumps; leave majors for a human to
         # review. For grouped updates the reported update-type is the highest
         # bump in the group, so a group containing a major is excluded here.
+        #
+        # No merge-method flag: `main` uses a merge queue, which sets the method
+        # (squash). Passing --squash here is ignored at best; at worst it arms
+        # auto-merge with a method the branch forbids, which silently blocks the
+        # PR from ever entering the queue.
         if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr merge --auto --squash "$PR_URL"
+        run: gh pr merge --auto "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
