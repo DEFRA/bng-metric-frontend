@@ -198,6 +198,75 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
+  test('GET renders the read-only watercourse details page for a retained watercourse', async () => {
+    const watercourseBaselinePayload = {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            watercourses: [{ featureId: baselineFeatureId, ref: 'W-1' }]
+          }
+        }
+      }
+    }
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: {
+            type: 'watercourse',
+            feature: {
+              featureId,
+              ref: 'W-1',
+              sizeMetres: 1234.56,
+              units: 6.5,
+              baseline: { retentionCategory: 'Retained' },
+              proposed: {
+                type: 'Ditches',
+                condition: 'Moderate',
+                conditionScore: 2,
+                distinctiveness: 'Low',
+                distinctivenessScore: 4,
+                watercourseEncroachment: 'Minor',
+                waterEncroachmentMultiplier: 0.8,
+                riparianEncroachment: 'Minor/No Encroachment',
+                riparianEncroachmentMultiplier: 0.98
+              }
+            }
+          }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve(watercourseBaselinePayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-watercourse-details',
+      expect.objectContaining({
+        heading: 'Post-intervention habitat details',
+        habitatRef: 'W-1',
+        interventionDisplay: 'Retained',
+        sizeDisplay: '1.23456',
+        habitatTypeDisplay: 'Ditches',
+        distinctivenessDisplay: 'Low (4)',
+        conditionDisplay: 'Moderate (2)',
+        watercourseEncroachmentDisplay: 'Minor (0.8)',
+        riparianEncroachmentDisplay: 'Minor/No Encroachment (0.98)',
+        strategicSignificanceDisplay: 'Low (1)',
+        habitatUnitsDisplay: '6.50',
+        // Baseline watercourse resolved by ref, not the PI featureId.
+        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
+        backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`
+      })
+    )
+    // View-only: no form action is passed to the template.
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
+  })
+
   test('GET delegates hedgerows to the shared editable details page', async () => {
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {

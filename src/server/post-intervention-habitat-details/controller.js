@@ -5,6 +5,7 @@ import {
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
+import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
 
 const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
@@ -13,6 +14,7 @@ const shared = createHabitatDetailsControllers(uploadType)
 // Feature-type discriminators returned by the PI feature endpoint.
 const AREA_HABITAT_TYPE = 'habitat'
 const TREE_TYPE = 'tree'
+const WATERCOURSE_TYPE = 'watercourse'
 
 const UNSUPPORTED_MESSAGE =
   'Individual tree and IGGI features are not yet supported in this view.'
@@ -28,7 +30,11 @@ function resolveBaselineFeatureId(project, ref) {
     return null
   }
   const baseline = project?.project?.baseline
-  const candidates = [...(baseline?.habitats ?? []), ...(baseline?.trees ?? [])]
+  const candidates = [
+    ...(baseline?.habitats ?? []),
+    ...(baseline?.trees ?? []),
+    ...(baseline?.watercourses ?? [])
+  ]
   const match = candidates.find((feature) => feature.ref === ref)
   return match?.featureId ?? null
 }
@@ -65,13 +71,26 @@ const getController = {
       )
     }
 
+    // Retained watercourse habitat: the view-only page this story delivers
+    // (BMD-724).
+    if (type === WATERCOURSE_TYPE) {
+      return h.view(
+        'habitat-details/pi-watercourse-details',
+        buildWatercourseViewOnlyViewModel(feature, {
+          projectId,
+          projectName,
+          baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
+        })
+      )
+    }
+
     // Trees (and IGGIs, if ever reachable) are out of scope here.
     if (type === TREE_TYPE) {
       return renderUnsupportedFeature(h, { projectId, projectName })
     }
 
-    // Hedgerows and watercourses keep their existing editable page until their
-    // own view-only stories (BMD-723 / BMD-724) land.
+    // Hedgerows keep their existing editable page until their own view-only
+    // story (BMD-723) lands.
     return shared.getController.handler(request, h)
   }
 }
