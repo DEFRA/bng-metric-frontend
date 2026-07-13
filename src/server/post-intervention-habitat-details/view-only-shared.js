@@ -1,6 +1,7 @@
 // Shared building blocks for the read-only post-intervention details pages
-// (areas and hedgerows). Keeping them here means the view-only variants render
-// the same fixed values and "View baseline details" link the same way.
+// (areas, hedgerows and watercourses). Keeping them here means the view-only
+// variants render the same fixed values and "View baseline details" link the
+// same way.
 
 // Strategic significance is fixed at Low (1) in MVS across every habitat type,
 // matching the baseline details pages. The variable significance multipliers

@@ -261,6 +261,99 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
+  test('GET renders the read-only watercourse details page for a retained watercourse', async () => {
+    const watercourseBaselinePayload = {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            watercourses: [{ featureId: baselineFeatureId, ref: 'W-1' }]
+          }
+        }
+      }
+    }
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: {
+            type: 'watercourse',
+            feature: {
+              featureId,
+              ref: 'W-1',
+              sizeMetres: 1234.56,
+              units: 6.5,
+              baseline: { retentionCategory: 'Retained' },
+              proposed: {
+                type: 'Ditches',
+                condition: 'Moderate',
+                conditionScore: 2,
+                distinctiveness: 'Low',
+                distinctivenessScore: 4,
+                watercourseEncroachment: 'Minor',
+                waterEncroachmentMultiplier: 0.8,
+                riparianEncroachment: 'Minor/No Encroachment',
+                riparianEncroachmentMultiplier: 0.98
+              }
+            }
+          }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve(watercourseBaselinePayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-watercourse-details',
+      expect.objectContaining({
+        heading: 'Post-intervention habitat details',
+        habitatRef: 'W-1',
+        interventionDisplay: 'Retained',
+        sizeDisplay: '1.23456',
+        habitatTypeDisplay: 'Ditches',
+        distinctivenessDisplay: 'Low (4)',
+        conditionDisplay: 'Moderate (2)',
+        watercourseEncroachmentDisplay: 'Minor (0.8)',
+        riparianEncroachmentDisplay: 'Minor/No Encroachment (0.98)',
+        strategicSignificanceDisplay: 'Low (1)',
+        habitatUnitsDisplay: '6.50',
+        // Baseline watercourse resolved by ref, not the PI featureId.
+        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
+        backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`
+      })
+    )
+    // View-only: no form action is passed to the template.
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
+  })
+
+  test('GET delegates an unrecognised feature type to the shared editable page', async () => {
+    // Every type the backend currently returns (habitat, tree, hedgerow,
+    // watercourse) is handled above, so this guards the fallback against a new
+    // feature type appearing without a view-only page.
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: { type: 'iggi', feature: { featureId, ref: 'I-1' } }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve(projectPayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+
+    await expect(
+      getController.handler({ query: { projectId, featureId } }, h)
+    ).rejects.toThrow(/Unsupported feature type/)
+    expect(h.view).not.toHaveBeenCalled()
+  })
+
   test('POST saves to the post-intervention habitat endpoint', async () => {
     vi.mocked(wreck.put).mockResolvedValue({ res: { statusCode: 200 } })
     const h = createMockH()

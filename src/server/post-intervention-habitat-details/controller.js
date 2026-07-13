@@ -6,6 +6,7 @@ import {
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
+import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
 
 const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
@@ -15,6 +16,34 @@ const shared = createHabitatDetailsControllers(uploadType)
 const AREA_HABITAT_TYPE = 'habitat'
 const TREE_TYPE = 'tree'
 const HEDGEROW_TYPE = 'hedgerow'
+const WATERCOURSE_TYPE = 'watercourse'
+
+// The retained feature types that render a read-only details page. A Map (not a
+// plain object) so a feature type that collides with an Object prototype key
+// cannot resolve to an inherited property.
+const VIEW_ONLY_PAGES = new Map([
+  [
+    AREA_HABITAT_TYPE,
+    {
+      template: 'habitat-details/pi-habitat-details',
+      buildViewModel: buildAreaViewOnlyViewModel
+    }
+  ],
+  [
+    HEDGEROW_TYPE,
+    {
+      template: 'habitat-details/pi-hedgerow-details',
+      buildViewModel: buildHedgerowViewOnlyViewModel
+    }
+  ],
+  [
+    WATERCOURSE_TYPE,
+    {
+      template: 'habitat-details/pi-watercourse-details',
+      buildViewModel: buildWatercourseViewOnlyViewModel
+    }
+  ]
+])
 
 const UNSUPPORTED_MESSAGE =
   'Individual tree and IGGI features are not yet supported in this view.'
@@ -33,7 +62,8 @@ function resolveBaselineFeatureId(project, ref) {
   const candidates = [
     ...(baseline?.habitats ?? []),
     ...(baseline?.trees ?? []),
-    ...(baseline?.hedgerows ?? [])
+    ...(baseline?.hedgerows ?? []),
+    ...(baseline?.watercourses ?? [])
   ]
   const match = candidates.find((feature) => feature.ref === ref)
   return match?.featureId ?? null
@@ -59,23 +89,12 @@ const getController = {
     ])
     const projectName = project?.project?.name ?? 'Project'
 
-    // Retained area habitat: the read-only view-only page.
-    if (type === AREA_HABITAT_TYPE) {
+    // Retained area, hedgerow and watercourse habitats: the read-only pages.
+    const page = VIEW_ONLY_PAGES.get(type)
+    if (page) {
       return h.view(
-        'habitat-details/pi-habitat-details',
-        buildAreaViewOnlyViewModel(feature, {
-          projectId,
-          projectName,
-          baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
-        })
-      )
-    }
-
-    // Retained hedgerow habitat: the read-only view-only page.
-    if (type === HEDGEROW_TYPE) {
-      return h.view(
-        'habitat-details/pi-hedgerow-details',
-        buildHedgerowViewOnlyViewModel(feature, {
+        page.template,
+        page.buildViewModel(feature, {
           projectId,
           projectName,
           baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
@@ -88,8 +107,7 @@ const getController = {
       return renderUnsupportedFeature(h, { projectId, projectName })
     }
 
-    // Watercourses keep their existing editable page until their own view-only
-    // page lands.
+    // Any other feature type keeps the existing editable page.
     return shared.getController.handler(request, h)
   }
 }

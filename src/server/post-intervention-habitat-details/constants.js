@@ -3,3 +3,4 @@
 export const PI_DETAILS_HEADING = 'Post-intervention habitat details'
 export const AREAS_TAB_ANCHOR = '#area-habitats'
 export const HEDGEROWS_TAB_ANCHOR = '#hedgerows'
+export const WATERCOURSES_TAB_ANCHOR = '#watercourses'
