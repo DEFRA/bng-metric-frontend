@@ -144,23 +144,16 @@ function buildBlock(err) {
   return block
 }
 
+const SINGLE_VALIDATION_ERROR = 1
+
 function resolveUploadContext(request) {
   const requestedUploadType = request.yar.get('validationUploadType')
   const uploadType =
     requestedUploadType === HABITAT_UPLOAD_TYPES.postIntervention.key
       ? HABITAT_UPLOAD_TYPES.postIntervention
       : HABITAT_UPLOAD_TYPES.baseline
-  const baselineErrors =
-    request.yar.get(HABITAT_UPLOAD_TYPES.baseline.validationErrorsSessionKey) ??
-    []
-  const postErrors =
-    request.yar.get(
-      HABITAT_UPLOAD_TYPES.postIntervention.validationErrorsSessionKey
-    ) ?? []
   const validationErrors =
-    uploadType.key === HABITAT_UPLOAD_TYPES.postIntervention.key
-      ? postErrors
-      : baselineErrors
+    request.yar.get(uploadType.validationErrorsSessionKey) ?? []
   const projectId =
     request.yar.get(uploadType.validationErrorsProjectIdSessionKey) ?? null
   return { uploadType, validationErrors, projectId }
@@ -199,7 +192,7 @@ export const invalidFileController = {
     // session errors (not visibleErrors, which already merges a correlated
     // sliver error into AREA_PARCELS_OUTSIDE_REDLINE for the multi-error view).
     const singleError =
-      validationErrors.length === 1
+      validationErrors.length === SINGLE_VALIDATION_ERROR
         ? resolveSingleErrorCopy(validationErrors[0], uploadHref)
         : null
 

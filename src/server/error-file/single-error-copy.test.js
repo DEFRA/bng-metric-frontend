@@ -129,7 +129,7 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('AC8: falls back to the generic title when only one ref is present', () => {
+  test('AC8: falls back to the generic title and generic body when only one ref is present', () => {
     const result = resolveSingleErrorCopy(
       {
         code: 'PARCEL_OVERLAPS',
@@ -139,6 +139,9 @@ describe('#resolveSingleErrorCopy', () => {
       UPLOAD_HREF
     )
     expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'Some parcels in this file are overlapping. Draw the affected parcels again and '
+    )
   })
 
   test('AC9: SLIVERS_INSIDE_REDLINE', () => {
@@ -224,11 +227,25 @@ describe('#resolveSingleErrorCopy', () => {
     })
   })
 
-  test('standard variant omits the upload link when uploadHref is null', () => {
+  test('standard variant renders a complete sentence without a link when uploadHref is null', () => {
     const result = resolveSingleErrorCopy(
       { code: 'NO_REDLINE', message: 'x' },
       null
     )
     expect(result.uploadHref).toBeNull()
+    expect(result.linkText).toBeNull()
+    expect(result.messageBefore).toBe(
+      'The redline boundary is missing. Draw the red line boundary.'
+    )
+    expect(result.messageAfter).toBe('')
+  })
+
+  test('placeholder variant handles a missing message field without crashing', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'REDLINE_OUTSIDE_ENGLAND' },
+      UPLOAD_HREF
+    )
+    expect(result.variant).toBe('placeholder')
+    expect(result.helpText).toBe('PLACEHOLDER - undefined')
   })
 })

@@ -17,7 +17,7 @@
           <p class="govuk-body">{{ singleError.helpText }}</p>
         {% else %}
           <p class="govuk-body">
-            {{ singleError.messageBefore }}{% if singleError.linkText and singleError.uploadHref %}<a class="govuk-link" href="{{ singleError.uploadHref }}">{{ singleError.linkText }}</a>{% else %}{{ singleError.linkText }}{% endif %}{{ singleError.messageAfter }}
+            {{ singleError.messageBefore }}{% if singleError.uploadHref %}<a class="govuk-link" href="{{ singleError.uploadHref }}">{{ singleError.linkText }}</a>{{ singleError.messageAfter }}{% endif %}
           </p>
         {% endif %}
       {% elif errorList and errorList.length > 0 %}

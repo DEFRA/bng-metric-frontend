@@ -21,7 +21,10 @@ const PLACEHOLDER_ERROR_CODES = new Set([
 ])
 
 function describeRef(sample, suffix = '') {
-  const ref = sample?.[`feature_ref${suffix}`] ?? sample?.[`fid${suffix}`]
+  const ref =
+    sample?.[`feature_ref${suffix}`] ??
+    sample?.[`fid${suffix}`] ??
+    sample?.[`idx${suffix}`]
   return ref != null && ref !== '' ? String(ref) : null
 }
 
@@ -39,18 +42,25 @@ function standard(h1, messageBefore, messageAfter = '.') {
   }
 }
 
+// AC2 — No redline boundary (BMD-340): two codes, same copy.
+const noRedlineEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    'The redline boundary is missing. Draw the red line boundary and '
+  )
+
+// AC9 — Sliver (BMD-300 AC7): two codes, same copy. Sliver rows don't carry a
+// feature_ref (they describe a gap, not a titled parcel), so this falls back to
+// the generic title when one isn't available.
+const sliverEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
+  )
+
 const CODE_ENTRIES = {
-  // AC2 — No redline boundary (BMD-340)
-  NO_REDLINE: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'The redline boundary is missing. Draw the red line boundary and '
-    ),
-  GPKG_RLB_NO_POLYGON: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'The redline boundary is missing. Draw the red line boundary and '
-    ),
+  NO_REDLINE: noRedlineEntry,
+  GPKG_RLB_NO_POLYGON: noRedlineEntry,
 
   // AC3 — Multiple redline boundaries (BMD-340)
   GPKG_RLB_TOO_MANY_POLYGONS: () =>
@@ -98,27 +108,19 @@ const CODE_ENTRIES = {
     const refs = [describeRef(sample, '_a'), describeRef(sample, '_b')].filter(
       Boolean
     )
+    const bothRefs = refs.length === BOTH_OVERLAP_REFS
     return standard(
-      refs.length === BOTH_OVERLAP_REFS
+      bothRefs
         ? `These parcels ${refs.join(', ')} contain an error`
         : GEOPACKAGE_ERROR_H1,
-      'These parcels are overlapping. Draw the parcels again and '
+      bothRefs
+        ? 'These parcels are overlapping. Draw the parcels again and '
+        : 'Some parcels in this file are overlapping. Draw the affected parcels again and '
     )
   },
 
-  // AC9 — Sliver (BMD-300 AC7). Sliver rows don't carry a feature_ref (they
-  // describe a gap, not a titled parcel), so this falls back to the generic
-  // title when one isn't available.
-  SLIVERS_INSIDE_REDLINE: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
-    ),
-  SLIVERS_OUTSIDE_REDLINE: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
-    ),
+  SLIVERS_INSIDE_REDLINE: sliverEntry,
+  SLIVERS_OUTSIDE_REDLINE: sliverEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
@@ -162,23 +164,34 @@ function defaultEntry() {
 /**
  * Resolve the exact AC copy for a single validation error.
  *
- * @param {{code: string, message: string, details?: object}} error
+ * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
  */
 export function resolveSingleErrorCopy(error, uploadHref) {
-  if (PLACEHOLDER_ERROR_CODES.has(error?.code)) {
+  const build = CODE_ENTRIES[error?.code]
+
+  // Check CODE_ENTRIES before PLACEHOLDER_ERROR_CODES so that adding real copy
+  // to CODE_ENTRIES for a graduating placeholder code takes effect without also
+  // needing to remember to remove it from the Set.
+  if (!build && PLACEHOLDER_ERROR_CODES.has(error?.code)) {
     return {
       variant: 'placeholder',
       h1: 'PLACEHOLDER (AWAITING UCD)',
-      helpText: `PLACEHOLDER - ${error.message}`
+      helpText: `PLACEHOLDER - ${error?.message}`
     }
   }
 
-  const build = CODE_ENTRIES[error?.code] ?? defaultEntry
-  const resolved = build(error)
+  const resolved = (build ?? defaultEntry)(error)
 
   if (resolved.variant === 'standard') {
     resolved.uploadHref = uploadHref
+    if (!uploadHref) {
+      // No upload destination available: trim the trailing "and " so the
+      // instruction reads as a complete sentence without a dangling call-to-action.
+      resolved.messageBefore = `${resolved.messageBefore.replace(/ and $/, '')}.`
+      resolved.linkText = null
+      resolved.messageAfter = ''
+    }
   }
 
   return resolved
