@@ -144,27 +144,32 @@ function buildBlock(err) {
   return block
 }
 
+function resolveUploadContext(request) {
+  const requestedUploadType = request.yar.get('validationUploadType')
+  const uploadType =
+    requestedUploadType === HABITAT_UPLOAD_TYPES.postIntervention.key
+      ? HABITAT_UPLOAD_TYPES.postIntervention
+      : HABITAT_UPLOAD_TYPES.baseline
+  const baselineErrors =
+    request.yar.get(HABITAT_UPLOAD_TYPES.baseline.validationErrorsSessionKey) ??
+    []
+  const postErrors =
+    request.yar.get(
+      HABITAT_UPLOAD_TYPES.postIntervention.validationErrorsSessionKey
+    ) ?? []
+  const validationErrors =
+    uploadType.key === HABITAT_UPLOAD_TYPES.postIntervention.key
+      ? postErrors
+      : baselineErrors
+  const projectId =
+    request.yar.get(uploadType.validationErrorsProjectIdSessionKey) ?? null
+  return { uploadType, validationErrors, projectId }
+}
+
 export const invalidFileController = {
   handler(request, h) {
-    const requestedUploadType = request.yar.get('validationUploadType')
-    const uploadType =
-      requestedUploadType === HABITAT_UPLOAD_TYPES.postIntervention.key
-        ? HABITAT_UPLOAD_TYPES.postIntervention
-        : HABITAT_UPLOAD_TYPES.baseline
-    const baselineValidationErrors =
-      request.yar.get(
-        HABITAT_UPLOAD_TYPES.baseline.validationErrorsSessionKey
-      ) ?? []
-    const postInterventionValidationErrors =
-      request.yar.get(
-        HABITAT_UPLOAD_TYPES.postIntervention.validationErrorsSessionKey
-      ) ?? []
-    const validationErrors =
-      uploadType.key === HABITAT_UPLOAD_TYPES.postIntervention.key
-        ? postInterventionValidationErrors
-        : baselineValidationErrors
-    const projectId =
-      request.yar.get(uploadType.validationErrorsProjectIdSessionKey) ?? null
+    const { uploadType, validationErrors, projectId } =
+      resolveUploadContext(request)
 
     // Errors are one-shot — clear them so a refresh or back-nav doesn't
     // resurrect a stale rejection.
