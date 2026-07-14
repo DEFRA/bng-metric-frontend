@@ -13,15 +13,14 @@ import {
 
 /**
  * Build the read-only view model for a retained post-intervention hedgerow
- * habitat (BMD-723). All values are display strings; the template renders them
- * as a govukSummaryList with no form controls. Relative to the baseline
- * hedgerow details page this adds an "Intervention" row and drops the
- * trading-rules row.
+ * habitat. All values are display strings; the template renders them as a
+ * govukSummaryList with no form controls. Relative to the baseline hedgerow
+ * details page this adds an "Intervention" row and drops the trading-rules row.
  *
  * Post-intervention values are read from `proposed`, mirroring the area page
- * (BMD-608) and the editable hedgerow page; for a retained hedgerow the
- * proposed side carries the same values as the baseline. Length and units come
- * from the top-level feature fields, matching how the backend stores them.
+ * and the editable hedgerow page; for a retained hedgerow the proposed side
+ * carries the same values as the baseline. Length and units come from the
+ * top-level feature fields, matching how the backend stores them.
  *
  * @param {object} feature the raw feature from the PI feature endpoint
  * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx

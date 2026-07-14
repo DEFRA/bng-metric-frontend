@@ -59,7 +59,7 @@ const getController = {
     ])
     const projectName = project?.project?.name ?? 'Project'
 
-    // Retained area habitat: the view-only page this story delivers (BMD-608).
+    // Retained area habitat: the read-only view-only page.
     if (type === AREA_HABITAT_TYPE) {
       return h.view(
         'habitat-details/pi-habitat-details',
@@ -71,8 +71,7 @@ const getController = {
       )
     }
 
-    // Retained hedgerow habitat: the view-only page this story delivers
-    // (BMD-723).
+    // Retained hedgerow habitat: the read-only view-only page.
     if (type === HEDGEROW_TYPE) {
       return h.view(
         'habitat-details/pi-hedgerow-details',
@@ -90,7 +89,7 @@ const getController = {
     }
 
     // Watercourses keep their existing editable page until their own view-only
-    // story (BMD-724) lands.
+    // page lands.
     return shared.getController.handler(request, h)
   }
 }

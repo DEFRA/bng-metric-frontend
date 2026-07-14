@@ -1,11 +1,10 @@
 // Shared building blocks for the read-only post-intervention details pages
-// (BMD-608 areas, BMD-723 hedgerows). Keeping them here means the view-only
-// variants render the same fixed values and "View baseline details" link the
-// same way.
+// (areas and hedgerows). Keeping them here means the view-only variants render
+// the same fixed values and "View baseline details" link the same way.
 
 // Strategic significance is fixed at Low (1) in MVS across every habitat type,
-// matching the baseline details pages (BMD-315 AC9). The variable significance
-// multipliers come later.
+// matching the baseline details pages. The variable significance multipliers
+// come later.
 export const FIXED_STRATEGIC_SIGNIFICANCE = 'Low (1)'
 
 // The view-only pages are only reached for retained features, so fall back to

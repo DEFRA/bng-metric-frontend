@@ -12,8 +12,8 @@ import {
 } from './view-only-shared.js'
 
 /**
- * Build the read-only view model for a retained post-intervention area habitat
- * (BMD-608). All values are display strings; the template renders them as a
+ * Build the read-only view model for a retained post-intervention area habitat.
+ * All values are display strings; the template renders them as a
  * govukSummaryList with no form controls.
  *
  * @param {object} feature the raw feature from the PI feature endpoint
