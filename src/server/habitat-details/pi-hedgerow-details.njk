@@ -1,0 +1,47 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+
+{% block beforeContent %}
+  {{ super() }}
+  {{ govukBackLink({
+    text: "Back",
+    href: backHref
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: caption
+  }) }}
+
+  {# View-only page: retained post-intervention hedgerow habitat.
+     No dropdowns or Save button — every value is read-only. "Intervention" is
+     added and "Required action to meet trading rules" removed relative to the
+     baseline hedgerow details page. "View baseline details" links to the
+     baseline equivalent for this feature. #}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {{ govukSummaryList({
+        rows: [
+          { key: { text: "Reference" }, value: { text: habitatRef } },
+          { key: { text: "Intervention" }, value: { text: interventionDisplay } },
+          { key: { text: "Length (km)" }, value: { text: sizeDisplay } },
+          { key: { text: "Habitat type" }, value: { text: habitatTypeDisplay } },
+          { key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } },
+          { key: { text: "Condition" }, value: { text: conditionDisplay } },
+          { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
+          { key: { text: "Units in this habitat" }, value: { text: habitatUnitsDisplay } }
+        ]
+      }) }}
+
+      {% if viewBaselineHref %}
+        <p class="govuk-body">
+          <a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a>
+        </p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
