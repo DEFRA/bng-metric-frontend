@@ -5,6 +5,7 @@
 
 const GEOPACKAGE_ERROR_H1 = 'Your Geopackage (.gpkg) file contains an error'
 const UPLOAD_LINK_TEXT = 'upload a new file'
+const BOTH_OVERLAP_REFS = 2
 
 const STATUTORY_METRIC_TOOL_URL =
   'https://www.gov.uk/government/publications/statutory-biodiversity-metric-tools-and-guides'
@@ -98,7 +99,7 @@ const CODE_ENTRIES = {
       Boolean
     )
     return standard(
-      refs.length === 2
+      refs.length === BOTH_OVERLAP_REFS
         ? `These parcels ${refs.join(', ')} contain an error`
         : GEOPACKAGE_ERROR_H1,
       'These parcels are overlapping. Draw the parcels again and '
