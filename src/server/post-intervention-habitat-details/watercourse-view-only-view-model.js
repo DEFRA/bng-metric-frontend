@@ -1,64 +1,42 @@
-import {
-  formatHabitatUnits,
-  formatLengthKm
-} from '../common/helpers/format-habitat-values.js'
-import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
-import { PI_DETAILS_HEADING, WATERCOURSES_TAB_ANCHOR } from './constants.js'
-import {
-  DEFAULT_INTERVENTION,
-  FIXED_STRATEGIC_SIGNIFICANCE,
-  baselineDetailsHref,
-  withMultiplier
-} from './view-only-shared.js'
+import { formatLengthKm } from '../common/helpers/format-habitat-values.js'
+import { WATERCOURSES_TAB_ANCHOR } from './constants.js'
+import { buildViewOnlyViewModel, withMultiplier } from './view-only-shared.js'
+
+// What sets the watercourse page apart: a length in km, plus the two
+// encroachment rows.
+//
+// The encroachment *values* come from the baseline side (falling back to
+// proposed), because for a retained watercourse the backend feeds the engine
+// `baseline.watercourseEncroachment` / `baseline.riparianEncroachment` — the
+// multipliers it writes onto `proposed` are derived from those, not from the
+// proposed encroachment columns. Reading the value and its multiplier from
+// different sides would pair a value with a multiplier that was not computed
+// from it, or blank the row entirely when the proposed column is empty.
+const watercourseSpec = {
+  tabAnchor: WATERCOURSES_TAB_ANCHOR,
+  formatSize: (feature) => formatLengthKm(feature.sizeMetres),
+  extraFields: ({ proposed, retained }) => ({
+    watercourseEncroachmentDisplay: withMultiplier(
+      retained('watercourseEncroachment'),
+      proposed.waterEncroachmentMultiplier
+    ),
+    riparianEncroachmentDisplay: withMultiplier(
+      retained('riparianEncroachment'),
+      proposed.riparianEncroachmentMultiplier
+    )
+  })
+}
 
 /**
  * Build the read-only view model for a retained post-intervention watercourse
- * habitat. All values are display strings; the template renders them as a
- * govukSummaryList with no form controls. Relative to the baseline watercourse
- * details page this adds an "Intervention" row and drops the trading-rules row.
- *
- * Post-intervention values are read from `proposed`, mirroring the area and
- * hedgerow pages and the editable watercourse page; for a retained watercourse
- * the proposed side carries the same values as the baseline. Length and units
- * come from the top-level feature fields, matching how the backend stores them.
+ * habitat. All values are display strings;
+ * habitat-details/pi-watercourse-details.njk renders them as a govukSummaryList
+ * with no form controls.
  *
  * @param {object} feature the raw feature from the PI feature endpoint
  * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx
  * @returns {object}
  */
-export function buildWatercourseViewOnlyViewModel(
-  feature,
-  { projectId, projectName, baselineFeatureId }
-) {
-  const proposed = feature.proposed ?? {}
-  const baseline = feature.baseline ?? {}
-  return {
-    pageTitle: `Biodiversity Net Gain - ${PI_DETAILS_HEADING}`,
-    heading: PI_DETAILS_HEADING,
-    caption: projectName,
-    habitatRef: feature.ref ?? '',
-    interventionDisplay: baseline.retentionCategory || DEFAULT_INTERVENTION,
-    sizeDisplay: formatLengthKm(feature.sizeMetres),
-    habitatTypeDisplay: proposed.type ?? '',
-    distinctivenessDisplay: withMultiplier(
-      proposed.distinctiveness,
-      proposed.distinctivenessScore
-    ),
-    conditionDisplay: withMultiplier(
-      stripConditionPrefix(proposed.condition),
-      proposed.conditionScore
-    ),
-    watercourseEncroachmentDisplay: withMultiplier(
-      proposed.watercourseEncroachment,
-      proposed.waterEncroachmentMultiplier
-    ),
-    riparianEncroachmentDisplay: withMultiplier(
-      proposed.riparianEncroachment,
-      proposed.riparianEncroachmentMultiplier
-    ),
-    strategicSignificanceDisplay: FIXED_STRATEGIC_SIGNIFICANCE,
-    habitatUnitsDisplay: formatHabitatUnits(feature.units),
-    viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${WATERCOURSES_TAB_ANCHOR}`
-  }
+export function buildWatercourseViewOnlyViewModel(feature, ctx) {
+  return buildViewOnlyViewModel(feature, ctx, watercourseSpec)
 }

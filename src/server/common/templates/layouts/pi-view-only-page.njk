@@ -1,0 +1,42 @@
+{% extends 'layouts/page.njk' %}
+
+{# Shared chrome for the read-only post-intervention details pages (areas,
+   hedgerows and watercourses). These pages are identical apart from their rows:
+   no dropdowns and no Save button, every value read-only, an "Intervention" row
+   added and the trading-rules row dropped relative to the baseline details
+   pages, and a "View baseline details" link to the baseline equivalent.
+
+   Each habitat type keeps its own template and sets `detailRows` to the rows it
+   shows — that is where the three pages genuinely differ, and where they are
+   free to diverge. Everything below is the part that was identical in all
+   three. #}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+
+{% block beforeContent %}
+  {{ super() }}
+  {{ govukBackLink({
+    text: "Back",
+    href: backHref
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: caption
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {{ govukSummaryList({ rows: detailRows }) }}
+
+      {% if viewBaselineHref %}
+        <p class="govuk-body">
+          <a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a>
+        </p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

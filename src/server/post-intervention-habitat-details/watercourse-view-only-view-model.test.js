@@ -51,6 +51,58 @@ describe('buildWatercourseViewOnlyViewModel', () => {
     })
   })
 
+  it('pairs the baseline encroachment with the multiplier derived from it', () => {
+    // For a retained watercourse the engine computes the multipliers on
+    // `proposed` from the *baseline* encroachments, so the baseline value is the
+    // one that belongs next to them. A blank or stale proposed column must not
+    // blank the row or pair a value with someone else's multiplier.
+    const feature = {
+      ref: 'W-4',
+      baseline: {
+        retentionCategory: 'Retained',
+        watercourseEncroachment: 'Major',
+        riparianEncroachment: 'Major/Major'
+      },
+      proposed: {
+        watercourseEncroachment: null,
+        waterEncroachmentMultiplier: 0.7,
+        riparianEncroachmentMultiplier: 0.9
+      }
+    }
+
+    const vm = buildWatercourseViewOnlyViewModel(feature, {
+      projectId,
+      projectName: 'Test Project',
+      baselineFeatureId
+    })
+
+    expect(vm.watercourseEncroachmentDisplay).toBe('Major (0.7)')
+    expect(vm.riparianEncroachmentDisplay).toBe('Major/Major (0.9)')
+  })
+
+  it('shows the baseline habitat type and condition for a retained watercourse', () => {
+    // Same reasoning: the engine scored this feature from its baseline side, so
+    // an empty proposed column must not blank the row.
+    const feature = {
+      ref: 'W-5',
+      baseline: {
+        retentionCategory: 'Retained',
+        type: 'Ditches',
+        condition: 'Moderate'
+      },
+      proposed: { conditionScore: 2 }
+    }
+
+    const vm = buildWatercourseViewOnlyViewModel(feature, {
+      projectId,
+      projectName: 'Test Project',
+      baselineFeatureId
+    })
+
+    expect(vm.habitatTypeDisplay).toBe('Ditches')
+    expect(vm.conditionDisplay).toBe('Moderate (2)')
+  })
+
   it('renders a value without its multiplier when the score is missing', () => {
     const feature = {
       ref: 'W-2',
