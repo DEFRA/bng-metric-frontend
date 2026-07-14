@@ -723,4 +723,21 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
     expect(view.singleError.variant).toBe('distinctiveness')
     expect(view.uploadHref).toBe('/projects/proj-789/upload-baseline-file')
   })
+
+  test('post-intervention single error resolves uploadHref to the post-intervention upload route', async () => {
+    const request = makeRequest({
+      validationUploadType: 'postIntervention',
+      postInterventionValidationErrors: [{ code: 'NO_REDLINE', message: 'x' }],
+      postInterventionValidationErrorsProjectId: 'proj-100'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError).not.toBeNull()
+    expect(view.uploadHref).toBe(
+      '/projects/proj-100/upload-post-intervention-file'
+    )
+  })
 })
