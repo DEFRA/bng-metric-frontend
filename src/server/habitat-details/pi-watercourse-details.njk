@@ -1,14 +1,16 @@
 {% extends 'layouts/pi-view-only-page.njk' %}
 
-{# View-only page (BMD-608): retained post-intervention area habitat. #}
+{# View-only page (BMD-724): retained post-intervention watercourse habitat.
+   The two encroachment rows are what set this page apart from the hedgerow. #}
 {% set detailRows = [
   { key: { text: "Reference" }, value: { text: habitatRef } },
   { key: { text: "Intervention" }, value: { text: interventionDisplay } },
-  { key: { text: "Area (hectares)" }, value: { text: sizeDisplay } },
-  { key: { text: "Broad habitat" }, value: { text: broadHabitatDisplay } },
+  { key: { text: "Length (km)" }, value: { text: sizeDisplay } },
   { key: { text: "Habitat type" }, value: { text: habitatTypeDisplay } },
   { key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } },
   { key: { text: "Condition" }, value: { text: conditionDisplay } },
+  { key: { text: "Watercourse encroachment" }, value: { text: watercourseEncroachmentDisplay } },
+  { key: { text: "Riparian encroachment" }, value: { text: riparianEncroachmentDisplay } },
   { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
   { key: { text: "Units in this habitat" }, value: { text: habitatUnitsDisplay } }
 ] %}

@@ -1,51 +1,26 @@
-import {
-  formatAreaHectares,
-  formatHabitatUnits
-} from '../common/helpers/format-habitat-values.js'
-import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
-import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
-import {
-  DEFAULT_INTERVENTION,
-  FIXED_STRATEGIC_SIGNIFICANCE,
-  baselineDetailsHref,
-  withMultiplier
-} from './view-only-shared.js'
+import { formatAreaHectares } from '../common/helpers/format-habitat-values.js'
+import { AREAS_TAB_ANCHOR } from './constants.js'
+import { buildViewOnlyViewModel } from './view-only-shared.js'
+
+// What sets the area page apart: hectares rather than a length, and a broad
+// habitat above the habitat type.
+const areaSpec = {
+  tabAnchor: AREAS_TAB_ANCHOR,
+  formatSize: (feature) => formatAreaHectares(feature.sizeSquareMetres),
+  extraFields: ({ retained }) => ({
+    broadHabitatDisplay: retained('broadType')
+  })
+}
 
 /**
  * Build the read-only view model for a retained post-intervention area habitat.
- * All values are display strings; the template renders them as a
- * govukSummaryList with no form controls.
+ * All values are display strings; habitat-details/pi-habitat-details.njk renders
+ * them as a govukSummaryList with no form controls.
  *
  * @param {object} feature the raw feature from the PI feature endpoint
  * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx
  * @returns {object}
  */
-export function buildAreaViewOnlyViewModel(
-  feature,
-  { projectId, projectName, baselineFeatureId }
-) {
-  const proposed = feature.proposed ?? {}
-  const baseline = feature.baseline ?? {}
-  return {
-    pageTitle: `Biodiversity Net Gain - ${PI_DETAILS_HEADING}`,
-    heading: PI_DETAILS_HEADING,
-    caption: projectName,
-    habitatRef: feature.ref ?? '',
-    interventionDisplay: baseline.retentionCategory || DEFAULT_INTERVENTION,
-    sizeDisplay: formatAreaHectares(feature.sizeSquareMetres),
-    broadHabitatDisplay: proposed.broadType ?? '',
-    habitatTypeDisplay: proposed.type ?? '',
-    distinctivenessDisplay: withMultiplier(
-      proposed.distinctiveness,
-      proposed.distinctivenessScore
-    ),
-    conditionDisplay: withMultiplier(
-      stripConditionPrefix(proposed.condition),
-      proposed.conditionScore
-    ),
-    strategicSignificanceDisplay: FIXED_STRATEGIC_SIGNIFICANCE,
-    habitatUnitsDisplay: formatHabitatUnits(feature.units),
-    viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${AREAS_TAB_ANCHOR}`
-  }
+export function buildAreaViewOnlyViewModel(feature, ctx) {
+  return buildViewOnlyViewModel(feature, ctx, areaSpec)
 }
