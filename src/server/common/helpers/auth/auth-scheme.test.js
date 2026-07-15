@@ -1,6 +1,14 @@
 import { describe, expect, test, vi } from 'vitest'
 
 import { authScheme } from './auth-scheme.js'
+import { refreshSession } from './refresh-session.js'
+
+vi.mock('./refresh-session.js', () => ({
+  refreshSession: vi.fn()
+}))
+
+const FUTURE_EXP = Math.floor(Date.now() / 1000) + 3600
+const PAST_EXP = Math.floor(Date.now() / 1000) - 3600
 
 function buildServer() {
   const strategies = {}
@@ -24,10 +32,21 @@ function buildServer() {
   }
 }
 
-function buildRequest(session = undefined) {
+function buildRequest(session = undefined, { mode = 'required' } = {}) {
+  const store = { auth: session }
   return {
-    yar: { get: vi.fn().mockReturnValue(session) },
-    logger: { debug: vi.fn(), info: vi.fn() }
+    yar: {
+      get: vi.fn((key) => store[key]),
+      set: vi.fn((key, value) => {
+        store[key] = value
+      }),
+      reset: vi.fn(() => {
+        store.auth = undefined
+      })
+    },
+    route: { settings: { auth: { mode } } },
+    logger: { debug: vi.fn(), info: vi.fn() },
+    _store: store
   }
 }
 
@@ -39,6 +58,10 @@ function buildToolkit() {
     takeover
   }
 }
+
+afterEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('#authScheme', () => {
   describe('plugin registration', () => {
@@ -118,60 +141,133 @@ describe('#authScheme', () => {
       authenticate = scheme.authenticate
     }
 
-    test('returns authenticated with user credentials when session has a user', () => {
+    test('returns authenticated with user credentials when the session token is fresh', async () => {
       setup()
-      const user = { sub: 'user-1', email: 'u@example.com' }
+      const user = { sub: 'user-1', email: 'u@example.com', exp: FUTURE_EXP }
       const request = buildRequest({ user })
       const h = buildToolkit()
 
-      const result = authenticate(request, h)
+      const result = await authenticate(request, h)
 
       expect(h.authenticated).toHaveBeenCalledWith({ credentials: user })
       expect(result).toBe('authenticated-response')
+      expect(refreshSession).not.toHaveBeenCalled()
     })
 
-    test('redirects to /auth/forbidden when session has no user', () => {
+    test('redirects to /auth/forbidden when session has no user', async () => {
       setup()
       const request = buildRequest({ token: 'abc' })
       const h = buildToolkit()
 
-      const result = authenticate(request, h)
+      const result = await authenticate(request, h)
 
       expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
       expect(h.takeover).toHaveBeenCalled()
       expect(result).toBe('redirect-takeover-response')
     })
 
-    test('redirects to /auth/forbidden when session is null', () => {
+    test('redirects to /auth/forbidden when session is null', async () => {
       setup()
       const request = buildRequest(null)
       const h = buildToolkit()
 
-      authenticate(request, h)
+      await authenticate(request, h)
 
       expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
     })
 
-    test('redirects to /auth/forbidden when yar is missing', () => {
+    test('redirects to /auth/forbidden when yar is missing', async () => {
       setup()
       const request = {
         yar: undefined,
+        route: { settings: { auth: { mode: 'required' } } },
         logger: { debug: vi.fn(), info: vi.fn() }
       }
       const h = buildToolkit()
 
-      authenticate(request, h)
+      await authenticate(request, h)
 
       expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
     })
 
-    test('logs session state at debug level', () => {
+    test('silently refreshes an expired session and authenticates with the refreshed claims', async () => {
       setup()
-      const user = { sub: 'u' }
+      const staleUser = { sub: 'user-1', exp: PAST_EXP }
+      const request = buildRequest({ user: staleUser })
+      const freshUser = { sub: 'user-1', exp: FUTURE_EXP }
+      vi.mocked(refreshSession).mockImplementation(async (req) => {
+        req._store.auth = { user: freshUser, idToken: 'new-id' }
+        return 'new-id'
+      })
+      const h = buildToolkit()
+
+      const result = await authenticate(request, h)
+
+      expect(refreshSession).toHaveBeenCalledTimes(1)
+      expect(h.authenticated).toHaveBeenCalledWith({ credentials: freshUser })
+      expect(result).toBe('authenticated-response')
+    })
+
+    test('treats a session without an exp claim as expired and refreshes it', async () => {
+      setup()
+      const request = buildRequest({ user: { sub: 'user-1' } })
+      vi.mocked(refreshSession).mockResolvedValue('new-id')
+      const h = buildToolkit()
+
+      await authenticate(request, h)
+
+      expect(refreshSession).toHaveBeenCalledTimes(1)
+    })
+
+    test('ends the session and redirects to /auth/session-expired when the refresh fails', async () => {
+      setup()
+      const request = buildRequest({ user: { sub: 'user-1', exp: PAST_EXP } })
+      vi.mocked(refreshSession).mockResolvedValue(null)
+      const h = buildToolkit()
+
+      const result = await authenticate(request, h)
+
+      expect(request.yar.reset).toHaveBeenCalledTimes(1)
+      expect(h.redirect).toHaveBeenCalledWith('/auth/session-expired')
+      expect(result).toBe('redirect-takeover-response')
+    })
+
+    test('throws instead of redirecting on a try-mode route with no session', async () => {
+      setup()
+      const request = buildRequest(undefined, { mode: 'try' })
+      const h = buildToolkit()
+
+      await expect(authenticate(request, h)).rejects.toMatchObject({
+        isBoom: true,
+        output: { statusCode: 401 }
+      })
+      expect(h.redirect).not.toHaveBeenCalled()
+    })
+
+    test('throws and clears the session on a try-mode route when the refresh fails', async () => {
+      setup()
+      const request = buildRequest(
+        { user: { sub: 'user-1', exp: PAST_EXP } },
+        { mode: 'try' }
+      )
+      vi.mocked(refreshSession).mockResolvedValue(null)
+      const h = buildToolkit()
+
+      await expect(authenticate(request, h)).rejects.toMatchObject({
+        isBoom: true,
+        output: { statusCode: 401 }
+      })
+      expect(request.yar.reset).toHaveBeenCalledTimes(1)
+      expect(h.redirect).not.toHaveBeenCalled()
+    })
+
+    test('logs session state at debug level', async () => {
+      setup()
+      const user = { sub: 'u', exp: FUTURE_EXP }
       const request = buildRequest({ user })
       const h = buildToolkit()
 
-      authenticate(request, h)
+      await authenticate(request, h)
 
       expect(request.logger.debug).toHaveBeenCalledWith(
         { hasYar: true, hasSession: true, hasUser: true },

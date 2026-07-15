@@ -1,0 +1,42 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+{% block header %}
+  {{ govukHeader({
+    homepageUrl: "https://www.gov.uk/",
+    classes: "app-header",
+    containerClasses: "govuk-width-container"
+  }) }}
+
+  {{ govukServiceNavigation({
+    serviceName: serviceName,
+    serviceUrl: serviceUrl
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: "bng-metric-frontend"
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <p class="govuk-body" data-testid="session-expired-body">
+        Your session has ended, so we signed you out to keep your account
+        secure. Your saved answers are safe.
+      </p>
+
+      {{ govukButton({
+        text: "Sign in again",
+        href: "/auth/login",
+        attributes: { "data-testid": "sign-in-again-button" }
+      }) }}
+
+      <p class="govuk-body">
+        <a class="govuk-link" href="/">Return to the home page</a>
+      </p>
+    </div>
+  </div>
+{% endblock %}

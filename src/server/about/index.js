@@ -19,7 +19,13 @@ export const about = {
         {
           method: 'GET',
           path: '/about',
-          ...aboutController
+          ...aboutController,
+          options: {
+            // 'try' keeps the page public but runs the session scheme, so an
+            // expired session is refreshed — or cleared — before the shared
+            // header can present stale claims as a signed-in user. (BMD-829)
+            auth: { strategy: 'session', mode: 'try' }
+          }
         }
       ])
     }

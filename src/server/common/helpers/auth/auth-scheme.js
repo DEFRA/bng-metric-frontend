@@ -1,6 +1,43 @@
+import Boom from '@hapi/boom'
+
+import { refreshSession } from './refresh-session.js'
+import {
+  SESSION_EXPIRED_PATH,
+  expireSession,
+  isSessionExpired
+} from './session-expiry.js'
+
+const FORBIDDEN_PATH = '/auth/forbidden'
+
+// hapi runs authenticate for 'try'/'optional' routes too (the home page uses
+// 'try' so it can render a signed-out state). Those routes must never be
+// redirected away — throwing lets hapi continue unauthenticated instead.
+function isAuthRequired(request) {
+  return (request.route?.settings?.auth?.mode ?? 'required') === 'required'
+}
+
+// Logs the outcome it actually takes: a required-auth route redirects, while a
+// 'try'/'optional' route continues unauthenticated (e.g. the home page
+// rendering its signed-out state) — so debug trails never claim a redirect
+// that didn't happen.
+function unauthenticated(request, h, redirectPath, reason, logContext = {}) {
+  if (isAuthRequired(request)) {
+    request.logger.info(
+      { ...logContext, path: request.path },
+      `Auth: ${reason}, redirecting to ${redirectPath}`
+    )
+    return h.redirect(redirectPath).takeover()
+  }
+  request.logger.info(
+    { ...logContext, path: request.path },
+    `Auth: ${reason}, continuing unauthenticated (try-mode route)`
+  )
+  throw Boom.unauthorized(reason, 'session')
+}
+
 function sessionScheme() {
   return {
-    authenticate(request, h) {
+    async authenticate(request, h) {
       const session = request.yar?.get('auth')
       const user = session?.user
 
@@ -14,14 +51,39 @@ function sessionScheme() {
       )
 
       if (!user) {
-        request.logger.info(
-          { hasSession: Boolean(session), path: request.path },
-          'Auth: request has no authenticated session, redirecting to /auth/forbidden'
+        return unauthenticated(
+          request,
+          h,
+          FORBIDDEN_PATH,
+          'No authenticated session',
+          { hasSession: Boolean(session) }
         )
-        return h.redirect('/auth/forbidden').takeover()
       }
 
-      return h.authenticated({ credentials: user })
+      if (!isSessionExpired(session)) {
+        return h.authenticated({ credentials: user })
+      }
+
+      // The tokens have expired even though the yar session is still alive
+      // (the session TTL is longer than the token lifetime). Renew silently;
+      // only when the IdP refuses is the session really over. (BMD-829)
+      const newIdToken = await refreshSession(request)
+      if (newIdToken) {
+        const refreshedUser = request.yar.get('auth')?.user ?? user
+        return h.authenticated({ credentials: refreshedUser })
+      }
+
+      request.logger.info(
+        { sub: user.sub, path: request.path },
+        'Auth: session tokens expired and silent refresh failed, ending session'
+      )
+      expireSession(request)
+      return unauthenticated(
+        request,
+        h,
+        SESSION_EXPIRED_PATH,
+        'Session expired'
+      )
     }
   }
 }

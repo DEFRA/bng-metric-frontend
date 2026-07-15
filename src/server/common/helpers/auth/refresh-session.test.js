@@ -56,6 +56,32 @@ describe('refreshSession', () => {
     })
   })
 
+  test('keeps prior claims that the refreshed id_token omits', async () => {
+    const request = makeRequest({
+      idToken: 'old-id',
+      refreshToken: 'refresh-1',
+      user: {
+        sub: 'u1',
+        roles: ['rel-1:BNG Completer:3'],
+        relationships: ['rel-1:org-1:Acme Ltd:0:Employee:1']
+      }
+    })
+    vi.mocked(refreshTokenGrant).mockResolvedValue({
+      id_token: 'new-id',
+      refresh_token: 'refresh-2',
+      claims: () => ({ sub: 'u1', exp: 1234567890 })
+    })
+
+    await refreshSession(request)
+
+    expect(request._store.auth.user).toEqual({
+      sub: 'u1',
+      exp: 1234567890,
+      roles: ['rel-1:BNG Completer:3'],
+      relationships: ['rel-1:org-1:Acme Ltd:0:Employee:1']
+    })
+  })
+
   test('keeps the previous refresh token when the provider omits a new one', async () => {
     const request = makeRequest({
       idToken: 'old-id',
