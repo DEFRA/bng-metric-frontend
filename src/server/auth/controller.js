@@ -29,6 +29,7 @@ const scope = useStub
   : `${config.get('oidc.scopes')} ${clientId}`.trim()
 
 const FORBIDDEN_PATH = '/auth/forbidden'
+const SIGNED_OUT_HEADING = 'You have been signed out'
 
 function describeOidcError(error) {
   const cause = error.cause
@@ -255,7 +256,7 @@ export const signedOutController = {
   handler(_request, h) {
     return h.view('auth/signed-out', {
       pageTitle: 'Signed out',
-      heading: 'You have been signed out'
+      heading: SIGNED_OUT_HEADING
     })
   }
 }
@@ -263,8 +264,8 @@ export const signedOutController = {
 export const sessionExpiredController = {
   handler(_request, h) {
     return h.view('auth/session-expired', {
-      pageTitle: 'You have been signed out',
-      heading: 'You have been signed out',
+      pageTitle: SIGNED_OUT_HEADING,
+      heading: SIGNED_OUT_HEADING,
       navigation: []
     })
   }
