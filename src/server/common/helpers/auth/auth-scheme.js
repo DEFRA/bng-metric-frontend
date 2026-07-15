@@ -16,10 +16,22 @@ function isAuthRequired(request) {
   return (request.route?.settings?.auth?.mode ?? 'required') === 'required'
 }
 
-function unauthenticated(request, h, redirectPath, reason) {
+// Logs the outcome it actually takes: a required-auth route redirects, while a
+// 'try'/'optional' route continues unauthenticated (e.g. the home page
+// rendering its signed-out state) — so debug trails never claim a redirect
+// that didn't happen.
+function unauthenticated(request, h, redirectPath, reason, logContext = {}) {
   if (isAuthRequired(request)) {
+    request.logger.info(
+      { ...logContext, path: request.path },
+      `Auth: ${reason}, redirecting to ${redirectPath}`
+    )
     return h.redirect(redirectPath).takeover()
   }
+  request.logger.info(
+    { ...logContext, path: request.path },
+    `Auth: ${reason}, continuing unauthenticated (try-mode route)`
+  )
   throw Boom.unauthorized(reason, 'session')
 }
 
@@ -39,15 +51,12 @@ function sessionScheme() {
       )
 
       if (!user) {
-        request.logger.info(
-          { hasSession: Boolean(session), path: request.path },
-          'Auth: request has no authenticated session, redirecting to /auth/forbidden'
-        )
         return unauthenticated(
           request,
           h,
           FORBIDDEN_PATH,
-          'No authenticated session'
+          'No authenticated session',
+          { hasSession: Boolean(session) }
         )
       }
 
