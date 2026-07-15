@@ -122,7 +122,7 @@ describe('#postInterventionHabitatDetailsController', () => {
               ref: 'P-1',
               sizeSquareMetres: 25000,
               units: 2.5,
-              baseline: { retentionCategory: 'Retained' },
+              retentionCategory: 'Retained',
               proposed: {
                 broadType: 'Grassland',
                 type: 'Modified grassland',
@@ -287,7 +287,7 @@ describe('#postInterventionHabitatDetailsController', () => {
               ref: 'HG-2',
               sizeMetres: 336,
               units: 4.25,
-              baseline: { retentionCategory: 'Retained' },
+              retentionCategory: 'Retained',
               proposed: {
                 type: 'Native hedgerow',
                 condition: 'Moderate',

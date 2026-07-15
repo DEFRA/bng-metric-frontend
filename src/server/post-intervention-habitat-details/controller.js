@@ -60,18 +60,19 @@ const UNSUPPORTED_MESSAGE =
  * been uploaded or no baseline feature shares the ref.
  */
 function resolveBaselineFeatureId(project, ref) {
-  if (!ref) {
+  if (ref) {
+    const baseline = project?.project?.baseline
+    const candidates = [
+      ...(baseline?.habitats ?? []),
+      ...(baseline?.trees ?? []),
+      ...(baseline?.hedgerows ?? []),
+      ...(baseline?.watercourses ?? [])
+    ]
+    const match = candidates.find((feature) => feature.ref === ref)
+    return match?.featureId ?? null
+  } else {
     return null
   }
-  const baseline = project?.project?.baseline
-  const candidates = [
-    ...(baseline?.habitats ?? []),
-    ...(baseline?.trees ?? []),
-    ...(baseline?.hedgerows ?? []),
-    ...(baseline?.watercourses ?? [])
-  ]
-  const match = candidates.find((feature) => feature.ref === ref)
-  return match?.featureId ?? null
 }
 
 /**
@@ -87,7 +88,7 @@ function resolveViewOnlyPage(type, feature) {
 
 function renderUnsupportedFeature(h, { projectId, projectName }) {
   return h.view('habitat-details/pi-feature-unsupported', {
-    pageTitle: `Biodiversity Net Gain - ${PI_DETAILS_HEADING}`,
+    pageTitle: PI_DETAILS_HEADING,
     heading: PI_DETAILS_HEADING,
     caption: projectName,
     message: UNSUPPORTED_MESSAGE,
