@@ -13,7 +13,12 @@ vi.mock('./refresh-session.js', () => ({
 const URL = 'http://backend.test/projects/1'
 
 function makeRequest(idToken = 'token-1') {
-  return { yar: { get: vi.fn().mockReturnValue({ idToken }) } }
+  return {
+    yar: {
+      get: vi.fn().mockReturnValue({ idToken }),
+      reset: vi.fn()
+    }
+  }
 }
 
 afterEach(() => {
@@ -72,15 +77,34 @@ describe('backendRequest', () => {
     expect(result.res.statusCode).toBe(200)
   })
 
-  test('does not retry when the refresh fails, returning the 401 result', async () => {
+  test('clears the session and throws a session-expired error when the refresh fails', async () => {
     vi.mocked(wreck.get).mockResolvedValue({ res: { statusCode: 401 } })
     vi.mocked(refreshSession).mockResolvedValue(null)
+    const request = makeRequest()
 
-    const result = await backendRequest(makeRequest(), 'get', URL)
+    await expect(backendRequest(request, 'get', URL)).rejects.toMatchObject({
+      isBoom: true,
+      output: { statusCode: 401 },
+      data: { sessionExpired: true }
+    })
 
     expect(refreshSession).toHaveBeenCalledTimes(1)
     expect(wreck.get).toHaveBeenCalledTimes(1)
-    expect(result.res.statusCode).toBe(401)
+    expect(request.yar.reset).toHaveBeenCalledTimes(1)
+  })
+
+  test('clears the session and throws session-expired when a thrown 401 cannot be refreshed', async () => {
+    const boom401 = Object.assign(new Error('Unauthorized'), {
+      output: { statusCode: 401 }
+    })
+    vi.mocked(wreck.get).mockRejectedValue(boom401)
+    vi.mocked(refreshSession).mockResolvedValue(null)
+    const request = makeRequest()
+
+    await expect(backendRequest(request, 'get', URL)).rejects.toMatchObject({
+      data: { sessionExpired: true }
+    })
+    expect(request.yar.reset).toHaveBeenCalledTimes(1)
   })
 
   test('refreshes and retries on a thrown 401 (Boom-shaped) error', async () => {

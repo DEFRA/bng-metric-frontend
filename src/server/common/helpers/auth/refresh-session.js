@@ -27,7 +27,10 @@ export async function refreshSession(request) {
     const claims = tokens.claims()
 
     request.yar.set('auth', {
-      user: claims ?? auth.user,
+      // Merge over the previous claims: a provider may omit claims from a
+      // refreshed id_token (roles, relationships, …) and losing them here
+      // would flip the role check to /auth/forbidden after a silent refresh.
+      user: claims ? { ...auth.user, ...claims } : auth.user,
       idToken: tokens.id_token,
       // Some providers omit a new refresh token on refresh — keep the old one.
       refreshToken: tokens.refresh_token ?? refreshToken

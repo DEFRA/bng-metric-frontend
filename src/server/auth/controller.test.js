@@ -13,6 +13,7 @@ import {
   forbiddenController,
   loginController,
   logoutController,
+  sessionExpiredController,
   signedOutController
 } from './controller.js'
 import { getOidcConfig } from '../common/helpers/auth/oidc-client.js'
@@ -369,6 +370,26 @@ describe('#signedOutController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'auth/signed-out',
       expect.objectContaining({ pageTitle: 'Signed out' })
+    )
+  })
+})
+
+describe('#sessionExpiredController', () => {
+  test('renders the session-expired view', () => {
+    const h = buildToolkit()
+    sessionExpiredController.handler({}, h)
+    expect(h.view).toHaveBeenCalledWith(
+      'auth/session-expired',
+      expect.objectContaining({ pageTitle: 'You have been signed out' })
+    )
+  })
+
+  test('passes an empty navigation array to hide the Projects link', () => {
+    const h = buildToolkit()
+    sessionExpiredController.handler({}, h)
+    expect(h.view).toHaveBeenCalledWith(
+      'auth/session-expired',
+      expect.objectContaining({ navigation: [] })
     )
   })
 })

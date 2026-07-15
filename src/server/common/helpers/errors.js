@@ -1,4 +1,5 @@
 import { statusCodes } from '../constants.js'
+import { SESSION_EXPIRED_PATH } from './auth/session-expiry.js'
 
 function statusCodeMessage(statusCode) {
   switch (statusCode) {
@@ -22,6 +23,13 @@ export function catchAll(request, h) {
 
   if (!('isBoom' in response)) {
     return h.continue
+  }
+
+  // A backend call found the session's tokens dead and unrefreshable
+  // (backend-request.js). Send the user to sign in again instead of
+  // rendering a bare "401 Unauthorized" error page. (BMD-829)
+  if (response.data?.sessionExpired) {
+    return h.redirect(SESSION_EXPIRED_PATH)
   }
 
   const statusCode = response.output.statusCode

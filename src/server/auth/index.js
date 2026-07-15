@@ -3,6 +3,7 @@ import {
   forbiddenController,
   loginController,
   logoutController,
+  sessionExpiredController,
   signedOutController
 } from './controller.js'
 
@@ -48,6 +49,14 @@ import {
  *     responses:
  *       403:
  *         description: Renders the forbidden page
+ * /auth/session-expired:
+ *   get:
+ *     tags:
+ *       - Auth
+ *     summary: Session expired
+ *     responses:
+ *       200:
+ *         description: Renders the session-expired page with a sign-in link
  */
 export const auth = {
   plugin: {
@@ -78,6 +87,11 @@ export const auth = {
           method: 'GET',
           path: '/auth/forbidden',
           ...forbiddenController
+        },
+        {
+          method: 'GET',
+          path: '/auth/session-expired',
+          ...sessionExpiredController
         }
       ])
     }

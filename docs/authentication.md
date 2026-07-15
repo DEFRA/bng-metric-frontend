@@ -123,10 +123,21 @@ If you change which provider an environment points at (e.g. swap a dev env from 
 
 A custom Hapi auth scheme (`session`) is registered in `src/server/common/helpers/auth/auth-scheme.js`. It reads `request.yar.get('auth')` on each request:
 
-- If a `user` object is present, calls `h.authenticated({ credentials: user })` - the user's token claims become available as `request.auth.credentials`.
-- If not, returns `h.unauthenticated(Boom.unauthorized())`.
+- If a `user` object is present **and its `exp` claim is still in the future**, calls `h.authenticated({ credentials: user })` - the user's token claims become available as `request.auth.credentials`.
+- If the token has expired (or is within 30 seconds of expiring), the scheme first attempts a silent refresh (see below) and authenticates with the refreshed claims on success.
+- If there is no session at all, the user is redirected to `/auth/forbidden`.
+- If the token expired and the refresh failed, the session is cleared and the user is redirected to `/auth/session-expired`, which offers a "Sign in again" button.
 
-Routes opt in by setting `auth: 'session'` in their options. It is **not** set as the default strategy - public routes (home page, auth endpoints, health checks) require no auth.
+Routes opt in by setting `auth: 'session'` in their options. It is **not** set as the default strategy - auth endpoints and health checks require no auth. The home page uses `auth: { strategy: 'session', mode: 'try' }`: it stays public, but the scheme still runs, so an expired session is refreshed - or cleared - before the page renders. In `try` mode the scheme never redirects; it throws `Boom.unauthorized` so hapi continues unauthenticated and the page shows its signed-out state.
+
+### Session expiry & silent refresh (BMD-829)
+
+The yar session (4-hour TTL) deliberately outlives the IdP's tokens (live Defra ID ID tokens last ~20 minutes; the stub's last 1 hour). The gap is bridged by silent refresh in two places:
+
+1. **Proactively, in the auth scheme** - before each protected request, an expired token is renewed via `refreshSession()` (`refresh-session.js`), which performs an OIDC `refresh_token` grant and re-stores the new tokens and claims in yar. Refreshed claims are merged over the previous ones so a provider that omits a claim (e.g. `roles`) from a refreshed id_token cannot silently strip access.
+2. **Reactively, around backend calls** - `backendRequest()` (`backend-request.js`) still handles a mid-request 401 from the backend (clock skew, key rotation, revocation): it refreshes once and retries. If that refresh fails, it clears the session and throws a Boom 401 flagged `data.sessionExpired`, which the global `catchAll` handler (`errors.js`) turns into a redirect to `/auth/session-expired` instead of rendering a "401 Unauthorized" error page.
+
+Either way, a user whose session cannot be renewed ends up on `/auth/session-expired` - never on a generic error page, and never looking signed-in on pages that don't touch the backend.
 
 ### Role checking
 
@@ -281,13 +292,17 @@ session`) and the role-pass line, set `LOG_LEVEL=debug` to make them visible.
 
 ## Key files
 
-| File                                            | Purpose                                                     |
-| ----------------------------------------------- | ----------------------------------------------------------- |
-| `src/config/config.js`                          | OIDC configuration (discovery URL, client ID, scopes, etc.) |
-| `src/server/common/helpers/auth/oidc-client.js` | Lazy singleton for OIDC provider discovery                  |
-| `src/server/common/helpers/auth/auth-scheme.js` | Custom Hapi auth scheme reading yar sessions                |
-| `src/server/common/helpers/auth/verify-role.js` | Role parsing and `requireBngCompleterRole` pre-handler      |
-| `src/server/auth/controller.js`                 | Login, callback, logout, signed-out, and forbidden handlers |
-| `src/server/auth/index.js`                      | Auth route plugin (`/auth/login`, `/auth/callback`, etc.)   |
-| `src/server/auth/forbidden.njk`                 | 403 "Access denied" template                                |
-| `src/server/auth/signed-out.njk`                | Post-logout template                                        |
+| File                                                | Purpose                                                                      |
+| --------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/config/config.js`                              | OIDC configuration (discovery URL, client ID, scopes, etc.)                  |
+| `src/server/common/helpers/auth/oidc-client.js`     | Lazy singleton for OIDC provider discovery                                   |
+| `src/server/common/helpers/auth/auth-scheme.js`     | Custom Hapi auth scheme reading yar sessions                                 |
+| `src/server/common/helpers/auth/session-expiry.js`  | Token `exp` check + session clearing helpers                                 |
+| `src/server/common/helpers/auth/refresh-session.js` | Silent OIDC `refresh_token` grant                                            |
+| `src/server/common/helpers/auth/backend-request.js` | Bearer-authenticated backend calls with 401 retry                            |
+| `src/server/common/helpers/auth/verify-role.js`     | Role parsing and `requireBngCompleterRole` pre-handler                       |
+| `src/server/auth/controller.js`                     | Login, callback, logout, signed-out, forbidden, and session-expired handlers |
+| `src/server/auth/index.js`                          | Auth route plugin (`/auth/login`, `/auth/callback`, etc.)                    |
+| `src/server/auth/forbidden.njk`                     | 403 "Access denied" template                                                 |
+| `src/server/auth/signed-out.njk`                    | Post-logout template                                                         |
+| `src/server/auth/session-expired.njk`               | Session-expired template with "Sign in again" button                         |

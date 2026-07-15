@@ -72,6 +72,24 @@ describe('#catchAll', () => {
     expect(mockToolkitCode).toHaveBeenCalledWith(statusCodes.forbidden)
   })
 
+  test('Should redirect to the session-expired page when the error is flagged sessionExpired', () => {
+    const redirect = vi.fn().mockReturnValue('redirect-response')
+    const request = {
+      response: {
+        isBoom: true,
+        data: { sessionExpired: true },
+        output: { statusCode: statusCodes.unauthorized }
+      },
+      logger: { error: mockErrorLogger }
+    }
+
+    const result = catchAll(request, { redirect })
+
+    expect(redirect).toHaveBeenCalledWith('/auth/session-expired')
+    expect(result).toBe('redirect-response')
+    expect(mockToolkitView).not.toHaveBeenCalled()
+  })
+
   test('Should provide expected "Unauthorized" page', () => {
     catchAll(mockRequest(statusCodes.unauthorized), mockToolkit)
 
