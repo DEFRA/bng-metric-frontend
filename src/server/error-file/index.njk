@@ -6,7 +6,21 @@
 {% block content %}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      {% if errorList and errorList.length > 0 %}
+      {% if singleError %}
+        <h1 class="govuk-heading-l">{{ singleError.h1 }}</h1>
+
+        {% if singleError.variant == 'distinctiveness' %}
+          <p class="govuk-body">
+            {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} (opens in a new tab)</a>{{ singleError.helpTextAfter }}
+          </p>
+        {% elif singleError.variant == 'placeholder' %}
+          <p class="govuk-body">{{ singleError.helpText }}</p>
+        {% else %}
+          <p class="govuk-body">
+            {{ singleError.messageBefore }}{% if singleError.uploadHref %}<a class="govuk-link" href="{{ singleError.uploadHref }}">{{ singleError.linkText }}</a>{{ singleError.messageAfter }}{% endif %}
+          </p>
+        {% endif %}
+      {% elif errorList and errorList.length > 0 %}
         {{ govukErrorSummary({
           titleText: "There is a problem with your file",
           errorList: errorList

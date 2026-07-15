@@ -1,4 +1,5 @@
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
+import { resolveSingleErrorCopy } from './single-error-copy.js'
 
 // Per-error renderers — mirror the backend's formatting so each offender
 // can be shown on its own line under the error-type heading rather than
@@ -143,27 +144,25 @@ function buildBlock(err) {
   return block
 }
 
+const SINGLE_VALIDATION_ERROR = 1
+
+function resolveUploadContext(request) {
+  const requestedUploadType = request.yar.get('validationUploadType')
+  const uploadType =
+    requestedUploadType === HABITAT_UPLOAD_TYPES.postIntervention.key
+      ? HABITAT_UPLOAD_TYPES.postIntervention
+      : HABITAT_UPLOAD_TYPES.baseline
+  const validationErrors =
+    request.yar.get(uploadType.validationErrorsSessionKey) ?? []
+  const projectId =
+    request.yar.get(uploadType.validationErrorsProjectIdSessionKey) ?? null
+  return { uploadType, validationErrors, projectId }
+}
+
 export const invalidFileController = {
   handler(request, h) {
-    const requestedUploadType = request.yar.get('validationUploadType')
-    const uploadType =
-      requestedUploadType === HABITAT_UPLOAD_TYPES.postIntervention.key
-        ? HABITAT_UPLOAD_TYPES.postIntervention
-        : HABITAT_UPLOAD_TYPES.baseline
-    const baselineValidationErrors =
-      request.yar.get(
-        HABITAT_UPLOAD_TYPES.baseline.validationErrorsSessionKey
-      ) ?? []
-    const postInterventionValidationErrors =
-      request.yar.get(
-        HABITAT_UPLOAD_TYPES.postIntervention.validationErrorsSessionKey
-      ) ?? []
-    const validationErrors =
-      uploadType.key === HABITAT_UPLOAD_TYPES.postIntervention.key
-        ? postInterventionValidationErrors
-        : baselineValidationErrors
-    const projectId =
-      request.yar.get(uploadType.validationErrorsProjectIdSessionKey) ?? null
+    const { uploadType, validationErrors, projectId } =
+      resolveUploadContext(request)
 
     // Errors are one-shot — clear them so a refresh or back-nav doesn't
     // resurrect a stale rejection.
@@ -185,15 +184,26 @@ export const invalidFileController = {
       text: b.note ? `${b.heading}. ${b.note}` : b.heading
     }))
 
+    const uploadHref = projectId
+      ? `/projects/${projectId}/${uploadType.uploadRoute}`
+      : null
+
+    // BMD-405 is scoped to exactly one validation error — check the raw
+    // session errors (not visibleErrors, which already merges a correlated
+    // sliver error into AREA_PARCELS_OUTSIDE_REDLINE for the multi-error view).
+    const singleError =
+      validationErrors.length === SINGLE_VALIDATION_ERROR
+        ? resolveSingleErrorCopy(validationErrors[0], uploadHref)
+        : null
+
     return h.view('error-file/index', {
-      pageTitle: 'There is a problem with your file',
+      pageTitle: singleError?.h1 ?? 'There is a problem with your file',
       errorList,
       errorBlocks,
+      singleError,
       projectId,
       fileLabel: uploadType.label,
-      uploadHref: projectId
-        ? `/projects/${projectId}/${uploadType.uploadRoute}`
-        : null
+      uploadHref
     })
   }
 }

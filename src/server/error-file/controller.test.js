@@ -636,3 +636,108 @@ describe('invalidFileController.handler — populated session', () => {
     )
   })
 })
+
+describe('invalidFileController.handler — BMD-405 single-error routing', () => {
+  const makeRequest = (sessionData) => {
+    const store = { ...sessionData }
+    return {
+      yar: {
+        get: vi.fn((key) => store[key] ?? null),
+        set: vi.fn(),
+        clear: vi.fn((key) => {
+          delete store[key]
+        })
+      }
+    }
+  }
+
+  const makeH = () => ({ view: vi.fn().mockReturnThis() })
+
+  test('exactly one validation error resolves singleError and uses its h1 as pageTitle', async () => {
+    const request = makeRequest({
+      baselineValidationErrors: [{ code: 'NO_REDLINE', message: 'x' }],
+      baselineValidationErrorsProjectId: 'proj-456'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError).toEqual(
+      expect.objectContaining({
+        variant: 'standard',
+        h1: 'Your Geopackage (.gpkg) file contains an error'
+      })
+    )
+    expect(view.pageTitle).toBe(
+      'Your Geopackage (.gpkg) file contains an error'
+    )
+  })
+
+  test('zero validation errors leaves singleError null and uses the generic pageTitle', async () => {
+    const request = makeRequest({})
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError).toBeNull()
+    expect(view.pageTitle).toBe('There is a problem with your file')
+  })
+
+  test('multiple validation errors leaves singleError null (checked against raw session errors, not the sliver-merged visible list)', async () => {
+    // AREA_PARCELS_OUTSIDE_REDLINE + SLIVERS_OUTSIDE_REDLINE collapse to one
+    // visible block in the multi-error view, but that's still two distinct
+    // errors from the backend — BMD-405 is scoped to exactly one.
+    const request = makeRequest({
+      baselineValidationErrors: [
+        {
+          code: 'AREA_PARCELS_OUTSIDE_REDLINE',
+          message: 'x',
+          details: { sample: [{ feature_ref: 'P001' }] }
+        },
+        { code: 'SLIVERS_OUTSIDE_REDLINE', message: 'y', details: {} }
+      ]
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toHaveLength(1)
+  })
+
+  test('single distinctiveness error resolves the distinctiveness variant and passes uploadHref through unaffected', async () => {
+    const request = makeRequest({
+      baselineValidationErrors: [
+        { code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', message: 'x' }
+      ],
+      baselineValidationErrorsProjectId: 'proj-789'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError.variant).toBe('distinctiveness')
+    expect(view.uploadHref).toBe('/projects/proj-789/upload-baseline-file')
+  })
+
+  test('post-intervention single error resolves uploadHref to the post-intervention upload route', async () => {
+    const request = makeRequest({
+      validationUploadType: 'postIntervention',
+      postInterventionValidationErrors: [{ code: 'NO_REDLINE', message: 'x' }],
+      postInterventionValidationErrorsProjectId: 'proj-100'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError).not.toBeNull()
+    expect(view.uploadHref).toBe(
+      '/projects/proj-100/upload-post-intervention-file'
+    )
+  })
+})
