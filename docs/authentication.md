@@ -128,7 +128,7 @@ A custom Hapi auth scheme (`session`) is registered in `src/server/common/helper
 - If there is no session at all, the user is redirected to `/auth/forbidden`.
 - If the token expired and the refresh failed, the session is cleared and the user is redirected to `/auth/session-expired`, which offers a "Sign in again" button.
 
-Routes opt in by setting `auth: 'session'` in their options. It is **not** set as the default strategy - auth endpoints and health checks require no auth. The home page uses `auth: { strategy: 'session', mode: 'try' }`: it stays public, but the scheme still runs, so an expired session is refreshed - or cleared - before the page renders. In `try` mode the scheme never redirects; it throws `Boom.unauthorized` so hapi continues unauthenticated and the page shows its signed-out state.
+Routes opt in by setting `auth: 'session'` in their options. It is **not** set as the default strategy - auth endpoints and health checks require no auth. Public pages that render the shared header (home, about, db-info) use `auth: { strategy: 'session', mode: 'try' }`: the page stays public, but the scheme still runs, so an expired session is refreshed - or cleared - before the header can present stale claims as a signed-in user (the nunjucks context reads the user straight from yar, so a public route with no auth option would skip the expiry check entirely). In `try` mode the scheme never redirects; it throws `Boom.unauthorized` so hapi continues unauthenticated and the page shows its signed-out state. **Convention: any new public page that renders the shared header must use `mode: 'try'`.**
 
 ### Session expiry & silent refresh (BMD-829)
 
