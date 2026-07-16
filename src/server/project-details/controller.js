@@ -18,6 +18,7 @@ const DATE_PART_NAMES = ['day', 'month', 'year']
 const YEAR_DIGIT_LENGTH = 4
 const DIGITS_PATTERN = /^\d+$/
 const DATE_ERROR_TYPE = 'surveyCompletionDate.invalid'
+const MAX_TEXT_FIELD_LENGTH = 500
 
 function datePartsOf(value) {
   return {
@@ -93,8 +94,11 @@ function validateSurveyCompletionDate(value, helpers) {
 // Empty fields normalise to `undefined` via `.empty('')` so the PATCH payload
 // only ever carries fields the user actually filled in.
 export const projectDetailsFormSchema = Joi.object({
-  localPlanningAuthority: Joi.string().trim().empty('').max(500),
-  surveyCompleters: Joi.string().trim().empty('').max(500),
+  localPlanningAuthority: Joi.string()
+    .trim()
+    .empty('')
+    .max(MAX_TEXT_FIELD_LENGTH),
+  surveyCompleters: Joi.string().trim().empty('').max(MAX_TEXT_FIELD_LENGTH),
   [DAY_KEY]: Joi.string().trim().allow(''),
   [MONTH_KEY]: Joi.string().trim().allow(''),
   [YEAR_KEY]: Joi.string().trim().allow(''),
@@ -104,7 +108,7 @@ export const projectDetailsFormSchema = Joi.object({
   nsips: Joi.string()
     .empty('')
     .valid(...NSIPS_OPTIONS),
-  applicant: Joi.string().trim().empty('').max(500)
+  applicant: Joi.string().trim().empty('').max(MAX_TEXT_FIELD_LENGTH)
 })
   .custom(validateSurveyCompletionDate)
   .messages({ [DATE_ERROR_TYPE]: '{{#message}}' })
