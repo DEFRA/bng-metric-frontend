@@ -18,6 +18,9 @@ export const LOGIN_METRIC = {
 /** Emitted when the best-effort backend session persist fails (login still succeeds). */
 export const SESSION_PERSIST_FAILED_METRIC = 'BackendSessionPersistFailed'
 
+/** Emitted when the best-effort backend login-audit call fails (login still succeeds). */
+export const LOGIN_AUDIT_FAILED_METRIC = 'BackendLoginAuditFailed'
+
 /** Values for the `reason` dimension on LoginFailed. */
 export const LOGIN_FAILURE_REASON = {
   initiation: 'initiation',
@@ -63,6 +66,22 @@ export async function recordSessionPersistFailure(request) {
     request.logger?.warn?.(
       error,
       'Failed to record BackendSessionPersistFailed metric'
+    )
+  }
+}
+
+/**
+ * Record a failed best-effort backend login-audit call (login itself succeeded).
+ * @param {import('@hapi/hapi').Request} request
+ * @returns {Promise<void>}
+ */
+export async function recordLoginAuditFailure(request) {
+  try {
+    await request.metrics().counter(LOGIN_AUDIT_FAILED_METRIC)
+  } catch (error) {
+    request.logger?.warn?.(
+      error,
+      'Failed to record BackendLoginAuditFailed metric'
     )
   }
 }

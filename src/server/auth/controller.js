@@ -16,6 +16,7 @@ import {
   LOGIN_FAILURE_REASON
 } from '../common/helpers/auth/auth-metrics.js'
 import { persistBackendSession } from '../common/helpers/auth/persist-session.js'
+import { recordLoginAudit } from '../common/helpers/auth/record-login-audit.js'
 import { statusCodes } from '../common/constants.js'
 
 const redirectUri = config.get('oidc.redirectUri')
@@ -163,6 +164,10 @@ async function exchangeCodeForSession(request, h, pending) {
     // Best-effort: persist the user's identity / relationships / roles in the
     // backend. Never block sign-in on a backend hiccup.
     await persistBackendSession(request, tokens.id_token)
+
+    // Best-effort: append an immutable login-audit row in the backend. Runs once
+    // per login (the auth code is single-use); never block sign-in on failure.
+    await recordLoginAudit(request, tokens.id_token)
 
     const stored = request.yar.get('auth')
     request.logger.info(
