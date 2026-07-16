@@ -9,7 +9,85 @@ import { statusCodes, HTTP_SUCCESS_MAX } from '../common/constants.js'
 
 const DEVELOPMENT_TYPE_OPTIONS = ['Small site', 'Large site']
 const NSIPS_OPTIONS = ['Yes', 'No']
-const SURVEY_DATE_PATTERN = /^\d{2}\/\d{2}\/\d{4}$/
+
+const DATE_FIELD = 'surveyCompletionDate'
+const DAY_KEY = `${DATE_FIELD}-day`
+const MONTH_KEY = `${DATE_FIELD}-month`
+const YEAR_KEY = `${DATE_FIELD}-year`
+const DATE_PART_NAMES = ['day', 'month', 'year']
+const YEAR_DIGIT_LENGTH = 4
+const DIGITS_PATTERN = /^\d+$/
+const DATE_ERROR_TYPE = 'surveyCompletionDate.invalid'
+
+function datePartsOf(value) {
+  return {
+    day: (value[DAY_KEY] ?? '').trim(),
+    month: (value[MONTH_KEY] ?? '').trim(),
+    year: (value[YEAR_KEY] ?? '').trim()
+  }
+}
+
+function missingPartsMessage(missing) {
+  const article = missing.length === 1 ? 'a ' : ''
+  return `Survey completion date must include ${article}${missing.join(' and ')}`
+}
+
+function isRealDate(day, month, year) {
+  const date = new Date(year, month - 1, day)
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  )
+}
+
+// Cross-field validation for the GOV.UK date-input pattern: day/month/year
+// are posted as three separate fields and combined into a single
+// `DD/MM/YYYY` string matching the backend's projectDetailsSchema. Errors
+// are raised with an object-level Joi code (rather than on the individual
+// day/month/year keys) so a single message can be shown against the whole
+// fieldset, per https://design-system.service.gov.uk/components/date-input/
+function validateSurveyCompletionDate(value, helpers) {
+  const { day, month, year } = datePartsOf(value)
+  const result = { ...value }
+  delete result[DAY_KEY]
+  delete result[MONTH_KEY]
+  delete result[YEAR_KEY]
+
+  const present = { day: day !== '', month: month !== '', year: year !== '' }
+  if (!present.day && !present.month && !present.year) {
+    return result
+  }
+
+  const missing = DATE_PART_NAMES.filter((part) => !present[part])
+  if (missing.length) {
+    return helpers.error(DATE_ERROR_TYPE, {
+      message: missingPartsMessage(missing),
+      parts: missing
+    })
+  }
+
+  const invalidFormat =
+    !DIGITS_PATTERN.test(day) ||
+    !DIGITS_PATTERN.test(month) ||
+    !DIGITS_PATTERN.test(year) ||
+    year.length !== YEAR_DIGIT_LENGTH
+
+  const dayNum = Number(day)
+  const monthNum = Number(month)
+  const yearNum = Number(year)
+
+  if (invalidFormat || !isRealDate(dayNum, monthNum, yearNum)) {
+    return helpers.error(DATE_ERROR_TYPE, {
+      message: 'Survey completion date must be a real date',
+      parts: DATE_PART_NAMES
+    })
+  }
+
+  result[DATE_FIELD] =
+    `${String(dayNum).padStart(2, '0')}/${String(monthNum).padStart(2, '0')}/${yearNum}`
+  return result
+}
 
 // Mirrors backend projectDetailsSchema (GET/PATCH /projects/{id}/details).
 // Empty fields normalise to `undefined` via `.empty('')` so the PATCH payload
@@ -17,14 +95,9 @@ const SURVEY_DATE_PATTERN = /^\d{2}\/\d{2}\/\d{4}$/
 export const projectDetailsFormSchema = Joi.object({
   localPlanningAuthority: Joi.string().trim().empty('').max(500),
   surveyCompleters: Joi.string().trim().empty('').max(500),
-  surveyCompletionDate: Joi.string()
-    .trim()
-    .empty('')
-    .pattern(SURVEY_DATE_PATTERN)
-    .messages({
-      'string.pattern.base':
-        'Survey completion date must be in the format DD/MM/YYYY'
-    }),
+  [DAY_KEY]: Joi.string().trim().allow(''),
+  [MONTH_KEY]: Joi.string().trim().allow(''),
+  [YEAR_KEY]: Joi.string().trim().allow(''),
   developmentType: Joi.string()
     .empty('')
     .valid(...DEVELOPMENT_TYPE_OPTIONS),
@@ -33,10 +106,25 @@ export const projectDetailsFormSchema = Joi.object({
     .valid(...NSIPS_OPTIONS),
   applicant: Joi.string().trim().empty('').max(500)
 })
+  .custom(validateSurveyCompletionDate)
+  .messages({ [DATE_ERROR_TYPE]: '{{#message}}' })
 
 const PAYLOAD_FIELD_NAMES = new Set(
   Object.keys(projectDetailsFormSchema.describe().keys)
 )
+
+function isDateError(detail) {
+  return detail.type === DATE_ERROR_TYPE
+}
+
+function splitDate(dateString) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dateString ?? '')
+  if (!match) {
+    return { day: '', month: '', year: '' }
+  }
+  const [, day, month, year] = match
+  return { day, month, year }
+}
 
 function radioItems(options, selected) {
   return options.map((value) => ({
@@ -46,10 +134,14 @@ function radioItems(options, selected) {
   }))
 }
 
-function renderForm(h, { projectId, projectName, details = {}, errors = [] }) {
+function renderForm(
+  h,
+  { projectId, projectName, details = {}, errors = [], dateParts }
+) {
   const fieldErrors = Object.fromEntries(
     errors.map((error) => [error.name, error.text])
   )
+  const dateError = errors.find((error) => error.name === DATE_FIELD)
   return h.view('project-details/index', {
     pageTitle: errors.length ? 'Error: Project details' : 'Project details',
     projectId,
@@ -57,6 +149,8 @@ function renderForm(h, { projectId, projectName, details = {}, errors = [] }) {
     errors,
     fieldErrors,
     details,
+    surveyCompletionDate: dateParts ?? splitDate(details.surveyCompletionDate),
+    surveyCompletionDateErrorParts: dateError?.parts ?? [],
     developmentTypeItems: radioItems(
       DEVELOPMENT_TYPE_OPTIONS,
       details.developmentType
@@ -66,8 +160,8 @@ function renderForm(h, { projectId, projectName, details = {}, errors = [] }) {
 }
 
 async function handleValidationFailure(request, h, err) {
-  const isPayloadError = err.details.some((detail) =>
-    PAYLOAD_FIELD_NAMES.has(detail.path[0])
+  const isPayloadError = err.details.some(
+    (detail) => PAYLOAD_FIELD_NAMES.has(detail.path[0]) || isDateError(detail)
   )
   if (!isPayloadError) {
     throw err
@@ -75,15 +169,25 @@ async function handleValidationFailure(request, h, err) {
 
   const { projectId } = request.params
   const result = await fetchProject(request, projectId)
-  const errors = err.details.map((detail) => ({
-    name: detail.path[0],
-    text: detail.message,
-    href: `#${detail.path[0]}`
-  }))
+  const errors = err.details.map((detail) =>
+    isDateError(detail)
+      ? {
+          name: DATE_FIELD,
+          text: detail.context.message,
+          href: `#${DATE_FIELD}-${detail.context.parts[0]}`,
+          parts: detail.context.parts
+        }
+      : {
+          name: detail.path[0],
+          text: detail.message,
+          href: `#${detail.path[0]}`
+        }
+  )
   return renderForm(h, {
     projectId,
     projectName: result?.payload?.project?.name,
     details: request.payload,
+    dateParts: datePartsOf(request.payload),
     errors
   }).takeover()
 }

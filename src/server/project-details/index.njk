@@ -2,6 +2,7 @@
 
 {% from "govuk/components/back-link/macro.njk" import govukBackLink %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 {% from "govuk/components/input/macro.njk" import govukInput %}
 {% from "govuk/components/radios/macro.njk" import govukRadios %}
@@ -46,14 +47,31 @@
           errorMessage: { text: fieldErrors.surveyCompleters } if fieldErrors.surveyCompleters else undefined
         }) }}
 
-        {{ govukInput({
+        {{ govukDateInput({
           id: "surveyCompletionDate",
-          name: "surveyCompletionDate",
-          label: { text: "Survey completion date" },
-          hint: { text: "For example, 27/03/2026" },
-          classes: "govuk-input--width-10",
-          value: details.surveyCompletionDate,
-          errorMessage: { text: fieldErrors.surveyCompletionDate } if fieldErrors.surveyCompletionDate else undefined
+          namePrefix: "surveyCompletionDate",
+          fieldset: {
+            legend: { text: "Survey completion date" }
+          },
+          hint: { text: "For example, 27 3 2026" },
+          errorMessage: { text: fieldErrors.surveyCompletionDate } if fieldErrors.surveyCompletionDate else undefined,
+          items: [
+            {
+              name: "day",
+              classes: "govuk-input--width-2" + (" govuk-input--error" if "day" in surveyCompletionDateErrorParts else ""),
+              value: surveyCompletionDate.day
+            },
+            {
+              name: "month",
+              classes: "govuk-input--width-2" + (" govuk-input--error" if "month" in surveyCompletionDateErrorParts else ""),
+              value: surveyCompletionDate.month
+            },
+            {
+              name: "year",
+              classes: "govuk-input--width-4" + (" govuk-input--error" if "year" in surveyCompletionDateErrorParts else ""),
+              value: surveyCompletionDate.year
+            }
+          ]
         }) }}
 
         {{ govukRadios({

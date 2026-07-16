@@ -50,7 +50,11 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *                 type: string
  *               surveyCompleters:
  *                 type: string
- *               surveyCompletionDate:
+ *               surveyCompletionDate-day:
+ *                 type: string
+ *               surveyCompletionDate-month:
+ *                 type: string
+ *               surveyCompletionDate-year:
  *                 type: string
  *               developmentType:
  *                 type: string

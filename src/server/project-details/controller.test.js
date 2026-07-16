@@ -44,6 +44,18 @@ const mockProjectWithDetails = {
   }
 }
 
+const { surveyCompletionDate: _savedDate, ...savedDetailsWithoutDate } =
+  savedDetails
+const savedDateFormFields = {
+  'surveyCompletionDate-day': '01',
+  'surveyCompletionDate-month': '06',
+  'surveyCompletionDate-year': '2025'
+}
+const savedDetailsFormPayload = {
+  ...savedDetailsWithoutDate,
+  ...savedDateFormFields
+}
+
 // Mirrors what @hapi/wreck's get/post/patch/... shortcuts actually throw for
 // a non-2xx response (see `_shortcut` in @hapi/wreck/lib/index.js) — a real
 // backend error response, as opposed to a network-level failure.
@@ -148,8 +160,11 @@ describe('#projectDetailsController', () => {
     })
     expect(result).toContain('value="Anytown Borough Council"')
     expect(result).toContain('value="Jane Smith"')
-    expect(result).toContain('value="01/06/2025"')
     expect(result).toContain('value="Acme Developments Ltd"')
+    // Date input: day/month/year pre-filled from the saved DD/MM/YYYY string
+    expect(result).toMatch(/id="surveyCompletionDate-day"[^>]*value="01"/)
+    expect(result).toMatch(/id="surveyCompletionDate-month"[^>]*value="06"/)
+    expect(result).toMatch(/id="surveyCompletionDate-year"[^>]*value="2025"/)
     // Radios: checked attribute on the matching option
     expect(result).toMatch(/value="Small site"[^>]*checked/)
     expect(result).toMatch(/value="No"[^>]*checked/)
@@ -288,7 +303,7 @@ describe('#projectDetailsPostController', () => {
     await server.inject({
       method: 'POST',
       url,
-      payload: { ...savedDetails, crumb: crumb.token },
+      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
@@ -324,7 +339,7 @@ describe('#projectDetailsPostController', () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url,
-      payload: { ...savedDetails, crumb: crumb.token },
+      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
@@ -338,7 +353,7 @@ describe('#projectDetailsPostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url,
-      payload: { ...savedDetails, crumb: crumb.token },
+      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
@@ -350,7 +365,7 @@ describe('#projectDetailsPostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url,
-      payload: { ...savedDetails, crumb: crumb.token },
+      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
@@ -362,19 +377,20 @@ describe('#projectDetailsPostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url,
-      payload: { ...savedDetails, crumb: crumb.token },
+      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
     expect(statusCode).toBe(statusCodes.badGateway)
   })
 
-  test('shows an error summary for an invalid survey completion date, without calling the backend', async () => {
+  test('shows an error summary when the survey completion date is missing a day, without calling the backend', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',
       url,
       payload: {
-        surveyCompletionDate: '1 June 2025',
+        'surveyCompletionDate-month': '6',
+        'surveyCompletionDate-year': '2025',
         crumb: crumb.token
       },
       headers: { cookie: crumb.cookie },
@@ -383,10 +399,64 @@ describe('#projectDetailsPostController', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('There is a problem')
-    expect(result).toContain(
-      'Survey completion date must be in the format DD/MM/YYYY'
-    )
+    expect(result).toContain('Survey completion date must include a day')
+    expect(result).toContain('href="#surveyCompletionDate-day"')
     expect(wreck.patch).not.toHaveBeenCalled()
+  })
+
+  test('shows an error summary when the survey completion date is missing day and month', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'POST',
+      url,
+      payload: {
+        'surveyCompletionDate-year': '2025',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain(
+      'Survey completion date must include day and month'
+    )
+  })
+
+  test('shows an error summary when the survey completion date is not a real date, without calling the backend', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'POST',
+      url,
+      payload: {
+        'surveyCompletionDate-day': '31',
+        'surveyCompletionDate-month': '2',
+        'surveyCompletionDate-year': '2025',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Survey completion date must be a real date')
+    expect(wreck.patch).not.toHaveBeenCalled()
+  })
+
+  test('shows an error summary when the survey completion date is non-numeric', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'POST',
+      url,
+      payload: {
+        'surveyCompletionDate-day': 'aa',
+        'surveyCompletionDate-month': '6',
+        'surveyCompletionDate-year': '2025',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Survey completion date must be a real date')
   })
 
   test('repopulates the form with submitted values on validation failure', async () => {
@@ -395,7 +465,9 @@ describe('#projectDetailsPostController', () => {
       url,
       payload: {
         localPlanningAuthority: 'Anytown Borough Council',
-        surveyCompletionDate: 'not-a-date',
+        'surveyCompletionDate-day': '31',
+        'surveyCompletionDate-month': '2',
+        'surveyCompletionDate-year': '2025',
         crumb: crumb.token
       },
       headers: { cookie: crumb.cookie },
@@ -403,6 +475,14 @@ describe('#projectDetailsPostController', () => {
     })
 
     expect(result).toContain('value="Anytown Borough Council"')
+    expect(result).toMatch(/id="surveyCompletionDate-day"[^>]*value="31"/)
+    expect(result).toMatch(/id="surveyCompletionDate-month"[^>]*value="2"/)
+    expect(result).toMatch(/id="surveyCompletionDate-year"[^>]*value="2025"/)
+    // Every part is highlighted for a "not a real date" error
+    const dayInput = result.match(
+      /<input[^>]*id="surveyCompletionDate-day"[^>]*>/
+    )?.[0]
+    expect(dayInput).toContain('govuk-input--error')
   })
 
   test('rejects an out-of-range development type value', async () => {
