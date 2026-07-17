@@ -11,7 +11,8 @@ describe('buildHedgerowViewOnlyViewModel', () => {
       ref: 'HG-2',
       sizeMetres: 336,
       units: 4.25,
-      baseline: { retentionCategory: 'Retained' },
+      retentionCategory: 'Retained',
+      baseline: { type: 'Native species-rich hedgerow' },
       proposed: {
         type: 'Native hedgerow',
         condition: '4. Moderate',

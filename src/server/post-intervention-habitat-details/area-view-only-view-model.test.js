@@ -11,7 +11,8 @@ describe('buildAreaViewOnlyViewModel', () => {
       ref: 'P-1',
       sizeSquareMetres: 25000,
       units: 2.5,
-      baseline: { retentionCategory: 'Retained' },
+      retentionCategory: 'Retained',
+      baseline: { type: 'Grassland', broadType: 'Grassland' },
       proposed: {
         broadType: 'Grassland',
         type: 'Modified grassland',
