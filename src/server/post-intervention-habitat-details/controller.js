@@ -10,6 +10,7 @@ import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
+import { normaliseRetentionCategory } from './retention.js'
 
 const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
 
@@ -104,9 +105,19 @@ const getController = {
 
     const page = VIEW_ONLY_PAGES.get(type)
     if (page) {
+      // The backend keeps the raw GeoPackage retention category under
+      // `baseline`, but the shared area/hedgerow view fields read it from the
+      // top level. Lift the normalised value so a "1. Created" prefix or a
+      // missing category resolves the same way it does on the watercourse page.
+      const featureWithIntervention = {
+        ...feature,
+        retentionCategory: normaliseRetentionCategory(
+          feature.baseline?.retentionCategory
+        )
+      }
       return h.view(
         page.template,
-        page.buildViewModel(feature, {
+        page.buildViewModel(featureWithIntervention, {
           projectId,
           projectName,
           baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
