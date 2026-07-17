@@ -29,24 +29,6 @@ export function normaliseRetentionCategory(value) {
 }
 
 /**
- * Whether a feature should render the read-only view-only page.
- *
- * Only retained features have a view-only page: Created, Enhanced and Lost
- * features still need their editable form, so they fall through to the shared
- * editable controller. A feature with no retention category is treated as
- * retained, matching the DEFAULT_INTERVENTION the pages display.
- *
- * @param {object} feature the raw feature from the PI feature endpoint
- * @returns {boolean}
- */
-export function isRetainedFeature(feature) {
-  const category = normaliseRetentionCategory(
-    feature?.baseline?.retentionCategory
-  )
-  return category === null || category === RETENTION_RETAINED
-}
-
-/**
  * The display string for the "Intervention" row.
  *
  * @param {unknown} rawCategory
