@@ -10,7 +10,7 @@
 import { formatHabitatUnits } from '../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { PI_DETAILS_HEADING } from './constants.js'
-import { DEFAULT_INTERVENTION, interventionDisplay } from './retention.js'
+import { interventionDisplay } from './retention.js'
 
 // Strategic significance is fixed at Low (1) in MVS across every habitat type,
 // matching the baseline details pages. The variable significance multipliers
@@ -77,7 +77,7 @@ export function buildSharedPiViewOnlyFields(
     heading: PI_DETAILS_HEADING,
     caption: projectName,
     habitatRef: feature.ref ?? '',
-    interventionDisplay: feature.retentionCategory || DEFAULT_INTERVENTION,
+    interventionDisplay: interventionDisplay(feature.retentionCategory),
     distinctivenessDisplay: withMultiplier(
       proposed.distinctiveness,
       proposed.distinctivenessScore
@@ -128,7 +128,7 @@ export function buildViewOnlyViewModel(
     heading: PI_DETAILS_HEADING,
     caption: projectName,
     habitatRef: feature.ref ?? '',
-    interventionDisplay: interventionDisplay(baseline.retentionCategory),
+    interventionDisplay: interventionDisplay(feature.retentionCategory),
     sizeDisplay: spec.formatSize(feature),
     habitatTypeDisplay: retained('type'),
     distinctivenessDisplay: withMultiplier(

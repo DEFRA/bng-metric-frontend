@@ -105,15 +105,13 @@ const getController = {
 
     const page = VIEW_ONLY_PAGES.get(type)
     if (page) {
-      // The backend keeps the raw GeoPackage retention category under
-      // `baseline`, but the shared area/hedgerow view fields read it from the
-      // top level. Lift the normalised value so a "1. Created" prefix or a
-      // missing category resolves the same way it does on the watercourse page.
+      // Normalise the feature-root retention category so a "1. Created" list
+      // prefix or a missing value resolves consistently for every view-only
+      // page (area/hedgerow read the top-level field; watercourse uses the
+      // same via buildViewOnlyViewModel).
       const featureWithIntervention = {
         ...feature,
-        retentionCategory: normaliseRetentionCategory(
-          feature.baseline?.retentionCategory
-        )
+        retentionCategory: normaliseRetentionCategory(feature.retentionCategory)
       }
       return h.view(
         page.template,

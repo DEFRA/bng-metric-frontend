@@ -11,7 +11,7 @@ describe('buildWatercourseViewOnlyViewModel', () => {
       ref: 'W-1',
       sizeMetres: 1234.56,
       units: 6.5,
-      baseline: { retentionCategory: 'Retained' },
+      retentionCategory: 'Retained',
       proposed: {
         type: 'Ditches',
         condition: '4. Moderate',
@@ -58,8 +58,8 @@ describe('buildWatercourseViewOnlyViewModel', () => {
     // blank the row or pair a value with someone else's multiplier.
     const feature = {
       ref: 'W-4',
+      retentionCategory: 'Retained',
       baseline: {
-        retentionCategory: 'Retained',
         watercourseEncroachment: 'Major',
         riparianEncroachment: 'Major/Major'
       },
@@ -85,8 +85,8 @@ describe('buildWatercourseViewOnlyViewModel', () => {
     // an empty proposed column must not blank the row.
     const feature = {
       ref: 'W-5',
+      retentionCategory: 'Retained',
       baseline: {
-        retentionCategory: 'Retained',
         type: 'Ditches',
         condition: 'Moderate'
       },
