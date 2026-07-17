@@ -5,6 +5,7 @@ export const PI_FEATURE = {
   sizeSquareMetres: 7850.14,
   units: 3.14,
   status: 'Complete',
+  retentionCategory: 'Lost',
   baseline: {
     type: 'Modified grassland',
     broadType: 'Grassland',
@@ -12,8 +13,7 @@ export const PI_FEATURE = {
     conditionScore: 2,
     distinctiveness: 'Low',
     distinctivenessScore: 2,
-    strategicSignificance: 'Low',
-    retentionCategory: 'Lost'
+    strategicSignificance: 'Low'
   },
   proposed: {
     type: 'Developed land; sealed surface',

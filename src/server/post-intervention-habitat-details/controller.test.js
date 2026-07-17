@@ -297,7 +297,7 @@ describe('#postInterventionHabitatDetailsController', () => {
               ref: 'W-1',
               sizeMetres: 1234.56,
               units: 6.5,
-              baseline: { retentionCategory: 'Retained' },
+              retentionCategory: 'Retained',
               proposed: {
                 type: 'Ditches',
                 condition: 'Moderate',
@@ -370,7 +370,7 @@ describe('#postInterventionHabitatDetailsController', () => {
       feature: {
         featureId,
         ref: 'W-2',
-        baseline: { retentionCategory: '1. Retained' },
+        retentionCategory: '1. Retained',
         proposed: {}
       }
     })
@@ -396,8 +396,8 @@ describe('#postInterventionHabitatDetailsController', () => {
           featureId,
           ref: 'W-3',
           sizeMetres: 500,
+          retentionCategory,
           baseline: {
-            retentionCategory,
             type: 'Ditches',
             condition: 'Moderate'
           },
@@ -423,7 +423,7 @@ describe('#postInterventionHabitatDetailsController', () => {
       feature: {
         featureId,
         ref: 'P-4',
-        baseline: { retentionCategory: 'Created' },
+        retentionCategory: 'Created',
         proposed: { broadType: 'Grassland', type: 'Modified grassland' }
       }
     })
