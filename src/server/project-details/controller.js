@@ -57,6 +57,7 @@ function validateSurveyCompletionDate(value, helpers) {
 
   const present = { day: day !== '', month: month !== '', year: year !== '' }
   if (!present.day && !present.month && !present.year) {
+    result[DATE_FIELD] = null
     return result
   }
 
@@ -90,25 +91,44 @@ function validateSurveyCompletionDate(value, helpers) {
   return result
 }
 
-// Mirrors backend projectDetailsSchema (GET/PATCH /projects/{id}/details).
-// Empty fields normalise to `undefined` via `.empty('')` so the PATCH payload
-// only ever carries fields the user actually filled in.
+// Mirrors backend projectDetailsSchema (GET/PATCH /projects/{id}/details),
+// which allows `null` on every field. Empty fields normalise to explicit
+// `null` (via `.empty('').default(null)`) rather than being dropped, so a
+// field the user clears is actually cleared server-side — the backend
+// merges the PATCH payload into the stored details with a jsonb `||`, which
+// leaves omitted keys untouched but overwrites keys sent as `null`.
 export const projectDetailsFormSchema = Joi.object({
   localPlanningAuthority: Joi.string()
     .trim()
     .empty('')
+    .allow(null)
+    .default(null)
     .max(MAX_TEXT_FIELD_LENGTH),
-  surveyCompleters: Joi.string().trim().empty('').max(MAX_TEXT_FIELD_LENGTH),
+  surveyCompleters: Joi.string()
+    .trim()
+    .empty('')
+    .allow(null)
+    .default(null)
+    .max(MAX_TEXT_FIELD_LENGTH),
   [DAY_KEY]: Joi.string().trim().allow(''),
   [MONTH_KEY]: Joi.string().trim().allow(''),
   [YEAR_KEY]: Joi.string().trim().allow(''),
   developmentType: Joi.string()
     .empty('')
+    .allow(null)
+    .default(null)
     .valid(...DEVELOPMENT_TYPE_OPTIONS),
   nsips: Joi.string()
     .empty('')
+    .allow(null)
+    .default(null)
     .valid(...NSIPS_OPTIONS),
-  applicant: Joi.string().trim().empty('').max(MAX_TEXT_FIELD_LENGTH)
+  applicant: Joi.string()
+    .trim()
+    .empty('')
+    .allow(null)
+    .default(null)
+    .max(MAX_TEXT_FIELD_LENGTH)
 })
   .custom(validateSurveyCompletionDate)
   .messages({ [DATE_ERROR_TYPE]: '{{#message}}' })

@@ -317,7 +317,7 @@ describe('#projectDetailsPostController', () => {
     expect(body).toEqual(savedDetails)
   })
 
-  test('omits blank fields from the PATCH payload', async () => {
+  test('sends explicit null for fields left blank, so the backend clears them', async () => {
     await server.inject({
       method: 'POST',
       url,
@@ -332,7 +332,14 @@ describe('#projectDetailsPostController', () => {
     const [, options] = vi.mocked(wreck.patch).mock.calls[0]
     const body = JSON.parse(options.payload)
 
-    expect(body).toEqual({ localPlanningAuthority: 'Anytown Borough Council' })
+    expect(body).toEqual({
+      localPlanningAuthority: 'Anytown Borough Council',
+      surveyCompleters: null,
+      surveyCompletionDate: null,
+      developmentType: null,
+      nsips: null,
+      applicant: null
+    })
   })
 
   test('redirects to the project task list on success', async () => {
@@ -498,7 +505,7 @@ describe('#projectDetailsPostController', () => {
     expect(wreck.patch).not.toHaveBeenCalled()
   })
 
-  test('succeeds with an entirely empty submission', async () => {
+  test('succeeds with an entirely empty submission, sending null for every field', async () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url,
@@ -509,7 +516,14 @@ describe('#projectDetailsPostController', () => {
 
     expect(statusCode).toBe(statusCodes.redirect)
     const [, options] = vi.mocked(wreck.patch).mock.calls[0]
-    expect(JSON.parse(options.payload)).toEqual({})
+    expect(JSON.parse(options.payload)).toEqual({
+      localPlanningAuthority: null,
+      surveyCompleters: null,
+      surveyCompletionDate: null,
+      developmentType: null,
+      nsips: null,
+      applicant: null
+    })
   })
 
   test('returns 400 when project id is not a UUID', async () => {

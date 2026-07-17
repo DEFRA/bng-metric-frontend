@@ -20,6 +20,12 @@ async function callBackend(send) {
     const { res, payload } = await send()
     return { statusCode: res.statusCode, payload: payload ?? null }
   } catch (error) {
+    // A dead, unrefreshable session (backend-request.js) must reach the
+    // global error handler so it can redirect to /auth/session-expired,
+    // rather than being reported here as a generic backend failure.
+    if (error?.data?.sessionExpired) {
+      throw error
+    }
     if (error?.data?.isResponseError) {
       return {
         statusCode: error.data.res.statusCode,

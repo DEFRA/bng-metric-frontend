@@ -21,6 +21,14 @@ function responseError(statusCode, payload) {
   return error
 }
 
+// Mirrors sessionExpiredError() in backend-request.js: thrown when a 401
+// couldn't be refreshed, so the session is dead.
+function sessionExpiredError() {
+  const error = new Error('Backend rejected the bearer token')
+  error.data = { sessionExpired: true }
+  return error
+}
+
 describe('fetchProject', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -75,6 +83,14 @@ describe('fetchProject', () => {
     const result = await fetchProject(makeRequest(), projectId)
 
     expect(result).toBeNull()
+  })
+
+  test('re-throws a session-expired error instead of swallowing it', async () => {
+    vi.mocked(wreck.get).mockRejectedValue(sessionExpiredError())
+
+    await expect(fetchProject(makeRequest(), projectId)).rejects.toMatchObject({
+      data: { sessionExpired: true }
+    })
   })
 })
 
@@ -136,5 +152,13 @@ describe('patchProjectDetails', () => {
     const result = await patchProjectDetails(makeRequest(), projectId, details)
 
     expect(result).toBeNull()
+  })
+
+  test('re-throws a session-expired error instead of swallowing it', async () => {
+    vi.mocked(wreck.patch).mockRejectedValue(sessionExpiredError())
+
+    await expect(
+      patchProjectDetails(makeRequest(), projectId, details)
+    ).rejects.toMatchObject({ data: { sessionExpired: true } })
   })
 })
