@@ -1,4 +1,4 @@
-import { getController, postController } from './controller.js'
+import { getController } from './controller.js'
 import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
 const protectedRouteOptions = {
@@ -17,15 +17,6 @@ export const postInterventionHabitatDetails = {
           ...getController,
           options: {
             ...getController.options,
-            ...protectedRouteOptions
-          }
-        },
-        {
-          method: 'POST',
-          path: '/post-intervention-habitat-details',
-          ...postController,
-          options: {
-            ...postController.options,
             ...protectedRouteOptions
           }
         }

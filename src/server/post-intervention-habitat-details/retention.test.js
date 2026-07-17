@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  interventionDisplay,
-  isRetainedFeature,
-  normaliseRetentionCategory
-} from './retention.js'
+import { interventionDisplay, normaliseRetentionCategory } from './retention.js'
 
 describe('normaliseRetentionCategory', () => {
   it.each([
@@ -24,36 +20,6 @@ describe('normaliseRetentionCategory', () => {
       expect(normaliseRetentionCategory(raw)).toBeNull()
     }
   )
-})
-
-describe('isRetainedFeature', () => {
-  it.each([['Retained'], ['1. Retained']])(
-    'treats a %j feature as view-only',
-    (category) => {
-      expect(
-        isRetainedFeature({ baseline: { retentionCategory: category } })
-      ).toBe(true)
-    }
-  )
-
-  it.each([['Created'], ['Enhanced'], ['Lost'], ['3. Created']])(
-    'keeps the editable page for a %j feature',
-    (category) => {
-      expect(
-        isRetainedFeature({ baseline: { retentionCategory: category } })
-      ).toBe(false)
-    }
-  )
-
-  it.each([
-    [{}],
-    [{ baseline: {} }],
-    [{ baseline: { retentionCategory: '' } }]
-  ])('treats a feature with no retention category as retained', (feature) => {
-    // Matches the "Retained" the pages display when a baseline has not been
-    // uploaded yet.
-    expect(isRetainedFeature(feature)).toBe(true)
-  })
 })
 
 describe('interventionDisplay', () => {
