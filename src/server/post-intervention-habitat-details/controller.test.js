@@ -10,7 +10,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
   }
 }))
 
-const { getController } = await import('./controller.js')
+const { getController, postController } = await import('./controller.js')
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const featureId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
@@ -435,5 +435,18 @@ describe('#postInterventionHabitatDetailsController', () => {
       'habitat-details/pi-habitat-details',
       expect.objectContaining({ interventionDisplay: 'Created' })
     )
+  })
+
+  test('POST responds 501 Not Implemented', () => {
+    // The PI details pages are read-only and render no form; the save route
+    // answers 501 so a stale page or client gets an explicit refusal.
+    let error
+    try {
+      postController.handler()
+    } catch (err) {
+      error = err
+    }
+    expect(error.isBoom).toBe(true)
+    expect(error.output.statusCode).toBe(501)
   })
 })

@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import Joi from 'joi'
 
 import {
@@ -118,4 +119,15 @@ const getController = {
   }
 }
 
-export { getController }
+// Every PI details page is read-only, so nothing renders a form that posts
+// here any more. The route stays registered and answers 501 so a stale page
+// or client gets an explicit "not implemented" rather than a 404.
+const postController = {
+  handler() {
+    throw Boom.notImplemented(
+      'Saving post-intervention habitat details is not implemented'
+    )
+  }
+}
+
+export { getController, postController }
