@@ -7,6 +7,7 @@ import {
   formatHabitatUnits,
   KM_UNIT
 } from './format-habitat-values.js'
+import { interventionDisplay } from '../../post-intervention-habitat-details/retention.js'
 
 const NO_DATA_DISPLAY = 'No data'
 
@@ -70,6 +71,12 @@ function buildFeatureRow(feature, projectId, uploadType, sizeCell) {
     : resolveBaselineDisplayFields(feature)
   return [
     buildRefLinkCell(feature, projectId, uploadType),
+    // Post-intervention habitats carry a persisted intervention type (Created,
+    // Retained or Enhanced) shown between "Ref" and "Habitat type"; baseline
+    // habitats have no such column.
+    ...(uploadType.isPostIntervention
+      ? [{ text: interventionDisplay(feature.retentionCategory) }]
+      : []),
     { text: display.type ?? '' },
     sizeCell,
     { text: display.distinctiveness ?? '' },

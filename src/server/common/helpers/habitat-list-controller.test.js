@@ -300,6 +300,79 @@ describe('createHabitatListController', () => {
     )
   })
 
+  it('inserts the persisted intervention type between the ref and habitat type cells for post-intervention rows', async () => {
+    const enhancedHabitat = structuredClone(PI_FEATURE)
+    enhancedHabitat.retentionCategory = 'Enhanced'
+    const enhancedHedgerow = structuredClone(HEDGEROW_FEATURE)
+    enhancedHedgerow.retentionCategory = '2. Created'
+    const enhancedWatercourse = structuredClone(WATERCOURSE_FEATURE)
+    // No retention category persisted => defaults to "Retained".
+    delete enhancedWatercourse.retentionCategory
+
+    vi.mocked(fetchProject).mockResolvedValue({
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitats: [enhancedHabitat],
+            hedgerows: [enhancedHedgerow],
+            watercourses: [enhancedWatercourse]
+          }
+        }
+      }
+    })
+
+    await callHandler()
+
+    const viewModel = h.view.mock.calls[0][1]
+    // Row shape: [ref, intervention type, habitat type, size, ...]. The
+    // intervention type sits in the second cell and the ref link is untouched.
+    expect(viewModel.habitatRows[0][1]).toEqual({ text: 'Enhanced' })
+    expect(viewModel.habitatRows[0][0].html).toContain('H1-1')
+    expect(viewModel.habitatRows[0][2]).toEqual({
+      text: 'Developed land; sealed surface'
+    })
+    // Normalises a "N. " list prefix from the raw category.
+    expect(viewModel.hedgerowRows[0][1]).toEqual({ text: 'Created' })
+    // Defaults to "Retained" when no category is persisted.
+    expect(viewModel.watercourseRows[0][1]).toEqual({ text: 'Retained' })
+  })
+
+  it('omits the intervention type cell for baseline rows', async () => {
+    const baselineController = createHabitatListController(
+      HABITAT_UPLOAD_TYPES.baseline
+    )
+    vi.mocked(fetchProject).mockResolvedValue({
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            habitats: [
+              {
+                featureId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+                ref: 'P1',
+                type: 'Lowland meadows',
+                sizeSquareMetres: 1000,
+                units: 5,
+                status: 'Complete'
+              }
+            ],
+            hedgerows: [],
+            watercourses: []
+          }
+        }
+      }
+    })
+
+    await baselineController.handler({ params: { id: projectId } }, h)
+
+    const viewModel = h.view.mock.calls[0][1]
+    // Baseline row shape: [ref, habitat type, size, ...] — no intervention cell.
+    expect(viewModel.habitatRows[0][1]).toEqual({ text: 'Lowland meadows' })
+  })
+
   it('passes null rows when project data is absent', async () => {
     vi.mocked(fetchProject).mockResolvedValue(null)
 
