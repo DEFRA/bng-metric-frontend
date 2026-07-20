@@ -68,6 +68,7 @@
         <thead class="govuk-table__head">
           <tr class="govuk-table__row">
             <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+            {% if isPostIntervention %}<th class="govuk-table__header" scope="col" aria-sort="none">Intervention type</th>{% endif %}
             <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
             <th class="govuk-table__header" scope="col" aria-sort="none">Area</th>
             <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
@@ -86,6 +87,7 @@
         <tfoot class="govuk-table__foot">
           <tr class="govuk-table__row">
             <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+            {% if isPostIntervention %}<td class="govuk-table__cell"></td>{% endif %}
             <td class="govuk-table__cell"></td>
             <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.areaHabitats }}</td>
             <td class="govuk-table__cell"></td>
@@ -106,6 +108,7 @@
           <thead class="govuk-table__head">
             <tr class="govuk-table__row">
               <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+              {% if isPostIntervention %}<th class="govuk-table__header" scope="col" aria-sort="none">Intervention type</th>{% endif %}
               <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Length</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
@@ -124,6 +127,7 @@
           <tfoot class="govuk-table__foot">
             <tr class="govuk-table__row">
               <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+              {% if isPostIntervention %}<td class="govuk-table__cell"></td>{% endif %}
               <td class="govuk-table__cell"></td>
               <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.hedgerows }}</td>
               <td class="govuk-table__cell"></td>
@@ -147,6 +151,7 @@
           <thead class="govuk-table__head">
             <tr class="govuk-table__row">
               <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+              {% if isPostIntervention %}<th class="govuk-table__header" scope="col" aria-sort="none">Intervention type</th>{% endif %}
               <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Size</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
@@ -165,6 +170,7 @@
           <tfoot class="govuk-table__foot">
             <tr class="govuk-table__row">
               <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+              {% if isPostIntervention %}<td class="govuk-table__cell"></td>{% endif %}
               <td class="govuk-table__cell"></td>
               <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.watercourses }}</td>
               <td class="govuk-table__cell"></td>

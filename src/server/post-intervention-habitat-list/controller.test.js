@@ -89,6 +89,25 @@ describe('#postInterventionHabitatListController - GET', () => {
     )
   })
 
+  test('renders the "Intervention type" column with the persisted value', async () => {
+    const enhancedProject = structuredClone(mockProject)
+    enhancedProject.project.postIntervention.habitats[0].retentionCategory =
+      'Enhanced'
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: enhancedProject
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Intervention type')
+    expect(result).toContain('Enhanced')
+  })
+
   test('Continue button links to backHref', async () => {
     const { result } = await server.inject({
       method: 'GET',
