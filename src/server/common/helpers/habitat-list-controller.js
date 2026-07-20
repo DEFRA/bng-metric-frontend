@@ -69,22 +69,21 @@ function buildFeatureRow(feature, projectId, uploadType, sizeCell) {
   const display = uploadType.isPostIntervention
     ? resolveProposedDisplayFields(feature)
     : resolveBaselineDisplayFields(feature)
-  const cells = [buildRefLinkCell(feature, projectId, uploadType)]
-  // Post-intervention habitats carry a persisted intervention type (Created,
-  // Retained or Enhanced) shown between "Ref" and "Habitat type"; baseline
-  // habitats have no such column.
-  if (uploadType.isPostIntervention) {
-    cells.push({ text: interventionDisplay(feature.retentionCategory) })
-  }
-  cells.push(
+  return [
+    buildRefLinkCell(feature, projectId, uploadType),
+    // Post-intervention habitats carry a persisted intervention type (Created,
+    // Retained or Enhanced) shown between "Ref" and "Habitat type"; baseline
+    // habitats have no such column.
+    ...(uploadType.isPostIntervention
+      ? [{ text: interventionDisplay(feature.retentionCategory) }]
+      : []),
     { text: display.type ?? '' },
     sizeCell,
     { text: display.distinctiveness ?? '' },
     { text: display.condition ?? '' },
     { text: formatHabitatUnits(feature.units) },
     { text: feature.status ?? '' }
-  )
-  return cells
+  ]
 }
 
 function buildLinearSizeCell(sizeMetres) {
