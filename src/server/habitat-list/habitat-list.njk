@@ -25,6 +25,7 @@
 
       {% if isPostIntervention %}
         {{ govukTable({
+          classes: "app-habitat-summary-table",
           head: [
             { text: "Unit type" },
             { text: "Size" },
@@ -35,10 +36,9 @@
             { text: "Trading rules satisfied" }
           ],
           rows: [
-            [{ text: "Site" }, { text: totalSizes.site }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
-            [{ text: "Area habitats" }, { text: totalSizes.areaHabitats }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
-            [{ text: "Hedgerows" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
-            [{ text: "Watercourses" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }]
+            [{ text: "Area habitats" }, { text: postInterventionSummary.areaHabitats.size }, { text: postInterventionSummary.areaHabitats.baselineUnits }, { text: postInterventionSummary.areaHabitats.postInterventionUnits }, { text: postInterventionSummary.areaHabitats.netUnitChange }, { text: postInterventionSummary.areaHabitats.netPercentageChange }, { text: "" }],
+            [{ text: "Hedgerows" }, { text: postInterventionSummary.hedgerows.size }, { text: postInterventionSummary.hedgerows.baselineUnits }, { text: postInterventionSummary.hedgerows.postInterventionUnits }, { text: postInterventionSummary.hedgerows.netUnitChange }, { text: postInterventionSummary.hedgerows.netPercentageChange }, { text: "" }],
+            [{ text: "Watercourses" }, { text: postInterventionSummary.watercourses.size }, { text: postInterventionSummary.watercourses.baselineUnits }, { text: postInterventionSummary.watercourses.postInterventionUnits }, { text: postInterventionSummary.watercourses.netUnitChange }, { text: postInterventionSummary.watercourses.netPercentageChange }, { text: "" }]
           ]
         }) }}
       {% else %}
