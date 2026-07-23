@@ -1,4 +1,14 @@
 import { wreck } from '../common/helpers/wreck-client.js'
+import {
+  baselineFeatureId,
+  createMockH,
+  featureId,
+  isProjectUrl,
+  mockFeature,
+  projectId,
+  projectPayload,
+  projectWithBaselinePayload
+} from './controller-test-helpers.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -11,47 +21,6 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 }))
 
 const { getController, postController } = await import('./controller.js')
-
-const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
-const featureId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-
-const createMockH = () => ({
-  view: vi.fn().mockReturnThis(),
-  redirect: vi.fn().mockReturnThis()
-})
-
-const baselineFeatureId = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
-const projectPayload = { payload: { project: { name: 'Test Project' } } }
-const projectWithBaselinePayload = {
-  payload: {
-    project: {
-      name: 'Test Project',
-      baseline: { habitats: [{ featureId: baselineFeatureId, ref: 'P-1' }] }
-    }
-  }
-}
-
-function isProjectUrl(url) {
-  return (
-    url.includes(`/projects/${projectId}`) &&
-    !url.includes('/post-intervention/features/')
-  )
-}
-
-/**
- * Mock the PI feature endpoint and the project endpoint.
- */
-function mockFeature(featurePayload) {
-  vi.mocked(wreck.get).mockImplementation((url) => {
-    if (url.includes(`/post-intervention/features/${featureId}`)) {
-      return Promise.resolve({ payload: featurePayload })
-    }
-    if (isProjectUrl(url)) {
-      return Promise.resolve(projectPayload)
-    }
-    throw new Error(`Unexpected URL ${url}`)
-  })
-}
 
 describe('#postInterventionHabitatDetailsController', () => {
   afterEach(() => {
@@ -416,85 +385,6 @@ describe('#postInterventionHabitatDetailsController', () => {
       expect(viewModel).not.toHaveProperty('formAction')
     }
   )
-
-  test('GET renders the Enhanced area details page with section layout', async () => {
-    vi.mocked(wreck.get).mockImplementation((url) => {
-      if (url.includes(`/post-intervention/features/${featureId}`)) {
-        return Promise.resolve({
-          payload: {
-            type: 'habitat',
-            feature: {
-              featureId,
-              ref: 'Habitat P-A2',
-              sizeSquareMetres: 0,
-              units: 0,
-              retentionCategory: '1. Enhanced',
-              proposed: {
-                broadType: 'Grassland',
-                type: 'Modified grassland',
-                condition: 'Good',
-                conditionScore: 3,
-                distinctiveness: 'Low',
-                distinctivenessScore: 2,
-                standardTimeToTargetCondition: '10',
-                difficulty: 'Low',
-                advanceOrDelay: 'Delay',
-                finalTimeToTargetCondition: '15',
-                difficultyMultiplier: 1
-              }
-            }
-          }
-        })
-      }
-      if (isProjectUrl(url)) {
-        return Promise.resolve({
-          payload: {
-            project: {
-              name: 'Test Project',
-              baseline: {
-                habitats: [
-                  { featureId: baselineFeatureId, ref: 'Habitat P-A2' }
-                ]
-              }
-            }
-          }
-        })
-      }
-      throw new Error(`Unexpected URL ${url}`)
-    })
-
-    const h = createMockH()
-    await getController.handler({ query: { projectId, featureId } }, h)
-
-    expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-habitat-details-enhanced',
-      expect.objectContaining({
-        heading: 'Habitat P-A2',
-        caption: 'Test Project',
-        habitatDetailsSectionHeading: 'Post-intervention habitat details',
-        timeDifficultySectionHeading: 'Time to target / difficulty',
-        habitatUnitsLabel: 'Habitat units delivered',
-        interventionDisplay: 'Enhanced',
-        sizeDisplay: '0ha',
-        broadHabitatDisplay: 'Grassland',
-        habitatTypeDisplay: 'Modified grassland',
-        distinctivenessDisplay: 'Low (2)',
-        conditionDisplay: 'Good (3)',
-        strategicSignificanceDisplay: 'Low (1)',
-        habitatUnitsDisplay: '0.00',
-        targetConditionDisplay: 'Good (3)',
-        standardTimeToTargetDisplay:
-          'Baseline condition to target condition - 10 years',
-        standardDifficultyDisplay: 'Low',
-        advanceOrDelayDisplay: 'Delay',
-        finalTimeToTargetDisplay: '15',
-        appliedDifficultyMultiplierDisplay: '1',
-        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
-      })
-    )
-    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
-  })
 
   test('GET renders the read-only page for a created area habitat', async () => {
     mockFeature({

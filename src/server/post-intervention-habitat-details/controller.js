@@ -136,10 +136,10 @@ const getController = {
           baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
         })
       )
+    } else {
+      // Trees, IGGIs and any new feature type without a view-only page.
+      return renderUnsupportedFeature(h, { projectId, projectName })
     }
-
-    // Trees, IGGIs and any new feature type without a view-only page.
-    return renderUnsupportedFeature(h, { projectId, projectName })
   }
 }
 

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
+import {
+  STANDARD_TIME_TO_TARGET_PREFIX,
+  STANDARD_TIME_TO_TARGET_SUFFIX
+} from './constants.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -51,13 +55,36 @@ describe('buildEnhancedAreaViewOnlyViewModel', () => {
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
       backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`,
       targetConditionDisplay: 'Good (3)',
-      standardTimeToTargetDisplay:
-        'Baseline condition to target condition - 10 years',
+      standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Low',
       advanceOrDelayDisplay: 'Delay',
       finalTimeToTargetDisplay: '15',
       appliedDifficultyMultiplierDisplay: '1'
     })
+  })
+
+  it('formats numeric display values and rejects non-primitive values', () => {
+    const vm = buildEnhancedAreaViewOnlyViewModel(
+      {
+        retentionCategory: 'Enhanced',
+        proposed: {
+          standardTimeToTargetCondition: 10,
+          finalTimeToTargetCondition: 15,
+          difficultyMultiplier: 1.5,
+          difficulty: { level: 'Low' },
+          advanceOrDelay: ''
+        }
+      },
+      { projectId, projectName: 'Test Project', baselineFeatureId: null }
+    )
+
+    expect(vm.standardTimeToTargetDisplay).toBe(
+      `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`
+    )
+    expect(vm.finalTimeToTargetDisplay).toBe('15')
+    expect(vm.appliedDifficultyMultiplierDisplay).toBe('1.5')
+    expect(vm.standardDifficultyDisplay).toBe('')
+    expect(vm.advanceOrDelayDisplay).toBe('')
   })
 
   it('uses empty placeholders and hides the baseline link for a sparse feature', () => {

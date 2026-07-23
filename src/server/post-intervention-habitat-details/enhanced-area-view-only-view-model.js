@@ -4,6 +4,8 @@ import {
   AREAS_TAB_ANCHOR,
   HABITAT_UNITS_DELIVERED_LABEL,
   PI_DETAILS_HEADING,
+  STANDARD_TIME_TO_TARGET_PREFIX,
+  STANDARD_TIME_TO_TARGET_SUFFIX,
   TIME_DIFFICULTY_SECTION_HEADING
 } from './constants.js'
 import {
@@ -17,14 +19,25 @@ const EMPTY_PLACEHOLDER = ''
  * @param {unknown} value
  * @returns {string}
  */
-function displayText(value) {
-  if (typeof value === 'string') {
-    return value
-  }
+function formatFiniteNumber(value) {
   if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value)
+    return `${value}`
   }
   return EMPTY_PLACEHOLDER
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function displayText(value) {
+  if (typeof value === 'string') {
+    if (value === '') {
+      return EMPTY_PLACEHOLDER
+    }
+    return value
+  }
+  return formatFiniteNumber(value)
 }
 
 /**
@@ -33,10 +46,10 @@ function displayText(value) {
  */
 function formatStandardTimeToTarget(value) {
   const years = displayText(value)
-  if (!years) {
-    return EMPTY_PLACEHOLDER
+  if (years) {
+    return `${STANDARD_TIME_TO_TARGET_PREFIX}${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
   }
-  return `Baseline condition to target condition - ${years} years`
+  return EMPTY_PLACEHOLDER
 }
 
 /**
@@ -44,10 +57,7 @@ function formatStandardTimeToTarget(value) {
  * @returns {string}
  */
 function formatDifficultyMultiplier(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value)
-  }
-  return EMPTY_PLACEHOLDER
+  return formatFiniteNumber(value)
 }
 
 /**
