@@ -2,9 +2,18 @@
  * Custom CloudWatch (EMF) metrics for authentication, emitted via the
  * already-registered `@defra/cdp-metrics` Hapi plugin (`request.metrics()`).
  *
- * Scope is authentication only: a successful OIDC callback and the two
- * authentication failure points (login initiation + callback). Role/authorisation
- * denials are deliberately not counted here.
+ * Two counters:
+ *   - LoginSucceeded — token exchange succeeded AND the user holds an approved
+ *     "bng completer" role. No dimensions.
+ *   - LoginFailed    — any failed login, tagged with a `reason` dimension:
+ *       • 'initiation'     — building/redirecting to the authorize URL threw.
+ *       • 'idp-error'      — the identity provider returned an ?error= response.
+ *       • 'no-session'     — the callback arrived with no pending login state
+ *                            (e.g. the session cookie did not survive the
+ *                            round-trip); the user is sent back to /auth/login.
+ *       • 'token-exchange' — the OIDC token exchange / callback handling threw.
+ *       • 'rbac'           — token exchange succeeded but the user lacks an
+ *                            approved role (the RBAC condition was not met).
  *
  * Local dev never reaches CloudWatch because `AWS_EMF_ENVIRONMENT=Local` is set
  * in the dev/test scripts, and every emit is wrapped so a metrics failure can
@@ -15,17 +24,17 @@ export const LOGIN_METRIC = {
   failed: 'LoginFailed'
 }
 
-/** Emitted when the best-effort backend session persist fails (login still succeeds). */
-export const SESSION_PERSIST_FAILED_METRIC = 'BackendSessionPersistFailed'
-
 /** Values for the `reason` dimension on LoginFailed. */
 export const LOGIN_FAILURE_REASON = {
   initiation: 'initiation',
-  callback: 'callback'
+  idpError: 'idp-error',
+  noSession: 'no-session',
+  tokenExchange: 'token-exchange',
+  rbac: 'rbac'
 }
 
 /**
- * Record a successful login (OIDC callback succeeded).
+ * Record a successful, authorised login.
  * @param {import('@hapi/hapi').Request} request
  * @returns {Promise<void>}
  */
@@ -38,7 +47,7 @@ export async function recordLoginSuccess(request) {
 }
 
 /**
- * Record a failed login attempt.
+ * Record a failed login, tagged with why it failed.
  * @param {import('@hapi/hapi').Request} request
  * @param {string} reason - one of {@link LOGIN_FAILURE_REASON}
  * @returns {Promise<void>}
@@ -48,21 +57,5 @@ export async function recordLoginFailure(request, reason) {
     await request.metrics().counter(LOGIN_METRIC.failed, 1, { reason })
   } catch (error) {
     request.logger?.warn?.(error, 'Failed to record LoginFailed metric')
-  }
-}
-
-/**
- * Record a failed best-effort backend session persist (login itself succeeded).
- * @param {import('@hapi/hapi').Request} request
- * @returns {Promise<void>}
- */
-export async function recordSessionPersistFailure(request) {
-  try {
-    await request.metrics().counter(SESSION_PERSIST_FAILED_METRIC)
-  } catch (error) {
-    request.logger?.warn?.(
-      error,
-      'Failed to record BackendSessionPersistFailed metric'
-    )
   }
 }
