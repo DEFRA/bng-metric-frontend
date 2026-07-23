@@ -7,10 +7,12 @@ import {
   LOGIN_FAILURE_REASON
 } from './auth-metrics.js'
 
+// The @defra/cdp-metrics plugin decorates `request.metrics` with the Metrics
+// instance itself, so it is an object with a `counter` method — not a function.
 function buildRequest() {
   const counter = vi.fn()
   const request = {
-    metrics: vi.fn(() => ({ counter })),
+    metrics: { counter },
     logger: { warn: vi.fn() }
   }
   return { request, counter }
@@ -27,8 +29,8 @@ describe('#auth-metrics', () => {
     })
 
     test('swallows errors so login is never broken', async () => {
-      const { request } = buildRequest()
-      request.metrics.mockImplementation(() => {
+      const { request, counter } = buildRequest()
+      counter.mockImplementation(() => {
         throw new Error('metrics down')
       })
 
@@ -49,8 +51,8 @@ describe('#auth-metrics', () => {
     })
 
     test('swallows errors so login is never broken', async () => {
-      const { request } = buildRequest()
-      request.metrics.mockImplementation(() => {
+      const { request, counter } = buildRequest()
+      counter.mockImplementation(() => {
         throw new Error('metrics down')
       })
 

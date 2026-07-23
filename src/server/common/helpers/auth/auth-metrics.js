@@ -1,6 +1,8 @@
 /**
  * Custom CloudWatch (EMF) metrics for authentication, emitted via the
- * already-registered `@defra/cdp-metrics` Hapi plugin (`request.metrics()`).
+ * already-registered `@defra/cdp-metrics` Hapi plugin. The plugin decorates the
+ * request with the `Metrics` instance itself, so the call is
+ * `request.metrics.counter(...)` — NOT `request.metrics().counter(...)`.
  *
  * Two counters:
  *   - LoginSucceeded — token exchange succeeded AND the user holds an approved
@@ -40,7 +42,7 @@ export const LOGIN_FAILURE_REASON = {
  */
 export async function recordLoginSuccess(request) {
   try {
-    await request.metrics().counter(LOGIN_METRIC.succeeded)
+    await request.metrics.counter(LOGIN_METRIC.succeeded)
   } catch (error) {
     request.logger?.warn?.(error, 'Failed to record LoginSucceeded metric')
   }
@@ -54,7 +56,7 @@ export async function recordLoginSuccess(request) {
  */
 export async function recordLoginFailure(request, reason) {
   try {
-    await request.metrics().counter(LOGIN_METRIC.failed, 1, { reason })
+    await request.metrics.counter(LOGIN_METRIC.failed, 1, { reason })
   } catch (error) {
     request.logger?.warn?.(error, 'Failed to record LoginFailed metric')
   }
