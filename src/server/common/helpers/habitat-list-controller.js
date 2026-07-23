@@ -197,6 +197,9 @@ function buildPostInterventionSummary(project) {
   const habitatSizes = postIntervention?.habitatSizes
 
   return {
+    site: {
+      size: formatSummaryAreaSize(habitatSizes?.site?.totalSquareMetres)
+    },
     areaHabitats: {
       size: formatSummaryAreaSize(
         habitatSizes?.areaHabitats?.totalSquareMetres
