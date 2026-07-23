@@ -18,7 +18,7 @@ function buildRequest() {
 
 describe('#auth-metrics', () => {
   describe('recordLoginSuccess', () => {
-    test('emits a LoginSucceeded counter', async () => {
+    test('emits a LoginSucceeded counter with no dimensions', async () => {
       const { request, counter } = buildRequest()
 
       await recordLoginSuccess(request)
@@ -41,10 +41,10 @@ describe('#auth-metrics', () => {
     test('emits a LoginFailed counter with the reason dimension', async () => {
       const { request, counter } = buildRequest()
 
-      await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.rbac)
 
       expect(counter).toHaveBeenCalledWith(LOGIN_METRIC.failed, 1, {
-        reason: LOGIN_FAILURE_REASON.callback
+        reason: LOGIN_FAILURE_REASON.rbac
       })
     })
 
@@ -55,7 +55,7 @@ describe('#auth-metrics', () => {
       })
 
       await expect(
-        recordLoginFailure(request, LOGIN_FAILURE_REASON.initiation)
+        recordLoginFailure(request, LOGIN_FAILURE_REASON.tokenExchange)
       ).resolves.toBeUndefined()
       expect(request.logger.warn).toHaveBeenCalled()
     })

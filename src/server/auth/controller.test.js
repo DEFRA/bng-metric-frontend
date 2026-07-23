@@ -177,6 +177,10 @@ describe('#callbackController', () => {
       expect.objectContaining({ hasPendingState: false }),
       expect.stringContaining('no pending login state in session')
     )
+    expect(recordLoginFailure).toHaveBeenCalledWith(
+      request,
+      LOGIN_FAILURE_REASON.noSession
+    )
   })
 
   test('redirects to /auth/forbidden when the identity provider returns an error', async () => {
@@ -199,7 +203,7 @@ describe('#callbackController', () => {
     )
     expect(recordLoginFailure).toHaveBeenCalledWith(
       request,
-      LOGIN_FAILURE_REASON.callback
+      LOGIN_FAILURE_REASON.idpError
     )
     expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
@@ -211,7 +215,11 @@ describe('#callbackController', () => {
       state: 'state',
       nonce: 'nonce'
     })
-    const claims = { sub: 'user-1', email: 'u@example.com' }
+    const claims = {
+      sub: 'user-1',
+      email: 'u@example.com',
+      roles: ['rel-1:bng completer:3']
+    }
     authorizationCodeGrant.mockResolvedValue({
       id_token: 'id-token',
       refresh_token: 'refresh-token',
@@ -238,6 +246,34 @@ describe('#callbackController', () => {
     })
     expect(request.yar.clear).toHaveBeenCalledWith('oidc')
     expect(recordLoginSuccess).toHaveBeenCalledWith(request)
+    expect(recordLoginFailure).not.toHaveBeenCalled()
+    expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
+  })
+
+  test('records LoginFailed (RBAC) and still redirects to /manage-projects when the user lacks an approved role', async () => {
+    const request = buildRequest()
+    request.yar.set('oidc', {
+      codeVerifier: 'verifier',
+      state: 'state',
+      nonce: 'nonce'
+    })
+    // Authenticated, but the "bng completer" role is pending (status 1), not approved.
+    const claims = { sub: 'user-2', roles: ['rel-1:bng completer:1'] }
+    authorizationCodeGrant.mockResolvedValue({
+      id_token: 'id-token',
+      refresh_token: 'refresh-token',
+      claims: () => claims
+    })
+
+    const h = buildToolkit()
+
+    await callbackController.handler(request, h)
+
+    expect(recordLoginFailure).toHaveBeenCalledWith(
+      request,
+      LOGIN_FAILURE_REASON.rbac
+    )
+    expect(recordLoginSuccess).not.toHaveBeenCalled()
     expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
   })
 
@@ -278,7 +314,7 @@ describe('#callbackController', () => {
     expect(request.yar.clear).toHaveBeenCalledWith('oidc')
     expect(recordLoginFailure).toHaveBeenCalledWith(
       request,
-      LOGIN_FAILURE_REASON.callback
+      LOGIN_FAILURE_REASON.tokenExchange
     )
     expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
