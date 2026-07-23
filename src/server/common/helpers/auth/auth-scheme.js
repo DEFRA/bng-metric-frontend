@@ -4,7 +4,8 @@ import { refreshSession } from './refresh-session.js'
 import {
   SESSION_EXPIRED_PATH,
   expireSession,
-  isSessionExpired
+  isSessionExpired,
+  wasSessionEnded
 } from './session-expiry.js'
 
 const FORBIDDEN_PATH = '/auth/forbidden'
@@ -51,11 +52,21 @@ function sessionScheme() {
       )
 
       if (!user) {
+        // The session store is empty. That covers two very different users
+        // that look identical here: one whose expired session we already
+        // ended (a 'try'-mode page such as the home page clears it silently,
+        // leaving a `sessionEnded` breadcrumb), and one who never signed in.
+        // Send the former to the "Sign in again" page and leave the latter on
+        // the plain forbidden page. (BMD-829)
+        const ended = wasSessionEnded(request)
         return unauthenticated(
           request,
           h,
-          FORBIDDEN_PATH,
-          'No authenticated session',
+          ended ? SESSION_EXPIRED_PATH : FORBIDDEN_PATH,
+          // Distinct reason from the in-scheme expiry above, so CDP logs show
+          // the two-page flow clearly: a 'try'-mode page ends the session,
+          // then this fires on the next protected click. (BMD-829)
+          ended ? 'Session already ended' : 'No authenticated session',
           { hasSession: Boolean(session) }
         )
       }
@@ -67,6 +78,14 @@ function sessionScheme() {
       // The tokens have expired even though the yar session is still alive
       // (the session TTL is longer than the token lifetime). Renew silently;
       // only when the IdP refuses is the session really over. (BMD-829)
+      request.logger.info(
+        {
+          sub: user.sub,
+          path: request.path,
+          mode: request.route?.settings?.auth?.mode ?? 'required'
+        },
+        'Auth: session token expired, attempting silent refresh'
+      )
       const newIdToken = await refreshSession(request)
       if (newIdToken) {
         const refreshedUser = request.yar.get('auth')?.user ?? user

@@ -34,6 +34,17 @@ describe('refreshSession', () => {
     expect(refreshTokenGrant).not.toHaveBeenCalled()
   })
 
+  test('warns distinctly when there is no refresh token to spend', async () => {
+    const request = makeRequest({ idToken: 'old', user: { sub: 'u1' } })
+
+    await refreshSession(request)
+
+    expect(request.logger.warn).toHaveBeenCalledWith(
+      { sub: 'u1', hasSession: true },
+      expect.stringContaining('no refresh token stored')
+    )
+  })
+
   test('refreshes tokens, re-stores them in yar and returns the new id_token', async () => {
     const request = makeRequest({
       idToken: 'old-id',
@@ -107,5 +118,29 @@ describe('refreshSession', () => {
     vi.mocked(refreshTokenGrant).mockRejectedValue(new Error('invalid_grant'))
 
     expect(await refreshSession(request)).toBeNull()
+  })
+
+  test('logs PII-safe OAuth error detail when the grant is rejected', async () => {
+    const request = makeRequest({
+      idToken: 'old-id',
+      refreshToken: 'refresh-1',
+      user: { sub: 'u1' }
+    })
+    const error = Object.assign(new Error('refresh failed'), {
+      code: 'OAUTH_RESPONSE_BODY_ERROR',
+      error: 'invalid_grant',
+      error_description: 'The refresh token has expired'
+    })
+    vi.mocked(refreshTokenGrant).mockRejectedValue(error)
+
+    await refreshSession(request)
+
+    expect(request.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sub: 'u1',
+        detail: expect.stringContaining('oauthError=invalid_grant')
+      }),
+      'OIDC: silent token refresh failed'
+    )
   })
 })

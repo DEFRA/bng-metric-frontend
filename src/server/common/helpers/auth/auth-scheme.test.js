@@ -190,6 +190,21 @@ describe('#authScheme', () => {
       expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
     })
 
+    test('redirects an emptied-but-recently-ended session to /auth/session-expired', async () => {
+      // A 'try'-mode page (e.g. the home page) already ended an expired session
+      // and left the sessionEnded breadcrumb; the next protected click has no
+      // user but must still be treated as an expired session, not a stranger.
+      setup()
+      const request = buildRequest(undefined)
+      request._store.sessionEnded = true
+      const h = buildToolkit()
+
+      const result = await authenticate(request, h)
+
+      expect(h.redirect).toHaveBeenCalledWith('/auth/session-expired')
+      expect(result).toBe('redirect-takeover-response')
+    })
+
     test('silently refreshes an expired session and authenticates with the refreshed claims', async () => {
       setup()
       const staleUser = { sub: 'user-1', exp: PAST_EXP }
