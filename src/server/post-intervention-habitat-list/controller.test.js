@@ -40,6 +40,7 @@ const mockProject = {
     },
     postIntervention: {
       habitatSizes: {
+        site: { totalSquareMetres: 20000 },
         areaHabitats: { totalSquareMetres: 25000 },
         hedgerows: { totalMetres: 1500 },
         watercourses: { totalMetres: 750 }
@@ -190,17 +191,17 @@ describe('#postInterventionHabitatListController - summary table', () => {
     expect(result).not.toContain('<th class="govuk-table__header">Units</th>')
   })
 
-  test('renders all three unit type rows in the summary table', async () => {
+  test('renders all four unit type rows in the summary table', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
 
+    expect(result).toContain('>Site<')
     expect(result).toContain('Area habitats')
     expect(result).toContain('Hedgerows')
     expect(result).toContain('Watercourses')
-    expect(result).not.toContain('>Site<')
   })
 
   test('renders persisted sizes, unit totals and net changes', async () => {
@@ -210,6 +211,7 @@ describe('#postInterventionHabitatListController - summary table', () => {
       auth: authedAuth
     })
 
+    expect(result).toContain('2.00ha')
     expect(result).toContain('2.50ha')
     expect(result).toContain('1.50km')
     expect(result).toContain('0.75km')
