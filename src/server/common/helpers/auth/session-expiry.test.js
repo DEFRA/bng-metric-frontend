@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from 'vitest'
 import {
   SESSION_ENDED_KEY,
   SESSION_EXPIRED_PATH,
+  clearSessionEnded,
   expireSession,
   isSessionExpired,
   wasSessionEnded
@@ -100,6 +101,18 @@ describe('wasSessionEnded', () => {
 
   test('is false when the request has no yar', () => {
     expect(wasSessionEnded({})).toBe(false)
+  })
+})
+
+describe('clearSessionEnded', () => {
+  test('clears the breadcrumb key', () => {
+    const request = { yar: { clear: vi.fn() } }
+    clearSessionEnded(request)
+    expect(request.yar.clear).toHaveBeenCalledWith(SESSION_ENDED_KEY)
+  })
+
+  test('tolerates a request without yar', () => {
+    expect(() => clearSessionEnded({})).not.toThrow()
   })
 })
 

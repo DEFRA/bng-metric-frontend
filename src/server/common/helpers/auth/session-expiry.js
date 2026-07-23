@@ -63,3 +63,15 @@ export function expireSession(request) {
 export function wasSessionEnded(request) {
   return Boolean(request.yar?.get(SESSION_ENDED_KEY))
 }
+
+/**
+ * Drop the `sessionEnded` breadcrumb. Called once a fresh session is
+ * established (a successful login) so a browser that previously had an expired
+ * session no longer counts as "session expired" — otherwise the stale
+ * breadcrumb would linger for the cookie's lifetime. (BMD-829)
+ *
+ * @param {import('@hapi/hapi').Request} request
+ */
+export function clearSessionEnded(request) {
+  request.yar?.clear(SESSION_ENDED_KEY)
+}
