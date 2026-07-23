@@ -141,6 +141,29 @@ Either way, a user whose session cannot be renewed ends up on `/auth/session-exp
 
 There is a subtlety when the two steps span two page loads. A `try`-mode page (e.g. the home page) ends an unrefreshable session in place via `expireSession()` **without redirecting** - so when the user later clicks through to a protected route, the session store is already empty and looks identical to a browser that never signed in. To keep such a user on the friendly `/auth/session-expired` page rather than the blunt `/auth/forbidden` ("Access denied"), `expireSession()` leaves a `sessionEnded` breadcrumb in the fresh session (`session-expiry.js`); the auth scheme's "no user" branch reads it via `wasSessionEnded()` to choose between the two pages. The breadcrumb carries no user or tokens, so the shared header still renders signed-out.
 
+#### Why a refresh fails (log categories)
+
+A failed refresh logs `OIDC: silent token refresh failed` (or `… no refresh token stored …`) with a `category` field and a short `likelyCause`, so CDP logs can be filtered without decoding raw OAuth codes (`classifyRefreshError` in `refresh-session.js`). The categories fall into two groups:
+
+**Genuinely over - the `/auth/session-expired` page is the correct outcome, nothing to fix:**
+
+| `category`               | What happened                                                                                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refresh-token-rejected` | `invalid_grant` - the refresh token expired, was revoked (password change, global sign-out), or was rotated and reused. Genuine **when the user was idle**. |
+
+**Should have worked - a config / environment / policy problem that signs users out when they shouldn't be:**
+
+| `category`                       | Points at                                                                                                                                                                                                                                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `refresh-token-rejected`         | Same `invalid_grant`, but firing reliably at the token-lifetime boundary (~20 min) means the **refresh-token lifetime is set too short / sliding window disabled** in the Defra ID policy, or a **rotation race** (we refresh both proactively in the auth scheme and reactively in `backendRequest`). |
+| `client-auth-failed`             | `invalid_client` / `unauthorized_client` - wrong or empty `OIDC_CLIENT_SECRET`, or confidential-vs-public client mismatch (we always send `client_secret_post`).                                                                                                                                       |
+| `scope-rejected`                 | `invalid_scope` - the refresh request's scope/resource doesn't match the original grant.                                                                                                                                                                                                               |
+| `idp-unreachable`                | Network failure (`ENOTFOUND`, `ECONNREFUSED`, TLS, proxy) - the CDP egress proxy / DNS / TLS path to Defra ID, not an OAuth error.                                                                                                                                                                     |
+| `no-refresh-token`               | The provider issued no refresh token at all - `offline_access` not effective, or a policy that withholds it.                                                                                                                                                                                           |
+| `oauth-error` / `refresh-failed` | Any other OAuth error / unclassified failure - read the `err` and `detail` fields.                                                                                                                                                                                                                     |
+
+`detail` always carries the raw evidence (`oauthError=`, `oauthErrorDescription=`, HTTP/cause codes, response body), PII-free.
+
 ### Role checking
 
 The pre-handler in `src/server/common/helpers/auth/verify-role.js` inspects the authenticated user's `roles` array. Defra ID tokens contain roles as colon-delimited strings in the format:
