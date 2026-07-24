@@ -1,9 +1,12 @@
 import { describe, expect, test, vi } from 'vitest'
 
 import {
+  SESSION_ENDED_KEY,
   SESSION_EXPIRED_PATH,
+  clearSessionEnded,
   expireSession,
-  isSessionExpired
+  isSessionExpired,
+  wasSessionEnded
 } from './session-expiry.js'
 
 const NOW_MS = 1_750_000_000_000
@@ -56,13 +59,60 @@ describe('isSessionExpired', () => {
 
 describe('expireSession', () => {
   test('resets the whole yar session so an old cookie cannot resurrect it', () => {
-    const request = { yar: { reset: vi.fn() } }
+    const request = { yar: { reset: vi.fn(), set: vi.fn() } }
     expireSession(request)
     expect(request.yar.reset).toHaveBeenCalledTimes(1)
   })
 
+  test('leaves a sessionEnded breadcrumb in the fresh session', () => {
+    const request = { yar: { reset: vi.fn(), set: vi.fn() } }
+    expireSession(request)
+    expect(request.yar.set).toHaveBeenCalledWith(SESSION_ENDED_KEY, true)
+  })
+
+  test('resets before dropping the breadcrumb so it lands in the fresh session', () => {
+    const calls = []
+    const request = {
+      yar: {
+        reset: vi.fn(() => calls.push('reset')),
+        set: vi.fn(() => calls.push('set'))
+      }
+    }
+    expireSession(request)
+    expect(calls).toEqual(['reset', 'set'])
+  })
+
   test('tolerates a request without yar', () => {
     expect(() => expireSession({})).not.toThrow()
+  })
+})
+
+describe('wasSessionEnded', () => {
+  test('is true when the breadcrumb is present', () => {
+    const request = { yar: { get: vi.fn().mockReturnValue(true) } }
+    expect(wasSessionEnded(request)).toBe(true)
+    expect(request.yar.get).toHaveBeenCalledWith(SESSION_ENDED_KEY)
+  })
+
+  test('is false when the breadcrumb is absent', () => {
+    const request = { yar: { get: vi.fn().mockReturnValue(undefined) } }
+    expect(wasSessionEnded(request)).toBe(false)
+  })
+
+  test('is false when the request has no yar', () => {
+    expect(wasSessionEnded({})).toBe(false)
+  })
+})
+
+describe('clearSessionEnded', () => {
+  test('clears the breadcrumb key', () => {
+    const request = { yar: { clear: vi.fn() } }
+    clearSessionEnded(request)
+    expect(request.yar.clear).toHaveBeenCalledWith(SESSION_ENDED_KEY)
+  })
+
+  test('tolerates a request without yar', () => {
+    expect(() => clearSessionEnded({})).not.toThrow()
   })
 })
 
