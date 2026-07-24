@@ -7,6 +7,7 @@
 // must normalise before comparing or displaying.
 
 export const RETENTION_RETAINED = 'Retained'
+export const RETENTION_ENHANCED = 'Enhanced'
 
 // Only reached for features with no retention category at all (e.g. a baseline
 // has not been uploaded yet), which the view-only pages treat as retained.

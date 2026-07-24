@@ -7,10 +7,11 @@ import {
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
+import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
-import { normaliseRetentionCategory } from './retention.js'
+import { normaliseRetentionCategory, RETENTION_ENHANCED } from './retention.js'
 
 const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
 
@@ -19,14 +20,16 @@ const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const WATERCOURSE_TYPE = 'watercourse'
 
+const ENHANCED_AREA_PAGE = {
+  template: 'habitat-details/pi-habitat-details-enhanced',
+  buildViewModel: buildEnhancedAreaViewOnlyViewModel
+}
+
 // The read-only details page for each feature type. Each keeps its own
-// template — they share their chrome via layouts/pi-view-only-page.njk and
-// differ only in the rows they show. Every post-intervention feature renders
-// read-only regardless of its retention category: intervention type is not
-// captured on import yet (BMD-534), and the intervention-specific details
-// pages arrive with BMD-845. A Map (not a plain object) so a feature type
-// that collides with an Object prototype key cannot resolve to an inherited
-// property.
+// template — they share chrome via layouts/pi-view-only-page.njk (or the
+// sections layout for Enhanced area) and differ in the rows they show.
+// Enhanced area habitats use a two-section layout (BMD-845); other retention
+// categories keep the single-list page until their Enhanced variants land.
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
@@ -76,6 +79,17 @@ function resolveBaselineFeatureId(project, ref) {
   }
 }
 
+/**
+ * @param {string} type
+ * @param {string|null} retentionCategory
+ */
+function resolveViewOnlyPage(type, retentionCategory) {
+  if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_ENHANCED) {
+    return ENHANCED_AREA_PAGE
+  }
+  return VIEW_ONLY_PAGES.get(type)
+}
+
 function renderUnsupportedFeature(h, { projectId, projectName }) {
   return h.view('habitat-details/pi-feature-unsupported', {
     pageTitle: PI_DETAILS_HEADING,
@@ -103,15 +117,16 @@ const getController = {
     ])
     const projectName = project?.project?.name ?? 'Project'
 
-    const page = VIEW_ONLY_PAGES.get(type)
+    // Normalise the feature-root retention category so a "1. Enhanced" list
+    // prefix or a missing value resolves consistently for every view-only page.
+    const retentionCategory = normaliseRetentionCategory(
+      feature.retentionCategory
+    )
+    const page = resolveViewOnlyPage(type, retentionCategory)
     if (page) {
-      // Normalise the feature-root retention category so a "1. Created" list
-      // prefix or a missing value resolves consistently for every view-only
-      // page (area/hedgerow read the top-level field; watercourse uses the
-      // same via buildViewOnlyViewModel).
       const featureWithIntervention = {
         ...feature,
-        retentionCategory: normaliseRetentionCategory(feature.retentionCategory)
+        retentionCategory
       }
       return h.view(
         page.template,
@@ -121,10 +136,10 @@ const getController = {
           baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
         })
       )
+    } else {
+      // Trees, IGGIs and any new feature type without a view-only page.
+      return renderUnsupportedFeature(h, { projectId, projectName })
     }
-
-    // Trees, IGGIs and any new feature type without a view-only page.
-    return renderUnsupportedFeature(h, { projectId, projectName })
   }
 }
 
