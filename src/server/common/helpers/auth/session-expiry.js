@@ -8,7 +8,7 @@ export const SESSION_EXPIRED_PATH = '/auth/session-expired'
 
 // yar key holding a breadcrumb left behind when we end an expired session, so a
 // later request can tell an expired-then-cleared session apart from a browser
-// that never signed in. (BMD-829)
+// that never signed in.
 export const SESSION_ENDED_KEY = 'sessionEnded'
 
 /**
@@ -44,7 +44,7 @@ export function isSessionExpired(session, nowMs = Date.now()) {
  * browser that never signed in. The breadcrumb lets the auth scheme send an
  * expired user to /auth/session-expired ("Sign in again") while leaving a
  * genuinely-anonymous user on /auth/forbidden. It carries no user or tokens,
- * so the shared header still renders signed-out. (BMD-829)
+ * so the shared header still renders signed-out.
  *
  * @param {import('@hapi/hapi').Request} request
  */
@@ -68,7 +68,7 @@ export function wasSessionEnded(request) {
  * Drop the `sessionEnded` breadcrumb. Called once a fresh session is
  * established (a successful login) so a browser that previously had an expired
  * session no longer counts as "session expired" — otherwise the stale
- * breadcrumb would linger for the cookie's lifetime. (BMD-829)
+ * breadcrumb would linger for the cookie's lifetime.
  *
  * @param {import('@hapi/hapi').Request} request
  */

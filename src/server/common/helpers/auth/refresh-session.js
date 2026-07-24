@@ -8,7 +8,7 @@ import { getOidcConfig } from './oidc-client.js'
  * expired or been revoked; anything else usually points at config or the IdP
  * being unreachable) plus any HTTP/cause code. Deliberately omits token
  * contents and claims. Used only for logging so CDP logs can explain *why* a
- * silent refresh failed. (BMD-829)
+ * silent refresh failed.
  *
  * @param {unknown} error
  * @returns {string} space-separated `key=value` diagnostics, or '' if none
@@ -40,7 +40,7 @@ function describeRefreshError(error) {
 // discrete fields so CDP can filter/aggregate (mirrors the backend's
 // classifyVerifyError convention) and a reader sees the likely cause without
 // decoding raw OAuth codes. See docs/authentication.md for the full
-// "genuinely over" vs "misconfigured" breakdown behind each one. (BMD-829)
+// "genuinely over" vs "misconfigured" breakdown behind each one.
 export const REFRESH_ERROR = {
   noRefreshToken: {
     category: 'no-refresh-token',
@@ -142,7 +142,7 @@ export async function refreshSession(request) {
     // provider never issued one (missing `offline_access` scope, or a policy
     // that withholds it), so an expired session can never be renewed and the
     // user is dropped to sign-in. Logged distinctly from a rejected grant so
-    // CDP logs make the difference obvious. (BMD-829)
+    // CDP logs make the difference obvious.
     request.logger?.warn(
       {
         sub: auth?.user?.sub,

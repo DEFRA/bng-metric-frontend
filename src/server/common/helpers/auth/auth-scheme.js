@@ -57,7 +57,7 @@ function sessionScheme() {
         // ended (a 'try'-mode page such as the home page clears it silently,
         // leaving a `sessionEnded` breadcrumb), and one who never signed in.
         // Send the former to the "Sign in again" page and leave the latter on
-        // the plain forbidden page. (BMD-829)
+        // the plain forbidden page.
         const ended = wasSessionEnded(request)
         return unauthenticated(
           request,
@@ -65,7 +65,7 @@ function sessionScheme() {
           ended ? SESSION_EXPIRED_PATH : FORBIDDEN_PATH,
           // Distinct reason from the in-scheme expiry above, so CDP logs show
           // the two-page flow clearly: a 'try'-mode page ends the session,
-          // then this fires on the next protected click. (BMD-829)
+          // then this fires on the next protected click.
           ended ? 'Session already ended' : 'No authenticated session',
           { hasSession: Boolean(session) }
         )
@@ -77,7 +77,7 @@ function sessionScheme() {
 
       // The tokens have expired even though the yar session is still alive
       // (the session TTL is longer than the token lifetime). Renew silently;
-      // only when the IdP refuses is the session really over. (BMD-829)
+      // only when the IdP refuses is the session really over.
       request.logger.info(
         {
           sub: user.sub,
