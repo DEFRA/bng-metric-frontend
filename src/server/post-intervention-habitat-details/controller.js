@@ -1,5 +1,7 @@
+import Boom from '@hapi/boom'
+import Joi from 'joi'
+
 import {
-  createHabitatDetailsControllers,
   fetchFeature,
   fetchProject
 } from '../common/helpers/habitat-details-controller.js'
@@ -8,24 +10,23 @@ import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
-import { isRetainedFeature } from './retention.js'
+import { normaliseRetentionCategory } from './retention.js'
 
 const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
-const shared = createHabitatDetailsControllers(uploadType)
 
 // Feature-type discriminators returned by the PI feature endpoint.
 const AREA_HABITAT_TYPE = 'habitat'
-const TREE_TYPE = 'tree'
 const HEDGEROW_TYPE = 'hedgerow'
 const WATERCOURSE_TYPE = 'watercourse'
 
-// The feature types that have a read-only details page. Each keeps its own
+// The read-only details page for each feature type. Each keeps its own
 // template — they share their chrome via layouts/pi-view-only-page.njk and
-// differ only in the rows they show. Retention is checked separately: only
-// *retained* features are read-only, so a Created, Enhanced or Lost feature of
-// one of these types still gets its editable form. A Map (not a plain object)
-// so a feature type that collides with an Object prototype key cannot resolve
-// to an inherited property.
+// differ only in the rows they show. Every post-intervention feature renders
+// read-only regardless of its retention category: intervention type is not
+// captured on import yet (BMD-534), and the intervention-specific details
+// pages arrive with BMD-845. A Map (not a plain object) so a feature type
+// that collides with an Object prototype key cannot resolve to an inherited
+// property.
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
@@ -60,34 +61,24 @@ const UNSUPPORTED_MESSAGE =
  * been uploaded or no baseline feature shares the ref.
  */
 function resolveBaselineFeatureId(project, ref) {
-  if (!ref) {
+  if (ref) {
+    const baseline = project?.project?.baseline
+    const candidates = [
+      ...(baseline?.habitats ?? []),
+      ...(baseline?.trees ?? []),
+      ...(baseline?.hedgerows ?? []),
+      ...(baseline?.watercourses ?? [])
+    ]
+    const match = candidates.find((feature) => feature.ref === ref)
+    return match?.featureId ?? null
+  } else {
     return null
   }
-  const baseline = project?.project?.baseline
-  const candidates = [
-    ...(baseline?.habitats ?? []),
-    ...(baseline?.trees ?? []),
-    ...(baseline?.hedgerows ?? []),
-    ...(baseline?.watercourses ?? [])
-  ]
-  const match = candidates.find((feature) => feature.ref === ref)
-  return match?.featureId ?? null
-}
-
-/**
- * The view-only page for a feature, or null when the feature keeps its editable
- * page.
- */
-function resolveViewOnlyPage(type, feature) {
-  if (!isRetainedFeature(feature)) {
-    return null
-  }
-  return VIEW_ONLY_PAGES.get(type) ?? null
 }
 
 function renderUnsupportedFeature(h, { projectId, projectName }) {
   return h.view('habitat-details/pi-feature-unsupported', {
-    pageTitle: `Biodiversity Net Gain - ${PI_DETAILS_HEADING}`,
+    pageTitle: PI_DETAILS_HEADING,
     heading: PI_DETAILS_HEADING,
     caption: projectName,
     message: UNSUPPORTED_MESSAGE,
@@ -96,7 +87,14 @@ function renderUnsupportedFeature(h, { projectId, projectName }) {
 }
 
 const getController = {
-  options: shared.getController.options,
+  options: {
+    validate: {
+      query: Joi.object({
+        featureId: Joi.string().uuid().required(),
+        projectId: Joi.string().uuid().required()
+      })
+    }
+  },
   async handler(request, h) {
     const { featureId, projectId } = request.query
     const [{ type, feature }, project] = await Promise.all([
@@ -105,12 +103,19 @@ const getController = {
     ])
     const projectName = project?.project?.name ?? 'Project'
 
-    // Retained area, hedgerow and watercourse habitats: the read-only pages.
-    const page = resolveViewOnlyPage(type, feature)
+    const page = VIEW_ONLY_PAGES.get(type)
     if (page) {
+      // Normalise the feature-root retention category so a "1. Created" list
+      // prefix or a missing value resolves consistently for every view-only
+      // page (area/hedgerow read the top-level field; watercourse uses the
+      // same via buildViewOnlyViewModel).
+      const featureWithIntervention = {
+        ...feature,
+        retentionCategory: normaliseRetentionCategory(feature.retentionCategory)
+      }
       return h.view(
         page.template,
-        page.buildViewModel(feature, {
+        page.buildViewModel(featureWithIntervention, {
           projectId,
           projectName,
           baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
@@ -118,17 +123,20 @@ const getController = {
       )
     }
 
-    // Trees (and IGGIs, if ever reachable) are out of scope here.
-    if (type === TREE_TYPE) {
-      return renderUnsupportedFeature(h, { projectId, projectName })
-    }
-
-    // Everything else — Created, Enhanced and Lost features, plus any feature
-    // type with no view-only page — keeps the existing editable page.
-    return shared.getController.handler(request, h)
+    // Trees, IGGIs and any new feature type without a view-only page.
+    return renderUnsupportedFeature(h, { projectId, projectName })
   }
 }
 
-const { postController } = shared
+// Every PI details page is read-only, so nothing renders a form that posts
+// here any more. The route stays registered and answers 501 so a stale page
+// or client gets an explicit "not implemented" rather than a 404.
+const postController = {
+  handler() {
+    throw Boom.notImplemented(
+      'Saving post-intervention habitat details is not implemented'
+    )
+  }
+}
 
 export { getController, postController }

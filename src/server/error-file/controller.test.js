@@ -685,10 +685,11 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
     expect(view.pageTitle).toBe('There is a problem with your file')
   })
 
-  test('multiple validation errors leaves singleError null (checked against raw session errors, not the sliver-merged visible list)', async () => {
-    // AREA_PARCELS_OUTSIDE_REDLINE + SLIVERS_OUTSIDE_REDLINE collapse to one
-    // visible block in the multi-error view, but that's still two distinct
-    // errors from the backend — BMD-405 is scoped to exactly one.
+  test('AC10: AREA_PARCELS_OUTSIDE_REDLINE + its correlated SLIVERS_OUTSIDE_REDLINE resolves the personalised singleError', async () => {
+    // These two codes always co-fire for the same escaping geometry (reported
+    // from the per-parcel and union-of-parcels angle respectively), so BMD-405's
+    // "exactly one error" precondition must be judged against the de-duplicated
+    // visible list, not the raw backend code count, or this branch is dead code.
     const request = makeRequest({
       baselineValidationErrors: [
         {
@@ -704,8 +705,34 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
     await invalidFileController.handler(request, h)
 
     const view = h.view.mock.calls[0][1]
-    expect(view.singleError).toBeNull()
+    expect(view.singleError).toEqual(
+      expect.objectContaining({
+        variant: 'standard',
+        h1: 'This parcel P001 contains an error'
+      })
+    )
     expect(view.errorBlocks).toHaveLength(1)
+  })
+
+  test('genuinely multiple validation errors (no correlation) leaves singleError null', async () => {
+    const request = makeRequest({
+      baselineValidationErrors: [
+        {
+          code: 'AREA_PARCELS_OUTSIDE_REDLINE',
+          message: 'x',
+          details: { sample: [{ feature_ref: 'P001' }] }
+        },
+        { code: 'SLIVERS_OUTSIDE_REDLINE', message: 'y', details: {} },
+        { code: 'NO_REDLINE', message: 'z' }
+      ]
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toHaveLength(2)
   })
 
   test('single distinctiveness error resolves the distinctiveness variant and passes uploadHref through unaffected', async () => {

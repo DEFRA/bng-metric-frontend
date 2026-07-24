@@ -188,12 +188,14 @@ export const invalidFileController = {
       ? `/projects/${projectId}/${uploadType.uploadRoute}`
       : null
 
-    // BMD-405 is scoped to exactly one validation error — check the raw
-    // session errors (not visibleErrors, which already merges a correlated
-    // sliver error into AREA_PARCELS_OUTSIDE_REDLINE for the multi-error view).
+    // BMD-405 is scoped to exactly one validation error. AREA_PARCELS_OUTSIDE_REDLINE
+    // always co-fires with SLIVERS_OUTSIDE_REDLINE (same escape geometry, reported
+    // from both the per-parcel and union-of-parcels angle), so "exactly one" has to
+    // be judged against visibleErrors — the same de-duplicated list the multi-error
+    // view already renders — or AC10's personalised copy could never be reached.
     const singleError =
-      validationErrors.length === SINGLE_VALIDATION_ERROR
-        ? resolveSingleErrorCopy(validationErrors[0], uploadHref)
+      visibleErrors.length === SINGLE_VALIDATION_ERROR
+        ? resolveSingleErrorCopy(visibleErrors[0], uploadHref)
         : null
 
     return h.view('error-file/index', {

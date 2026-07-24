@@ -26,13 +26,15 @@ export const FIXED_STRATEGIC_SIGNIFICANCE = 'Low (1)'
  * @returns {string}
  */
 export function withMultiplier(value, score) {
-  if (!value) {
+  if (value) {
+    if (typeof score === 'number') {
+      return `${value} (${score})`
+    } else {
+      return value
+    }
+  } else {
     return ''
   }
-  if (typeof score === 'number') {
-    return `${value} (${score})`
-  }
-  return value
 }
 
 /**
@@ -47,14 +49,48 @@ export function withMultiplier(value, score) {
  * @returns {string|null}
  */
 export function baselineDetailsHref(baselineFeatureId, projectId) {
-  if (!baselineFeatureId) {
+  if (baselineFeatureId) {
+    const params = new URLSearchParams({
+      featureId: baselineFeatureId,
+      projectId
+    })
+    return `/baseline-habitat-details?${params.toString()}`
+  } else {
     return null
   }
-  const params = new URLSearchParams({
-    featureId: baselineFeatureId,
-    projectId
-  })
-  return `/baseline-habitat-details?${params.toString()}`
+}
+
+/**
+ * Fields shared by the area and hedgerow read-only post-intervention pages.
+ *
+ * @param {object} feature
+ * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null, listTabAnchor: string }} ctx
+ * @returns {object}
+ */
+export function buildSharedPiViewOnlyFields(
+  feature,
+  { projectId, projectName, baselineFeatureId, listTabAnchor }
+) {
+  const proposed = feature.proposed ?? {}
+  return {
+    pageTitle: PI_DETAILS_HEADING,
+    heading: PI_DETAILS_HEADING,
+    caption: projectName,
+    habitatRef: feature.ref ?? '',
+    interventionDisplay: interventionDisplay(feature.retentionCategory),
+    distinctivenessDisplay: withMultiplier(
+      proposed.distinctiveness,
+      proposed.distinctivenessScore
+    ),
+    conditionDisplay: withMultiplier(
+      stripConditionPrefix(proposed.condition),
+      proposed.conditionScore
+    ),
+    strategicSignificanceDisplay: FIXED_STRATEGIC_SIGNIFICANCE,
+    habitatUnitsDisplay: formatHabitatUnits(feature.units),
+    viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
+    backHref: `/projects/${projectId}/post-intervention-habitat-list${listTabAnchor}`
+  }
 }
 
 /**
@@ -88,11 +124,11 @@ export function buildViewOnlyViewModel(
   const retained = (key) => baseline[key] ?? proposed[key] ?? ''
 
   return {
-    pageTitle: `Biodiversity Net Gain - ${PI_DETAILS_HEADING}`,
+    pageTitle: PI_DETAILS_HEADING,
     heading: PI_DETAILS_HEADING,
     caption: projectName,
     habitatRef: feature.ref ?? '',
-    interventionDisplay: interventionDisplay(baseline.retentionCategory),
+    interventionDisplay: interventionDisplay(feature.retentionCategory),
     sizeDisplay: spec.formatSize(feature),
     habitatTypeDisplay: retained('type'),
     distinctivenessDisplay: withMultiplier(

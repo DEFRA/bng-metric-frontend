@@ -7,8 +7,11 @@ import {
   formatHabitatUnits,
   KM_UNIT
 } from './format-habitat-values.js'
+import { interventionDisplay } from '../../post-intervention-habitat-details/retention.js'
 
 const NO_DATA_DISPLAY = 'No data'
+const SQUARE_METRES_PER_HECTARE = 10000
+const METRES_PER_KILOMETRE = 1000
 
 /**
  * Resolve display fields for a baseline feature (reads top-level properties).
@@ -70,6 +73,12 @@ function buildFeatureRow(feature, projectId, uploadType, sizeCell) {
     : resolveBaselineDisplayFields(feature)
   return [
     buildRefLinkCell(feature, projectId, uploadType),
+    // Post-intervention habitats carry a persisted intervention type (Created,
+    // Retained or Enhanced) shown between "Ref" and "Habitat type"; baseline
+    // habitats have no such column.
+    ...(uploadType.isPostIntervention
+      ? [{ text: interventionDisplay(feature.retentionCategory) }]
+      : []),
     { text: display.type ?? '' },
     sizeCell,
     { text: display.distinctiveness ?? '' },
@@ -155,13 +164,94 @@ function buildTotalUnits(habitatsData) {
   }
 }
 
+function areaUnitsTotal(units) {
+  if (units?.habitatsTotal == null && units?.treesTotal == null) {
+    return null
+  }
+  return (units?.habitatsTotal ?? 0) + (units?.treesTotal ?? 0)
+}
+
+function formatPercentage(value) {
+  const formatted = formatHabitatUnits(value)
+  return formatted ? `${formatted}%` : ''
+}
+
+function formatSummaryAreaSize(squareMetres) {
+  if (typeof squareMetres !== 'number' || !Number.isFinite(squareMetres)) {
+    return ''
+  }
+  return `${(squareMetres / SQUARE_METRES_PER_HECTARE).toFixed(2)}ha`
+}
+
+function formatSummaryLengthSize(metres) {
+  if (typeof metres !== 'number' || !Number.isFinite(metres) || metres === 0) {
+    return NO_DATA_DISPLAY
+  }
+  return `${(metres / METRES_PER_KILOMETRE).toFixed(2)}km`
+}
+
+function buildPostInterventionSummary(project) {
+  const baselineUnits = project?.baseline?.units
+  const postIntervention = project?.postIntervention
+  const postInterventionUnits = postIntervention?.units
+  const habitatSizes = postIntervention?.habitatSizes
+
+  return {
+    site: {
+      size: formatSummaryAreaSize(habitatSizes?.site?.totalSquareMetres)
+    },
+    areaHabitats: {
+      size: formatSummaryAreaSize(
+        habitatSizes?.areaHabitats?.totalSquareMetres
+      ),
+      baselineUnits: formatHabitatUnits(areaUnitsTotal(baselineUnits)),
+      postInterventionUnits: formatHabitatUnits(
+        areaUnitsTotal(postInterventionUnits)
+      ),
+      netUnitChange: formatHabitatUnits(
+        postInterventionUnits?.habitatsNetUnitChange
+      ),
+      netPercentageChange: formatPercentage(
+        postInterventionUnits?.habitatsNetUnitChangePercentage
+      )
+    },
+    hedgerows: {
+      size: formatSummaryLengthSize(habitatSizes?.hedgerows?.totalMetres),
+      baselineUnits: formatHabitatUnits(baselineUnits?.hedgerowsTotal),
+      postInterventionUnits: formatHabitatUnits(
+        postInterventionUnits?.hedgerowsTotal
+      ),
+      netUnitChange: formatHabitatUnits(
+        postInterventionUnits?.hedgerowsNetUnitChange
+      ),
+      netPercentageChange: formatPercentage(
+        postInterventionUnits?.hedgerowsNetUnitChangePercentage
+      )
+    },
+    watercourses: {
+      size: formatSummaryLengthSize(habitatSizes?.watercourses?.totalMetres),
+      baselineUnits: formatHabitatUnits(baselineUnits?.watercoursesTotal),
+      postInterventionUnits: formatHabitatUnits(
+        postInterventionUnits?.watercoursesTotal
+      ),
+      netUnitChange: formatHabitatUnits(
+        postInterventionUnits?.watercoursesNetUnitChange
+      ),
+      netPercentageChange: formatPercentage(
+        postInterventionUnits?.watercoursesNetUnitChangePercentage
+      )
+    }
+  }
+}
+
 function createHabitatListController(uploadType) {
   return {
     async handler(request, h) {
       const { id } = request.params
       const project = await fetchProject(request, id)
-      const projectName = project?.payload?.project?.name ?? 'Project'
-      const habitatsData = project?.payload?.project?.[uploadType.projectKey]
+      const projectData = project?.payload?.project
+      const projectName = projectData?.name ?? 'Project'
+      const habitatsData = projectData?.[uploadType.projectKey]
 
       // Trees are listed as their own rows in the Areas tab, treated the same as
       // any other area habitat (one row per tree).
@@ -179,6 +269,9 @@ function createHabitatListController(uploadType) {
         isPostIntervention: uploadType.isPostIntervention,
         totalSizes: buildTotalSizes(habitatsData?.habitatSizes),
         totalUnits: buildTotalUnits(habitatsData),
+        postInterventionSummary: uploadType.isPostIntervention
+          ? buildPostInterventionSummary(projectData)
+          : null,
         habitatRows: mapRowsOrNull(
           areaFeatures,
           id,

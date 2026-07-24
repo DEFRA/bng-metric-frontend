@@ -1,16 +1,6 @@
 import { formatAreaHectares } from '../common/helpers/format-habitat-values.js'
 import { AREAS_TAB_ANCHOR } from './constants.js'
-import { buildViewOnlyViewModel } from './view-only-shared.js'
-
-// What sets the area page apart: hectares rather than a length, and a broad
-// habitat above the habitat type.
-const areaSpec = {
-  tabAnchor: AREAS_TAB_ANCHOR,
-  formatSize: (feature) => formatAreaHectares(feature.sizeSquareMetres),
-  extraFields: ({ retained }) => ({
-    broadHabitatDisplay: retained('broadType')
-  })
-}
+import { buildSharedPiViewOnlyFields } from './view-only-shared.js'
 
 /**
  * Build the read-only view model for a retained post-intervention area habitat.
@@ -21,6 +11,20 @@ const areaSpec = {
  * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx
  * @returns {object}
  */
-export function buildAreaViewOnlyViewModel(feature, ctx) {
-  return buildViewOnlyViewModel(feature, ctx, areaSpec)
+export function buildAreaViewOnlyViewModel(
+  feature,
+  { projectId, projectName, baselineFeatureId }
+) {
+  const proposed = feature.proposed ?? {}
+  return {
+    ...buildSharedPiViewOnlyFields(feature, {
+      projectId,
+      projectName,
+      baselineFeatureId,
+      listTabAnchor: AREAS_TAB_ANCHOR
+    }),
+    sizeDisplay: formatAreaHectares(feature.sizeSquareMetres),
+    broadHabitatDisplay: proposed.broadType ?? '',
+    habitatTypeDisplay: proposed.type ?? ''
+  }
 }

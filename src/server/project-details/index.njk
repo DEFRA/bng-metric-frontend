@@ -1,6 +1,11 @@
 {% extends 'layouts/page.njk' %}
 
 {% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
 
 {% block beforeContent %}
   {{ super() }}
@@ -17,6 +22,87 @@
         <span class="govuk-caption-l">{{ projectName }}</span>
       {% endif %}
       <h1 class="govuk-heading-xl">Project details</h1>
+
+      {% if errors | length %}
+        {{ govukErrorSummary({
+          titleText: "There is a problem",
+          errorList: errors
+        }) }}
+      {% endif %}
+
+      {% call appForm({ action: "/project-details/" + projectId }) %}
+        {{ govukInput({
+          id: "localPlanningAuthority",
+          name: "localPlanningAuthority",
+          label: { text: "Local Planning Authority" },
+          value: details.localPlanningAuthority,
+          errorMessage: { text: fieldErrors.localPlanningAuthority } if fieldErrors.localPlanningAuthority else undefined
+        }) }}
+
+        {{ govukInput({
+          id: "surveyCompleters",
+          name: "surveyCompleters",
+          label: { text: "Survey completer(s)" },
+          value: details.surveyCompleters,
+          errorMessage: { text: fieldErrors.surveyCompleters } if fieldErrors.surveyCompleters else undefined
+        }) }}
+
+        {{ govukDateInput({
+          id: "surveyCompletionDate",
+          namePrefix: "surveyCompletionDate",
+          fieldset: {
+            legend: { text: "Survey completion date" }
+          },
+          hint: { text: "For example, 27 3 2026" },
+          errorMessage: { text: fieldErrors.surveyCompletionDate } if fieldErrors.surveyCompletionDate else undefined,
+          items: [
+            {
+              name: "day",
+              classes: "govuk-input--width-2" + (" govuk-input--error" if "day" in surveyCompletionDateErrorParts else ""),
+              value: surveyCompletionDate.day
+            },
+            {
+              name: "month",
+              classes: "govuk-input--width-2" + (" govuk-input--error" if "month" in surveyCompletionDateErrorParts else ""),
+              value: surveyCompletionDate.month
+            },
+            {
+              name: "year",
+              classes: "govuk-input--width-4" + (" govuk-input--error" if "year" in surveyCompletionDateErrorParts else ""),
+              value: surveyCompletionDate.year
+            }
+          ]
+        }) }}
+
+        {{ govukRadios({
+          idPrefix: "developmentType",
+          name: "developmentType",
+          fieldset: { legend: { text: "Development type" } },
+          items: developmentTypeItems,
+          errorMessage: { text: fieldErrors.developmentType } if fieldErrors.developmentType else undefined
+        }) }}
+
+        {{ govukRadios({
+          idPrefix: "nsips",
+          name: "nsips",
+          fieldset: { legend: { text: "NSIPs" } },
+          hint: { text: "National Significant Infrastructure Project" },
+          items: nsipsItems,
+          errorMessage: { text: fieldErrors.nsips } if fieldErrors.nsips else undefined
+        }) }}
+
+        {{ govukInput({
+          id: "applicant",
+          name: "applicant",
+          label: { text: "Applicant" },
+          value: details.applicant,
+          errorMessage: { text: fieldErrors.applicant } if fieldErrors.applicant else undefined
+        }) }}
+
+        {{ govukButton({
+          text: "Save and continue"
+        }) }}
+      {% endcall %}
     </div>
   </div>
 {% endblock %}

@@ -156,7 +156,7 @@ function createGetController(uploadType) {
       })
 
       return h.view('habitat-details/habitat-details', {
-        pageTitle: `Biodiversity Net Gain - ${viewModel.headingPrefix} ${viewModel.habitatRef}`,
+        pageTitle: `${viewModel.headingPrefix} ${viewModel.habitatRef}`,
         heading: `${viewModel.headingPrefix} ${viewModel.habitatRef}`,
         caption: projectName,
         ...viewModel,

@@ -11,15 +11,9 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 }))
 
 const { getController, postController } = await import('./controller.js')
-const { _resetReferenceCache: resetWatercourseReference } =
-  await import('../baseline-habitat-details/strategies/watercourse.js')
-const { _resetReferenceCache: resetAreaReference } =
-  await import('../baseline-habitat-details/strategies/area.js')
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const featureId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-
-const EDITABLE_TEMPLATE = 'habitat-details/habitat-details'
 
 const createMockH = () => ({
   view: vi.fn().mockReturnThis(),
@@ -44,55 +38,13 @@ function isProjectUrl(url) {
   )
 }
 
-// Reference data for the editable page, which a non-retained feature falls
-// through to.
-function referencePayload(url) {
-  if (url.endsWith('/reference/watercourse-types')) {
-    return {
-      payload: [
-        { name: 'Ditches', distinctiveness: 'Medium', distinctivenessScore: 4 }
-      ]
-    }
-  }
-  if (url.endsWith('/reference/watercourse-encroachments')) {
-    return {
-      payload: { watercourse: ['Minor', 'Major'], riparian: ['Minor/Minor'] }
-    }
-  }
-  if (url.endsWith('/reference/habitat-types-by-broad')) {
-    return {
-      payload: {
-        Grassland: [
-          {
-            name: 'Modified grassland',
-            distinctiveness: 'Low',
-            distinctivenessScore: 2
-          }
-        ]
-      }
-    }
-  }
-  if (url.includes('/reference/conditions')) {
-    return { payload: [{ condition: 'Moderate', score: 2 }] }
-  }
-  if (url.includes('/reference/trading-rules')) {
-    return { payload: { Medium: 'Same habitat required =' } }
-  }
-  return null
-}
-
 /**
- * Mock the PI feature endpoint, the project endpoint, and (for a feature that
- * falls through to the editable page) the reference endpoints.
+ * Mock the PI feature endpoint and the project endpoint.
  */
 function mockFeature(featurePayload) {
   vi.mocked(wreck.get).mockImplementation((url) => {
     if (url.includes(`/post-intervention/features/${featureId}`)) {
       return Promise.resolve({ payload: featurePayload })
-    }
-    const reference = referencePayload(url)
-    if (reference) {
-      return Promise.resolve(reference)
     }
     if (isProjectUrl(url)) {
       return Promise.resolve(projectPayload)
@@ -102,11 +54,6 @@ function mockFeature(featurePayload) {
 }
 
 describe('#postInterventionHabitatDetailsController', () => {
-  beforeEach(() => {
-    resetWatercourseReference()
-    resetAreaReference()
-  })
-
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -122,7 +69,7 @@ describe('#postInterventionHabitatDetailsController', () => {
               ref: 'P-1',
               sizeSquareMetres: 25000,
               units: 2.5,
-              baseline: { retentionCategory: 'Retained' },
+              retentionCategory: 'Retained',
               proposed: {
                 broadType: 'Grassland',
                 type: 'Modified grassland',
@@ -287,7 +234,7 @@ describe('#postInterventionHabitatDetailsController', () => {
               ref: 'HG-2',
               sizeMetres: 336,
               units: 4.25,
-              baseline: { retentionCategory: 'Retained' },
+              retentionCategory: 'Retained',
               proposed: {
                 type: 'Native hedgerow',
                 condition: 'Moderate',
@@ -350,7 +297,7 @@ describe('#postInterventionHabitatDetailsController', () => {
               ref: 'W-1',
               sizeMetres: 1234.56,
               units: 6.5,
-              baseline: { retentionCategory: 'Retained' },
+              retentionCategory: 'Retained',
               proposed: {
                 type: 'Ditches',
                 condition: 'Moderate',
@@ -398,28 +345,20 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
-  test('GET delegates an unrecognised feature type to the shared editable page', async () => {
-    // Every type the backend currently returns (habitat, tree, hedgerow,
-    // watercourse) is handled above, so this guards the fallback against a new
-    // feature type appearing without a view-only page.
-    vi.mocked(wreck.get).mockImplementation((url) => {
-      if (url.includes(`/post-intervention/features/${featureId}`)) {
-        return Promise.resolve({
-          payload: { type: 'iggi', feature: { featureId, ref: 'I-1' } }
-        })
-      }
-      if (isProjectUrl(url)) {
-        return Promise.resolve(projectPayload)
-      }
-      throw new Error(`Unexpected URL ${url}`)
-    })
+  test('GET shows the unsupported-feature message for an unrecognised feature type', async () => {
+    // Guards the fallback against a new feature type appearing without a
+    // view-only page: it must never reach an editable form.
+    mockFeature({ type: 'iggi', feature: { featureId, ref: 'I-1' } })
 
     const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
 
-    await expect(
-      getController.handler({ query: { projectId, featureId } }, h)
-    ).rejects.toThrow(/Unsupported feature type/)
-    expect(h.view).not.toHaveBeenCalled()
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-feature-unsupported',
+      expect.objectContaining({
+        message: expect.stringContaining('not yet supported')
+      })
+    )
   })
 
   test('GET renders the read-only page when the retention category carries a list prefix', async () => {
@@ -431,7 +370,7 @@ describe('#postInterventionHabitatDetailsController', () => {
       feature: {
         featureId,
         ref: 'W-2',
-        baseline: { retentionCategory: '1. Retained' },
+        retentionCategory: '1. Retained',
         proposed: {}
       }
     })
@@ -446,17 +385,19 @@ describe('#postInterventionHabitatDetailsController', () => {
   })
 
   test.each([['Created'], ['Enhanced'], ['Lost']])(
-    'GET keeps the editable page for a %s watercourse',
+    'GET renders the read-only page for a %s watercourse',
     async (retentionCategory) => {
-      // Only retained features are view-only; the rest still need their form.
+      // Every PI feature is read-only regardless of retention category:
+      // intervention type is not captured on import yet (BMD-534), and the
+      // intervention-specific pages arrive with BMD-845.
       mockFeature({
         type: 'watercourse',
         feature: {
           featureId,
           ref: 'W-3',
           sizeMetres: 500,
+          retentionCategory,
           baseline: {
-            retentionCategory,
             type: 'Ditches',
             condition: 'Moderate'
           },
@@ -468,19 +409,21 @@ describe('#postInterventionHabitatDetailsController', () => {
       await getController.handler({ query: { projectId, featureId } }, h)
 
       const [template, viewModel] = h.view.mock.calls[0]
-      expect(template).toBe(EDITABLE_TEMPLATE)
-      // The editable page posts back; the view-only pages have no form.
-      expect(viewModel.formAction).toBe('/post-intervention-habitat-details')
+      expect(template).toBe('habitat-details/pi-watercourse-details')
+      // The Intervention row shows the feature's actual category.
+      expect(viewModel.interventionDisplay).toBe(retentionCategory)
+      // View-only: no form action is passed to the template.
+      expect(viewModel).not.toHaveProperty('formAction')
     }
   )
 
-  test('GET keeps the editable page for a created area habitat', async () => {
+  test('GET renders the read-only page for a created area habitat', async () => {
     mockFeature({
       type: 'habitat',
       feature: {
         featureId,
         ref: 'P-4',
-        baseline: { retentionCategory: 'Created' },
+        retentionCategory: 'Created',
         proposed: { broadType: 'Grassland', type: 'Modified grassland' }
       }
     })
@@ -488,34 +431,22 @@ describe('#postInterventionHabitatDetailsController', () => {
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
 
-    expect(h.view.mock.calls[0][0]).toBe(EDITABLE_TEMPLATE)
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details',
+      expect.objectContaining({ interventionDisplay: 'Created' })
+    )
   })
 
-  test('POST saves to the post-intervention habitat endpoint', async () => {
-    vi.mocked(wreck.put).mockResolvedValue({ res: { statusCode: 200 } })
-    const h = createMockH()
-
-    await postController.handler(
-      {
-        payload: {
-          projectId,
-          featureId,
-          broadHabitat: 'Grassland',
-          habitatType: 'Modified grassland',
-          condition: 'Good'
-        }
-      },
-      h
-    )
-
-    expect(wreck.put).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `/projects/${projectId}/post-intervention/habitats/${featureId}`
-      ),
-      expect.any(Object)
-    )
-    expect(h.redirect).toHaveBeenCalledWith(
-      `/projects/${projectId}/post-intervention-habitat-list#habitat-${featureId}`
-    )
+  test('POST responds 501 Not Implemented', () => {
+    // The PI details pages are read-only and render no form; the save route
+    // answers 501 so a stale page or client gets an explicit refusal.
+    let error
+    try {
+      postController.handler()
+    } catch (err) {
+      error = err
+    }
+    expect(error.isBoom).toBe(true)
+    expect(error.output.statusCode).toBe(501)
   })
 })

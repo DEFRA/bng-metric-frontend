@@ -17,6 +17,7 @@ import {
 } from '../common/helpers/auth/auth-metrics.js'
 import { persistBackendSession } from '../common/helpers/auth/persist-session.js'
 import { clearSessionEnded } from '../common/helpers/auth/session-expiry.js'
+import { hasBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 import { statusCodes } from '../common/constants.js'
 
 const redirectUri = config.get('oidc.redirectUri')
@@ -174,12 +175,19 @@ async function exchangeCodeForSession(request, h, pending) {
       'OIDC callback: session established, redirecting to /manage-projects'
     )
 
-    await recordLoginSuccess(request)
+    // Record the login outcome once, here at the callback: an approved role
+    // means they can use the service (LoginSucceeded); otherwise the per-route
+    // role gate bounces them to /auth/forbidden (LoginFailed / RBAC denial).
+    if (hasBngCompleterRole(claims)) {
+      await recordLoginSuccess(request)
+    } else {
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.rbac)
+    }
     return h.redirect('/manage-projects')
   } catch (error) {
     logOidcError(request, error, 'OIDC callback failed')
     request.yar.clear('oidc')
-    await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
+    await recordLoginFailure(request, LOGIN_FAILURE_REASON.tokenExchange)
     return h.redirect(FORBIDDEN_PATH)
   }
 }
@@ -199,7 +207,7 @@ export const callbackController = {
         'OIDC callback: identity provider returned an error response'
       )
       request.yar.clear('oidc')
-      await recordLoginFailure(request, LOGIN_FAILURE_REASON.callback)
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.idpError)
       return h.redirect(FORBIDDEN_PATH)
     }
 
@@ -215,6 +223,7 @@ export const callbackController = {
         },
         'OIDC callback: no pending login state in session, redirecting to /auth/login (the session cookie may not be surviving the round-trip to the identity provider)'
       )
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.noSession)
       return h.redirect('/auth/login')
     }
 

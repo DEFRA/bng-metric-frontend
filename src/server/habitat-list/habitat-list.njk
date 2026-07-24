@@ -25,6 +25,7 @@
 
       {% if isPostIntervention %}
         {{ govukTable({
+          classes: "app-habitat-summary-table",
           head: [
             { text: "Unit type" },
             { text: "Size" },
@@ -35,10 +36,10 @@
             { text: "Trading rules satisfied" }
           ],
           rows: [
-            [{ text: "Site" }, { text: totalSizes.site }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
-            [{ text: "Area habitats" }, { text: totalSizes.areaHabitats }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
-            [{ text: "Hedgerows" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
-            [{ text: "Watercourses" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }]
+            [{ text: "Site" }, { text: postInterventionSummary.site.size }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
+            [{ text: "Area habitats" }, { text: postInterventionSummary.areaHabitats.size }, { text: postInterventionSummary.areaHabitats.baselineUnits }, { text: postInterventionSummary.areaHabitats.postInterventionUnits }, { text: postInterventionSummary.areaHabitats.netUnitChange }, { text: postInterventionSummary.areaHabitats.netPercentageChange }, { text: "" }],
+            [{ text: "Hedgerows" }, { text: postInterventionSummary.hedgerows.size }, { text: postInterventionSummary.hedgerows.baselineUnits }, { text: postInterventionSummary.hedgerows.postInterventionUnits }, { text: postInterventionSummary.hedgerows.netUnitChange }, { text: postInterventionSummary.hedgerows.netPercentageChange }, { text: "" }],
+            [{ text: "Watercourses" }, { text: postInterventionSummary.watercourses.size }, { text: postInterventionSummary.watercourses.baselineUnits }, { text: postInterventionSummary.watercourses.postInterventionUnits }, { text: postInterventionSummary.watercourses.netUnitChange }, { text: postInterventionSummary.watercourses.netPercentageChange }, { text: "" }]
           ]
         }) }}
       {% else %}
@@ -68,6 +69,7 @@
         <thead class="govuk-table__head">
           <tr class="govuk-table__row">
             <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+            {% if isPostIntervention %}<th class="govuk-table__header" scope="col" aria-sort="none">Intervention type</th>{% endif %}
             <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
             <th class="govuk-table__header" scope="col" aria-sort="none">Area</th>
             <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
@@ -86,6 +88,7 @@
         <tfoot class="govuk-table__foot">
           <tr class="govuk-table__row">
             <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+            {% if isPostIntervention %}<td class="govuk-table__cell"></td>{% endif %}
             <td class="govuk-table__cell"></td>
             <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.areaHabitats }}</td>
             <td class="govuk-table__cell"></td>
@@ -106,6 +109,7 @@
           <thead class="govuk-table__head">
             <tr class="govuk-table__row">
               <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+              {% if isPostIntervention %}<th class="govuk-table__header" scope="col" aria-sort="none">Intervention type</th>{% endif %}
               <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Length</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
@@ -124,6 +128,7 @@
           <tfoot class="govuk-table__foot">
             <tr class="govuk-table__row">
               <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+              {% if isPostIntervention %}<td class="govuk-table__cell"></td>{% endif %}
               <td class="govuk-table__cell"></td>
               <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.hedgerows }}</td>
               <td class="govuk-table__cell"></td>
@@ -147,6 +152,7 @@
           <thead class="govuk-table__head">
             <tr class="govuk-table__row">
               <th class="govuk-table__header" scope="col" aria-sort="ascending">Ref</th>
+              {% if isPostIntervention %}<th class="govuk-table__header" scope="col" aria-sort="none">Intervention type</th>{% endif %}
               <th class="govuk-table__header" scope="col" aria-sort="none">Habitat type</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Size</th>
               <th class="govuk-table__header" scope="col" aria-sort="none">Distinctiveness</th>
@@ -165,6 +171,7 @@
           <tfoot class="govuk-table__foot">
             <tr class="govuk-table__row">
               <td class="govuk-table__cell govuk-!-font-weight-bold">Total</td>
+              {% if isPostIntervention %}<td class="govuk-table__cell"></td>{% endif %}
               <td class="govuk-table__cell"></td>
               <td class="govuk-table__cell govuk-!-font-weight-bold">{{ totalSizes.watercourses }}</td>
               <td class="govuk-table__cell"></td>
