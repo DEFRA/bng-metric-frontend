@@ -276,6 +276,107 @@ describe('#authScheme', () => {
       expect(h.redirect).not.toHaveBeenCalled()
     })
 
+    test('renews the sliding session (touch) on a fresh authenticated request', async () => {
+      setup()
+      const user = { sub: 'user-1', exp: FUTURE_EXP }
+      const request = buildRequest({ user })
+      const h = buildToolkit()
+
+      await authenticate(request, h)
+
+      // touchSession re-sets the auth entry so yar resets the cache/cookie TTL.
+      expect(request.yar.set).toHaveBeenCalledWith('auth', { user })
+      expect(h.authenticated).toHaveBeenCalledWith({ credentials: user })
+    })
+
+    test('authenticates seamlessly when the refreshed session keeps the approved role', async () => {
+      setup()
+      const approvedUser = {
+        sub: 'user-1',
+        exp: PAST_EXP,
+        roles: ['rel-1:bng completer:3']
+      }
+      const request = buildRequest({ user: approvedUser })
+      const refreshedUser = {
+        sub: 'user-1',
+        exp: FUTURE_EXP,
+        roles: ['rel-1:bng completer:3']
+      }
+      vi.mocked(refreshSession).mockImplementation(async (req) => {
+        req._store.auth = { user: refreshedUser, idToken: 'new-id' }
+        return 'new-id'
+      })
+      const h = buildToolkit()
+
+      await authenticate(request, h)
+
+      expect(h.authenticated).toHaveBeenCalledWith({
+        credentials: refreshedUser
+      })
+      expect(request.yar.reset).not.toHaveBeenCalled()
+    })
+
+    test('ends the session when a silent refresh downgrades a previously-approved role', async () => {
+      // The realistic trigger is a MEANINGFUL downgrade (approved status 3 ->
+      // pending status 1) that the guarded merge would actually apply — not an
+      // empty roles array, which mergeRefreshedClaims preserves (so it would
+      // never reach the guard as a downgrade in the real flow).
+      setup()
+      const approvedUser = {
+        sub: 'user-1',
+        exp: PAST_EXP,
+        roles: ['rel-1:bng completer:3']
+      }
+      const request = buildRequest({ user: approvedUser })
+      const downgradedUser = {
+        sub: 'user-1',
+        exp: FUTURE_EXP,
+        roles: ['rel-1:bng completer:1']
+      }
+      vi.mocked(refreshSession).mockImplementation(async (req) => {
+        req._store.auth = { user: downgradedUser, idToken: 'new-id' }
+        return 'new-id'
+      })
+      const h = buildToolkit()
+
+      const result = await authenticate(request, h)
+
+      expect(request.yar.reset).toHaveBeenCalledTimes(1)
+      expect(h.redirect).toHaveBeenCalledWith('/auth/session-expired')
+      expect(h.authenticated).not.toHaveBeenCalled()
+      expect(result).toBe('redirect-takeover-response')
+    })
+
+    test('does not end the session for a still-pending user after refresh', async () => {
+      // A user who never held an approved role is a valid pending state, not a
+      // refresh regression — they must reach the pages (and get "Access denied"
+      // per-route), never be forced back to sign-in on every silent refresh.
+      setup()
+      const pendingUser = {
+        sub: 'user-1',
+        exp: PAST_EXP,
+        roles: ['rel-1:bng completer:1']
+      }
+      const request = buildRequest({ user: pendingUser })
+      const refreshedPending = {
+        sub: 'user-1',
+        exp: FUTURE_EXP,
+        roles: ['rel-1:bng completer:1']
+      }
+      vi.mocked(refreshSession).mockImplementation(async (req) => {
+        req._store.auth = { user: refreshedPending, idToken: 'new-id' }
+        return 'new-id'
+      })
+      const h = buildToolkit()
+
+      await authenticate(request, h)
+
+      expect(request.yar.reset).not.toHaveBeenCalled()
+      expect(h.authenticated).toHaveBeenCalledWith({
+        credentials: refreshedPending
+      })
+    })
+
     test('logs session state at debug level', async () => {
       setup()
       const user = { sub: 'u', exp: FUTURE_EXP }

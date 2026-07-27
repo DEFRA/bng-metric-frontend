@@ -2,7 +2,15 @@ import yar from '@hapi/yar'
 
 import { config } from '../../../../config/config.js'
 
+const MS_PER_SECOND = 1000
+
 const sessionConfig = config.get('session')
+
+// The configured session lifetime is authored in seconds (SESSION_TTL_SECONDS);
+// yar wants milliseconds. Convert once here and feed the SAME value to the
+// server-side cache expiry and the cookie ttl so a deployed environment can set
+// one env var and have it respected across the board.
+const sessionTtlMs = sessionConfig.ttlSeconds * MS_PER_SECOND
 
 /**
  * Set options.maxCookieSize to 0 to always use server-side storage
@@ -13,13 +21,13 @@ export const sessionCache = {
     name: sessionConfig.cache.name,
     cache: {
       cache: sessionConfig.cache.name,
-      expiresIn: sessionConfig.cache.ttl
+      expiresIn: sessionTtlMs
     },
     storeBlank: false,
     errorOnCacheNotReady: true,
     cookieOptions: {
       password: sessionConfig.cookie.password,
-      ttl: sessionConfig.cookie.ttl,
+      ttl: sessionTtlMs,
       isSecure: config.get('session.cookie.secure'),
       // SameSite=Lax: the browser sends this session cookie only when the
       // user arrives via normal navigation (typed URL, clicked link).

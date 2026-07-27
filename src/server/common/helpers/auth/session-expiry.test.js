@@ -6,6 +6,7 @@ import {
   clearSessionEnded,
   expireSession,
   isSessionExpired,
+  touchSession,
   wasSessionEnded
 } from './session-expiry.js'
 
@@ -84,6 +85,34 @@ describe('expireSession', () => {
 
   test('tolerates a request without yar', () => {
     expect(() => expireSession({})).not.toThrow()
+  })
+})
+
+describe('touchSession', () => {
+  test('re-sets the auth entry to itself so yar renews the sliding TTL', () => {
+    const auth = { user: { sub: 'u1' }, idToken: 'id', refreshToken: 'r' }
+    const request = {
+      yar: { get: vi.fn().mockReturnValue(auth), set: vi.fn() }
+    }
+
+    touchSession(request)
+
+    expect(request.yar.get).toHaveBeenCalledWith('auth')
+    expect(request.yar.set).toHaveBeenCalledWith('auth', auth)
+  })
+
+  test('does nothing when there is no authenticated session to renew', () => {
+    const request = {
+      yar: { get: vi.fn().mockReturnValue(undefined), set: vi.fn() }
+    }
+
+    touchSession(request)
+
+    expect(request.yar.set).not.toHaveBeenCalled()
+  })
+
+  test('tolerates a request without yar', () => {
+    expect(() => touchSession({})).not.toThrow()
   })
 })
 

@@ -65,6 +65,28 @@ export function wasSessionEnded(request) {
 }
 
 /**
+ * Renew the session's sliding idle-timeout on an authenticated request.
+ *
+ * yar only re-writes the server-side cache entry (and re-issues the cookie,
+ * resetting its Max-Age) when the session is MODIFIED during the request — a run
+ * of read-only page views leaves the store untouched, so without this the TTL
+ * would count down from the last write (login / last token refresh) rather than
+ * from the last request. Re-setting the auth entry to itself marks the session
+ * dirty so yar's onPreResponse commit resets the cache expiry and cookie ttl to
+ * the full configured window (SESSION_TTL_SECONDS) from now. The result is a
+ * true idle-timeout: an active user never ages out, and only genuine inactivity
+ * ends the session. No-op when there is no authenticated session to renew.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ */
+export function touchSession(request) {
+  const auth = request.yar?.get('auth')
+  if (auth) {
+    request.yar.set('auth', auth)
+  }
+}
+
+/**
  * Drop the `sessionEnded` breadcrumb. Called once a fresh session is
  * established (a successful login) so a browser that previously had an expired
  * session no longer counts as "session expired" — otherwise the stale
