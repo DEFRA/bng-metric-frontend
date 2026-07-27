@@ -386,7 +386,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     }
   )
 
-  test('GET renders the read-only page for a created area habitat', async () => {
+  test('GET renders the Created area details page for a created area habitat', async () => {
     mockFeature({
       type: 'habitat',
       feature: {
@@ -401,7 +401,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     await getController.handler({ query: { projectId, featureId } }, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-habitat-details',
+      'habitat-details/pi-habitat-details-created',
       expect.objectContaining({ interventionDisplay: 'Created' })
     )
   })

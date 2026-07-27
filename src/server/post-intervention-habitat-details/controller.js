@@ -7,12 +7,17 @@ import {
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
+import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
-import { normaliseRetentionCategory, RETENTION_ENHANCED } from './retention.js'
+import {
+  normaliseRetentionCategory,
+  RETENTION_CREATED,
+  RETENTION_ENHANCED
+} from './retention.js'
 
 const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
 
@@ -21,16 +26,28 @@ const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const WATERCOURSE_TYPE = 'watercourse'
 
-const ENHANCED_VIEW_ONLY_PAGES = new Map([
+// Created/Enhanced area habitats use a two-section layout keyed by retention.
+const AREA_RETENTION_PAGES = new Map([
   [
-    AREA_HABITAT_TYPE,
+    RETENTION_ENHANCED,
     {
       template: 'habitat-details/pi-habitat-details-enhanced',
       buildViewModel: buildEnhancedAreaViewOnlyViewModel
     }
   ],
   [
-    HEDGEROW_TYPE,
+    RETENTION_CREATED,
+    {
+      template: 'habitat-details/pi-habitat-details-created',
+      buildViewModel: buildCreatedAreaViewOnlyViewModel
+    }
+  ]
+])
+
+// Enhanced hedgerows also use a two-section layout, keyed by retention.
+const HEDGEROW_RETENTION_PAGES = new Map([
+  [
+    RETENTION_ENHANCED,
     {
       template: 'habitat-details/pi-hedgerow-details-enhanced',
       buildViewModel: buildEnhancedHedgerowViewOnlyViewModel
@@ -38,11 +55,19 @@ const ENHANCED_VIEW_ONLY_PAGES = new Map([
   ]
 ])
 
+// Feature types that swap in a retention-specific, two-section page for
+// some retention categories rather than always using the single-list page.
+const RETENTION_VIEW_ONLY_PAGES = new Map([
+  [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
+  [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES]
+])
+
 // The read-only details page for each feature type. Each keeps its own
 // template — they share chrome via layouts/pi-view-only-page.njk (or the
-// sections layout for Enhanced area) and differ in the rows they show.
-// Enhanced area habitats and hedgerows use a two-section layout; other
-// retention categories keep the single-list page.
+// sections layout for Created/Enhanced area and Enhanced hedgerow) and
+// differ in the rows they show. Created and Enhanced area habitats, and
+// Enhanced hedgerows, use a two-section layout (BMD-845); other retention
+// categories keep the single-list page for now.
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
@@ -69,6 +94,8 @@ const VIEW_ONLY_PAGES = new Map([
 
 const UNSUPPORTED_MESSAGE =
   'Individual tree and IGGI features are not yet supported in this view.'
+
+const DEFAULT_PROJECT_NAME = 'Project'
 
 /**
  * Resolve the baseline feature that corresponds to a post-intervention parcel.
@@ -97,10 +124,9 @@ function resolveBaselineFeatureId(project, ref) {
  * @param {string|null} retentionCategory
  */
 function resolveViewOnlyPage(type, retentionCategory) {
-  if (retentionCategory === RETENTION_ENHANCED) {
-    return ENHANCED_VIEW_ONLY_PAGES.get(type) ?? VIEW_ONLY_PAGES.get(type)
-  }
-  return VIEW_ONLY_PAGES.get(type)
+  const retentionPage =
+    RETENTION_VIEW_ONLY_PAGES.get(type)?.get(retentionCategory)
+  return retentionPage ?? VIEW_ONLY_PAGES.get(type)
 }
 
 function renderUnsupportedFeature(h, { projectId, projectName }) {
@@ -128,7 +154,7 @@ const getController = {
       fetchFeature(request, uploadType, projectId, featureId),
       fetchProject(request, projectId)
     ])
-    const projectName = project?.project?.name ?? 'Project'
+    const projectName = project?.project?.name ?? DEFAULT_PROJECT_NAME
 
     // Normalise the feature-root retention category so a "1. Enhanced" list
     // prefix or a missing value resolves consistently for every view-only page.
