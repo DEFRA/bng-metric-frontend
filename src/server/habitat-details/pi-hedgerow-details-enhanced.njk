@@ -1,0 +1,27 @@
+{% extends 'layouts/pi-view-only-sections-page.njk' %}
+
+{# Enhanced post-intervention hedgerow - stacked label-over-value layout. #}
+{% set sections = [
+  {
+    heading: habitatDetailsSectionHeading,
+    rows: [
+      { label: "Intervention", value: interventionDisplay },
+      { label: "Length", value: sizeDisplay },
+      { label: "Habitat type", value: habitatTypeDisplay },
+      { label: "Distinctiveness", value: distinctivenessDisplay },
+      { label: "Condition", value: conditionDisplay },
+      { label: "Strategic significance", value: strategicSignificanceDisplay }
+    ]
+  },
+  {
+    heading: timeDifficultySectionHeading,
+    rows: [
+      { label: "Target condition", value: targetConditionDisplay },
+      { label: "Standard time to target condition", value: standardTimeToTargetDisplay },
+      { label: "Standard difficulty", value: standardDifficultyDisplay },
+      { label: "Advance or delay?", value: advanceOrDelayDisplay },
+      { label: "Final time to target condition", value: finalTimeToTargetDisplay },
+      { label: "Applied difficulty multiplier", value: appliedDifficultyMultiplierDisplay }
+    ]
+  }
+] %}
