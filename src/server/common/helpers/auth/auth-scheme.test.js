@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from 'vitest'
 
 import { authScheme } from './auth-scheme.js'
 import { refreshSession } from './refresh-session.js'
+import { SESSION_SLID_AT_KEY } from './session-expiry.js'
 
 vi.mock('./refresh-session.js', () => ({
   refreshSession: vi.fn()
@@ -284,8 +285,12 @@ describe('#authScheme', () => {
 
       await authenticate(request, h)
 
-      // touchSession re-sets the auth entry so yar resets the cache/cookie TTL.
-      expect(request.yar.set).toHaveBeenCalledWith('auth', { user })
+      // touchSession writes the throttle timestamp, marking the session dirty so
+      // yar resets the cache/cookie TTL (renews the sliding idle-timeout).
+      expect(request.yar.set).toHaveBeenCalledWith(
+        SESSION_SLID_AT_KEY,
+        expect.any(Number)
+      )
       expect(h.authenticated).toHaveBeenCalledWith({ credentials: user })
     })
 
