@@ -8,6 +8,7 @@ import {
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
+import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
@@ -20,16 +21,28 @@ const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const WATERCOURSE_TYPE = 'watercourse'
 
-const ENHANCED_AREA_PAGE = {
-  template: 'habitat-details/pi-habitat-details-enhanced',
-  buildViewModel: buildEnhancedAreaViewOnlyViewModel
-}
+const ENHANCED_VIEW_ONLY_PAGES = new Map([
+  [
+    AREA_HABITAT_TYPE,
+    {
+      template: 'habitat-details/pi-habitat-details-enhanced',
+      buildViewModel: buildEnhancedAreaViewOnlyViewModel
+    }
+  ],
+  [
+    HEDGEROW_TYPE,
+    {
+      template: 'habitat-details/pi-hedgerow-details-enhanced',
+      buildViewModel: buildEnhancedHedgerowViewOnlyViewModel
+    }
+  ]
+])
 
 // The read-only details page for each feature type. Each keeps its own
 // template — they share chrome via layouts/pi-view-only-page.njk (or the
 // sections layout for Enhanced area) and differ in the rows they show.
-// Enhanced area habitats use a two-section layout (BMD-845); other retention
-// categories keep the single-list page until their Enhanced variants land.
+// Enhanced area habitats and hedgerows use a two-section layout; other
+// retention categories keep the single-list page.
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
@@ -84,8 +97,8 @@ function resolveBaselineFeatureId(project, ref) {
  * @param {string|null} retentionCategory
  */
 function resolveViewOnlyPage(type, retentionCategory) {
-  if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_ENHANCED) {
-    return ENHANCED_AREA_PAGE
+  if (retentionCategory === RETENTION_ENHANCED) {
+    return ENHANCED_VIEW_ONLY_PAGES.get(type) ?? VIEW_ONLY_PAGES.get(type)
   }
   return VIEW_ONLY_PAGES.get(type)
 }
