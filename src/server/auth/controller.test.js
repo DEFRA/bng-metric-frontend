@@ -245,6 +245,9 @@ describe('#callbackController', () => {
       refreshToken: 'refresh-token'
     })
     expect(request.yar.clear).toHaveBeenCalledWith('oidc')
+    // The fresh session supersedes any earlier expiry, so the sessionEnded
+    // breadcrumb must be cleared too.
+    expect(request.yar.clear).toHaveBeenCalledWith('sessionEnded')
     expect(recordLoginSuccess).toHaveBeenCalledWith(request)
     expect(recordLoginFailure).not.toHaveBeenCalled()
     expect(h.redirect).toHaveBeenCalledWith('/manage-projects')

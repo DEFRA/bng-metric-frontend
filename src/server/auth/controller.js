@@ -16,6 +16,7 @@ import {
   LOGIN_FAILURE_REASON
 } from '../common/helpers/auth/auth-metrics.js'
 import { persistBackendSession } from '../common/helpers/auth/persist-session.js'
+import { clearSessionEnded } from '../common/helpers/auth/session-expiry.js'
 import { hasBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 import { statusCodes } from '../common/constants.js'
 
@@ -160,6 +161,9 @@ async function exchangeCodeForSession(request, h, pending) {
       refreshToken: tokens.refresh_token
     })
     request.yar.clear('oidc')
+    // A fresh session supersedes any earlier expiry, so drop the breadcrumb
+    // that would otherwise keep routing this browser to /auth/session-expired.
+    clearSessionEnded(request)
 
     // Best-effort: persist the user's identity / relationships / roles in the
     // backend. Never block sign-in on a backend hiccup.

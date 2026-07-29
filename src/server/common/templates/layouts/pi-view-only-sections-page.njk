@@ -1,0 +1,68 @@
+{% extends 'layouts/page.njk' %}
+
+{# Shared chrome for multi-section read-only post-intervention details pages
+   (Enhanced area now; hedgerows/watercourses later).
+
+   Fields are stacked: bold label on one line, value on the next — not a
+   two-column summary list. No separators between fields. Only the units
+   summary uses matching top and bottom borders with label left and value
+   right (via .app-units-delivered).
+
+   Each child template sets `sections` — an array of
+   { heading, rows: [{ label, value }], showBaselineLink? } — plus
+   habitatUnitsLabel and habitatUnitsDisplay. #}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+
+{% block beforeContent %}
+  {{ super() }}
+  {{ govukBackLink({
+    text: "Back",
+    href: backHref
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: caption
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {% for section in sections %}
+        <h2 class="govuk-heading-m">{{ section.heading }}</h2>
+
+        <div class="app-stacked-fields">
+          {% for row in section.rows %}
+            <div class="app-stacked-fields__item">
+              {# govuk-heading-s keeps GDS Transport (same as summary-list keys) #}
+              <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ row.label }}</h3>
+              <p class="govuk-body">{{ row.value }}</p>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Below Strategic significance (end of first section), before Time to target #}
+        {% if loop.first and viewBaselineHref %}
+          <p class="govuk-body">
+            <a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a>
+          </p>
+        {% endif %}
+      {% endfor %}
+
+      {# Two-column label | value with top/bottom lines — matches the design
+         image for Habitat units delivered only. #}
+      {{ govukSummaryList({
+        classes: "app-units-delivered govuk-!-margin-top-6",
+        rows: [
+          {
+            key: { text: habitatUnitsLabel },
+            value: { text: habitatUnitsDisplay }
+          }
+        ]
+      }) }}
+    </div>
+  </div>
+{% endblock %}

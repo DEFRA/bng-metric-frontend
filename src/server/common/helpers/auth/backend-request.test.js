@@ -16,6 +16,7 @@ function makeRequest(idToken = 'token-1') {
   return {
     yar: {
       get: vi.fn().mockReturnValue({ idToken }),
+      set: vi.fn(),
       reset: vi.fn()
     }
   }

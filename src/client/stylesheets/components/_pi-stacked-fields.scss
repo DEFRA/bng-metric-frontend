@@ -1,0 +1,12 @@
+@use 'govuk-frontend' as *;
+
+// Spacing only for stacked fields — typography uses GOV.UK classes.
+.app-stacked-fields__item {
+  margin-bottom: govuk-spacing(4);
+}
+
+// Habitat units delivered: mirror the summary-list bottom rule above the row
+// so the label | value sits between matching top and bottom lines.
+.app-units-delivered .govuk-summary-list__row {
+  border-top: 1px solid $govuk-border-colour;
+}

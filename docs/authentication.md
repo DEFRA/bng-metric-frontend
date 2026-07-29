@@ -125,7 +125,7 @@ A custom Hapi auth scheme (`session`) is registered in `src/server/common/helper
 
 - If a `user` object is present **and its `exp` claim is still in the future**, calls `h.authenticated({ credentials: user })` - the user's token claims become available as `request.auth.credentials`.
 - If the token has expired (or is within 30 seconds of expiring), the scheme first attempts a silent refresh (see below) and authenticates with the refreshed claims on success.
-- If there is no session at all, the user is redirected to `/auth/forbidden`.
+- If there is no session at all, the destination depends on _why_ it is empty: a browser that never signed in is redirected to `/auth/forbidden`, but one whose expired session we already ended (it carries the `sessionEnded` breadcrumb - see below) is redirected to `/auth/session-expired`.
 - If the token expired and the refresh failed, the session is cleared and the user is redirected to `/auth/session-expired`, which offers a "Sign in again" button.
 
 Routes opt in by setting `auth: 'session'` in their options. It is **not** set as the default strategy - auth endpoints and health checks require no auth. Public pages that render the shared header (home, about, db-info) use `auth: { strategy: 'session', mode: 'try' }`: the page stays public, but the scheme still runs, so an expired session is refreshed - or cleared - before the header can present stale claims as a signed-in user (the nunjucks context reads the user straight from yar, so a public route with no auth option would skip the expiry check entirely). In `try` mode the scheme never redirects; it throws `Boom.unauthorized` so hapi continues unauthenticated and the page shows its signed-out state. **Convention: any new public page that renders the shared header must use `mode: 'try'`.**
@@ -138,6 +138,31 @@ The yar session (4-hour TTL) deliberately outlives the IdP's tokens (live Defra 
 2. **Reactively, around backend calls** - `backendRequest()` (`backend-request.js`) still handles a mid-request 401 from the backend (clock skew, key rotation, revocation): it refreshes once and retries. If that refresh fails, it clears the session and throws a Boom 401 flagged `data.sessionExpired`, which the global `catchAll` handler (`errors.js`) turns into a redirect to `/auth/session-expired` instead of rendering a "401 Unauthorized" error page.
 
 Either way, a user whose session cannot be renewed ends up on `/auth/session-expired` - never on a generic error page, and never looking signed-in on pages that don't touch the backend.
+
+There is a subtlety when the two steps span two page loads. A `try`-mode page (e.g. the home page) ends an unrefreshable session in place via `expireSession()` **without redirecting** - so when the user later clicks through to a protected route, the session store is already empty and looks identical to a browser that never signed in. To keep such a user on the friendly `/auth/session-expired` page rather than the blunt `/auth/forbidden` ("Access denied"), `expireSession()` leaves a `sessionEnded` breadcrumb in the fresh session (`session-expiry.js`); the auth scheme's "no user" branch reads it via `wasSessionEnded()` to choose between the two pages. The breadcrumb carries no user or tokens, so the shared header still renders signed-out.
+
+#### Why a refresh fails (log categories)
+
+A failed refresh logs `OIDC: silent token refresh failed` (or `… no refresh token stored …`) with a `category` field and a short `likelyCause`, so CDP logs can be filtered without decoding raw OAuth codes (`classifyRefreshError` in `refresh-session.js`). The categories fall into two groups:
+
+**Genuinely over - the `/auth/session-expired` page is the correct outcome, nothing to fix:**
+
+| `category`               | What happened                                                                                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refresh-token-rejected` | `invalid_grant` - the refresh token expired, was revoked (password change, global sign-out), or was rotated and reused. Genuine **when the user was idle**. |
+
+**Should have worked - a config / environment / policy problem that signs users out when they shouldn't be:**
+
+| `category`                       | Points at                                                                                                                                                                                                                                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `refresh-token-rejected`         | Same `invalid_grant`, but firing reliably at the token-lifetime boundary (~20 min) means the **refresh-token lifetime is set too short / sliding window disabled** in the Defra ID policy, or a **rotation race** (we refresh both proactively in the auth scheme and reactively in `backendRequest`). |
+| `client-auth-failed`             | `invalid_client` / `unauthorized_client` - wrong or empty `OIDC_CLIENT_SECRET`, or confidential-vs-public client mismatch (we always send `client_secret_post`).                                                                                                                                       |
+| `scope-rejected`                 | `invalid_scope` - the refresh request's scope/resource doesn't match the original grant.                                                                                                                                                                                                               |
+| `idp-unreachable`                | Network failure (`ENOTFOUND`, `ECONNREFUSED`, TLS, proxy) - the CDP egress proxy / DNS / TLS path to Defra ID, not an OAuth error.                                                                                                                                                                     |
+| `no-refresh-token`               | The provider issued no refresh token at all - `offline_access` not effective, or a policy that withholds it.                                                                                                                                                                                           |
+| `oauth-error` / `refresh-failed` | Any other OAuth error / unclassified failure - read the `err` and `detail` fields.                                                                                                                                                                                                                     |
+
+`detail` always carries the raw evidence (`oauthError=`, `oauthErrorDescription=`, HTTP/cause codes, response body), PII-free.
 
 ### Role checking
 
