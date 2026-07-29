@@ -209,7 +209,7 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('BMD-883: ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
+  test('ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
     const result = resolveSingleErrorCopy(
       { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
       UPLOAD_HREF
@@ -221,7 +221,7 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.linkText).toBe('upload a new file')
   })
 
-  test('BMD-883: ADVANCE_AND_DELAY_BOTH_SET reads as a full sentence when uploadHref is null', () => {
+  test('ADVANCE_AND_DELAY_BOTH_SET reads as a full sentence when uploadHref is null', () => {
     const result = resolveSingleErrorCopy(
       { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
       null
