@@ -58,6 +58,16 @@ const sliverEntry = () =>
     'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
   )
 
+// Advance and delayed creation both set on one habitat. The statutory metric
+// rejects this (backend advance-delay-check.js); without dedicated copy a lone
+// occurrence fell through to the misleading "layer and column names" catch-all,
+// so name the actual problem and the fix here.
+const advanceAndDelayEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
+  )
+
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
   GPKG_RLB_NO_POLYGON: noRedlineEntry,
@@ -122,15 +132,7 @@ const CODE_ENTRIES = {
   SLIVERS_INSIDE_REDLINE: sliverEntry,
   SLIVERS_OUTSIDE_REDLINE: sliverEntry,
 
-  // Advance and delayed creation both set on one habitat. The statutory metric
-  // rejects this (backend advance-delay-check.js); without dedicated copy a lone
-  // occurrence fell through to the misleading "layer and column names"
-  // catch-all, so name the actual problem and the fix here.
-  ADVANCE_AND_DELAY_BOTH_SET: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
-    ),
+  ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
