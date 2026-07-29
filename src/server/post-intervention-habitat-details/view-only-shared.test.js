@@ -1,9 +1,20 @@
 import { describe, it, expect } from 'vitest'
 
-import { PI_DETAILS_HEADING } from './constants.js'
+import {
+  HABITAT_UNITS_DELIVERED_LABEL,
+  PI_DETAILS_HEADING,
+  STANDARD_TIME_TO_TARGET_PREFIX,
+  STANDARD_TIME_TO_TARGET_SUFFIX,
+  TIME_DIFFICULTY_SECTION_HEADING
+} from './constants.js'
 import {
   baselineDetailsHref,
+  buildSectionsViewOnlyBaseFields,
   buildSharedPiViewOnlyFields,
+  displayText,
+  formatFiniteNumber,
+  formatLengthDisplay,
+  formatStandardTimeToTarget,
   withMultiplier
 } from './view-only-shared.js'
 import { DEFAULT_INTERVENTION } from './retention.js'
@@ -11,6 +22,94 @@ import { DEFAULT_INTERVENTION } from './retention.js'
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const baselineFeatureId = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
 const listTabAnchor = '#area-habitats'
+
+describe('formatFiniteNumber', () => {
+  it('stringifies finite numbers', () => {
+    expect(formatFiniteNumber(1.5)).toBe('1.5')
+    expect(formatFiniteNumber(0)).toBe('0')
+  })
+
+  it('returns empty for non-finite values', () => {
+    expect(formatFiniteNumber(Number.NaN)).toBe('')
+    expect(formatFiniteNumber(Infinity)).toBe('')
+    expect(formatFiniteNumber('1')).toBe('')
+    expect(formatFiniteNumber(null)).toBe('')
+  })
+})
+
+describe('displayText', () => {
+  it('returns non-empty strings as-is', () => {
+    expect(displayText('Low')).toBe('Low')
+  })
+
+  it('returns empty for blank strings and non-string non-numbers', () => {
+    expect(displayText('')).toBe('')
+    expect(displayText({})).toBe('')
+  })
+
+  it('stringifies finite numbers', () => {
+    expect(displayText(10)).toBe('10')
+  })
+})
+
+describe('formatStandardTimeToTarget', () => {
+  it('wraps years with the standard label', () => {
+    expect(formatStandardTimeToTarget(10)).toBe(
+      `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`
+    )
+    expect(formatStandardTimeToTarget('5')).toBe(
+      `${STANDARD_TIME_TO_TARGET_PREFIX}5${STANDARD_TIME_TO_TARGET_SUFFIX}`
+    )
+  })
+
+  it('returns empty when years are absent', () => {
+    expect(formatStandardTimeToTarget(null)).toBe('')
+    expect(formatStandardTimeToTarget('')).toBe('')
+  })
+})
+
+describe('formatLengthDisplay', () => {
+  it('formats metres as km with unit', () => {
+    expect(formatLengthDisplay(336)).toBe('0.336km')
+  })
+
+  it('returns empty when length cannot be formatted', () => {
+    expect(formatLengthDisplay(null)).toBe('')
+  })
+})
+
+describe('buildSectionsViewOnlyBaseFields', () => {
+  it('maps chrome and time/difficulty rows from proposed', () => {
+    const fields = buildSectionsViewOnlyBaseFields(
+      { ref: 'W-1' },
+      { caption: 'Test Project' },
+      {
+        condition: '4. Moderate',
+        conditionScore: 2,
+        standardTimeToTargetCondition: 10,
+        difficulty: 'Low',
+        advanceOrDelay: 'Delay',
+        finalTimeToTargetCondition: 15,
+        difficultyMultiplier: 1
+      }
+    )
+
+    expect(fields).toMatchObject({
+      caption: 'Test Project',
+      heading: 'W-1',
+      pageTitle: 'W-1',
+      habitatDetailsSectionHeading: PI_DETAILS_HEADING,
+      timeDifficultySectionHeading: TIME_DIFFICULTY_SECTION_HEADING,
+      habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
+      targetConditionDisplay: 'Moderate (2)',
+      standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardDifficultyDisplay: 'Low',
+      advanceOrDelayDisplay: 'Delay',
+      finalTimeToTargetDisplay: '15',
+      appliedDifficultyMultiplierDisplay: '1'
+    })
+  })
+})
 
 describe('withMultiplier', () => {
   it('returns an empty string when the value is absent', () => {
