@@ -88,3 +88,18 @@ export function buildEnhancedHedgerowViewOnlyViewModel(
     )
   }
 }
+/**
+ * Build the two-section read-only view model for a Created hedgerow.
+ * Created habitats have no baseline feature, so the baseline link is always
+ * suppressed even if another feature happens to share the same reference.
+ *
+ * @param {object} feature
+ * @param {{ projectId: string, projectName: string }} ctx
+ * @returns {object}
+ */
+export function buildCreatedHedgerowViewOnlyViewModel(feature, ctx) {
+  return buildEnhancedHedgerowViewOnlyViewModel(feature, {
+    ...ctx,
+    baselineFeatureId: null
+  })
+}
