@@ -9,6 +9,7 @@ import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
+import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
@@ -35,14 +36,22 @@ const ENHANCED_VIEW_ONLY_PAGES = new Map([
       template: 'habitat-details/pi-hedgerow-details-enhanced',
       buildViewModel: buildEnhancedHedgerowViewOnlyViewModel
     }
+  ],
+  [
+    WATERCOURSE_TYPE,
+    {
+      template: 'habitat-details/pi-watercourse-details-enhanced',
+      buildViewModel: buildEnhancedWatercourseViewOnlyViewModel
+    }
   ]
 ])
 
 // The read-only details page for each feature type. Each keeps its own
 // template — they share chrome via layouts/pi-view-only-page.njk (or the
-// sections layout for Enhanced area) and differ in the rows they show.
-// Enhanced area habitats and hedgerows use a two-section layout; other
-// retention categories keep the single-list page.
+// sections layout for Enhanced area/watercourse) and differ in the rows they
+// show. Enhanced area habitats and watercourses use a two-section layout;
+// other retention categories keep the single-list page until their Enhanced
+// variants land.
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
