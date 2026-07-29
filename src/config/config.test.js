@@ -6,6 +6,8 @@ describe('#config', () => {
     expect(config.get('log.redact')).toEqual([])
     expect(config.get('isSecureContextEnabled')).toBe(false)
     expect(config.get('session.cache.engine')).toBe('memory')
+    // Session lifetime is a single seconds-based knob (default 4 hours).
+    expect(config.get('session.ttlSeconds')).toBe(4 * 60 * 60)
   })
 
   test('Should default to production settings when NODE_ENV is production', async () => {

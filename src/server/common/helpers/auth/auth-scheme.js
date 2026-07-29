@@ -1,10 +1,12 @@
 import Boom from '@hapi/boom'
 
 import { refreshSession } from './refresh-session.js'
+import { hasBngCompleterRole } from './verify-role.js'
 import {
   SESSION_EXPIRED_PATH,
   expireSession,
   isSessionExpired,
+  touchSession,
   wasSessionEnded
 } from './session-expiry.js'
 
@@ -72,6 +74,9 @@ function sessionScheme() {
       }
 
       if (!isSessionExpired(session)) {
+        // Live session: renew its sliding idle-timeout so an actively-used
+        // session never lapses, then authenticate with the stored claims.
+        touchSession(request)
         return h.authenticated({ credentials: user })
       }
 
@@ -86,9 +91,33 @@ function sessionScheme() {
         },
         'Auth: session token expired, attempting silent refresh'
       )
+      const hadApprovedRole = hasBngCompleterRole(user)
       const newIdToken = await refreshSession(request)
       if (newIdToken) {
         const refreshedUser = request.yar.get('auth')?.user ?? user
+        // Preserve-seamless (refreshSession keeps enrichment claims the refreshed
+        // token blanked) covers the common case. Guard the rest: if the user was
+        // approved before the refresh but is not after, the renewed token no
+        // longer authorises them — end the session cleanly rather than leave them
+        // half signed-in (email shown, but organisation gone and every protected
+        // route denied). A user who never held an approved role is left as-is:
+        // that is a valid pending state, not a refresh regression. This relies on
+        // Defra ID's enrichment claims moving together (roles and
+        // currentRelationshipId blank or repopulate as a set on a refresh), so a
+        // post-merge role-check failure reflects a genuine downgrade.
+        if (hadApprovedRole && !hasBngCompleterRole(refreshedUser)) {
+          request.logger.info(
+            { sub: user.sub, path: request.path },
+            'Auth: silent refresh returned a session without the approved role, ending session'
+          )
+          expireSession(request)
+          return unauthenticated(
+            request,
+            h,
+            SESSION_EXPIRED_PATH,
+            'Session authorization lost on refresh'
+          )
+        }
         return h.authenticated({ credentials: refreshedUser })
       }
 

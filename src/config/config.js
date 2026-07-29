@@ -6,7 +6,7 @@ import convictFormatWithValidator from 'convict-format-with-validator'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const fourHoursMs = 14400000
+const fourHoursSeconds = 4 * 60 * 60
 const oneWeekMs = 604800000
 const twoMbInBytes = 2 * 1024 * 1024
 
@@ -138,6 +138,20 @@ export const config = convict({
     env: 'ENABLE_SECURE_CONTEXT'
   },
   session: {
+    // Single source of truth for how long a user stays signed in. Expressed in
+    // SECONDS (deployed environments override via SESSION_TTL_SECONDS) and
+    // converted to ms once, in session-cache.js, where it drives BOTH the yar
+    // cookie ttl and the server-side cache expiry so the two can never drift.
+    // It is a sliding idle-timeout: every authenticated request renews the
+    // window (auth-scheme.js), so only genuine inactivity for this long ends
+    // the session — the IdP's much shorter (~20 min) token lifetime is bridged
+    // by silent refresh in between.
+    ttlSeconds: {
+      doc: 'User session lifetime in seconds (sliding idle-timeout); drives both the session cookie ttl and the server-side cache ttl',
+      format: Number,
+      default: fourHoursSeconds,
+      env: 'SESSION_TTL_SECONDS'
+    },
     cache: {
       engine: {
         doc: 'backend cache is written to',
@@ -150,21 +164,9 @@ export const config = convict({
         format: String,
         default: 'session',
         env: 'SESSION_CACHE_NAME'
-      },
-      ttl: {
-        doc: 'server side session cache ttl',
-        format: Number,
-        default: fourHoursMs,
-        env: 'SESSION_CACHE_TTL'
       }
     },
     cookie: {
-      ttl: {
-        doc: 'Session cookie ttl',
-        format: Number,
-        default: fourHoursMs,
-        env: 'SESSION_COOKIE_TTL'
-      },
       password: {
         doc: 'session cookie password',
         format: String,
