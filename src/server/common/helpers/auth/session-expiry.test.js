@@ -3,9 +3,12 @@ import { describe, expect, test, vi } from 'vitest'
 import {
   SESSION_ENDED_KEY,
   SESSION_EXPIRED_PATH,
+  SESSION_SLID_AT_KEY,
+  SESSION_SLIDE_INTERVAL_SECONDS,
   clearSessionEnded,
   expireSession,
   isSessionExpired,
+  touchSession,
   wasSessionEnded
 } from './session-expiry.js'
 
@@ -84,6 +87,70 @@ describe('expireSession', () => {
 
   test('tolerates a request without yar', () => {
     expect(() => expireSession({})).not.toThrow()
+  })
+})
+
+describe('touchSession', () => {
+  function makeRequest(store) {
+    return {
+      yar: {
+        get: vi.fn((key) => store[key]),
+        set: vi.fn((key, value) => {
+          store[key] = value
+        })
+      }
+    }
+  }
+
+  test('renews the sliding TTL (writes the throttle timestamp) on first touch', () => {
+    const request = makeRequest({ auth: { user: { sub: 'u1' } } })
+
+    touchSession(request, NOW_SECONDS * 1000)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      SESSION_SLID_AT_KEY,
+      NOW_SECONDS
+    )
+  })
+
+  test('skips the write when renewed within the throttle window', () => {
+    const request = makeRequest({
+      auth: { user: { sub: 'u1' } },
+      [SESSION_SLID_AT_KEY]: NOW_SECONDS
+    })
+
+    // One second before the interval elapses.
+    const nowMs = (NOW_SECONDS + SESSION_SLIDE_INTERVAL_SECONDS - 1) * 1000
+    touchSession(request, nowMs)
+
+    expect(request.yar.set).not.toHaveBeenCalled()
+  })
+
+  test('renews again once the throttle interval has elapsed', () => {
+    const request = makeRequest({
+      auth: { user: { sub: 'u1' } },
+      [SESSION_SLID_AT_KEY]: NOW_SECONDS
+    })
+
+    const laterSeconds = NOW_SECONDS + SESSION_SLIDE_INTERVAL_SECONDS
+    touchSession(request, laterSeconds * 1000)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      SESSION_SLID_AT_KEY,
+      laterSeconds
+    )
+  })
+
+  test('does nothing when there is no authenticated session to renew', () => {
+    const request = makeRequest({})
+
+    touchSession(request, NOW_SECONDS * 1000)
+
+    expect(request.yar.set).not.toHaveBeenCalled()
+  })
+
+  test('tolerates a request without yar', () => {
+    expect(() => touchSession({}, NOW_SECONDS * 1000)).not.toThrow()
   })
 })
 

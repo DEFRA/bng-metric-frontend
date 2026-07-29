@@ -100,6 +100,16 @@ The `OIDC_USE_STUB` flag toggles two concrete behaviors that differ between the 
 
 If you change which provider an environment points at (e.g. swap a dev env from stub to live B2C), update `OIDC_USE_STUB` alongside `OIDC_DISCOVERY_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_SERVICE_ID`.
 
+### Session lifetime configuration
+
+How long a signed-in user's session lasts is controlled by a single environment variable, in **seconds**:
+
+| Env var               | Default       | Description                                                                                                                                                                                                        |
+| --------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SESSION_TTL_SECONDS` | `14400` (4 h) | Session lifetime as a **sliding idle-timeout**. Single source of truth — drives both the session cookie ttl and the server-side cache ttl (converted to ms once in `session-cache.js`) so the two can never drift. |
+
+It is a _sliding_ timeout: authenticated requests renew the window (`touchSession`, called from the auth scheme), so an actively-used session never lapses and only genuine inactivity for `SESSION_TTL_SECONDS` ends it. The renewal is throttled to at most once per quarter of the window, so it does not turn every request into a session-store write. Because the IdP's tokens are much shorter-lived (~20 min), keep this comfortably **above** the token lifetime — a value below it would sign users out before the first silent refresh can bridge the gap. This single knob replaces the former millisecond-based `SESSION_CACHE_TTL` / `SESSION_COOKIE_TTL` pair (which could be set to different values and drift apart); set `SESSION_TTL_SECONDS` instead.
+
 ## How the auth flow works
 
 ### Login (`/auth/login`)
@@ -132,9 +142,9 @@ Routes opt in by setting `auth: 'session'` in their options. It is **not** set a
 
 ### Session expiry & silent refresh (BMD-829)
 
-The yar session (4-hour TTL) deliberately outlives the IdP's tokens (live Defra ID ID tokens last ~20 minutes; the stub's last 1 hour). The gap is bridged by silent refresh in two places:
+The yar session deliberately outlives the IdP's tokens (live Defra ID ID tokens last ~20 minutes; the stub's last 1 hour). Its lifetime is the configurable sliding idle-timeout `SESSION_TTL_SECONDS` (default 4 hours — see [Session lifetime configuration](#session-lifetime-configuration)). The gap between the long session and the short token is bridged by silent refresh in two places:
 
-1. **Proactively, in the auth scheme** - before each protected request, an expired token is renewed via `refreshSession()` (`refresh-session.js`), which performs an OIDC `refresh_token` grant and re-stores the new tokens and claims in yar. Refreshed claims are merged over the previous ones so a provider that omits a claim (e.g. `roles`) from a refreshed id_token cannot silently strip access.
+1. **Proactively, in the auth scheme** - before each protected request, an expired token is renewed via `refreshSession()` (`refresh-session.js`), which performs an OIDC `refresh_token` grant and re-stores the new tokens and claims in yar. Refreshed claims are merged over the previous ones with a guard: a previous claim is kept whenever the refreshed id_token either **omits it _or_ returns it empty**. Defra ID (Azure B2C) runs its relationship/role enrichment only on interactive sign-in, so a refreshed token can echo `roles` / `relationships` / `currentRelationshipId` back **blank** — a plain spread would let those blanks overwrite the good login-time values (the BMD-829 degradation: an idle user keeps their email but loses their organisation on the home page and hits "Access denied" on every protected route while still looking signed in). If, despite the guard, a user who **was** approved before the refresh is no longer approved after it, the refreshed token has genuinely stripped their access — the session is ended cleanly (sent to `/auth/session-expired`) rather than left half signed-in. A user who never held an approved role is left untouched: that is a valid pending state, not a refresh regression.
 2. **Reactively, around backend calls** - `backendRequest()` (`backend-request.js`) still handles a mid-request 401 from the backend (clock skew, key rotation, revocation): it refreshes once and retries. If that refresh fails, it clears the session and throws a Boom 401 flagged `data.sessionExpired`, which the global `catchAll` handler (`errors.js`) turns into a redirect to `/auth/session-expired` instead of rendering a "401 Unauthorized" error page.
 
 Either way, a user whose session cannot be renewed ends up on `/auth/session-expired` - never on a generic error page, and never looking signed-in on pages that don't touch the backend.

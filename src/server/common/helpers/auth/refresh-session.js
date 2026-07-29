@@ -123,6 +123,56 @@ export function classifyRefreshError(error) {
 }
 
 /**
+ * Whether a refreshed claim value carries real information, as opposed to an
+ * empty placeholder. Defra ID (Azure AD B2C) runs the relationship/role
+ * enrichment only on interactive sign-in, not on a refresh_token grant, so a
+ * refreshed id_token can echo `roles`, `relationships` and `currentRelationshipId`
+ * back as EMPTY (`[]` / `''`) rather than omitting them. An empty value must not
+ * be treated as authoritative.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isMeaningfulClaim(value) {
+  if (value === undefined || value === null) {
+    return false
+  }
+  if (typeof value === 'string' || Array.isArray(value)) {
+    return value.length > 0
+  }
+  return true
+}
+
+/**
+ * Merge the claims from a refreshed id_token over the previous session claims,
+ * keeping a previous claim whenever the refreshed token either omits it OR
+ * carries it as an empty placeholder. A plain `{ ...prev, ...next }` spread
+ * cannot tell those two apart from a genuine value: it preserves an omitted key
+ * but lets an empty one overwrite. That overwrite is the BMD-829 session-
+ * degradation bug — an idle user's `roles` / `relationships` /
+ * `currentRelationshipId` were being blanked on silent refresh, so the home page
+ * dropped their organisation and every protected route returned "Access denied"
+ * while they still looked signed in. Only meaningfully-present refreshed values
+ * win here; everything else falls back to the value captured at login.
+ *
+ * @param {object} previous the claims stored at login (or the last good refresh)
+ * @param {object|null|undefined} refreshed the refreshed id_token's claims
+ * @returns {object}
+ */
+function mergeRefreshedClaims(previous, refreshed) {
+  if (!refreshed) {
+    return previous
+  }
+  const merged = { ...previous }
+  for (const [key, value] of Object.entries(refreshed)) {
+    if (isMeaningfulClaim(value)) {
+      merged[key] = value
+    }
+  }
+  return merged
+}
+
+/**
  * Attempt a silent token refresh using the refresh_token stored in the yar
  * session. On success the new id_token / refresh_token (and refreshed claims)
  * are written back to the session and the new id_token is returned. On any
@@ -161,10 +211,12 @@ export async function refreshSession(request) {
     const claims = tokens.claims()
 
     request.yar.set('auth', {
-      // Merge over the previous claims: a provider may omit claims from a
-      // refreshed id_token (roles, relationships, …) and losing them here
-      // would flip the role check to /auth/forbidden after a silent refresh.
-      user: claims ? { ...auth.user, ...claims } : auth.user,
+      // Merge over the previous claims, keeping any the refreshed token omits OR
+      // blanks (roles, relationships, currentRelationshipId, …); losing them
+      // here would drop the user's organisation on the home page and flip every
+      // role check to /auth/forbidden after a silent refresh. See
+      // mergeRefreshedClaims for why an empty value must not overwrite.
+      user: mergeRefreshedClaims(auth.user, claims),
       idToken: tokens.id_token,
       // Some providers omit a new refresh token on refresh — keep the old one.
       refreshToken: tokens.refresh_token ?? refreshToken
