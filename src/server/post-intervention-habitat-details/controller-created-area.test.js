@@ -22,26 +22,27 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 
 const { getController } = await import('./controller.js')
 
-describe('#postInterventionHabitatDetailsController enhanced area', () => {
+describe('#postInterventionHabitatDetailsController created area', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  test('GET renders the Enhanced area details page with section layout', async () => {
+  test('GET renders the Created area details page with section layout', async () => {
     mockSectionAreaFeature({
-      ref: 'Habitat P-A2',
-      retentionCategory: '1. Enhanced',
+      ref: 'Habitat P-A1',
+      retentionCategory: '1. Created',
+      projectName: 'Project name',
       proposed: {
-        broadType: 'Grassland',
-        type: 'Modified grassland',
-        condition: 'Good',
-        conditionScore: 3,
-        distinctiveness: 'Low',
-        distinctivenessScore: 2,
-        standardTimeToTargetCondition: '10',
-        difficulty: 'Low',
-        advanceOrDelay: 'Delay',
-        finalTimeToTargetCondition: '15',
+        broadType: 'Urban',
+        type: 'Developed land; sealed surface',
+        condition: 'N/A - Other',
+        conditionScore: 0,
+        distinctiveness: 'Very low',
+        distinctivenessScore: 0,
+        standardTimeToTargetCondition: '0',
+        difficulty: 'Medium',
+        advanceOrDelay: 'Advance – 0 years',
+        finalTimeToTargetCondition: '0 years (0)',
         difficultyMultiplier: 1
       }
     })
@@ -50,26 +51,26 @@ describe('#postInterventionHabitatDetailsController enhanced area', () => {
     await getController.handler({ query: { projectId, featureId } }, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-habitat-details-enhanced',
+      'habitat-details/pi-habitat-details-created',
       expect.objectContaining({
-        heading: 'Habitat P-A2',
-        caption: 'Test Project',
+        heading: 'Habitat P-A1',
+        caption: 'Project name',
         habitatDetailsSectionHeading: 'Post-intervention habitat details',
         timeDifficultySectionHeading: 'Time to target / difficulty',
         habitatUnitsLabel: 'Habitat units delivered',
-        interventionDisplay: 'Enhanced',
+        interventionDisplay: 'Created',
         sizeDisplay: '0ha',
-        broadHabitatDisplay: 'Grassland',
-        habitatTypeDisplay: 'Modified grassland',
-        distinctivenessDisplay: 'Low (2)',
-        conditionDisplay: 'Good (3)',
+        broadHabitatDisplay: 'Urban',
+        habitatTypeDisplay: 'Developed land; sealed surface',
+        distinctivenessDisplay: 'Very low (0)',
+        conditionDisplay: 'N/A - Other (0)',
         strategicSignificanceDisplay: 'Low (1)',
         habitatUnitsDisplay: '0.00',
-        targetConditionDisplay: 'Good (3)',
-        standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
-        standardDifficultyDisplay: 'Low',
-        advanceOrDelayDisplay: 'Delay',
-        finalTimeToTargetDisplay: '15',
+        targetConditionDisplay: 'N/A - Other (0)',
+        standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+        standardDifficultyDisplay: 'Medium',
+        advanceOrDelayDisplay: 'Advance – 0 years',
+        finalTimeToTargetDisplay: '0 years (0)',
         appliedDifficultyMultiplierDisplay: '1',
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
         backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
