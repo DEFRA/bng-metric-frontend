@@ -353,13 +353,14 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
-  test.each([['Enhanced'], ['Lost']])(
+  test.each([['Lost']])(
     'GET renders the read-only page for a %s watercourse',
     async (retentionCategory) => {
       // Every PI feature is read-only regardless of retention category:
       // intervention type is not captured on import yet (BMD-534). Created
-      // watercourses get their own two-section page — see
-      // controller-created-watercourse.test.js.
+      // and Enhanced watercourses get their own two-section pages — see
+      // controller-created-watercourse.test.js and
+      // controller-enhanced-watercourse.test.js.
       mockFeature({
         type: 'watercourse',
         feature: {

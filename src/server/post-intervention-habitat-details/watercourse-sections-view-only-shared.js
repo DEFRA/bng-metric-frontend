@@ -8,8 +8,7 @@ import {
 } from './view-only-shared.js'
 
 /**
- * Shared two-section display fields for Created (and later Enhanced)
- * watercourses.
+ * Shared two-section display fields for Created and Enhanced watercourses.
  *
  * Unlike the retained watercourse page, encroachment values are read straight
  * from `proposed` — the engine's calculation takes its encroachment inputs from
