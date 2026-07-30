@@ -155,7 +155,7 @@ describe('#resolveSingleErrorCopy', () => {
     )
     expect(result.h1).toBe('This parcel P004 contains an error')
     expect(result.messageBefore).toBe(
-      'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
+      'This parcel is smaller than 1 square metre. Draw the parcel again and '
     )
   })
 
@@ -166,7 +166,7 @@ describe('#resolveSingleErrorCopy', () => {
     )
     expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
     expect(result.messageBefore).toBe(
-      'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
+      'This parcel is smaller than 1 square metre. Draw the parcel again and '
     )
   })
 
