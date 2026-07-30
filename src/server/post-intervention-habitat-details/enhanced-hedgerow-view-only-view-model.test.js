@@ -1,7 +1,4 @@
-import {
-  STANDARD_TIME_TO_TARGET_PREFIX,
-  STANDARD_TIME_TO_TARGET_SUFFIX
-} from './constants.js'
+import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -15,6 +12,7 @@ describe('buildEnhancedHedgerowViewOnlyViewModel', () => {
         sizeMetres: 336,
         units: 4.25,
         retentionCategory: 'Enhanced',
+        baseline: { condition: '5. Poor' },
         proposed: {
           type: 'Native hedgerow',
           condition: '4. Moderate',
@@ -44,7 +42,7 @@ describe('buildEnhancedHedgerowViewOnlyViewModel', () => {
       distinctivenessDisplay: 'Low (2)',
       conditionDisplay: 'Moderate (2)',
       targetConditionDisplay: 'Moderate (2)',
-      standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardTimeToTargetDisplay: `Poor to Moderate - 10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Low',
       advanceOrDelayDisplay: 'Delay',
       finalTimeToTargetDisplay: '15',

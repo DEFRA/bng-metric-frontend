@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  STANDARD_TIME_TO_TARGET_PREFIX,
-  STANDARD_TIME_TO_TARGET_SUFFIX
-} from './constants.js'
+import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -16,6 +13,7 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
       sizeMetres: 500,
       units: 3.5,
       retentionCategory: 'Created',
+      baseline: { condition: '6. N/A' },
       proposed: {
         type: 'Ditches',
         condition: 'Moderate',
@@ -59,7 +57,7 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
       backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`,
       targetConditionDisplay: 'Moderate (2)',
-      standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardTimeToTargetDisplay: `N/A to Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Low',
       advanceOrDelayDisplay: 'Neither',
       finalTimeToTargetDisplay: '0 years (1)',
@@ -71,7 +69,9 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
     const vm = buildCreatedWatercourseViewOnlyViewModel(
       {
         retentionCategory: 'Created',
+        baseline: { condition: '6. N/A' },
         proposed: {
+          condition: 'Moderate',
           standardTimeToTargetCondition: 0,
           finalTimeToTargetCondition: 0,
           difficultyMultiplier: 1.5,
@@ -83,7 +83,7 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
     )
 
     expect(vm.standardTimeToTargetDisplay).toBe(
-      `${STANDARD_TIME_TO_TARGET_PREFIX}0${STANDARD_TIME_TO_TARGET_SUFFIX}`
+      `N/A to Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`
     )
     expect(vm.finalTimeToTargetDisplay).toBe('0')
     expect(vm.appliedDifficultyMultiplierDisplay).toBe('1.5')

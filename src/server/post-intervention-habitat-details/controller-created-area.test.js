@@ -1,7 +1,4 @@
-import {
-  STANDARD_TIME_TO_TARGET_PREFIX,
-  STANDARD_TIME_TO_TARGET_SUFFIX
-} from './constants.js'
+import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import {
   baselineFeatureId,
   createMockH,
@@ -31,6 +28,7 @@ describe('#postInterventionHabitatDetailsController created area', () => {
     mockSectionAreaFeature({
       ref: 'Habitat P-A1',
       retentionCategory: '1. Created',
+      baseline: { condition: '6. N/A - Other' },
       projectName: 'Project name',
       proposed: {
         broadType: 'Urban',
@@ -67,7 +65,7 @@ describe('#postInterventionHabitatDetailsController created area', () => {
         strategicSignificanceDisplay: 'Low (1)',
         habitatUnitsDisplay: '0.00',
         targetConditionDisplay: 'N/A - Other (0)',
-        standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+        standardTimeToTargetDisplay: `N/A - Other to N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
         standardDifficultyDisplay: 'Medium',
         advanceOrDelayDisplay: 'Advance – 0 years',
         finalTimeToTargetDisplay: '0 years (0)',

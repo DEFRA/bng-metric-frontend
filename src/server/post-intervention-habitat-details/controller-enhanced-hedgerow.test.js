@@ -36,6 +36,7 @@ describe('#postInterventionHabitatDetailsController enhanced hedgerow', () => {
               sizeMetres: 336,
               units: 4.25,
               retentionCategory: '1. Enhanced',
+              baseline: { condition: '5. Poor' },
               proposed: {
                 type: 'Native hedgerow',
                 condition: 'Moderate',
@@ -82,8 +83,7 @@ describe('#postInterventionHabitatDetailsController enhanced hedgerow', () => {
         sizeDisplay: '0.336km',
         habitatTypeDisplay: 'Native hedgerow',
         targetConditionDisplay: 'Moderate (2)',
-        standardTimeToTargetDisplay:
-          'Baseline condition to target condition - 10 years',
+        standardTimeToTargetDisplay: 'Poor to Moderate - 10 years',
         standardDifficultyDisplay: 'Low',
         advanceOrDelayDisplay: 'Delay',
         finalTimeToTargetDisplay: '15',

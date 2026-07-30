@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  STANDARD_TIME_TO_TARGET_PREFIX,
-  STANDARD_TIME_TO_TARGET_SUFFIX
-} from './constants.js'
+import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -16,6 +13,7 @@ describe('buildEnhancedWatercourseViewOnlyViewModel', () => {
       sizeMetres: 1000,
       units: 9.9,
       retentionCategory: 'Enhanced',
+      baseline: { condition: '5. Poor' },
       proposed: {
         type: 'Priority habitat',
         condition: '4. Moderate',
@@ -59,7 +57,7 @@ describe('buildEnhancedWatercourseViewOnlyViewModel', () => {
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
       backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`,
       targetConditionDisplay: 'Moderate (2)',
-      standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}4${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardTimeToTargetDisplay: `Poor to Moderate - 4${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Medium',
       advanceOrDelayDisplay: 'Neither',
       finalTimeToTargetDisplay: '4 years (0.867)',
@@ -71,6 +69,7 @@ describe('buildEnhancedWatercourseViewOnlyViewModel', () => {
     const vm = buildEnhancedWatercourseViewOnlyViewModel(
       {
         retentionCategory: 'Enhanced',
+        baseline: { condition: '5. Poor' },
         proposed: { watercourseEncroachment: 'Major' }
       },
       { projectId, projectName: 'Test Project', baselineFeatureId: null }

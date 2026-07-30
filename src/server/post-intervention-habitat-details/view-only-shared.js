@@ -16,7 +16,6 @@ import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.j
 import {
   HABITAT_UNITS_DELIVERED_LABEL,
   PI_DETAILS_HEADING,
-  STANDARD_TIME_TO_TARGET_PREFIX,
   STANDARD_TIME_TO_TARGET_SUFFIX,
   TIME_DIFFICULTY_SECTION_HEADING
 } from './constants.js'
@@ -76,13 +75,21 @@ export function displayText(value) {
 }
 
 /**
+ * @param {unknown} baselineCondition
+ * @param {unknown} targetCondition
  * @param {unknown} value
  * @returns {string}
  */
-export function formatStandardTimeToTarget(value) {
+export function formatStandardTimeToTarget(
+  baselineCondition,
+  targetCondition,
+  value
+) {
+  const baseline = stripConditionPrefix(displayText(baselineCondition))
+  const target = stripConditionPrefix(displayText(targetCondition))
   const years = displayText(value)
-  if (years) {
-    return `${STANDARD_TIME_TO_TARGET_PREFIX}${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
+  if (baseline && target && years) {
+    return `${baseline} to ${target} - ${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
   } else {
     return EMPTY_PLACEHOLDER
   }
@@ -110,6 +117,7 @@ export function formatLengthDisplay(sizeMetres) {
  * @returns {object}
  */
 export function buildSectionsViewOnlyBaseFields(feature, shared, proposed) {
+  const baseline = feature.baseline ?? {}
   return {
     ...shared,
     heading: feature.ref ?? EMPTY_PLACEHOLDER,
@@ -122,6 +130,8 @@ export function buildSectionsViewOnlyBaseFields(feature, shared, proposed) {
       proposed.conditionScore
     ),
     standardTimeToTargetDisplay: formatStandardTimeToTarget(
+      baseline.condition,
+      proposed.condition,
       proposed.standardTimeToTargetCondition
     ),
     standardDifficultyDisplay: displayText(proposed.difficulty),
