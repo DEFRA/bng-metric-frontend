@@ -12,9 +12,9 @@ import {
 /**
  * Build the read-only view model for a retained post-intervention area habitat.
  * All values are display strings; habitat-details/pi-habitat-details.njk
- * renders them as a single stacked label-over-value section (BMD-608 figma
- * design) via layouts/pi-view-only-sections-page.njk, with the parcel ref as
- * the page heading and no form controls.
+ * renders them as a single stacked label-over-value section via
+ * layouts/pi-view-only-sections-page.njk, with the parcel ref as the page
+ * heading and no form controls.
  *
  * @param {object} feature the raw feature from the PI feature endpoint
  * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx

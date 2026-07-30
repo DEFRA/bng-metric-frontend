@@ -33,9 +33,9 @@ function render(overrides = {}) {
   )
 }
 
-// Template-level coverage for the BMD-608 figma design — the controller tests
+// Template-level coverage for the redesigned page — the controller tests
 // mock h.view, so only this proves the redesigned page actually renders.
-describe('pi-habitat-details template (retained area, BMD-608 design)', () => {
+describe('pi-habitat-details template (retained area habitat)', () => {
   test('renders the parcel ref as the H1 with the project name as caption', () => {
     const html = render()
 
@@ -47,7 +47,7 @@ describe('pi-habitat-details template (retained area, BMD-608 design)', () => {
     expect(html).not.toContain('>Reference<')
   })
 
-  test('renders every stacked row with the figma labels and values', () => {
+  test('renders every stacked row with the expected labels and values', () => {
     const html = render()
 
     for (const label of [

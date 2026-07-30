@@ -31,7 +31,7 @@ describe('buildAreaViewOnlyViewModel', () => {
 
     expect(vm).toMatchObject({
       // The parcel ref is the page heading; the fixed page name is the
-      // single section heading (BMD-608 figma design).
+      // single section heading.
       heading: 'P-1',
       pageTitle: 'P-1',
       habitatDetailsSectionHeading: 'Post-intervention habitat details',
