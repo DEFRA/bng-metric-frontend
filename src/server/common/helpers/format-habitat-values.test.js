@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest'
 
 import {
   formatAreaHectares,
+  formatAreaHectaresValue,
   formatHabitatUnits,
   formatLengthKm,
   formatTotalAreaSize,
@@ -34,6 +35,23 @@ describe('formatAreaHectares', () => {
 
   test('Returns empty string when given a non-number', () => {
     expect(formatAreaHectares('100')).toBe('')
+  })
+})
+
+describe('formatAreaHectaresValue', () => {
+  test('Converts square metres to hectares with no unit suffix', () => {
+    expect(formatAreaHectaresValue(10000)).toBe('1')
+    expect(formatAreaHectaresValue(25000)).toBe('2.5')
+  })
+
+  test('Rounds to 10 significant figures', () => {
+    expect(formatAreaHectaresValue(12345678945)).toBe('1234567.894')
+  })
+
+  test('Returns empty string for null, undefined or non-finite input', () => {
+    expect(formatAreaHectaresValue(null)).toBe('')
+    expect(formatAreaHectaresValue(undefined)).toBe('')
+    expect(formatAreaHectaresValue(Number.NaN)).toBe('')
   })
 })
 

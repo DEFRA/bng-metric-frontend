@@ -1,14 +1,21 @@
-{% extends 'layouts/pi-view-only-page.njk' %}
+{% extends 'layouts/pi-view-only-sections-page.njk' %}
 
-{# View-only page (BMD-608): retained post-intervention area habitat. #}
-{% set detailRows = [
-  { key: { text: "Reference" }, value: { text: habitatRef } },
-  { key: { text: "Intervention" }, value: { text: interventionDisplay } },
-  { key: { text: "Area (hectares)" }, value: { text: sizeDisplay } },
-  { key: { text: "Broad habitat" }, value: { text: broadHabitatDisplay } },
-  { key: { text: "Habitat type" }, value: { text: habitatTypeDisplay } },
-  { key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } },
-  { key: { text: "Condition" }, value: { text: conditionDisplay } },
-  { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
-  { key: { text: "Units in this habitat" }, value: { text: habitatUnitsDisplay } }
+{# View-only page (BMD-608): retained post-intervention area habitat — stacked
+   label-over-value layout matching the figma design. The parcel ref is the H1;
+   "Post-intervention habitat details" is the single section heading. The
+   sections layout renders the "View baseline details" link after the first
+   section and the "Habitat units delivered" summary row below it. #}
+{% set sections = [
+  {
+    heading: habitatDetailsSectionHeading,
+    rows: [
+      { label: "Intervention", value: interventionDisplay },
+      { label: "Size (hectares)", value: sizeDisplay },
+      { label: "Broad habitat", value: broadHabitatDisplay },
+      { label: "Habitat type", value: habitatTypeDisplay },
+      { label: "Distinctiveness", value: distinctivenessDisplay },
+      { label: "Condition", value: conditionDisplay },
+      { label: "Strategic significance", value: strategicSignificanceDisplay }
+    ]
+  }
 ] %}
