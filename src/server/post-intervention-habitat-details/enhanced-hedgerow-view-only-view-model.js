@@ -1,17 +1,9 @@
-import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
+import { HEDGEROWS_TAB_ANCHOR } from './constants.js'
 import {
-  HEDGEROWS_TAB_ANCHOR,
-  HABITAT_UNITS_DELIVERED_LABEL,
-  PI_DETAILS_HEADING,
-  TIME_DIFFICULTY_SECTION_HEADING
-} from './constants.js'
-import {
+  buildSectionsViewOnlyBaseFields,
   buildSharedPiViewOnlyFields,
-  displayText,
-  formatFiniteNumber,
-  formatLengthDisplay,
-  formatStandardTimeToTarget,
-  withMultiplier
+  EMPTY_PLACEHOLDER,
+  formatLengthDisplay
 } from './view-only-shared.js'
 
 /**
@@ -34,26 +26,8 @@ export function buildEnhancedHedgerowViewOnlyViewModel(
   })
 
   return {
-    ...shared,
-    heading: feature.ref ?? '',
-    pageTitle: feature.ref ?? PI_DETAILS_HEADING,
-    habitatDetailsSectionHeading: PI_DETAILS_HEADING,
-    timeDifficultySectionHeading: TIME_DIFFICULTY_SECTION_HEADING,
-    habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
+    ...buildSectionsViewOnlyBaseFields(feature, shared, proposed),
     sizeDisplay: formatLengthDisplay(feature.sizeMetres),
-    habitatTypeDisplay: proposed.type ?? '',
-    targetConditionDisplay: withMultiplier(
-      stripConditionPrefix(proposed.condition),
-      proposed.conditionScore
-    ),
-    standardTimeToTargetDisplay: formatStandardTimeToTarget(
-      proposed.standardTimeToTargetCondition
-    ),
-    standardDifficultyDisplay: displayText(proposed.difficulty),
-    advanceOrDelayDisplay: displayText(proposed.advanceOrDelay),
-    finalTimeToTargetDisplay: displayText(proposed.finalTimeToTargetCondition),
-    appliedDifficultyMultiplierDisplay: formatFiniteNumber(
-      proposed.difficultyMultiplier
-    )
+    habitatTypeDisplay: proposed.type ?? EMPTY_PLACEHOLDER
   }
 }

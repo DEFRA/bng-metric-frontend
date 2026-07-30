@@ -209,6 +209,29 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
+  test('ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+  })
+
+  test('ADVANCE_AND_DELAY_BOTH_SET reads as a full sentence when uploadHref is null', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
+      null
+    )
+    expect(result.linkText).toBeNull()
+    expect(result.messageBefore).toBe(
+      'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each.'
+    )
+  })
+
   test.each([
     'REDLINE_OUTSIDE_ENGLAND',
     'REDLINE_AREA_TOO_LARGE',

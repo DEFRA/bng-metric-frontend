@@ -97,3 +97,48 @@ export function mockSectionAreaFeature({
     }
   )
 }
+
+/**
+ * Mock a Created/Enhanced watercourse with a matching baseline parcel by ref.
+ *
+ * @param {{
+ *   ref: string,
+ *   retentionCategory: string,
+ *   proposed: object,
+ *   projectName?: string,
+ *   sizeMetres?: number,
+ *   units?: number
+ * }} options
+ */
+export function mockSectionWatercourseFeature({
+  ref,
+  retentionCategory,
+  proposed,
+  projectName = TEST_PROJECT_NAME,
+  sizeMetres = 0,
+  units = 0
+}) {
+  mockFeature(
+    {
+      type: 'watercourse',
+      feature: {
+        featureId,
+        ref,
+        sizeMetres,
+        units,
+        retentionCategory,
+        proposed
+      }
+    },
+    {
+      payload: {
+        project: {
+          name: projectName,
+          baseline: {
+            watercourses: [{ featureId: baselineFeatureId, ref }]
+          }
+        }
+      }
+    }
+  )
+}

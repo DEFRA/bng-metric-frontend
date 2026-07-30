@@ -353,12 +353,13 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
-  test.each([['Created'], ['Lost']])(
+  test.each([['Lost']])(
     'GET renders the read-only page for a %s watercourse',
     async (retentionCategory) => {
       // Every PI feature is read-only regardless of retention category:
-      // intervention type is not captured on import yet (BMD-534). Enhanced
-      // watercourses get their own two-section page — see
+      // intervention type is not captured on import yet (BMD-534). Created
+      // and Enhanced watercourses get their own two-section pages — see
+      // controller-created-watercourse.test.js and
       // controller-enhanced-watercourse.test.js.
       mockFeature({
         type: 'watercourse',
@@ -403,6 +404,26 @@ describe('#postInterventionHabitatDetailsController', () => {
 
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-habitat-details-created',
+      expect.objectContaining({ interventionDisplay: 'Created' })
+    )
+  })
+
+  test('GET renders the Created watercourse details page for a created watercourse', async () => {
+    mockFeature({
+      type: 'watercourse',
+      feature: {
+        featureId,
+        ref: 'W-4',
+        retentionCategory: 'Created',
+        proposed: { type: 'Ditches' }
+      }
+    })
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-watercourse-details-created',
       expect.objectContaining({ interventionDisplay: 'Created' })
     )
   })
