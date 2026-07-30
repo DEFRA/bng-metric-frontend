@@ -7,15 +7,68 @@
 // modules). The rows themselves stay in the per-habitat templates, which extend
 // layouts/pi-view-only-page.njk for the shared page chrome.
 
-import { formatHabitatUnits } from '../common/helpers/format-habitat-values.js'
+import {
+  formatHabitatUnits,
+  formatLengthKm,
+  KM_UNIT
+} from '../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
-import { PI_DETAILS_HEADING } from './constants.js'
+import {
+  PI_DETAILS_HEADING,
+  STANDARD_TIME_TO_TARGET_PREFIX,
+  STANDARD_TIME_TO_TARGET_SUFFIX
+} from './constants.js'
 import { interventionDisplay } from './retention.js'
 
 // Strategic significance is fixed at Low (1) in MVS across every habitat type,
 // matching the baseline details pages. The variable significance multipliers
 // come later.
 export const FIXED_STRATEGIC_SIGNIFICANCE = 'Low (1)'
+
+const EMPTY_PLACEHOLDER = ''
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function formatFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? `${value}`
+    : EMPTY_PLACEHOLDER
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function displayText(value) {
+  if (typeof value === 'string') {
+    return value
+  }
+  return formatFiniteNumber(value)
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function formatStandardTimeToTarget(value) {
+  const years = displayText(value)
+  return years
+    ? `${STANDARD_TIME_TO_TARGET_PREFIX}${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
+    : EMPTY_PLACEHOLDER
+}
+
+/**
+ * @param {number|null|undefined} sizeMetres
+ * @returns {string}
+ */
+export function formatLengthDisplay(sizeMetres) {
+  const length = formatLengthKm(sizeMetres)
+  return length === EMPTY_PLACEHOLDER
+    ? EMPTY_PLACEHOLDER
+    : `${length}${KM_UNIT}`
+}
 
 /**
  * Render a value with its multiplier in brackets ("Low (2)"), or just the value
