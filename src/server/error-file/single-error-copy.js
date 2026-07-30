@@ -49,9 +49,10 @@ const noRedlineEntry = () =>
     'The redline boundary is missing. Draw the red line boundary and '
   )
 
-// AC9 — Sliver (BMD-300 AC7): two codes, same copy. Sliver rows don't carry a
-// feature_ref (they describe a gap, not a titled parcel), so this falls back to
-// the generic title when one isn't available.
+// AC9 — Sliver (BMD-300 AC7): two codes, same copy. SLIVERS_OUTSIDE_REDLINE
+// rows carry no feature_ref (they describe escaping geometry, not a titled
+// parcel), so both codes keep the generic title rather than personalising one
+// and not the other.
 const sliverEntry = () =>
   standard(
     GEOPACKAGE_ERROR_H1,
@@ -129,7 +130,7 @@ const CODE_ENTRIES = {
     )
   },
 
-  SLIVERS_INSIDE_REDLINE: sliverEntry,
+  AREA_PARCELS_TOO_SMALL: sliverEntry,
   SLIVERS_OUTSIDE_REDLINE: sliverEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,

@@ -144,9 +144,9 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('AC9: SLIVERS_INSIDE_REDLINE', () => {
+  test('AC9: AREA_PARCELS_TOO_SMALL', () => {
     const result = resolveSingleErrorCopy(
-      { code: 'SLIVERS_INSIDE_REDLINE', message: 'x' },
+      { code: 'AREA_PARCELS_TOO_SMALL', message: 'x' },
       UPLOAD_HREF
     )
     expect(result.messageBefore).toBe(

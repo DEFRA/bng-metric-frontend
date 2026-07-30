@@ -494,7 +494,7 @@ describe('invalidFileController.handler — populated session', () => {
     // location_wkt defaults to "unknown location".
     const errors = [
       {
-        code: 'SLIVERS_INSIDE_REDLINE',
+        code: 'SLIVERS_OUTSIDE_REDLINE',
         message: 'Baseline file contains slivers …',
         details: {
           count: 1,
@@ -510,6 +510,32 @@ describe('invalidFileController.handler — populated session', () => {
     const view = h.view.mock.calls[0][1]
     expect(view.errorBlocks[0].items).toEqual([
       '~0.00 sq m near unknown location'
+    ])
+  })
+
+  test('errorBlocks: AREA_PARCELS_TOO_SMALL rows name the parcel and its area', async () => {
+    const errors = [
+      {
+        code: 'AREA_PARCELS_TOO_SMALL',
+        message: 'One or more area habitat parcels are slivers …',
+        details: {
+          count: 2,
+          sample: [
+            { idx: 0, fid: '1', feature_ref: 'P001', area_sqm: 0.32 },
+            { idx: 1, fid: '2', feature_ref: null }
+          ]
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0].items).toEqual([
+      'Feature Ref P001 — ~0.32 sq m',
+      'fid 2'
     ])
   })
 
