@@ -294,7 +294,10 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-watercourse-details',
       expect.objectContaining({
-        heading: 'Post-intervention habitat details',
+        // Parcel ref as the H1; the page name becomes the section heading.
+        heading: 'W-1',
+        habitatDetailsSectionHeading: 'Post-intervention habitat details',
+        habitatUnitsLabel: 'Habitat units delivered',
         habitatRef: 'W-1',
         interventionDisplay: 'Retained',
         sizeDisplay: '1.23456',

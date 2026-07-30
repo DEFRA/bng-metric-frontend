@@ -32,11 +32,17 @@ describe('buildWatercourseViewOnlyViewModel', () => {
     })
 
     expect(vm).toMatchObject({
-      heading: 'Post-intervention habitat details',
+      // The parcel ref is the page heading; the fixed page name is the
+      // single section heading.
+      heading: 'W-1',
+      pageTitle: 'W-1',
+      habitatDetailsSectionHeading: 'Post-intervention habitat details',
+      habitatUnitsLabel: 'Habitat units delivered',
       caption: 'Test Project',
       habitatRef: 'W-1',
       interventionDisplay: 'Retained',
-      // 7 significant figures, metres -> km
+      // 7 significant figures, metres -> km, no unit suffix — the row is
+      // labelled "Size (kilometres)"
       sizeDisplay: '1.23456',
       habitatTypeDisplay: 'Ditches',
       distinctivenessDisplay: 'Low (4)',
@@ -132,6 +138,9 @@ describe('buildWatercourseViewOnlyViewModel', () => {
 
     expect(vm).toMatchObject({
       habitatRef: '',
+      // no ref -> empty heading, page title falls back to the page name
+      heading: '',
+      pageTitle: 'Post-intervention habitat details',
       // no retention category on the feature -> defaults to the story's variant
       interventionDisplay: 'Retained',
       sizeDisplay: '',
