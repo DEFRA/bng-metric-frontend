@@ -7,15 +7,27 @@
 // modules). The rows themselves stay in the per-habitat templates, which extend
 // layouts/pi-view-only-page.njk for the shared page chrome.
 
-import { formatHabitatUnits } from '../common/helpers/format-habitat-values.js'
+import {
+  formatHabitatUnits,
+  formatLengthKm,
+  KM_UNIT
+} from '../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
-import { PI_DETAILS_HEADING } from './constants.js'
+import {
+  HABITAT_UNITS_DELIVERED_LABEL,
+  PI_DETAILS_HEADING,
+  STANDARD_TIME_TO_TARGET_PREFIX,
+  STANDARD_TIME_TO_TARGET_SUFFIX,
+  TIME_DIFFICULTY_SECTION_HEADING
+} from './constants.js'
 import { interventionDisplay } from './retention.js'
 
 // Strategic significance is fixed at Low (1) in MVS across every habitat type,
 // matching the baseline details pages. The variable significance multipliers
 // come later.
 export const FIXED_STRATEGIC_SIGNIFICANCE = 'Low (1)'
+
+export const EMPTY_PLACEHOLDER = ''
 
 /**
  * Render a value with its multiplier in brackets ("Low (2)"), or just the value
@@ -34,6 +46,90 @@ export function withMultiplier(value, score) {
     }
   } else {
     return ''
+  }
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function formatFiniteNumber(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `${value}`
+  }
+  return EMPTY_PLACEHOLDER
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function displayText(value) {
+  if (typeof value === 'string') {
+    if (value === '') {
+      return EMPTY_PLACEHOLDER
+    } else {
+      return value
+    }
+  }
+  return formatFiniteNumber(value)
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function formatStandardTimeToTarget(value) {
+  const years = displayText(value)
+  if (years) {
+    return `${STANDARD_TIME_TO_TARGET_PREFIX}${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
+  } else {
+    return EMPTY_PLACEHOLDER
+  }
+}
+
+/**
+ * @param {number|null|undefined} sizeMetres
+ * @returns {string}
+ */
+export function formatLengthDisplay(sizeMetres) {
+  const length = formatLengthKm(sizeMetres)
+  if (length === EMPTY_PLACEHOLDER) {
+    return EMPTY_PLACEHOLDER
+  } else {
+    return `${length}${KM_UNIT}`
+  }
+}
+
+/**
+ * Chrome and time/difficulty rows shared by Created/Enhanced two-section pages.
+ *
+ * @param {object} feature
+ * @param {object} shared fields from buildSharedPiViewOnlyFields
+ * @param {object} proposed feature.proposed (or {})
+ * @returns {object}
+ */
+export function buildSectionsViewOnlyBaseFields(feature, shared, proposed) {
+  return {
+    ...shared,
+    heading: feature.ref ?? EMPTY_PLACEHOLDER,
+    pageTitle: feature.ref ?? PI_DETAILS_HEADING,
+    habitatDetailsSectionHeading: PI_DETAILS_HEADING,
+    timeDifficultySectionHeading: TIME_DIFFICULTY_SECTION_HEADING,
+    habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
+    targetConditionDisplay: withMultiplier(
+      stripConditionPrefix(proposed.condition),
+      proposed.conditionScore
+    ),
+    standardTimeToTargetDisplay: formatStandardTimeToTarget(
+      proposed.standardTimeToTargetCondition
+    ),
+    standardDifficultyDisplay: displayText(proposed.difficulty),
+    advanceOrDelayDisplay: displayText(proposed.advanceOrDelay),
+    finalTimeToTargetDisplay: displayText(proposed.finalTimeToTargetCondition),
+    appliedDifficultyMultiplierDisplay: formatFiniteNumber(
+      proposed.difficultyMultiplier
+    )
   }
 }
 

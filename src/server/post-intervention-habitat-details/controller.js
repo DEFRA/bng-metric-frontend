@@ -8,6 +8,7 @@ import {
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
+import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
@@ -55,19 +56,32 @@ const HEDGEROW_RETENTION_PAGES = new Map([
   ]
 ])
 
+// Created watercourses use a two-section layout keyed by retention.
+const WATERCOURSE_RETENTION_PAGES = new Map([
+  [
+    RETENTION_CREATED,
+    {
+      template: 'habitat-details/pi-watercourse-details-created',
+      buildViewModel: buildCreatedWatercourseViewOnlyViewModel
+    }
+  ]
+])
+
 // Feature types that swap in a retention-specific, two-section page for
 // some retention categories rather than always using the single-list page.
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
-  [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES]
+  [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
+  [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
 
 // The read-only details page for each feature type. Each keeps its own
 // template — they share chrome via layouts/pi-view-only-page.njk (or the
-// sections layout for Created/Enhanced area and Enhanced hedgerow) and
-// differ in the rows they show. Created and Enhanced area habitats, and
-// Enhanced hedgerows, use a two-section layout (BMD-845); other retention
-// categories keep the single-list page for now.
+// sections layout for Created/Enhanced area, Enhanced hedgerow and Created
+// watercourse) and differ in the rows they show. Created and Enhanced area
+// habitats, Enhanced hedgerows and Created watercourses use a two-section
+// layout (BMD-845); other retention categories keep the single-list page
+// for now.
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
