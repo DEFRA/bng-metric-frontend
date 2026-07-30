@@ -144,21 +144,42 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('AC9: AREA_PARCELS_TOO_SMALL', () => {
+  test('AC9: AREA_PARCELS_TOO_SMALL interpolates the parcel ref', () => {
     const result = resolveSingleErrorCopy(
-      { code: 'AREA_PARCELS_TOO_SMALL', message: 'x' },
+      {
+        code: 'AREA_PARCELS_TOO_SMALL',
+        message: 'x',
+        details: { sample: [{ idx: 0, fid: '2', feature_ref: 'P004' }] }
+      },
       UPLOAD_HREF
     )
+    expect(result.h1).toBe('This parcel P004 contains an error')
     expect(result.messageBefore).toBe(
       'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
     )
   })
 
-  test('AC9: SLIVERS_OUTSIDE_REDLINE', () => {
+  test('AC9: AREA_PARCELS_TOO_SMALL falls back to the generic h1 with no sample', () => {
     const result = resolveSingleErrorCopy(
-      { code: 'SLIVERS_OUTSIDE_REDLINE', message: 'x' },
+      { code: 'AREA_PARCELS_TOO_SMALL', message: 'x' },
       UPLOAD_HREF
     )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
+    )
+  })
+
+  test('AC9: SLIVERS_OUTSIDE_REDLINE keeps the generic h1 — no parcel to name', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'SLIVERS_OUTSIDE_REDLINE',
+        message: 'x',
+        details: { sample: [{ area_sqm: 1.5, location_wkt: 'POINT(0 0)' }] }
+      },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
     expect(result.messageBefore).toBe(
       'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
     )

@@ -49,15 +49,24 @@ const noRedlineEntry = () =>
     'The redline boundary is missing. Draw the red line boundary and '
   )
 
-// AC9 — Sliver (BMD-300 AC7): two codes, same copy. SLIVERS_OUTSIDE_REDLINE
-// rows carry no feature_ref (they describe escaping geometry, not a titled
-// parcel), so both codes keep the generic title rather than personalising one
-// and not the other.
-const sliverEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
+// AC9 — Sliver (BMD-300 AC7): two codes, same message, different titles.
+const SLIVER_MESSAGE =
+  'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
+
+// AREA_PARCELS_TOO_SMALL names the offending parcel, so the title can too
+// (QA-clarified on the BMD-405 thread: a sliver carries a parcel ref like any
+// other polygon).
+const sliverParcelEntry = (error) => {
+  const ref = describeRef(firstSample(error))
+  return standard(
+    ref ? `This parcel ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
+    SLIVER_MESSAGE
   )
+}
+
+// SLIVERS_OUTSIDE_REDLINE rows describe escaping geometry rather than a titled
+// parcel, so there is no ref to personalise with.
+const sliverGeometryEntry = () => standard(GEOPACKAGE_ERROR_H1, SLIVER_MESSAGE)
 
 // Advance and delayed creation both set on one habitat. The statutory metric
 // rejects this (backend advance-delay-check.js); without dedicated copy a lone
@@ -130,8 +139,8 @@ const CODE_ENTRIES = {
     )
   },
 
-  AREA_PARCELS_TOO_SMALL: sliverEntry,
-  SLIVERS_OUTSIDE_REDLINE: sliverEntry,
+  AREA_PARCELS_TOO_SMALL: sliverParcelEntry,
+  SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
 
