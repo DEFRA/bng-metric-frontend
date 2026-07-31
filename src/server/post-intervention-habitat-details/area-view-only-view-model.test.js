@@ -30,11 +30,17 @@ describe('buildAreaViewOnlyViewModel', () => {
     })
 
     expect(vm).toMatchObject({
-      heading: 'Post-intervention habitat details',
+      // The parcel ref is the page heading; the fixed page name is the
+      // single section heading.
+      heading: 'P-1',
+      pageTitle: 'P-1',
+      habitatDetailsSectionHeading: 'Post-intervention habitat details',
+      habitatUnitsLabel: 'Habitat units delivered',
       caption: 'Test Project',
       habitatRef: 'P-1',
       interventionDisplay: 'Retained',
-      sizeDisplay: '2.5ha',
+      // No "ha" suffix — the row is labelled "Size (hectares)".
+      sizeDisplay: '2.5',
       broadHabitatDisplay: 'Grassland',
       habitatTypeDisplay: 'Modified grassland',
       distinctivenessDisplay: 'Low (2)',
@@ -71,6 +77,9 @@ describe('buildAreaViewOnlyViewModel', () => {
 
     expect(vm).toMatchObject({
       habitatRef: '',
+      // No ref -> empty heading, page title falls back to the page name
+      heading: '',
+      pageTitle: 'Post-intervention habitat details',
       // no retention category on the feature -> defaults to the story's variant
       interventionDisplay: 'Retained',
       sizeDisplay: '',

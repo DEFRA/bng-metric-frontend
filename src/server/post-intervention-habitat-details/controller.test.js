@@ -63,11 +63,14 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-habitat-details',
       expect.objectContaining({
-        heading: 'Post-intervention habitat details',
+        // Parcel ref as the H1; the page name becomes the section heading.
+        heading: 'P-1',
+        habitatDetailsSectionHeading: 'Post-intervention habitat details',
+        habitatUnitsLabel: 'Habitat units delivered',
         caption: 'Test Project',
         habitatRef: 'P-1',
         interventionDisplay: 'Retained',
-        sizeDisplay: '2.5ha',
+        sizeDisplay: '2.5',
         broadHabitatDisplay: 'Grassland',
         habitatTypeDisplay: 'Modified grassland',
         distinctivenessDisplay: 'Low (2)',

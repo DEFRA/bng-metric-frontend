@@ -29,11 +29,27 @@ function isUsableNumber(value) {
  * @returns {string}
  */
 function formatAreaHectares(squareMetres) {
+  const value = formatAreaHectaresValue(squareMetres)
+  if (value === EMPTY_DISPLAY) {
+    return EMPTY_DISPLAY
+  }
+  return `${value}ha`
+}
+
+/**
+ * As formatAreaHectares but without the "ha" suffix, for rows whose label
+ * already names the unit ("Size (hectares)"). Returns '' for
+ * null/undefined/non-finite.
+ *
+ * @param {number|null|undefined} squareMetres
+ * @returns {string}
+ */
+function formatAreaHectaresValue(squareMetres) {
   if (!isUsableNumber(squareMetres)) {
     return EMPTY_DISPLAY
   }
   const hectares = squareMetres / SQUARE_METRES_PER_HECTARE
-  return `${Number(hectares.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()}ha`
+  return Number(hectares.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()
 }
 
 /**
@@ -106,6 +122,7 @@ function formatTotalLengthSize(metres) {
 
 export {
   formatAreaHectares,
+  formatAreaHectaresValue,
   formatLengthKm,
   formatHabitatUnits,
   formatTotalAreaSize,
