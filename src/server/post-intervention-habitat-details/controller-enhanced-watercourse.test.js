@@ -1,8 +1,5 @@
 import { wreck } from '../common/helpers/wreck-client.js'
-import {
-  STANDARD_TIME_TO_TARGET_PREFIX,
-  STANDARD_TIME_TO_TARGET_SUFFIX
-} from './constants.js'
+import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import {
   baselineFeatureId,
   createMockH,
@@ -45,6 +42,7 @@ describe('#postInterventionHabitatDetailsController enhanced watercourse', () =>
                 sizeMetres: 1000,
                 units: 9.9,
                 retentionCategory,
+                baseline: { condition: '5. Poor' },
                 proposed: {
                   type: 'Priority habitat',
                   condition: 'Moderate',
@@ -101,7 +99,7 @@ describe('#postInterventionHabitatDetailsController enhanced watercourse', () =>
           riparianEncroachmentDisplay: 'Minor/No Encroachment (0.98)',
           habitatUnitsDisplay: '9.90',
           targetConditionDisplay: 'Moderate (2)',
-          standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}4${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+          standardTimeToTargetDisplay: `Poor to Moderate - 4${STANDARD_TIME_TO_TARGET_SUFFIX}`,
           standardDifficultyDisplay: 'Medium',
           advanceOrDelayDisplay: 'Neither',
           finalTimeToTargetDisplay: '4 years (0.867)',

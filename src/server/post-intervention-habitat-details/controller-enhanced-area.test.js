@@ -1,7 +1,4 @@
-import {
-  STANDARD_TIME_TO_TARGET_PREFIX,
-  STANDARD_TIME_TO_TARGET_SUFFIX
-} from './constants.js'
+import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import {
   baselineFeatureId,
   createMockH,
@@ -31,6 +28,7 @@ describe('#postInterventionHabitatDetailsController enhanced area', () => {
     mockSectionAreaFeature({
       ref: 'Habitat P-A2',
       retentionCategory: '1. Enhanced',
+      baseline: { condition: '5. Poor' },
       proposed: {
         broadType: 'Grassland',
         type: 'Modified grassland',
@@ -66,7 +64,7 @@ describe('#postInterventionHabitatDetailsController enhanced area', () => {
         strategicSignificanceDisplay: 'Low (1)',
         habitatUnitsDisplay: '0.00',
         targetConditionDisplay: 'Good (3)',
-        standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+        standardTimeToTargetDisplay: `Poor to Good - 10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
         standardDifficultyDisplay: 'Low',
         advanceOrDelayDisplay: 'Delay',
         finalTimeToTargetDisplay: '15',

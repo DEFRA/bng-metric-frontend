@@ -3,7 +3,6 @@ import { describe, it, expect } from 'vitest'
 import {
   HABITAT_UNITS_DELIVERED_LABEL,
   PI_DETAILS_HEADING,
-  STANDARD_TIME_TO_TARGET_PREFIX,
   STANDARD_TIME_TO_TARGET_SUFFIX,
   TIME_DIFFICULTY_SECTION_HEADING
 } from './constants.js'
@@ -53,18 +52,20 @@ describe('displayText', () => {
 })
 
 describe('formatStandardTimeToTarget', () => {
-  it('wraps years with the standard label', () => {
-    expect(formatStandardTimeToTarget(10)).toBe(
-      `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`
+  it('formats baseline condition to post-intervention condition and years', () => {
+    expect(formatStandardTimeToTarget('5. Poor', '4. Moderate', 10)).toBe(
+      'Poor to Moderate - 10 years'
     )
-    expect(formatStandardTimeToTarget('5')).toBe(
-      `${STANDARD_TIME_TO_TARGET_PREFIX}5${STANDARD_TIME_TO_TARGET_SUFFIX}`
+    expect(formatStandardTimeToTarget('Moderate', 'Good', '5')).toBe(
+      'Moderate to Good - 5 years'
     )
   })
 
-  it('returns empty when years are absent', () => {
-    expect(formatStandardTimeToTarget(null)).toBe('')
-    expect(formatStandardTimeToTarget('')).toBe('')
+  it('returns empty when a condition or years are absent', () => {
+    expect(formatStandardTimeToTarget(null, 'Moderate', 10)).toBe('')
+    expect(formatStandardTimeToTarget('Poor', null, 10)).toBe('')
+    expect(formatStandardTimeToTarget('Poor', 'Moderate', null)).toBe('')
+    expect(formatStandardTimeToTarget('Poor', 'Moderate', '')).toBe('')
   })
 })
 
@@ -81,7 +82,7 @@ describe('formatLengthDisplay', () => {
 describe('buildSectionsViewOnlyBaseFields', () => {
   it('maps chrome and time/difficulty rows from proposed', () => {
     const fields = buildSectionsViewOnlyBaseFields(
-      { ref: 'W-1' },
+      { ref: 'W-1', baseline: { condition: '5. Poor' } },
       { caption: 'Test Project' },
       {
         condition: '4. Moderate',
@@ -102,7 +103,7 @@ describe('buildSectionsViewOnlyBaseFields', () => {
       timeDifficultySectionHeading: TIME_DIFFICULTY_SECTION_HEADING,
       habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
       targetConditionDisplay: 'Moderate (2)',
-      standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardTimeToTargetDisplay: `Poor to Moderate - 10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Low',
       advanceOrDelayDisplay: 'Delay',
       finalTimeToTargetDisplay: '15',
