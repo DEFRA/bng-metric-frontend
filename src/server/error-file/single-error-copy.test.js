@@ -144,21 +144,42 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('AC9: SLIVERS_INSIDE_REDLINE', () => {
+  test('AC9: AREA_PARCELS_TOO_SMALL interpolates the parcel ref', () => {
     const result = resolveSingleErrorCopy(
-      { code: 'SLIVERS_INSIDE_REDLINE', message: 'x' },
+      {
+        code: 'AREA_PARCELS_TOO_SMALL',
+        message: 'x',
+        details: { sample: [{ idx: 0, fid: '2', feature_ref: 'P004' }] }
+      },
       UPLOAD_HREF
     )
+    expect(result.h1).toBe('This parcel P004 contains an error')
     expect(result.messageBefore).toBe(
-      'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
+      'This parcel is smaller than 1 square metre. Draw the parcel again and '
     )
   })
 
-  test('AC9: SLIVERS_OUTSIDE_REDLINE', () => {
+  test('AC9: AREA_PARCELS_TOO_SMALL falls back to the generic h1 with no sample', () => {
     const result = resolveSingleErrorCopy(
-      { code: 'SLIVERS_OUTSIDE_REDLINE', message: 'x' },
+      { code: 'AREA_PARCELS_TOO_SMALL', message: 'x' },
       UPLOAD_HREF
     )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'This parcel is smaller than 1 square metre. Draw the parcel again and '
+    )
+  })
+
+  test('AC9: SLIVERS_OUTSIDE_REDLINE keeps the generic h1 — no parcel to name', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'SLIVERS_OUTSIDE_REDLINE',
+        message: 'x',
+        details: { sample: [{ area_sqm: 1.5, location_wkt: 'POINT(0 0)' }] }
+      },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
     expect(result.messageBefore).toBe(
       'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
     )
@@ -206,6 +227,29 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.h1).toBe('This watercourse W002 contains an error')
     expect(result.messageBefore).toBe(
       'This watercourse is outside the red line boundary. Draw the watercourse again and '
+    )
+  })
+
+  test('ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+  })
+
+  test('ADVANCE_AND_DELAY_BOTH_SET reads as a full sentence when uploadHref is null', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
+      null
+    )
+    expect(result.linkText).toBeNull()
+    expect(result.messageBefore).toBe(
+      'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each.'
     )
   })
 
