@@ -10,7 +10,10 @@ import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
-import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
+import {
+  buildCreatedHedgerowViewOnlyViewModel,
+  buildEnhancedHedgerowViewOnlyViewModel
+} from './enhanced-hedgerow-view-only-view-model.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
@@ -46,13 +49,21 @@ const AREA_RETENTION_PAGES = new Map([
   ]
 ])
 
-// Enhanced hedgerows also use a two-section layout, keyed by retention.
+// Created/Enhanced hedgerows also use a two-section layout, keyed by
+// retention.
 const HEDGEROW_RETENTION_PAGES = new Map([
   [
     RETENTION_ENHANCED,
     {
       template: 'habitat-details/pi-hedgerow-details-enhanced',
       buildViewModel: buildEnhancedHedgerowViewOnlyViewModel
+    }
+  ],
+  [
+    RETENTION_CREATED,
+    {
+      template: 'habitat-details/pi-hedgerow-details-enhanced',
+      buildViewModel: buildCreatedHedgerowViewOnlyViewModel
     }
   ]
 ])
@@ -85,11 +96,10 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
 
 // The read-only details page for each feature type. Each keeps its own
 // template — they share chrome via layouts/pi-view-only-page.njk (or the
-// sections layout for Created/Enhanced area, Enhanced hedgerow, and
-// Created/Enhanced watercourse) and differ in the rows they show. Created
-// and Enhanced area habitats, Enhanced hedgerows, and Created/Enhanced
-// watercourses use a two-section layout (BMD-845); other retention
-// categories keep the single-list page for now.
+// sections layout for Created/Enhanced area, Created/Enhanced hedgerow, and
+// Created/Enhanced watercourse) and differ in the rows they show. Those
+// retention categories use a two-section layout (BMD-845); other categories
+// keep the single-list page for now.
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,

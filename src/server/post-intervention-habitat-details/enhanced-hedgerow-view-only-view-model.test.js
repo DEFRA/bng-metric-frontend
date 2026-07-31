@@ -1,5 +1,8 @@
 import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
-import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
+import {
+  buildCreatedHedgerowViewOnlyViewModel,
+  buildEnhancedHedgerowViewOnlyViewModel
+} from './enhanced-hedgerow-view-only-view-model.js'
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const baselineFeatureId = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
@@ -67,6 +70,19 @@ describe('buildEnhancedHedgerowViewOnlyViewModel', () => {
     expect(vm.advanceOrDelayDisplay).toBe('')
     expect(vm.finalTimeToTargetDisplay).toBe('')
     expect(vm.appliedDifficultyMultiplierDisplay).toBe('')
+    expect(vm.viewBaselineHref).toBeNull()
+  })
+  it('never provides a baseline link for a Created hedgerow', () => {
+    const vm = buildCreatedHedgerowViewOnlyViewModel(
+      {
+        ref: 'Hedge P-H3',
+        retentionCategory: 'Created',
+        proposed: {}
+      },
+      { projectId, projectName: 'Test Project', baselineFeatureId }
+    )
+
+    expect(vm.interventionDisplay).toBe('Created')
     expect(vm.viewBaselineHref).toBeNull()
   })
 })
