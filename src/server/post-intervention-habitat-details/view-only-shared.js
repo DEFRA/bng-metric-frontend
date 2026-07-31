@@ -88,7 +88,13 @@ export function formatStandardTimeToTarget(
   const baseline = stripConditionPrefix(displayText(baselineCondition))
   const target = stripConditionPrefix(displayText(targetCondition))
   const years = displayText(value)
-  if (baseline && target && years) {
+  if (
+    typeof baseline === 'string' &&
+    typeof target === 'string' &&
+    baseline &&
+    target &&
+    years
+  ) {
     return `${baseline} to ${target} - ${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
   } else {
     return EMPTY_PLACEHOLDER
