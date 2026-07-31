@@ -36,6 +36,7 @@ describe('#postInterventionHabitatDetailsController created hedgerow', () => {
               sizeMetres: 336,
               units: 4.25,
               retentionCategory: '2. Created',
+              baseline: { condition: '6. N/A - Other' },
               proposed: {
                 type: 'Native hedgerow',
                 condition: 'Moderate',
@@ -82,8 +83,7 @@ describe('#postInterventionHabitatDetailsController created hedgerow', () => {
         sizeDisplay: '0.336km',
         habitatTypeDisplay: 'Native hedgerow',
         targetConditionDisplay: 'Moderate (2)',
-        standardTimeToTargetDisplay:
-          'Baseline condition to target condition - 10 years',
+        standardTimeToTargetDisplay: 'N/A - Other to Moderate - 10 years',
         standardDifficultyDisplay: 'Low',
         advanceOrDelayDisplay: 'Delay',
         finalTimeToTargetDisplay: '15',

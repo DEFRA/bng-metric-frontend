@@ -60,6 +60,7 @@ export function mockFeature(featurePayload, projectResponse = projectPayload) {
  *   ref: string,
  *   retentionCategory: string,
  *   proposed: object,
+ *   baseline?: object,
  *   projectName?: string,
  *   sizeSquareMetres?: number,
  *   units?: number
@@ -69,6 +70,7 @@ export function mockSectionAreaFeature({
   ref,
   retentionCategory,
   proposed,
+  baseline = {},
   projectName = TEST_PROJECT_NAME,
   sizeSquareMetres = 0,
   units = 0
@@ -82,6 +84,7 @@ export function mockSectionAreaFeature({
         sizeSquareMetres,
         units,
         retentionCategory,
+        baseline,
         proposed
       }
     },
@@ -105,6 +108,7 @@ export function mockSectionAreaFeature({
  *   ref: string,
  *   retentionCategory: string,
  *   proposed: object,
+ *   baseline?: object,
  *   projectName?: string,
  *   sizeMetres?: number,
  *   units?: number
@@ -114,6 +118,7 @@ export function mockSectionWatercourseFeature({
   ref,
   retentionCategory,
   proposed,
+  baseline = {},
   projectName = TEST_PROJECT_NAME,
   sizeMetres = 0,
   units = 0
@@ -127,6 +132,7 @@ export function mockSectionWatercourseFeature({
         sizeMetres,
         units,
         retentionCategory,
+        baseline,
         proposed
       }
     },

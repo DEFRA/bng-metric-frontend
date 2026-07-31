@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  STANDARD_TIME_TO_TARGET_PREFIX,
-  STANDARD_TIME_TO_TARGET_SUFFIX
-} from './constants.js'
+import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 
 const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -16,6 +13,7 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
       sizeSquareMetres: 0,
       units: 0,
       retentionCategory: 'Created',
+      baseline: { condition: '6. N/A - Other' },
       proposed: {
         broadType: 'Urban',
         type: 'Developed land; sealed surface',
@@ -55,7 +53,7 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
       backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`,
       targetConditionDisplay: 'N/A - Other (0)',
-      standardTimeToTargetDisplay: `${STANDARD_TIME_TO_TARGET_PREFIX}0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardTimeToTargetDisplay: `N/A - Other to N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Medium',
       advanceOrDelayDisplay: 'Advance – 0 years',
       finalTimeToTargetDisplay: '0 years (0)',
@@ -67,7 +65,9 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
     const vm = buildCreatedAreaViewOnlyViewModel(
       {
         retentionCategory: 'Created',
+        baseline: { condition: '6. N/A - Other' },
         proposed: {
+          condition: 'N/A - Other',
           standardTimeToTargetCondition: 0,
           finalTimeToTargetCondition: 0,
           difficultyMultiplier: 1.5,
@@ -79,7 +79,7 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
     )
 
     expect(vm.standardTimeToTargetDisplay).toBe(
-      `${STANDARD_TIME_TO_TARGET_PREFIX}0${STANDARD_TIME_TO_TARGET_SUFFIX}`
+      `N/A - Other to N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`
     )
     expect(vm.finalTimeToTargetDisplay).toBe('0')
     expect(vm.appliedDifficultyMultiplierDisplay).toBe('1.5')
