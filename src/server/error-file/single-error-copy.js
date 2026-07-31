@@ -49,10 +49,29 @@ const noRedlineEntry = () =>
     'The redline boundary is missing. Draw the red line boundary and '
   )
 
-// AC9 — Sliver (BMD-300 AC7): two codes, same copy. Sliver rows don't carry a
-// feature_ref (they describe a gap, not a titled parcel), so this falls back to
-// the generic title when one isn't available.
-const sliverEntry = () =>
+// AC9 — Sliver (BMD-300 AC7). Two codes, and they are two different problems,
+// so they no longer share a sentence.
+
+// AREA_PARCELS_TOO_SMALL rejects a parcel on area alone — shape is not
+// considered, so the old "a thin strip of land" wording described something the
+// service never measures. Naming the limit tells the user what to draw instead.
+// The 1 square metre figure mirrors MIN_PARCEL_AREA_SQ_M in the backend
+// (validation/baseline/postgis/index.js); change both together.
+// It also names the offending parcel, so the title can too (QA-clarified on the
+// BMD-405 thread: a sliver carries a parcel ref like any other polygon).
+const tooSmallParcelEntry = (error) => {
+  const ref = describeRef(firstSample(error))
+  return standard(
+    ref ? `This parcel ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
+    'This parcel is smaller than 1 square metre. Draw the parcel again and '
+  )
+}
+
+// SLIVERS_OUTSIDE_REDLINE really is a thin strip — it reports the leftover
+// geometry where the parcels overhang the boundary — so it keeps the original
+// wording. It describes that leftover rather than a titled parcel, so there is
+// no ref to personalise the title with.
+const sliverGeometryEntry = () =>
   standard(
     GEOPACKAGE_ERROR_H1,
     'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
@@ -129,8 +148,8 @@ const CODE_ENTRIES = {
     )
   },
 
-  SLIVERS_INSIDE_REDLINE: sliverEntry,
-  SLIVERS_OUTSIDE_REDLINE: sliverEntry,
+  AREA_PARCELS_TOO_SMALL: tooSmallParcelEntry,
+  SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
 

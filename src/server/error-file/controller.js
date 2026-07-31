@@ -38,6 +38,14 @@ function describeSliver(s) {
   return `~${area} sq m near ${loc}`
 }
 
+function describeFeatureWithArea(s) {
+  const base = describeFeature(s)
+  if (s?.area_sqm == null) {
+    return base
+  }
+  return `${base} — ~${Number(s.area_sqm).toFixed(2)} sq m`
+}
+
 function describeFeatureWithEscape(s) {
   const base = describeFeature(s)
   if (s?.escape_area_sqm == null || s?.escape_location_wkt == null) {
@@ -81,11 +89,11 @@ function buildItems(err) {
   if (err.code === 'PARCEL_OVERLAPS') {
     return sample.map(describeOverlapPair)
   }
-  if (
-    err.code === 'SLIVERS_INSIDE_REDLINE' ||
-    err.code === 'SLIVERS_OUTSIDE_REDLINE'
-  ) {
+  if (err.code === 'SLIVERS_OUTSIDE_REDLINE') {
     return sample.map(describeSliver)
+  }
+  if (err.code === 'AREA_PARCELS_TOO_SMALL') {
+    return sample.map(describeFeatureWithArea)
   }
   if (err.code === 'AREA_PARCELS_INVALID_GEOMETRY') {
     return sample.map((s) => {
