@@ -128,6 +128,31 @@ function buildSaveBody({
   return body
 }
 
+function postInterventionBackHref(request, projectId) {
+  try {
+    const referer = new URL(request.headers.referer)
+    const featureId = referer.searchParams.get('featureId')
+    const refererProjectId = referer.searchParams.get('projectId')
+    const isValidFeatureId = !Joi.string().uuid().validate(featureId).error
+
+    if (
+      referer.host === request.headers.host &&
+      referer.pathname === '/post-intervention-habitat-details' &&
+      refererProjectId === projectId &&
+      isValidFeatureId
+    ) {
+      return `/post-intervention-habitat-details?${new URLSearchParams({
+        featureId,
+        projectId
+      }).toString()}`
+    }
+  } catch {
+    // Missing or malformed referrers use the baseline list fallback.
+  }
+
+  return null
+}
+
 function createGetController(uploadType) {
   return {
     options: {
@@ -162,7 +187,10 @@ function createGetController(uploadType) {
         ...viewModel,
         formAction: `/${uploadType.detailsRoute}`,
         detailsSectionHeading: uploadType.detailsSectionHeading,
-        backHref: adaptListHref(viewModel.backHref, uploadType, projectId),
+        backHref:
+          (!uploadType.isPostIntervention &&
+            postInterventionBackHref(request, projectId)) ||
+          adaptListHref(viewModel.backHref, uploadType, projectId),
         cancelHref: adaptListHref(viewModel.cancelHref, uploadType, projectId)
       })
     }

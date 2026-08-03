@@ -33,6 +33,7 @@ const authedAuth = {
 
 const projectId = 'aa0e8400-e29b-41d4-a716-446655440000'
 const habitatId = 'aa0e8400-e29b-41d4-a716-446655440001'
+const postInterventionFeatureId = 'aa0e8400-e29b-41d4-a716-446655440002'
 const url = `/baseline-habitat-details?featureId=${habitatId}&projectId=${projectId}`
 
 const mockHabitat = {
@@ -300,6 +301,36 @@ describe('#baselineHabitatDetails - GET', () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      `href="/projects/${projectId}/baseline-habitat-list"`
+    )
+  })
+
+  test('Renders Back link to the referring post-intervention habitat details page', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      headers: {
+        host: 'localhost',
+        referer: `http://localhost/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
+      },
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      `href="/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&amp;projectId=${projectId}"`
+    )
+  })
+
+  test('Ignores a post-intervention referrer from another host', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      headers: {
+        host: 'localhost',
+        referer: `https://example.com/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
+      },
       auth: authedAuth
     })
     expect(result).toContain(
