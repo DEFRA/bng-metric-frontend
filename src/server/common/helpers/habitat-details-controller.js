@@ -179,6 +179,9 @@ function createGetController(uploadType) {
         projectId,
         projectName
       })
+      const piBackHref = uploadType.isPostIntervention
+        ? null
+        : postInterventionBackHref(request, projectId)
 
       return h.view('habitat-details/habitat-details', {
         pageTitle: `${viewModel.headingPrefix} ${viewModel.habitatRef}`,
@@ -188,8 +191,7 @@ function createGetController(uploadType) {
         formAction: `/${uploadType.detailsRoute}`,
         detailsSectionHeading: uploadType.detailsSectionHeading,
         backHref:
-          (!uploadType.isPostIntervention &&
-            postInterventionBackHref(request, projectId)) ||
+          piBackHref ??
           adaptListHref(viewModel.backHref, uploadType, projectId),
         cancelHref: adaptListHref(viewModel.cancelHref, uploadType, projectId)
       })
