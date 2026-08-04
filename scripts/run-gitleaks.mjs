@@ -12,6 +12,7 @@ const BUNDLED = path.join(
   BIN_NAME
 )
 const CONFIG = path.join(REPO_ROOT, '.gitleaks.toml')
+const RANGE_FALLBACK_DEPTH = 20
 
 function resolveBinary() {
   if (existsSync(BUNDLED)) {
@@ -46,16 +47,21 @@ if (existsSync(CONFIG)) {
 
 let args
 if (mode === 'staged') {
-  args = ['protect', '--staged', ...common]
+  args = ['git', '--staged', ...common]
 } else {
   const upstream = spawnSync(
     'git',
     ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'],
     { encoding: 'utf8' }
   )
+  // With an upstream, scan exactly what this push adds. Without one (a new
+  // branch), fall back to the last N commits — `-N` is safe on any history
+  // depth, whereas `HEAD~N..HEAD` fatals when there are fewer than N commits.
   const range =
-    upstream.status === 0 ? `${upstream.stdout.trim()}..HEAD` : 'HEAD~20..HEAD'
-  args = ['detect', `--log-opts=${range}`, ...common]
+    upstream.status === 0
+      ? `${upstream.stdout.trim()}..HEAD`
+      : `-${RANGE_FALLBACK_DEPTH}`
+  args = ['git', `--log-opts=${range}`, ...common]
 }
 
 const r = spawnSync(bin, args, { stdio: 'inherit', cwd: REPO_ROOT })
