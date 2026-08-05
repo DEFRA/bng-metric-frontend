@@ -280,6 +280,64 @@ describe('#callbackController', () => {
     expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
   })
 
+  // BMD-890: projects are scoped to the org the user is signed in as, so a
+  // "Change organisation" sign-in must not leave journey state pointing at a
+  // project in the org they just left.
+  test('clears the previous org’s journey state when the organisation changes', async () => {
+    const request = buildRequest()
+    request.yar.set('auth', {
+      user: { sub: 'user-1', currentRelationshipId: 'rel-org-a' },
+      idToken: 'old-id-token',
+      refreshToken: 'old-refresh-token'
+    })
+    request.yar.set('pendingUploadId', 'upload-in-org-a')
+    request.yar.set('baselineValidationErrorsProjectId', 'project-in-org-a')
+    request.yar.set('oidc', {
+      codeVerifier: 'verifier',
+      state: 'state',
+      nonce: 'nonce'
+    })
+    authorizationCodeGrant.mockResolvedValue({
+      id_token: 'id-token',
+      refresh_token: 'refresh-token',
+      claims: () => ({ sub: 'user-1', currentRelationshipId: 'rel-org-b' })
+    })
+
+    await callbackController.handler(request, buildToolkit())
+
+    expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'baselineValidationErrorsProjectId'
+    )
+    expect(request.yar.get('pendingUploadId')).toBeUndefined()
+    // The new session is untouched by the clear-out.
+    expect(request.yar.get('auth').user.currentRelationshipId).toBe('rel-org-b')
+  })
+
+  test('keeps journey state when signing in again as the same organisation', async () => {
+    const request = buildRequest()
+    request.yar.set('auth', {
+      user: { sub: 'user-1', currentRelationshipId: 'rel-org-a' },
+      idToken: 'old-id-token',
+      refreshToken: 'old-refresh-token'
+    })
+    request.yar.set('pendingUploadId', 'upload-in-org-a')
+    request.yar.set('oidc', {
+      codeVerifier: 'verifier',
+      state: 'state',
+      nonce: 'nonce'
+    })
+    authorizationCodeGrant.mockResolvedValue({
+      id_token: 'id-token',
+      refresh_token: 'refresh-token',
+      claims: () => ({ sub: 'user-1', currentRelationshipId: 'rel-org-a' })
+    })
+
+    await callbackController.handler(request, buildToolkit())
+
+    expect(request.yar.get('pendingUploadId')).toBe('upload-in-org-a')
+  })
+
   test('accepts tokens when nonce is absent from claims (stub compatibility)', async () => {
     const request = buildRequest()
     request.yar.set('oidc', {

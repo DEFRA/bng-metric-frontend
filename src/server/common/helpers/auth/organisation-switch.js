@@ -1,0 +1,66 @@
+// Journey state left in the yar session when a user changes organisation.
+//
+// A user linked to several orgs can hold an approved 'bng completer' role in
+// each, and switches between them with "Change organisation" (which re-runs the
+// interactive sign-in with forceReselection=true). Their projects are scoped to
+// the org they are signed in as — the backend's visibility predicate matches the
+// project's relationship_id against the token's currentRelationshipId
+// (bng-metric-backend/src/db/project-visibility.js, BMD-890) — so the in-flight
+// journey state pointing at the PREVIOUS org's project must not survive the
+// switch. Left in place it would resurface as an upload-error banner or a
+// validation-error list for a project the user can no longer open.
+//
+// Only a genuine change of relationship clears it. Signing in again as the SAME
+// org (e.g. after the session expired mid-upload) keeps the journey intact.
+import { HABITAT_UPLOAD_TYPES } from '../habitat-upload-types.js'
+
+// Derived from the upload-type definitions rather than hard-coded, so a new
+// session key added there is cleared here without a second edit.
+const ORG_SCOPED_SESSION_KEYS = [
+  ...new Set(
+    Object.values(HABITAT_UPLOAD_TYPES).flatMap((uploadType) => [
+      uploadType.pendingUploadSessionKey,
+      uploadType.uploadStartedAtSessionKey,
+      uploadType.uploadErrorSessionKey,
+      uploadType.validationErrorsSessionKey,
+      uploadType.validationErrorsProjectIdSessionKey,
+      uploadType.validationUploadTypeSessionKey
+    ])
+  )
+]
+
+/**
+ * Drop the journey state tied to a project in the org the user has just left.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {string|null|undefined} previousRelationshipId the currentRelationshipId
+ *   held in the session before this sign-in
+ * @param {string|null|undefined} nextRelationshipId the one carried by the new token
+ * @returns {boolean} whether the org context changed (and state was cleared)
+ */
+export function clearStateOnOrganisationSwitch(
+  request,
+  previousRelationshipId,
+  nextRelationshipId
+) {
+  // A first sign-in has nothing to carry over, and an unchanged (or absent)
+  // relationship is not a switch.
+  if (
+    !previousRelationshipId ||
+    previousRelationshipId === nextRelationshipId
+  ) {
+    return false
+  }
+
+  for (const key of ORG_SCOPED_SESSION_KEYS) {
+    request.yar.clear(key)
+  }
+
+  request.logger?.info(
+    { sub: request.yar.get('auth')?.user?.sub },
+    'Auth: organisation context changed, cleared journey state scoped to the previous organisation'
+  )
+  return true
+}
+
+export { ORG_SCOPED_SESSION_KEYS }
