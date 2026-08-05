@@ -14,8 +14,17 @@
 // org (e.g. after the session expired mid-upload) keeps the journey intact.
 import { HABITAT_UPLOAD_TYPES } from '../habitat-upload-types.js'
 
-// Derived from the upload-type definitions rather than hard-coded, so a new
-// session key added there is cleared here without a second edit.
+// Read off the upload-type definitions, which own the actual key names — so a
+// NEW UPLOAD TYPE has all six of its keys cleared without touching this file.
+// Adding a new KIND of key to an existing type is not picked up automatically:
+// the six property names below are still listed by hand. What catches that is
+// the last test in organisation-switch.test.js, which asserts this list matches
+// every `*SessionKey` the upload types declare — so a seventh kind fails the
+// build and forces the edit here rather than silently surviving an org switch.
+//
+// The Set dedupes `validationUploadTypeSessionKey`, which is deliberately the
+// same key ('validationUploadType') for both types: it records WHICH type the
+// stored validation errors came from, so there is only ever one of it.
 const ORG_SCOPED_SESSION_KEYS = [
   ...new Set(
     Object.values(HABITAT_UPLOAD_TYPES).flatMap((uploadType) => [
