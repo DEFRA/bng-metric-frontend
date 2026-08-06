@@ -12,6 +12,7 @@ import { uploadBaselineFile } from './upload-baseline-file/index.js'
 import { uploadPostInterventionFile } from './upload-post-intervention-file/index.js'
 import { uploadReceived } from './upload-received/index.js'
 import { postInterventionUploadReceived } from './post-intervention-upload-received/index.js'
+import { habitatValidating } from './habitat-validating/index.js'
 import { baselineHabitatDetails } from './baseline-habitat-details/index.js'
 import { postInterventionHabitatDetails } from './post-intervention-habitat-details/index.js'
 import { invalidFile } from './error-file/index.js'
@@ -44,6 +45,7 @@ export const router = {
         uploadPostInterventionFile,
         uploadReceived,
         postInterventionUploadReceived,
+        habitatValidating,
         baselineHabitatDetails,
         postInterventionHabitatDetails,
         baselineHabitatList,

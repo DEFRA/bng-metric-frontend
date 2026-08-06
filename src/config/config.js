@@ -327,6 +327,14 @@ export const config = convict({
       default: 'baseline/',
       env: 'CDP_UPLOADER_S3_PATH'
     }
+  },
+  asyncValidation: {
+    enabled: {
+      doc: 'Enqueue file validation on the backend and poll a validation-job screen instead of blocking on the synchronous validate call. Must match the backend ASYNC_VALIDATION_ENABLED flag. Off by default.',
+      format: Boolean,
+      default: false,
+      env: 'ASYNC_VALIDATION_ENABLED'
+    }
   }
 })
 
