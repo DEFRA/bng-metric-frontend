@@ -26,9 +26,12 @@ Full reference, exceptions, and PR review checklist: [`docs/csrf.md`](docs/csrf.
 
 Pages are checked with `axe-core` (via `vitest-axe`) against real rendered
 markup, using shared helpers in `src/server/test-helpers/`
-(`load-page.js`, `axe-helper.js`). See `src/server/projects/accessibility.test.js`
-for the worked example and [`docs/accessibility-testing.md`](docs/accessibility-testing.md)
-for the pattern to follow when adding one for another page.
+(`load-page.js`, `axe-helper.js`). To add coverage for a page, copy
+`src/server/test-helpers/accessibility-test.template.js` into that page's
+route folder as `accessibility.test.js` and fill in the `TODO`s — see
+`src/server/projects/accessibility.test.js` for a filled-in example and
+[`docs/accessibility-testing.md`](docs/accessibility-testing.md) for the full
+pattern.
 
 ## Code style
 

@@ -17,40 +17,20 @@ Two shared helpers in `src/server/test-helpers/` do the work:
 
 ## Adding an accessibility test for a page
 
-Follow `src/server/projects/accessibility.test.js` as the worked example. The
-shape is:
+Copy [`src/server/test-helpers/accessibility-test.template.js`](../src/server/test-helpers/accessibility-test.template.js)
+into the page's route folder as `accessibility.test.js` (a sibling of that
+page's `controller.test.js`) and work through the `TODO`s in it. It's not
+picked up by vitest itself — the filename deliberately doesn't end in
+`.test.js` — so it's safe to leave in place as a live template rather than
+copy it out of the repo.
 
-    // @vitest-environment happy-dom
-    import { createServer } from '../server.js'
-    import { loadPage } from '../test-helpers/load-page.js'
-    import { runAxeChecks } from '../test-helpers/axe-helper.js'
+`src/server/projects/accessibility.test.js` is the worked example the
+template was extracted from, if you want to see a filled-in version.
 
-    describe('<Page name> accessibility checks', () => {
-      let server
-
-      beforeAll(async () => {
-        server = await createServer()
-        await server.initialize()
-      })
-
-      afterAll(async () => {
-        await server.stop({ timeout: 0 })
-      })
-
-      it('should have no HTML accessibility issues', async () => {
-        const { document } = await loadPage({
-          requestUrl: '/my-page',
-          server,
-          auth: authedAuth // if the route requires auth
-        })
-        await runAxeChecks(document.documentElement)
-      })
-    })
-
-Mock backend calls the same way the page's existing `controller.test.js` does
-(usually `vi.mock('../common/helpers/wreck-client.js', ...)`) so each
-significant render branch (empty state, error state, populated state) can get
-its own accessibility check.
+Add one `it` per meaningfully different render branch (populated, empty,
+error, validation-error states, etc.), mocking the backend the same way the
+page's existing `controller.test.js` does — usually
+`vi.mock('../common/helpers/wreck-client.js', ...)`.
 
 The `// @vitest-environment happy-dom` pragma is required — it's what makes
 `DOMParser` (used by `load-page.js`) available as a global, matching the
@@ -60,8 +40,9 @@ convention already used by `src/client/javascripts/*.test.js`.
 
 There's no blanket page-by-page requirement yet — add an
 `accessibility.test.js` alongside a page's `controller.test.js` when you touch
-that page, or when a ticket specifically asks for it (this pattern was
-introduced for BMD-893/BMD-892 to cover the projects list page first).
+that page, or when a ticket specifically asks for it. The projects list page
+(`src/server/projects/accessibility.test.js`) is the only page currently
+covered; the rest of the app's ~18 other page routes don't have one yet.
 
 ## Known accepted finding: content outside `<main>`
 
