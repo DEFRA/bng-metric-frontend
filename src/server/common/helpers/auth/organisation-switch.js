@@ -12,31 +12,11 @@
 //
 // Only a genuine change of relationship clears it. Signing in again as the SAME
 // org (e.g. after the session expired mid-upload) keeps the journey intact.
-import { HABITAT_UPLOAD_TYPES } from '../habitat-upload-types.js'
-
-// Read off the upload-type definitions, which own the actual key names — so a
-// NEW UPLOAD TYPE has all six of its keys cleared without touching this file.
-// Adding a new KIND of key to an existing type is not picked up automatically:
-// the six property names below are still listed by hand. What catches that is
-// the last test in organisation-switch.test.js, which asserts this list matches
-// every `*SessionKey` the upload types declare — so a seventh kind fails the
-// build and forces the edit here rather than silently surviving an org switch.
 //
-// The Set dedupes `validationUploadTypeSessionKey`, which is deliberately the
-// same key ('validationUploadType') for both types: it records WHICH type the
-// stored validation errors came from, so there is only ever one of it.
-const ORG_SCOPED_SESSION_KEYS = [
-  ...new Set(
-    Object.values(HABITAT_UPLOAD_TYPES).flatMap((uploadType) => [
-      uploadType.pendingUploadSessionKey,
-      uploadType.uploadStartedAtSessionKey,
-      uploadType.uploadErrorSessionKey,
-      uploadType.validationErrorsSessionKey,
-      uploadType.validationErrorsProjectIdSessionKey,
-      uploadType.validationUploadTypeSessionKey
-    ])
-  )
-]
+// WHICH keys get cleared is not decided here — ../session-keys.js is the single
+// home for that, so a future project-scoped key outside the upload journeys has
+// one obvious place to be registered.
+import { ORG_SCOPED_SESSION_KEYS } from '../session-keys.js'
 
 /**
  * Drop the journey state tied to a project in the org the user has just left.
@@ -71,5 +51,3 @@ export function clearStateOnOrganisationSwitch(
   )
   return true
 }
-
-export { ORG_SCOPED_SESSION_KEYS }

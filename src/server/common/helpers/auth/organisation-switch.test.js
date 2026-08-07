@@ -1,10 +1,7 @@
 import { describe, expect, test, vi } from 'vitest'
 
-import {
-  ORG_SCOPED_SESSION_KEYS,
-  clearStateOnOrganisationSwitch
-} from './organisation-switch.js'
-import { HABITAT_UPLOAD_TYPES } from '../habitat-upload-types.js'
+import { clearStateOnOrganisationSwitch } from './organisation-switch.js'
+import { ORG_SCOPED_SESSION_KEYS } from '../session-keys.js'
 
 const REL_A = 'rel-org-a'
 const REL_B = 'rel-org-b'
@@ -78,15 +75,19 @@ describe('#clearStateOnOrganisationSwitch', () => {
     })
   })
 
-  test('covers every session key declared by the upload types', () => {
-    // Guards against a new key being added to habitat-upload-types.js and
-    // silently surviving an org switch.
-    const declared = Object.values(HABITAT_UPLOAD_TYPES).flatMap((uploadType) =>
-      Object.entries(uploadType)
-        .filter(([name]) => name.endsWith('SessionKey'))
-        .map(([, value]) => value)
+  // The registry itself (what belongs in the list, and what deliberately does
+  // not) is covered by session-keys.test.js; this asserts the switch acts on
+  // all of it, however it is composed.
+  test('clears every key the registry declares', () => {
+    const request = buildRequest(
+      Object.fromEntries(ORG_SCOPED_SESSION_KEYS.map((key) => [key, 'set']))
     )
 
-    expect(new Set(ORG_SCOPED_SESSION_KEYS)).toEqual(new Set(declared))
+    clearStateOnOrganisationSwitch(request, REL_A, REL_B)
+
+    for (const key of ORG_SCOPED_SESSION_KEYS) {
+      expect(request.yar.clear).toHaveBeenCalledWith(key)
+      expect(request._store.has(key)).toBe(false)
+    }
   })
 })
