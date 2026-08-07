@@ -16,6 +16,7 @@ import {
   LOGIN_FAILURE_REASON
 } from '../common/helpers/auth/auth-metrics.js'
 import { persistBackendSession } from '../common/helpers/auth/persist-session.js'
+import { clearStateOnOrganisationSwitch } from '../common/helpers/auth/organisation-switch.js'
 import { clearSessionEnded } from '../common/helpers/auth/session-expiry.js'
 import { hasBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 import { statusCodes } from '../common/constants.js'
@@ -122,6 +123,11 @@ export const loginController = {
 }
 
 async function exchangeCodeForSession(request, h, pending) {
+  // Captured before the session is replaced, so a "Change organisation" sign-in
+  // can be told apart from a plain re-sign-in as the same org.
+  const previousRelationshipId =
+    request.yar.get('auth')?.user?.currentRelationshipId ?? null
+
   try {
     const oidcConfig = await getOidcConfig()
     const currentUrl = new URL(redirectUri)
@@ -164,6 +170,13 @@ async function exchangeCodeForSession(request, h, pending) {
     // A fresh session supersedes any earlier expiry, so drop the breadcrumb
     // that would otherwise keep routing this browser to /auth/session-expired.
     clearSessionEnded(request)
+    // Projects are scoped to the org the user is signed in as, so an org switch
+    // must not leave journey state pointing at the previous org's project.
+    clearStateOnOrganisationSwitch(
+      request,
+      previousRelationshipId,
+      claims?.currentRelationshipId ?? null
+    )
 
     // Best-effort: persist the user's identity / relationships / roles in the
     // backend. Never block sign-in on a backend hiccup.
