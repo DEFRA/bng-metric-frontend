@@ -68,6 +68,18 @@ describe('formatStandardTimeToTarget', () => {
     expect(formatStandardTimeToTarget('', 'Good', 0)).toBe('Good - 0 years')
   })
 
+  it('treats GeoPackage "N/A" baseline sentinels as absent', () => {
+    expect(formatStandardTimeToTarget('N/A', 'Good', 12)).toBe(
+      'Good - 12 years'
+    )
+    expect(formatStandardTimeToTarget('6. N/A', 'Good', 12)).toBe(
+      'Good - 12 years'
+    )
+    expect(formatStandardTimeToTarget('N/A - Other', 'Good', 12)).toBe(
+      'Good - 12 years'
+    )
+  })
+
   it('returns empty when target condition or years are absent', () => {
     expect(formatStandardTimeToTarget('Poor', null, 10)).toBe('')
     expect(formatStandardTimeToTarget('Poor', 'Moderate', null)).toBe('')
