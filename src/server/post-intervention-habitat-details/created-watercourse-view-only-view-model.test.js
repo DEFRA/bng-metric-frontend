@@ -13,7 +13,6 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
       sizeMetres: 500,
       units: 3.5,
       retentionCategory: 'Created',
-      baseline: { condition: '6. N/A' },
       proposed: {
         type: 'Ditches',
         condition: 'Moderate',
@@ -57,7 +56,7 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
       backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`,
       targetConditionDisplay: 'Moderate (2)',
-      standardTimeToTargetDisplay: `N/A to Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardTimeToTargetDisplay: `Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Low',
       advanceOrDelayDisplay: 'Neither',
       finalTimeToTargetDisplay: '0 years (1)',
@@ -69,7 +68,6 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
     const vm = buildCreatedWatercourseViewOnlyViewModel(
       {
         retentionCategory: 'Created',
-        baseline: { condition: '6. N/A' },
         proposed: {
           condition: 'Moderate',
           standardTimeToTargetCondition: 0,
@@ -83,7 +81,7 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
     )
 
     expect(vm.standardTimeToTargetDisplay).toBe(
-      `N/A to Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`
+      `Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`
     )
     expect(vm.finalTimeToTargetDisplay).toBe('0')
     expect(vm.appliedDifficultyMultiplierDisplay).toBe('1.5')

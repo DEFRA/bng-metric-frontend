@@ -28,7 +28,6 @@ describe('#postInterventionHabitatDetailsController created watercourse', () => 
     mockSectionWatercourseFeature({
       ref: 'W-A1',
       retentionCategory: '1. Created',
-      baseline: { condition: '6. N/A' },
       projectName: 'Project name',
       sizeMetres: 500,
       units: 3.5,
@@ -71,7 +70,7 @@ describe('#postInterventionHabitatDetailsController created watercourse', () => 
         riparianEncroachmentDisplay: 'Minor/No Encroachment (0.98)',
         habitatUnitsDisplay: '3.50',
         targetConditionDisplay: 'Moderate (2)',
-        standardTimeToTargetDisplay: `N/A to Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+        standardTimeToTargetDisplay: `Moderate - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
         standardDifficultyDisplay: 'Low',
         advanceOrDelayDisplay: 'Neither',
         finalTimeToTargetDisplay: '0 years (1)',
