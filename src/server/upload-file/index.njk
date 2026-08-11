@@ -1,0 +1,62 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+
+{% block beforeContent %}
+  {{ super() }}
+  {{ govukBackLink({
+    text: "Back",
+    href: backHref
+  }) }}
+{% endblock %}
+
+{% block content %}
+  {% if error %}
+    {{ govukErrorSummary({
+      titleText: "There is a problem",
+      errorList: [{
+        text: error,
+        href: "#uploadType"
+      }]
+    }) }}
+  {% endif %}
+
+  {{ appHeading({
+    text: heading,
+    caption: caption
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <p class="govuk-body">Uploading a file will overwrite any previous files you have uploaded.</p>
+
+      {% call appForm({ action: "/projects/" + projectId + "/upload-file" }) %}
+        <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
+
+        {{ govukRadios({
+          name: "uploadType",
+          idPrefix: "uploadType",
+          fieldset: {
+            legend: {
+              text: "What would you like to upload?",
+              classes: "govuk-visually-hidden"
+            }
+          },
+          items: items,
+          errorMessage: { text: error } if error else undefined
+        }) }}
+
+        <div class="govuk-button-group">
+          {{ govukButton({
+            text: "Continue"
+          }) }}
+
+          <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>
+        </div>
+      {% endcall %}
+    </div>
+  </div>
+{% endblock %}

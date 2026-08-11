@@ -327,7 +327,7 @@ describe('#projectTaskListController', () => {
 
     expect(result).toEqual(
       expect.stringContaining(
-        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-baseline-file"`
+        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-file"`
       )
     )
   })
@@ -356,11 +356,6 @@ describe('#projectTaskListController', () => {
     expect(result).toEqual(
       expect.stringContaining(
         `href="/projects/${mockProjects[0].id}/baseline-habitat-list"`
-      )
-    )
-    expect(result).not.toEqual(
-      expect.stringContaining(
-        `href="/projects/${mockProjects[0].id}/upload-baseline-file"`
       )
     )
   })
@@ -401,7 +396,7 @@ describe('#projectTaskListController', () => {
 
     expect(result).toEqual(
       expect.stringContaining(
-        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-post-intervention-file"`
+        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-file"`
       )
     )
   })
@@ -430,11 +425,6 @@ describe('#projectTaskListController', () => {
     expect(result).toEqual(
       expect.stringContaining(
         `href="/projects/${mockProjects[0].id}/post-intervention-habitat-list"`
-      )
-    )
-    expect(result).not.toEqual(
-      expect.stringContaining(
-        `href="/projects/${mockProjects[0].id}/upload-post-intervention-file"`
       )
     )
   })

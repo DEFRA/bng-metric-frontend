@@ -442,7 +442,7 @@ describe('#habitatListController - GET', () => {
     expect(result).toContain(`/add-project-details/${projectId}`)
   })
 
-  test('renders the action buttons', async () => {
+  test('AC1 routes the upload action through the file type selection page', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
@@ -450,6 +450,9 @@ describe('#habitatListController - GET', () => {
     })
 
     expect(result).toContain('Upload a different file')
+    expect(result).toContain(
+      `/projects/${projectId}/upload-file?returnUrl=%2Fprojects%2F${projectId}%2Fbaseline-habitat-list`
+    )
     expect(result).toContain('Continue')
     expect(result).not.toContain('Show map')
   })
