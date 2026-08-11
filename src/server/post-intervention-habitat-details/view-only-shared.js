@@ -85,10 +85,8 @@ export function formatStandardTimeToTarget(
   targetCondition,
   value
 ) {
-  const baseline = displayText(
-    stripConditionPrefix(displayText(baselineCondition))
-  )
-  const target = displayText(stripConditionPrefix(displayText(targetCondition)))
+  const baseline = stripConditionPrefix(displayText(baselineCondition))
+  const target = stripConditionPrefix(displayText(targetCondition))
   const years = displayText(value)
   if (!target || !years) {
     return EMPTY_PLACEHOLDER
