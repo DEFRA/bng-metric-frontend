@@ -61,8 +61,14 @@ describe('formatStandardTimeToTarget', () => {
     )
   })
 
-  it('returns empty when a condition or years are absent', () => {
-    expect(formatStandardTimeToTarget(null, 'Moderate', 10)).toBe('')
+  it('formats target condition and years when baseline condition is absent', () => {
+    expect(formatStandardTimeToTarget(null, '4. Moderate', 10)).toBe(
+      'Moderate - 10 years'
+    )
+    expect(formatStandardTimeToTarget('', 'Good', 0)).toBe('Good - 0 years')
+  })
+
+  it('returns empty when target condition or years are absent', () => {
     expect(formatStandardTimeToTarget('Poor', null, 10)).toBe('')
     expect(formatStandardTimeToTarget('Poor', 'Moderate', null)).toBe('')
     expect(formatStandardTimeToTarget('Poor', 'Moderate', '')).toBe('')

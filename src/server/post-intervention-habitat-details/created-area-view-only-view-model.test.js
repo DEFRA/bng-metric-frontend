@@ -13,7 +13,6 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
       sizeSquareMetres: 0,
       units: 0,
       retentionCategory: 'Created',
-      baseline: { condition: '6. N/A - Other' },
       proposed: {
         broadType: 'Urban',
         type: 'Developed land; sealed surface',
@@ -53,7 +52,7 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
       backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`,
       targetConditionDisplay: 'N/A - Other (0)',
-      standardTimeToTargetDisplay: `N/A - Other to N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
+      standardTimeToTargetDisplay: `N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Medium',
       advanceOrDelayDisplay: 'Advance – 0 years',
       finalTimeToTargetDisplay: '0 years (0)',
@@ -65,7 +64,6 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
     const vm = buildCreatedAreaViewOnlyViewModel(
       {
         retentionCategory: 'Created',
-        baseline: { condition: '6. N/A - Other' },
         proposed: {
           condition: 'N/A - Other',
           standardTimeToTargetCondition: 0,
@@ -79,7 +77,7 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
     )
 
     expect(vm.standardTimeToTargetDisplay).toBe(
-      `N/A - Other to N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`
+      `N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`
     )
     expect(vm.finalTimeToTargetDisplay).toBe('0')
     expect(vm.appliedDifficultyMultiplierDisplay).toBe('1.5')
