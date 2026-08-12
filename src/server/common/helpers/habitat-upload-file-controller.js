@@ -1,6 +1,10 @@
 import { initiateUpload } from '../services/uploader.js'
 import { config } from '../../../config/config.js'
 import { backendRequest } from './auth/backend-request.js'
+import {
+  safeUploadReturnUrl,
+  uploadFileHref
+} from './upload-file-navigation.js'
 
 const backendUrl = config.get('backend').url
 const appBaseUrl = config.get('appBaseUrl')
@@ -18,15 +22,17 @@ async function fetchProjectName(request, id) {
   }
 }
 
-function viewData(projectId, projectName, uploadType) {
+function viewData(projectId, projectName, uploadType, returnUrl) {
+  const safeReturnUrl = safeUploadReturnUrl(returnUrl, projectId)
+  const selectionHref = uploadFileHref(projectId, safeReturnUrl)
   return {
     pageTitle: uploadType.uploadPageTitle,
     heading: 'Upload a GeoPackage (.gpkg) file',
     caption: projectName,
     projectId,
     instructionText: uploadType.uploadInstruction,
-    backHref: `/add-project-details/${projectId}`,
-    cancelHref: `/add-project-details/${projectId}`
+    backHref: selectionHref,
+    cancelHref: selectionHref
   }
 }
 
@@ -55,7 +61,7 @@ function createUploadFileController(uploadType) {
 
       return h
         .view('habitat-upload-file/habitat-upload-file', {
-          ...viewData(id, projectName, uploadType),
+          ...viewData(id, projectName, uploadType, request.query?.returnUrl),
           uploadUrl: uploadSession.uploadUrl,
           error: uploadError ? { text: uploadError } : undefined
         })

@@ -8,6 +8,7 @@ import {
   KM_UNIT
 } from './format-habitat-values.js'
 import { interventionDisplay } from '../../post-intervention-habitat-details/retention.js'
+import { uploadFileHref } from './upload-file-navigation.js'
 
 const NO_DATA_DISPLAY = 'No data'
 const SQUARE_METRES_PER_HECTARE = 10000
@@ -265,7 +266,10 @@ function createHabitatListController(uploadType) {
         caption: projectName,
         projectId: id,
         backHref: `/add-project-details/${id}`,
-        uploadDifferentHref: `/projects/${id}/${uploadType.uploadRoute}`,
+        uploadDifferentHref: uploadFileHref(
+          id,
+          `/projects/${id}/${uploadType.listRoute}`
+        ),
         isPostIntervention: uploadType.isPostIntervention,
         totalSizes: buildTotalSizes(habitatsData?.habitatSizes),
         totalUnits: buildTotalUnits(habitatsData),

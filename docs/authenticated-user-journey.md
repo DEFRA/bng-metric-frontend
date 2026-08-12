@@ -52,8 +52,8 @@ sequenceDiagram
   FE->>FE: requireBngCompleterRole — approved (status 3)?
   FE->>BE: GET /users/{sub}/projects (Bearer id_token)
   BE->>BE: verify token → credentials = claims
-  BE->>DB: select projects WHERE visible_to(sub)
-  BE-->>FE: only the user's approved-relationship projects
+  BE->>DB: select projects WHERE visible_to(claims)
+  BE-->>FE: only this user's projects in their CURRENT organisation
   FE-->>User: rendered page
 ```
 
@@ -104,15 +104,41 @@ provider's JWKS and sets `request.auth.credentials` to the **verified** claims.
 
 Project rows are then filtered by a reusable visibility predicate
 (`bng-metric-backend/src/db/project-visibility.js`). A project is visible to the
-requesting `sub` when they own it **and** either:
+requesting `sub` when **all** of the following hold:
 
-- it has no relationship (legacy row — owner-fallback), or
-- their latest role for the project's `relationship_id` is **status 3**.
+- they own it (`user_id` = the verified token `sub`), **and**
+- it belongs to the org context they are acting in **right now** — its
+  `relationship_id` matches their current relationship, **and**
+- either it has no relationship (legacy row — owner-fallback), or their latest
+  role for that `relationship_id` is **status 3**.
+
+The org scope is what keeps a multi-org user's projects apart (BMD-890). A user
+can hold an approved `bng completer` role in several organisations at once;
+without it, a project created under org A stayed visible after switching to
+org B, because the role check passed for _both_ relationships. Switching back to
+org A shows org A's projects again — they are scoped, not lost.
+
+The current relationship comes from the verified token's `currentRelationshipId`,
+falling back to the `current_relationship_id` that `bng.users` recorded at the
+last sign-in. The fallback matters because Defra ID runs its relationship/role
+enrichment only on interactive sign-in, so an id_token obtained through a
+`refresh_token` grant can arrive with those claims blank (see
+[silent refresh](#5-token-expiry--silent-refresh-frontend)) — without it, a
+silent refresh would empty the user's project list.
 
 New projects are stamped with the creator's `org_id` / `relationship_id` derived
 from the verified token (`currentRelationshipId`), never from the request body.
 Single-row endpoints return **404** (not 403) when a project exists but isn't
-visible, to avoid leaking its existence.
+visible, to avoid leaking its existence — including for a project of the user's
+own that belongs to a different organisation.
+
+On the frontend side, changing organisation ("Change organisation" →
+`/auth/login?forceReselection=true`) re-runs the interactive sign-in. The
+callback clears the journey state scoped to the org just left — pending upload
+ids, upload errors and validation-error lists
+(`src/server/common/helpers/auth/organisation-switch.js`) — so nothing pointing
+at the previous org's project survives the switch. Signing in again as the
+_same_ organisation leaves the journey intact.
 
 The backend is **secure by default**: it sets `defra-jwt` as the server-wide
 default auth strategy, so _every_ route requires a verified token unless it
@@ -196,15 +222,16 @@ ways that the code accounts for:
 
 **Frontend (`bng-metric-frontend`)**
 
-| File                                                | Purpose                                                            |
-| --------------------------------------------------- | ------------------------------------------------------------------ |
-| `src/server/auth/controller.js`                     | Login / callback / logout; persists session to backend on callback |
-| `src/server/common/helpers/auth/oidc-client.js`     | Lazy OIDC discovery singleton                                      |
-| `src/server/common/helpers/auth/verify-role.js`     | `requireBngCompleterRole` — approved-role gate                     |
-| `src/server/common/helpers/auth/auth-headers.js`    | Builds the `Bearer` header from the session                        |
-| `src/server/common/helpers/auth/backend-request.js` | Backend calls with bearer + 401 silent-refresh + retry             |
-| `src/server/common/helpers/auth/refresh-session.js` | OIDC refresh grant; re-stores tokens in `yar`                      |
-| `src/server/common/helpers/auth/persist-session.js` | Best-effort `POST {backend}/auth/session`                          |
+| File                                                    | Purpose                                                            |
+| ------------------------------------------------------- | ------------------------------------------------------------------ |
+| `src/server/auth/controller.js`                         | Login / callback / logout; persists session to backend on callback |
+| `src/server/common/helpers/auth/oidc-client.js`         | Lazy OIDC discovery singleton                                      |
+| `src/server/common/helpers/auth/verify-role.js`         | `requireBngCompleterRole` — approved-role gate                     |
+| `src/server/common/helpers/auth/auth-headers.js`        | Builds the `Bearer` header from the session                        |
+| `src/server/common/helpers/auth/backend-request.js`     | Backend calls with bearer + 401 silent-refresh + retry             |
+| `src/server/common/helpers/auth/refresh-session.js`     | OIDC refresh grant; re-stores tokens in `yar`                      |
+| `src/server/common/helpers/auth/persist-session.js`     | Best-effort `POST {backend}/auth/session`                          |
+| `src/server/common/helpers/auth/organisation-switch.js` | Clears journey state scoped to the org the user just left          |
 
 **Backend (`bng-metric-backend`)**
 
@@ -213,7 +240,7 @@ ways that the code accounts for:
 | `src/plugins/auth-jwt.js`         | `defra-jwt` scheme — verifies the forwarded id_token (jose + JWKS)    |
 | `src/services/defra-id/claims.js` | Parses relationships/roles; `ROLE_STATUS_APPROVED = 3`                |
 | `src/db/persist-session.js`       | Atomic upsert of users / relationships / roles                        |
-| `src/db/project-visibility.js`    | RBAC visibility predicate (approved relationship + owner-fallback)    |
+| `src/db/project-visibility.js`    | Visibility predicate — owner + current org context + approved role    |
 | `src/routes/auth.js`              | `POST /auth/session`                                                  |
 | `changelog/db.changelog-1.7.xml`  | `bng.users` / `bng.relationships` / `bng.roles` + project org columns |
 
@@ -228,3 +255,7 @@ ways that the code accounts for:
    created project has `org_id` / `relationship_id` set.
 6. To see the gate in action, flip the stub role to status `1` and re-login —
    you should land on `/auth/forbidden`.
+7. To check org scoping, register the same stub user against a **second**
+   organisation (also `bng completer` at status 3), create a project under one,
+   then use "Change organisation" — the other org's project must not be listed,
+   and opening its URL directly must 404.

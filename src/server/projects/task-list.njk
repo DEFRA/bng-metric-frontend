@@ -46,7 +46,7 @@
               title: {
                 text: "On-site baseline habitats"
               },
-              href: ("/projects/" + id + "/baseline-habitat-list") if isBaselineUploaded else ("/projects/" + id + "/upload-baseline-file"),
+              href: ("/projects/" + id + "/baseline-habitat-list") if isBaselineUploaded else ("/projects/" + id + "/upload-file"),
               status: { text: "Completed" } if isBaselineUploaded else {
                 tag: {
                   text: "Not yet started",
@@ -58,7 +58,7 @@
               title: {
                 text: "On-site post intervention habitats"
               },
-              href: ("/projects/" + id + "/post-intervention-habitat-list") if isPostInterventionUploaded else ("/projects/" + id + "/upload-post-intervention-file"),
+              href: ("/projects/" + id + "/post-intervention-habitat-list") if isPostInterventionUploaded else ("/projects/" + id + "/upload-file"),
               status: { text: "Completed" } if isPostInterventionUploaded else {
                 tag: {
                   text: "Not yet started",

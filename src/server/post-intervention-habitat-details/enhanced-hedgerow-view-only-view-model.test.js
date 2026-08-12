@@ -72,17 +72,30 @@ describe('buildEnhancedHedgerowViewOnlyViewModel', () => {
     expect(vm.appliedDifficultyMultiplierDisplay).toBe('')
     expect(vm.viewBaselineHref).toBeNull()
   })
-  it('never provides a baseline link for a Created hedgerow', () => {
+  it('maps Created time to target without a baseline condition or link', () => {
     const vm = buildCreatedHedgerowViewOnlyViewModel(
       {
         ref: 'Hedge P-H3',
         retentionCategory: 'Created',
-        proposed: {}
+        proposed: {
+          condition: '4. Moderate',
+          standardTimeToTargetCondition: '10'
+        }
       },
       { projectId, projectName: 'Test Project', baselineFeatureId }
     )
 
     expect(vm.interventionDisplay).toBe('Created')
+    expect(vm.standardTimeToTargetDisplay).toBe('Moderate - 10 years')
     expect(vm.viewBaselineHref).toBeNull()
+  })
+
+  it('uses an empty Created time to target when required values are absent', () => {
+    const vm = buildCreatedHedgerowViewOnlyViewModel(
+      { retentionCategory: 'Created', proposed: {} },
+      { projectId, projectName: 'Test Project' }
+    )
+
+    expect(vm.standardTimeToTargetDisplay).toBe('')
   })
 })

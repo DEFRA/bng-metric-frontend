@@ -88,17 +88,14 @@ export function formatStandardTimeToTarget(
   const baseline = stripConditionPrefix(displayText(baselineCondition))
   const target = stripConditionPrefix(displayText(targetCondition))
   const years = displayText(value)
-  if (
-    typeof baseline === 'string' &&
-    typeof target === 'string' &&
-    baseline &&
-    target &&
-    years
-  ) {
-    return `${baseline} to ${target} - ${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
-  } else {
+  if (typeof target !== 'string' || !target || !years) {
     return EMPTY_PLACEHOLDER
   }
+  const conditionTransition =
+    typeof baseline === 'string' && baseline
+      ? `${baseline} to ${target}`
+      : target
+  return `${conditionTransition} - ${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
 }
 
 /**

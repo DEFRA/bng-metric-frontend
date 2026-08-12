@@ -107,7 +107,7 @@ describe('#postInterventionHabitatListController - GET', () => {
       `href="/post-intervention-habitat-details?featureId=${featureId}&projectId=${projectId}"`
     )
     expect(result).toContain(
-      `/projects/${projectId}/upload-post-intervention-file`
+      `/projects/${projectId}/upload-file?returnUrl=%2Fprojects%2F${projectId}%2Fpost-intervention-habitat-list`
     )
   })
 
