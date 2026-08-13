@@ -43,7 +43,7 @@ describe('upload-received controller', () => {
     )
   })
 
-  it('should validate and redirect to habitat list when status is ready', async () => {
+  it('should validate and redirect to project summary when status is ready', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
@@ -59,7 +59,7 @@ describe('upload-received controller', () => {
     )
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(h.redirect).toHaveBeenCalledWith(
-      '/projects/proj-123/baseline-habitat-list'
+      '/projects/proj-123/project-summary'
     )
     expect(h.view).not.toHaveBeenCalled()
   })

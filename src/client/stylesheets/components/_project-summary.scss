@@ -1,0 +1,55 @@
+@use 'govuk-frontend' as *;
+
+.app-width-container--wide {
+  @include govuk-width-container(1200px);
+}
+
+.app-grid-column-one-sixth,
+.app-grid-column-five-sixths {
+  box-sizing: border-box;
+  padding: 0 $govuk-gutter-half;
+  float: left;
+}
+
+.app-grid-column-one-sixth {
+  width: 16.6667%;
+}
+
+.app-grid-column-five-sixths {
+  width: 83.3333%;
+}
+
+.app-project-summary__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: govuk-spacing(4);
+  margin-bottom: govuk-spacing(7);
+}
+
+.app-project-summary__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: govuk-spacing(7);
+  margin-bottom: govuk-spacing(8);
+}
+
+@include govuk-media-query($until: tablet) {
+  .app-grid-column-one-sixth,
+  .app-grid-column-five-sixths {
+    width: 100%;
+    float: none;
+  }
+
+  .app-project-summary__heading {
+    display: block;
+  }
+
+  .app-project-summary__heading .govuk-button {
+    margin-top: govuk-spacing(4);
+  }
+
+  .app-project-summary__actions {
+    grid-template-columns: 1fr;
+  }
+}

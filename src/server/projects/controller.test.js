@@ -153,6 +153,57 @@ describe('#projectsListController', () => {
     )
   })
 
+  test('Should link a baseline-only project to its project summary', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: [
+        {
+          ...mockProjects[0],
+          project: { ...mockProjects[0].project, baseline: { units: {} } }
+        }
+      ]
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: '/manage-projects',
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/projects/${mockProjects[0].id}/project-summary"`
+    )
+  })
+
+  test('Should not link a project with post-intervention data to the baseline-only summary', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: [
+        {
+          ...mockProjects[0],
+          project: {
+            ...mockProjects[0].project,
+            baseline: { units: {} },
+            postIntervention: { units: {} }
+          }
+        }
+      ]
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: '/manage-projects',
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/add-project-details/${mockProjects[0].id}"`
+    )
+    expect(result).not.toContain(
+      `href="/projects/${mockProjects[0].id}/project-summary"`
+    )
+  })
+
   test('Should redirect to project-name when backend returns empty array', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },

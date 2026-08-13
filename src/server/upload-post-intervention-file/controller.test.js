@@ -65,6 +65,9 @@ describe('upload-post-intervention-file controller', () => {
       'postInterventionPendingUploadId',
       'abc-123'
     )
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'postInterventionUploadStartedAt'
+    )
     expect(h.view).toHaveBeenCalledWith(
       'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({

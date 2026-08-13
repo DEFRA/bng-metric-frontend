@@ -12,6 +12,7 @@ const HABITAT_UPLOAD_TYPES = {
     uploadRoute: 'upload-baseline-file',
     uploadReceivedRoute: 'upload-received',
     listRoute: 'baseline-habitat-list',
+    successRoute: 'project-summary',
     listView: 'habitat-list/habitat-list',
     detailsRoute: 'baseline-habitat-details',
     backendValidatePath: 'baseline',

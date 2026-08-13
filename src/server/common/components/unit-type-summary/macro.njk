@@ -1,0 +1,42 @@
+{% macro action(item) %}
+  {% if item.href %}
+    <a class="govuk-link" href="{{ item.href }}">{{ item.text }}</a>
+  {% else %}
+    <span>{{ item.text }}</span>
+  {% endif %}
+{% endmacro %}
+
+{% macro appUnitTypeSummary(params) %}
+  <section class="app-unit-type-summary" aria-labelledby="{{ params.id }}-heading">
+    <h2 id="{{ params.id }}-heading" class="govuk-heading-m app-unit-type-summary__heading">{{ params.label }}</h2>
+
+    <div class="app-unit-type-summary__primary">
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-s">Total on-site net percentage change</h3>
+        <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ params.netPercentageChange }}</p>
+        <strong class="govuk-tag {{ params.status.classes }}">{{ params.status.text }}</strong>
+      </div>
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">Trading Rules</h3>
+        <p class="govuk-body govuk-!-margin-bottom-0">{{ action(params.tradingRules) }}</p>
+      </div>
+    </div>
+
+    <div class="app-unit-type-summary__secondary">
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-s">On-site baseline</h3>
+        <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ params.baseline.units }}</p>
+        <p class="govuk-body govuk-!-margin-bottom-0">{{ action(params.baseline.action) }}</p>
+      </div>
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-s">On-site post intervention</h3>
+        <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ params.postIntervention.units }}</p>
+        {{ action(params.postIntervention.action) }}
+      </div>
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-s">Total on-site net unit change</h3>
+        <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ params.netUnitChange }}</p>
+      </div>
+    </div>
+  </section>
+{% endmacro %}

@@ -54,6 +54,9 @@ function createUploadFileController(uploadType) {
         metadata: { projectId: id, uploadType: uploadType.key }
       })
 
+      // A retry must start its own timeout window. The previous attempt may
+      // have left a timestamp behind after redirecting back with an error.
+      request.yar.clear(uploadType.uploadStartedAtSessionKey)
       request.yar.set(
         uploadType.pendingUploadSessionKey,
         uploadSession.uploadId

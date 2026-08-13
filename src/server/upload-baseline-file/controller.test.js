@@ -58,6 +58,7 @@ describe('upload-baseline-file controller', () => {
       metadata: { projectId: 'proj-123', uploadType: 'baseline' }
     })
     expect(request.yar.set).toHaveBeenCalledWith('pendingUploadId', 'abc-123')
+    expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
     expect(h.view).toHaveBeenCalledWith(
       'habitat-upload-file/habitat-upload-file',
       expect.objectContaining({
