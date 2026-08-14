@@ -47,6 +47,11 @@ export const REFRESH_ERROR = {
     likelyCause:
       'Provider issued no refresh token — check the offline_access scope and Defra ID policy'
   },
+  noIdToken: {
+    category: 'no-id-token',
+    likelyCause:
+      'Refresh grant succeeded but returned no id_token — check the Defra ID policy issues one on the refresh_token flow, and that OIDC_SCOPES still carries openid'
+  },
   tokenRejected: {
     category: 'refresh-token-rejected',
     likelyCause:
@@ -143,17 +148,51 @@ function isMeaningfulClaim(value) {
   return true
 }
 
+// The relationship/role enrichment claims. Defra ID (Azure AD B2C) runs its
+// enrichment ONLY on an interactive sign-in, so whatever a refresh_token grant
+// returns in these three is never authoritative — it is at best a stale echo of
+// the sign-in values and at worst a default. They are therefore PINNED to the
+// values captured at sign-in and a refreshed token can never overwrite them.
+// See mergeRefreshedClaims for why "non-empty" is not a good enough test.
+const ENRICHMENT_CLAIMS = Object.freeze([
+  'roles',
+  'relationships',
+  'currentRelationshipId'
+])
+
 /**
- * Merge the claims from a refreshed id_token over the previous session claims,
- * keeping a previous claim whenever the refreshed token either omits it OR
- * carries it as an empty placeholder. A plain `{ ...prev, ...next }` spread
- * cannot tell those two apart from a genuine value: it preserves an omitted key
- * but lets an empty one overwrite. That overwrite is the BMD-829 session-
- * degradation bug — an idle user's `roles` / `relationships` /
- * `currentRelationshipId` were being blanked on silent refresh, so the home page
- * dropped their organisation and every protected route returned "Access denied"
- * while they still looked signed in. Only meaningfully-present refreshed values
- * win here; everything else falls back to the value captured at login.
+ * Merge the claims from a refreshed id_token over the previous session claims.
+ *
+ * Two rules, in order:
+ *
+ * 1. The enrichment claims (ENRICHMENT_CLAIMS) are never taken from a refreshed
+ *    token — they always keep their sign-in values.
+ * 2. Every other claim is taken from the refreshed token when it is meaningfully
+ *    present, and kept from the previous claims when the refreshed token omits it
+ *    or returns it blank.
+ *
+ * Rule 2 alone was the BMD-829 fix: a plain `{ ...prev, ...next }` spread cannot
+ * tell an omitted claim from a blanked one, so an idle user's enrichment claims
+ * were being wiped on silent refresh — organisation gone from the home page,
+ * "Access denied" on every protected route, while still looking signed in.
+ *
+ * Rule 1 (BMD-936) closes the other half of the same hole. Guarding on
+ * "meaningfully present" only stops an EMPTY value overwriting a good one; it
+ * still lets a non-empty but non-authoritative one through. In the deployed
+ * environment Defra ID returns enrichment claims on refresh that are non-empty
+ * yet different from the sign-in values — a `roles` collection flattened to a
+ * scalar, statuses that are no longer 3, or a `currentRelationshipId` naming a
+ * different org from the one the user signed in under. Any of those merges into
+ * a claim set that is individually plausible but internally inconsistent, which
+ * `hasBngCompleterRole` (an invariant ACROSS roles + currentRelationshipId, not
+ * a per-claim test) then fails — ejecting a user whose renewal had in fact just
+ * succeeded. Pinning removes the whole class: the post-refresh authorisation
+ * decision is identical to the sign-in one by construction.
+ *
+ * This mirrors the backend, which authorises from the roles it persisted at
+ * sign-in rather than from token claims (bng-metric-backend
+ * src/db/project-visibility.js). Revocation is picked up at the next interactive
+ * sign-in on both sides.
  *
  * @param {object} previous the claims stored at login (or the last good refresh)
  * @param {object|null|undefined} refreshed the refreshed id_token's claims
@@ -165,11 +204,52 @@ function mergeRefreshedClaims(previous, refreshed) {
   }
   const merged = { ...previous }
   for (const [key, value] of Object.entries(refreshed)) {
-    if (isMeaningfulClaim(value)) {
+    if (!ENRICHMENT_CLAIMS.includes(key) && isMeaningfulClaim(value)) {
       merged[key] = value
     }
   }
   return merged
+}
+
+/**
+ * Describe the SHAPE of each enrichment claim in a refreshed id_token, and
+ * whether it differs from the pinned sign-in value — never the value itself
+ * (role strings and relationship strings carry org names and ids: PII).
+ *
+ * This goes into the log MESSAGE rather than a structured field because CDP's
+ * log ingestion drops non-allowlisted fields, so the message text is all that
+ * survives to OpenSearch — the same reason session.id is prefixed onto messages
+ * in logging/logger-options.js.
+ *
+ * Reads as e.g. `roles=array:1(differs) relationships=blank
+ * currentRelationshipId=scalar(differs)`, which names the mechanism directly:
+ * `scalar` where an array is expected is a collection claim B2C has flattened,
+ * and `(differs)` on any of the three is a value that would have overwritten a
+ * good sign-in claim before BMD-936 pinned them.
+ *
+ * @param {object} previous the claims stored at login
+ * @param {object|null|undefined} refreshed the refreshed id_token's claims
+ * @returns {string}
+ */
+function describeEnrichmentDrift(previous, refreshed) {
+  return ENRICHMENT_CLAIMS.map((claim) => {
+    const value = refreshed?.[claim]
+    const differs = JSON.stringify(value) !== JSON.stringify(previous?.[claim])
+    return `${claim}=${describeClaimShape(value)}${differs ? '(differs)' : ''}`
+  }).join(' ')
+}
+
+function describeClaimShape(value) {
+  if (value === undefined || value === null) {
+    return 'absent'
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0 ? `array:${value.length}` : 'blank'
+  }
+  if (typeof value === 'string') {
+    return value.length > 0 ? 'scalar' : 'blank'
+  }
+  return typeof value
 }
 
 /**
@@ -208,27 +288,57 @@ export async function refreshSession(request) {
   try {
     const oidcConfig = await getOidcConfig()
     const tokens = await refreshTokenGrant(oidcConfig, refreshToken)
+
+    // The grant succeeded but carries no id_token. The id_token IS the session
+    // here — it holds the `exp` the expiry check reads and it is the bearer
+    // credential forwarded to the backend — so there is nothing to renew with.
+    // Bail out BEFORE touching the session: writing `idToken: undefined` and
+    // then returning a falsy value left the caller to expire a session we had
+    // already corrupted, and logged a success line one millisecond before the
+    // failure. Returning null here ends the session cleanly and sends the user
+    // to /auth/session-expired ("Sign in again"), which is the right outcome —
+    // we cannot renew without a token, and re-authenticating gets them one.
+    if (!tokens.id_token) {
+      request.logger?.warn(
+        {
+          sub: auth?.user?.sub,
+          category: REFRESH_ERROR.noIdToken.category,
+          likelyCause: REFRESH_ERROR.noIdToken.likelyCause
+        },
+        `OIDC: silent token refresh failed [category=${REFRESH_ERROR.noIdToken.category}]`
+      )
+      return null
+    }
+
     const claims = tokens.claims()
 
     request.yar.set('auth', {
-      // Merge over the previous claims, keeping any the refreshed token omits OR
-      // blanks (roles, relationships, currentRelationshipId, …); losing them
-      // here would drop the user's organisation on the home page and flip every
-      // role check to /auth/forbidden after a silent refresh. See
-      // mergeRefreshedClaims for why an empty value must not overwrite.
+      // Merge over the previous claims: the enrichment claims (roles,
+      // relationships, currentRelationshipId) stay pinned to their sign-in
+      // values, and every other claim is kept when the refreshed token omits or
+      // blanks it. Letting a refreshed token win on the enrichment claims drops
+      // the user's organisation on the home page and flips every role check to
+      // /auth/forbidden. See mergeRefreshedClaims.
       user: mergeRefreshedClaims(auth.user, claims),
       idToken: tokens.id_token,
       // Some providers omit a new refresh token on refresh — keep the old one.
       refreshToken: tokens.refresh_token ?? refreshToken
     })
 
+    // The enrichment shapes ride in the message text, not a structured field:
+    // CDP drops unmapped fields, so this is the only form that reaches
+    // OpenSearch. It is what tells us which shape Defra ID actually returns on a
+    // refresh grant, now that we no longer act on it.
     request.logger?.info(
       { sub: claims?.sub },
-      'OIDC: silently refreshed session tokens'
+      `OIDC: silently refreshed session tokens [${describeEnrichmentDrift(auth.user, claims)}]`
     )
     return tokens.id_token
   } catch (error) {
     const { category, likelyCause } = classifyRefreshError(error)
+    // The category rides in the message as well as the field: CDP drops
+    // unmapped structured fields, so without it every one of these failures
+    // reads identically in OpenSearch and the cause table below is unusable.
     request.logger?.warn(
       {
         sub: auth?.user?.sub,
@@ -237,7 +347,7 @@ export async function refreshSession(request) {
         err: error.message,
         detail: describeRefreshError(error)
       },
-      'OIDC: silent token refresh failed'
+      `OIDC: silent token refresh failed [category=${category}]`
     )
     return null
   }
