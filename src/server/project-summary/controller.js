@@ -27,12 +27,15 @@ function areaUnits(units) {
 
 function buildUnitSummary(label, baselineUnits, uploadHref) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
+  const hasBaselineUnits = normalisedBaseline > 0
 
   return {
     id: label.toLowerCase().replaceAll(' ', '-'),
     label,
-    netPercentageChange: '-100.00%',
-    status: { text: 'Not met', classes: 'govuk-tag--red' },
+    netPercentageChange: hasBaselineUnits ? '-100.00%' : 'N/A',
+    status: hasBaselineUnits
+      ? { text: 'Not met', classes: 'govuk-tag--red' }
+      : null,
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,

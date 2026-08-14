@@ -199,7 +199,7 @@ describe('project summary', () => {
     expect(statusCode).toBe(statusCodes.badGateway)
   })
 
-  test('uses safe display defaults for missing or malformed project data', async () => {
+  test('uses safe display defaults for missing or malformed unit data', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
@@ -222,8 +222,40 @@ describe('project summary', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('>Project</span>')
+    expect(result.match(/N\/A/g)).toHaveLength(3)
+    expect(result).not.toContain('-100.00%')
+    expect(result).not.toContain('Not met')
     expect(result).not.toContain('-0.00 units')
     expect(result.match(/0.00 units/g)).toHaveLength(9)
+  })
+
+  test('shows N/A without a status for zero-unit habitat categories', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          name: 'Area-only project',
+          baseline: {
+            units: {
+              habitatsTotal: 1,
+              hedgerowsTotal: 0,
+              watercoursesTotal: 0
+            }
+          }
+        }
+      }
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result.match(/N\/A/g)).toHaveLength(2)
+    expect(result.match(/-100.00%/g)).toHaveLength(1)
+    expect(result.match(/Not met/g)).toHaveLength(1)
   })
 
   test.each([

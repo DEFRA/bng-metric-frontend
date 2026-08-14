@@ -40,4 +40,15 @@ describe('Unit type summary component', () => {
     expect($('section').text()).toContain('View trading rules')
     expect($('section').text()).toContain('View on-site baseline')
   })
+
+  test('does not render an empty status when one does not apply', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      netPercentageChange: 'N/A',
+      status: null
+    })
+
+    expect($('section').text()).toContain('N/A')
+    expect($('.govuk-tag')).toHaveLength(0)
+  })
 })

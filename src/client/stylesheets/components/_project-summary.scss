@@ -1,7 +1,7 @@
 @use 'govuk-frontend' as *;
 
 .app-width-container--wide {
-  @include govuk-width-container(1200px);
+  @include govuk-width-container(1280px);
 }
 
 .app-grid-column-one-sixth,
