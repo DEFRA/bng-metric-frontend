@@ -1,0 +1,18 @@
+@use 'govuk-frontend' as *;
+
+.app-project-navigation {
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: govuk-spacing(6);
+  list-style: none;
+}
+
+.app-project-navigation__item {
+  margin: 0;
+  padding: govuk-spacing(3) 0;
+  border-bottom: 1px solid $govuk-border-colour;
+}
+
+.app-project-navigation__current {
+  color: $govuk-link-colour;
+}

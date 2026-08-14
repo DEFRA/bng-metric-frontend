@@ -29,8 +29,8 @@ function uploadHref(uploadType, projectId) {
   return `/projects/${projectId}/${uploadType.uploadRoute}`
 }
 
-function listHref(uploadType, projectId) {
-  return `/projects/${projectId}/${uploadType.listRoute}`
+function successHref(uploadType, projectId) {
+  return `/projects/${projectId}/${uploadType.successRoute ?? uploadType.listRoute}`
 }
 
 async function handleReadyUpload(
@@ -63,7 +63,7 @@ async function handleReadyUpload(
     return h.redirect('/error-file')
   }
 
-  return h.redirect(listHref(uploadType, id))
+  return h.redirect(successHref(uploadType, id))
 }
 
 function handleRejectedUpload(request, h, uploadType, id) {

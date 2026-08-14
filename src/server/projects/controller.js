@@ -3,6 +3,7 @@ import Boom from '@hapi/boom'
 import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
 import { backendRequest } from '../common/helpers/auth/backend-request.js'
+import { isBaselineOnlyProject } from '../common/helpers/project-state.js'
 
 const backendUrl = config.get('backend').url
 
@@ -26,7 +27,12 @@ export const projectsListController = {
     return h.view('projects/index', {
       pageTitle: 'Projects',
       heading: 'Manage your Biodiversity Net Gain projects',
-      projects
+      projects: projects.map((project) => ({
+        ...project,
+        href: isBaselineOnlyProject(project.project)
+          ? `/projects/${project.id}/project-summary`
+          : `/add-project-details/${project.id}`
+      }))
     })
   }
 }

@@ -1,0 +1,17 @@
+{% macro appProjectNavigation(params) %}
+  <nav aria-label="{{ params.label }}">
+    <ul class="app-project-navigation">
+      {% for item in params.items %}
+        <li class="govuk-body app-project-navigation__item">
+          {% if item.current %}
+            <strong class="app-project-navigation__current" aria-current="page">{{ item.text }}</strong>
+          {% elif item.href %}
+            <a class="govuk-link" href="{{ item.href }}">{{ item.text }}</a>
+          {% else %}
+            {{ item.text }}
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+{% endmacro %}
