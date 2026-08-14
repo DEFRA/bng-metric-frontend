@@ -6,7 +6,7 @@ markup a route renders. This catches structural regressions — missing
 landmarks, bad heading order, unlabelled controls — that plain
 `expect.stringContaining(...)` assertions on the HTML don't.
 
-Two shared helpers in `src/server/test-helpers/` do the work:
+Three shared helpers in `src/server/test-helpers/` do the work:
 
 - `load-page.js` — `loadPage({ requestUrl, server, auth, headers })` injects a
   GET request into a real, initialised Hapi server and parses the response
@@ -14,6 +14,11 @@ Two shared helpers in `src/server/test-helpers/` do the work:
 - `axe-helper.js` — `runAxeChecks(container, options)` runs `axe-core` against
   a DOM node (typically `document.documentElement`) and asserts there are no
   WCAG 2.2 A/AA violations.
+- `assert-landmarks.js` — `assertLayoutLandmarks(document)` asserts the shared
+  `page.njk` header, service navigation, phase banner and footer landmarks
+  are present. `axe-core` only checks markup that's there — a landmark
+  missing entirely (e.g. a broken block override in `page.njk`) produces no
+  violation, so call this alongside `runAxeChecks`, not instead of it.
 
 ## Adding an accessibility test for a page
 

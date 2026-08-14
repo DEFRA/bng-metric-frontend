@@ -14,6 +14,7 @@ import { createServer } from '../server.js'
 import { wreck } from '../common/helpers/wreck-client.js' // TODO: remove if this page doesn't call the backend directly
 import { loadPage } from '../test-helpers/load-page.js'
 import { runAxeChecks } from '../test-helpers/axe-helper.js'
+import { assertLayoutLandmarks } from '../test-helpers/assert-landmarks.js'
 
 // TODO: remove this mock if the page doesn't call the backend directly
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -59,6 +60,7 @@ describe('TODO page name accessibility checks', () => {
       server,
       auth: authedAuth // TODO: remove if the route doesn't require auth
     })
+    assertLayoutLandmarks(document)
     await runAxeChecks(document.documentElement)
   })
 })

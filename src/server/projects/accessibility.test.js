@@ -3,6 +3,7 @@ import { createServer } from '../server.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { loadPage } from '../test-helpers/load-page.js'
 import { runAxeChecks } from '../test-helpers/axe-helper.js'
+import { assertLayoutLandmarks } from '../test-helpers/assert-landmarks.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -73,6 +74,7 @@ describe('Projects list page accessibility checks', () => {
       server,
       auth: authedAuth
     })
+    assertLayoutLandmarks(document)
     await runAxeChecks(document.documentElement)
   })
 })
