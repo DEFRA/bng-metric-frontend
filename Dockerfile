@@ -13,10 +13,12 @@ ARG PORT_DEBUG
 ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
-COPY --chown=node:node --chmod=755 package*.json ./
+COPY --chown=node:node --chmod=755 package*.json .npmrc ./
 # Strip our postinstall hook (dev-only husky/gitleaks setup) before install —
 # scripts/ is not in this image, and the hooks are not needed inside the container.
-RUN npm pkg delete scripts.postinstall && npm install
+# --ignore-scripts also blocks any dependency's own install scripts (belt-and-braces
+# with .npmrc's ignore-scripts=true, which some static analysis can't see into a file).
+RUN npm pkg delete scripts.postinstall && npm install --ignore-scripts
 COPY --chown=node:node --chmod=755 . .
 RUN npm run build:frontend
 
@@ -40,13 +42,13 @@ USER root
 RUN apk add --no-cache curl
 USER node
 
-COPY --from=production_build /home/node/package*.json ./
+COPY --from=production_build /home/node/package*.json /home/node/.npmrc ./
 COPY --from=production_build /home/node/src ./src/
 COPY --from=production_build /home/node/.public/ ./.public/
 
 # Strip our postinstall hook (dev-only husky/gitleaks setup) before install —
 # scripts/ is not shipped in the production image, and the hooks are not needed at runtime.
-RUN npm pkg delete scripts.postinstall && npm ci --omit=dev
+RUN npm pkg delete scripts.postinstall && npm ci --omit=dev --ignore-scripts
 
 ARG PORT
 ENV PORT=${PORT}

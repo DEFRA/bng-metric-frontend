@@ -14,6 +14,8 @@ import {
 } from '../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import {
+  ABSENT_BASELINE_CONDITION,
+  ABSENT_BASELINE_CONDITION_PREFIX,
   HABITAT_UNITS_DELIVERED_LABEL,
   PI_DETAILS_HEADING,
   STANDARD_TIME_TO_TARGET_SUFFIX,
@@ -75,6 +77,48 @@ export function displayText(value) {
 }
 
 /**
+ * Strip a numeric condition prefix and always return a string (never an
+ * object), so callers can safely interpolate the result into templates.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function conditionDisplayText(value) {
+  const text = displayText(value)
+  if (!text) {
+    return EMPTY_PLACEHOLDER
+  }
+  const stripped = stripConditionPrefix(text)
+  if (typeof stripped === 'string') {
+    return stripped
+  }
+  return EMPTY_PLACEHOLDER
+}
+
+/**
+ * GeoPackage Created parcels store baseline condition as "N/A" / "N/A - Other"
+ * rather than leaving it blank. Those sentinels are not a real prior condition.
+ *
+ * @param {string} condition
+ * @returns {boolean}
+ */
+function hasRealBaselineCondition(condition) {
+  if (!condition) {
+    return false
+  }
+  if (condition === ABSENT_BASELINE_CONDITION) {
+    return false
+  }
+  if (condition.startsWith(ABSENT_BASELINE_CONDITION_PREFIX)) {
+    return false
+  }
+  return true
+}
+
+/**
+ * Created habitats have no real baseline condition. When the target condition
+ * and years are known the row still renders, omitting the "X to Y" form.
+ *
  * @param {unknown} baselineCondition
  * @param {unknown} targetCondition
  * @param {unknown} value
@@ -85,16 +129,15 @@ export function formatStandardTimeToTarget(
   targetCondition,
   value
 ) {
-  const baseline = stripConditionPrefix(displayText(baselineCondition))
-  const target = stripConditionPrefix(displayText(targetCondition))
+  const baseline = conditionDisplayText(baselineCondition)
+  const target = conditionDisplayText(targetCondition)
   const years = displayText(value)
-  if (typeof target !== 'string' || !target || !years) {
+  if (!target || !years) {
     return EMPTY_PLACEHOLDER
   }
-  const conditionTransition =
-    typeof baseline === 'string' && baseline
-      ? `${baseline} to ${target}`
-      : target
+  const conditionTransition = hasRealBaselineCondition(baseline)
+    ? `${baseline} to ${target}`
+    : target
   return `${conditionTransition} - ${years}${STANDARD_TIME_TO_TARGET_SUFFIX}`
 }
 
