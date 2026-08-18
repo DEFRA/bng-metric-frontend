@@ -234,7 +234,10 @@ function mergeRefreshedClaims(previous, refreshed) {
 function describeEnrichmentDrift(previous, refreshed) {
   return ENRICHMENT_CLAIMS.map((claim) => {
     const value = refreshed?.[claim]
-    const differs = JSON.stringify(value) !== JSON.stringify(previous?.[claim])
+    const normalise = (v) => (Array.isArray(v) ? [...v].sort() : v)
+    const differs =
+      JSON.stringify(normalise(value)) !==
+      JSON.stringify(normalise(previous?.[claim]))
     return `${claim}=${describeClaimShape(value)}${differs ? '(differs)' : ''}`
   }).join(' ')
 }
@@ -244,10 +247,10 @@ function describeClaimShape(value) {
     return 'absent'
   }
   if (Array.isArray(value)) {
-    return value.length > 0 ? `array:${value.length}` : 'blank'
+    return `array:${value.length}`
   }
   if (typeof value === 'string') {
-    return value.length > 0 ? 'scalar' : 'blank'
+    return value.length > 0 ? 'scalar' : 'string:0'
   }
   return typeof value
 }

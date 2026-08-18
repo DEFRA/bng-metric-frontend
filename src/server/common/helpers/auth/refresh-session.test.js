@@ -250,10 +250,39 @@ describe('refreshSession', () => {
 
     const [, message] = request.logger.info.mock.calls.at(-1)
     expect(message).toBe(
-      'OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=blank(differs) currentRelationshipId=scalar(differs)]'
+      'OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=array:0(differs) currentRelationshipId=scalar(differs)]'
     )
     expect(message).not.toContain('Acme')
     expect(message).not.toContain('rel-2')
+  })
+
+  test('does not flag a reordered array claim as differing', async () => {
+    // JSON.stringify-based comparison is order-sensitive, but B2C returning
+    // the same relationships in a different order is not a meaningful
+    // change - only a reordering, not real drift.
+    const request = makeRequest({
+      idToken: 'old-id',
+      refreshToken: 'refresh-1',
+      user: {
+        sub: 'u1',
+        roles: ['rel-1:bng completer:3', 'rel-2:bng completer:3']
+      }
+    })
+    vi.mocked(refreshTokenGrant).mockResolvedValue({
+      id_token: 'new-id',
+      refresh_token: 'refresh-2',
+      claims: () => ({
+        sub: 'u1',
+        exp: 42,
+        roles: ['rel-2:bng completer:3', 'rel-1:bng completer:3']
+      })
+    })
+
+    await refreshSession(request)
+
+    const [, message] = request.logger.info.mock.calls.at(-1)
+    expect(message).toContain('roles=array:2 ')
+    expect(message).not.toContain('roles=array:2(differs)')
   })
 
   test('reports enrichment claims the refreshed token omits as absent', async () => {

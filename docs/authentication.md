@@ -195,14 +195,14 @@ A successful refresh logs the shape of each pinned enrichment claim as the
 refreshed token carried it:
 
 ```
-OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=blank currentRelationshipId=scalar(differs)]
+OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=array:0 currentRelationshipId=scalar(differs)]
 ```
 
 | Shape       | Meaning                                                                      |
 | ----------- | ---------------------------------------------------------------------------- |
 | `absent`    | The refreshed token omitted the claim                                        |
-| `blank`     | Present but empty (`[]` / `''`) — the BMD-829 shape                          |
-| `array:N`   | A collection with N entries                                                  |
+| `array:N`   | A collection with N entries (`array:0` is the BMD-829 empty-array shape)     |
+| `string:0`  | Present but an empty string — the BMD-829 empty-scalar shape                 |
 | `scalar`    | A non-empty **string** where a collection is expected — B2C has flattened it |
 | `(differs)` | The value differs from the one pinned at sign-in                             |
 
