@@ -193,7 +193,9 @@ function createGetController(uploadType) {
         backHref:
           piBackHref ??
           adaptListHref(viewModel.backHref, uploadType, projectId),
-        cancelHref: adaptListHref(viewModel.cancelHref, uploadType, projectId)
+        cancelHref:
+          piBackHref ??
+          adaptListHref(viewModel.cancelHref, uploadType, projectId)
       })
     }
   }

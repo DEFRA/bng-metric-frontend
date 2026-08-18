@@ -338,6 +338,36 @@ describe('#baselineHabitatDetails - GET', () => {
     )
   })
 
+  test('Renders Cancel link to the referring post-intervention habitat details page', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      headers: {
+        host: 'localhost',
+        referer: `http://localhost/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
+      },
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      `href="/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&amp;projectId=${projectId}"`
+    )
+  })
+
+  test('Ignores a post-intervention referrer from another host for the Cancel link', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      headers: {
+        host: 'localhost',
+        referer: `https://example.com/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
+      },
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      `href="/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}"`
+    )
+  })
+
   test('Calls the conditions endpoint with the combined "Broad - Type" key', async () => {
     await server.inject({
       method: 'GET',
