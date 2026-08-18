@@ -2,11 +2,12 @@ import Boom from '@hapi/boom'
 
 import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
-import { isBaselineOnlyProject } from '../common/helpers/project-state.js'
+import { hasBaselineData } from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
 
 const SIGNIFICANT_FIGURES = 15
 const DECIMAL_PLACES = 2
+const NET_GAIN_TARGET_PERCENTAGE = 10
 const FETCH_PROJECT_ERROR = 'Failed to fetch project'
 
 function normaliseUnits(value) {
@@ -25,37 +26,85 @@ function areaUnits(units) {
   )
 }
 
-function buildUnitSummary(label, baselineUnits, uploadHref) {
+function percentageSummary(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return { netPercentageChange: 'N/A', status: null }
+  }
+
+  const targetMet = value >= NET_GAIN_TARGET_PERCENTAGE
+
+  return {
+    netPercentageChange: `${formatUnits(value)}%`,
+    status: {
+      text: targetMet ? 'Met' : 'Not met',
+      classes: targetMet ? 'govuk-tag--green' : 'govuk-tag--red'
+    }
+  }
+}
+
+function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
-  const hasBaselineUnits = normalisedBaseline > 0
+  let percentage = normalisedBaseline > 0 ? -100 : null
+  let netUnitChange = -normalisedBaseline
+
+  if (intervention) {
+    percentage = intervention.netPercentageChange
+    netUnitChange = intervention.netUnitChange
+  }
 
   return {
     id: label.toLowerCase().replaceAll(' ', '-'),
     label,
-    netPercentageChange: hasBaselineUnits ? '-100.00%' : 'N/A',
-    status: hasBaselineUnits
-      ? { text: 'Not met', classes: 'govuk-tag--red' }
-      : null,
+    ...percentageSummary(percentage),
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,
       action: { text: 'View on-site baseline' }
     },
     postIntervention: {
-      units: '0.00 units',
-      action: {
-        text: 'Upload on-site post intervention file',
-        href: uploadHref
-      }
+      heading: intervention
+        ? 'On-site post-intervention'
+        : 'On-site post intervention',
+      units: `${formatUnits(intervention?.units)} units`,
+      action: intervention
+        ? { text: 'View on-site post intervention' }
+        : {
+            text: 'Upload on-site post intervention file',
+            href: uploadHref
+          }
     },
-    netUnitChange: `${formatUnits(-normalisedBaseline)} units`
+    netUnitChange: `${formatUnits(netUnitChange)} units`
   }
 }
 
 function buildProjectSummary(project, projectId) {
-  const units = project?.baseline?.units
+  const baselineUnits = project?.baseline?.units
+  const postInterventionUnits = project?.postIntervention?.units
   const returnUrl = `/projects/${projectId}/project-summary`
   const uploadHref = uploadFileHref(projectId, returnUrl)
+
+  const interventionSummary = project?.postIntervention
+    ? {
+        areaHabitats: {
+          units: areaUnits(postInterventionUnits),
+          netUnitChange: postInterventionUnits?.habitatsNetUnitChange,
+          netPercentageChange:
+            postInterventionUnits?.habitatsNetUnitChangePercentage
+        },
+        hedgerows: {
+          units: postInterventionUnits?.hedgerowsTotal,
+          netUnitChange: postInterventionUnits?.hedgerowsNetUnitChange,
+          netPercentageChange:
+            postInterventionUnits?.hedgerowsNetUnitChangePercentage
+        },
+        watercourses: {
+          units: postInterventionUnits?.watercoursesTotal,
+          netUnitChange: postInterventionUnits?.watercoursesNetUnitChange,
+          netPercentageChange:
+            postInterventionUnits?.watercoursesNetUnitChangePercentage
+        }
+      }
+    : null
 
   return {
     projectName: project?.name ?? 'Project',
@@ -67,9 +116,24 @@ function buildProjectSummary(project, projectId) {
       { text: 'Watercourses' }
     ],
     unitSummaries: [
-      buildUnitSummary('Area habitats', areaUnits(units), uploadHref),
-      buildUnitSummary('Hedgerows', units?.hedgerowsTotal, uploadHref),
-      buildUnitSummary('Watercourses', units?.watercoursesTotal, uploadHref)
+      buildUnitSummary(
+        'Area habitats',
+        areaUnits(baselineUnits),
+        uploadHref,
+        interventionSummary?.areaHabitats
+      ),
+      buildUnitSummary(
+        'Hedgerows',
+        baselineUnits?.hedgerowsTotal,
+        uploadHref,
+        interventionSummary?.hedgerows
+      ),
+      buildUnitSummary(
+        'Watercourses',
+        baselineUnits?.watercoursesTotal,
+        uploadHref,
+        interventionSummary?.watercourses
+      )
     ]
   }
 }
@@ -94,7 +158,7 @@ export const getController = {
 
     const project = result.payload?.project
 
-    if (!isBaselineOnlyProject(project)) {
+    if (!hasBaselineData(project)) {
       return h.redirect(`/add-project-details/${id}`)
     }
 
@@ -108,4 +172,4 @@ export const getController = {
   }
 }
 
-export { buildProjectSummary, formatUnits }
+export { buildProjectSummary, formatUnits, percentageSummary }

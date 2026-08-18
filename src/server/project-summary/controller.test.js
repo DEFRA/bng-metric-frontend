@@ -2,7 +2,7 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
-import { formatUnits } from './controller.js'
+import { formatUnits, percentageSummary } from './controller.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -33,6 +33,34 @@ const project = {
         treesTotal: 0.285,
         hedgerowsTotal: 4.5,
         watercoursesTotal: 3
+      }
+    }
+  }
+}
+
+const projectWithPostIntervention = {
+  project: {
+    name: 'Riverbank restoration',
+    baseline: {
+      units: {
+        habitatsTotal: 8,
+        treesTotal: 2,
+        hedgerowsTotal: 4,
+        watercoursesTotal: 10
+      }
+    },
+    postIntervention: {
+      units: {
+        habitatsTotal: 11,
+        treesTotal: 2,
+        hedgerowsTotal: 6,
+        watercoursesTotal: 5,
+        habitatsNetUnitChange: 3,
+        habitatsNetUnitChangePercentage: 30,
+        hedgerowsNetUnitChange: 2,
+        hedgerowsNetUnitChangePercentage: 50,
+        watercoursesNetUnitChange: -5,
+        watercoursesNetUnitChangePercentage: -50
       }
     }
   }
@@ -258,20 +286,66 @@ describe('project summary', () => {
     expect(result.match(/Not met/g)).toHaveLength(1)
   })
 
-  test.each([
-    ['without baseline data', { name: 'No baseline' }],
-    [
-      'with post-intervention data',
-      {
-        name: 'Post-intervention project',
-        baseline: { units: {} },
-        postIntervention: { units: {} }
-      }
-    ]
-  ])('redirects a project %s to the existing task list', async (_, data) => {
+  test('renders post-intervention values and target statuses', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
-      payload: { project: data }
+      payload: projectWithPostIntervention
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+    const $ = load(result)
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('30.00%')
+    expect(result).toContain('50.00%')
+    expect(result).toContain('-50.00%')
+    expect($('.govuk-tag--green')).toHaveLength(2)
+    expect($('.govuk-tag--green').text()).toBe('MetMet')
+    expect($('.govuk-tag--red')).toHaveLength(1)
+    expect($('.govuk-tag--red').text()).toBe('Not met')
+    expect(result).toContain('13.00 units')
+    expect(result).toContain('6.00 units')
+    expect(result).toContain('5.00 units')
+    expect(result).toContain('3.00 units')
+    expect(result).toContain('2.00 units')
+    expect(result).toContain('-5.00 units')
+  })
+
+  test('renders post-intervention headings and text-only actions', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: projectWithPostIntervention
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+    const $ = load(result)
+    const interventionHeadings = $('h3').filter((_, heading) =>
+      $(heading).text().includes('On-site post-intervention')
+    )
+
+    expect(interventionHeadings).toHaveLength(3)
+    expect(result.match(/View on-site post intervention/g)).toHaveLength(3)
+    expect(result).not.toContain('Upload on-site post intervention file')
+    expect($('a[href*="/upload-file?"]')).toHaveLength(1)
+    expect(
+      $('a').filter((_, link) =>
+        $(link).text().includes('View on-site post intervention')
+      )
+    ).toHaveLength(0)
+  })
+
+  test('redirects a project without baseline data to the existing task list', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: { project: { name: 'No baseline' } }
     })
 
     const { statusCode, headers } = await server.inject({
@@ -332,4 +406,27 @@ describe('formatUnits', () => {
   ])('formats %s as %s', (value, expected) => {
     expect(formatUnits(value)).toBe(expected)
   })
+})
+
+describe('percentageSummary', () => {
+  test.each([
+    [10, '10.00%', 'Met', 'govuk-tag--green'],
+    [9.999, '10.00%', 'Not met', 'govuk-tag--red'],
+    [-1, '-1.00%', 'Not met', 'govuk-tag--red']
+  ])('maps %s to %s and %s', (value, netPercentageChange, text, classes) => {
+    expect(percentageSummary(value)).toEqual({
+      netPercentageChange,
+      status: { text, classes }
+    })
+  })
+
+  test.each([null, undefined, Number.NaN, Number.POSITIVE_INFINITY])(
+    'maps %s to N/A without a status',
+    (value) => {
+      expect(percentageSummary(value)).toEqual({
+        netPercentageChange: 'N/A',
+        status: null
+      })
+    }
+  )
 })

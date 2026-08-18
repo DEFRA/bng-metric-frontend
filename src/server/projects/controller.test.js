@@ -175,7 +175,7 @@ describe('#projectsListController', () => {
     )
   })
 
-  test('Should not link a project with post-intervention data to the baseline-only summary', async () => {
+  test('Should link a project with post-intervention data to the project summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: [
@@ -197,9 +197,6 @@ describe('#projectsListController', () => {
     })
 
     expect(result).toContain(
-      `href="/add-project-details/${mockProjects[0].id}"`
-    )
-    expect(result).not.toContain(
       `href="/projects/${mockProjects[0].id}/project-summary"`
     )
   })
