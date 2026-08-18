@@ -52,11 +52,13 @@ const projectWithPostIntervention = {
     postIntervention: {
       units: {
         habitatsTotal: 11,
-        treesTotal: 2,
+        treesTotal: 5,
         hedgerowsTotal: 6,
         watercoursesTotal: 5,
-        habitatsNetUnitChange: 3,
-        habitatsNetUnitChangePercentage: 30,
+        // The backend's habitats-prefixed net fields represent all area units,
+        // including trees: (11 + 5) - (8 + 2) = 6, or 60%.
+        habitatsNetUnitChange: 6,
+        habitatsNetUnitChangePercentage: 60,
         hedgerowsNetUnitChange: 2,
         hedgerowsNetUnitChangePercentage: 50,
         watercoursesNetUnitChange: -5,
@@ -286,7 +288,7 @@ describe('project summary', () => {
     expect(result.match(/Not met/g)).toHaveLength(1)
   })
 
-  test('renders post-intervention values and target statuses', async () => {
+  test('renders post-intervention values and includes changed tree units in the area summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: projectWithPostIntervention
@@ -298,21 +300,24 @@ describe('project summary', () => {
       auth
     })
     const $ = load(result)
+    const areaSummary = $('#area-habitats-heading').closest('section')
+    const hedgerowSummary = $('#hedgerows-heading').closest('section')
+    const watercourseSummary = $('#watercourses-heading').closest('section')
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toContain('30.00%')
-    expect(result).toContain('50.00%')
-    expect(result).toContain('-50.00%')
+    expect(areaSummary.text()).toContain('60.00%')
+    expect(areaSummary.text()).toContain('16.00 units')
+    expect(areaSummary.text()).toContain('6.00 units')
+    expect(hedgerowSummary.text()).toContain('50.00%')
+    expect(hedgerowSummary.text()).toContain('6.00 units')
+    expect(hedgerowSummary.text()).toContain('2.00 units')
+    expect(watercourseSummary.text()).toContain('-50.00%')
+    expect(watercourseSummary.text()).toContain('5.00 units')
+    expect(watercourseSummary.text()).toContain('-5.00 units')
     expect($('.govuk-tag--green')).toHaveLength(2)
     expect($('.govuk-tag--green').text()).toBe('MetMet')
     expect($('.govuk-tag--red')).toHaveLength(1)
     expect($('.govuk-tag--red').text()).toBe('Not met')
-    expect(result).toContain('13.00 units')
-    expect(result).toContain('6.00 units')
-    expect(result).toContain('5.00 units')
-    expect(result).toContain('3.00 units')
-    expect(result).toContain('2.00 units')
-    expect(result).toContain('-5.00 units')
   })
 
   test('renders post-intervention headings and text-only actions', async () => {
