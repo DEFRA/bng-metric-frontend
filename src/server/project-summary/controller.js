@@ -8,6 +8,7 @@ import { fetchProject } from '../common/services/projects.js'
 const SIGNIFICANT_FIGURES = 15
 const DECIMAL_PLACES = 2
 const NET_GAIN_TARGET_PERCENTAGE = 10
+const NO_POST_INTERVENTION_PERCENTAGE = -100
 const FETCH_PROJECT_ERROR = 'Failed to fetch project'
 
 function isFiniteNumber(value) {
@@ -60,7 +61,8 @@ function percentageSummary(value) {
 function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
-  let percentage = normalisedBaseline > 0 ? -100 : null
+  let percentage =
+    normalisedBaseline > 0 ? NO_POST_INTERVENTION_PERCENTAGE : null
   let netUnitChange = -normalisedBaseline
 
   if (hasIntervention) {
