@@ -10,31 +10,46 @@ const DECIMAL_PLACES = 2
 const NET_GAIN_TARGET_PERCENTAGE = 10
 const FETCH_PROJECT_ERROR = 'Failed to fetch project'
 
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
 function normaliseUnits(value) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+  return isFiniteNumber(value) ? value : 0
 }
 
 function formatUnits(value) {
   const normalised = normaliseUnits(value)
   const rounded = Number(normalised.toPrecision(SIGNIFICANT_FIGURES))
-  return (rounded === 0 ? 0 : rounded).toFixed(DECIMAL_PLACES)
+  const formatted = rounded.toFixed(DECIMAL_PLACES)
+  return formatted === '-0.00' ? '0.00' : formatted
 }
 
-function areaUnits(units) {
-  return (
-    normaliseUnits(units?.habitatsTotal) + normaliseUnits(units?.treesTotal)
-  )
+function formatOptionalUnits(value) {
+  return isFiniteNumber(value) ? `${formatUnits(value)} units` : 'N/A'
+}
+
+function areaUnits(units, missingValue = 0) {
+  const habitatsTotal = units?.habitatsTotal
+  const treesTotal = units?.treesTotal
+
+  if (!isFiniteNumber(habitatsTotal) && !isFiniteNumber(treesTotal)) {
+    return missingValue
+  }
+
+  return normaliseUnits(habitatsTotal) + normaliseUnits(treesTotal)
 }
 
 function percentageSummary(value) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return { netPercentageChange: 'N/A', status: null }
   }
 
-  const targetMet = value >= NET_GAIN_TARGET_PERCENTAGE
+  const formattedPercentage = formatUnits(value)
+  const targetMet = Number(formattedPercentage) >= NET_GAIN_TARGET_PERCENTAGE
 
   return {
-    netPercentageChange: `${formatUnits(value)}%`,
+    netPercentageChange: `${formattedPercentage}%`,
     status: {
       text: targetMet ? 'Met' : 'Not met',
       classes: targetMet ? 'govuk-tag--green' : 'govuk-tag--red'
@@ -44,10 +59,11 @@ function percentageSummary(value) {
 
 function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
+  const hasIntervention = Boolean(intervention)
   let percentage = normalisedBaseline > 0 ? -100 : null
   let netUnitChange = -normalisedBaseline
 
-  if (intervention) {
+  if (hasIntervention) {
     percentage = intervention.netPercentageChange
     netUnitChange = intervention.netUnitChange
   }
@@ -62,18 +78,22 @@ function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
       action: { text: 'View on-site baseline' }
     },
     postIntervention: {
-      heading: intervention
+      heading: hasIntervention
         ? 'On-site post-intervention'
         : 'On-site post intervention',
-      units: `${formatUnits(intervention?.units)} units`,
-      action: intervention
+      units: hasIntervention
+        ? formatOptionalUnits(intervention.units)
+        : '0.00 units',
+      action: hasIntervention
         ? { text: 'View on-site post intervention' }
         : {
             text: 'Upload on-site post intervention file',
             href: uploadHref
           }
     },
-    netUnitChange: `${formatUnits(netUnitChange)} units`
+    netUnitChange: hasIntervention
+      ? formatOptionalUnits(netUnitChange)
+      : `${formatUnits(netUnitChange)} units`
   }
 }
 
@@ -86,7 +106,7 @@ function buildProjectSummary(project, projectId) {
   const interventionSummary = project?.postIntervention
     ? {
         areaHabitats: {
-          units: areaUnits(postInterventionUnits),
+          units: areaUnits(postInterventionUnits, null),
           netUnitChange: postInterventionUnits?.habitatsNetUnitChange,
           netPercentageChange:
             postInterventionUnits?.habitatsNetUnitChangePercentage

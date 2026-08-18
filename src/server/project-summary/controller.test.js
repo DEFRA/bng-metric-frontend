@@ -342,6 +342,36 @@ describe('project summary', () => {
     ).toHaveLength(0)
   })
 
+  test('shows N/A for missing post-intervention unit values', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          name: 'Incomplete post-intervention data',
+          baseline: {
+            units: {
+              habitatsTotal: 1,
+              treesTotal: 0,
+              hedgerowsTotal: 1,
+              watercoursesTotal: 1
+            }
+          },
+          postIntervention: { units: {} }
+        }
+      }
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result.match(/N\/A/g)).toHaveLength(9)
+    expect(result).not.toContain('-0.00')
+  })
+
   test('redirects a project without baseline data to the existing task list', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
@@ -400,6 +430,7 @@ describe('formatUnits', () => {
     [1.234567890123456, '1.23'],
     [12345678901234.56, '12345678901234.60'],
     [-1.235, '-1.24'],
+    [-0.004, '0.00'],
     [-0, '0.00'],
     [null, '0.00'],
     [Number.NaN, '0.00']
@@ -411,7 +442,9 @@ describe('formatUnits', () => {
 describe('percentageSummary', () => {
   test.each([
     [10, '10.00%', 'Met', 'govuk-tag--green'],
-    [9.999, '10.00%', 'Not met', 'govuk-tag--red'],
+    [9.999, '10.00%', 'Met', 'govuk-tag--green'],
+    [9.994, '9.99%', 'Not met', 'govuk-tag--red'],
+    [-0.004, '0.00%', 'Not met', 'govuk-tag--red'],
     [-1, '-1.00%', 'Not met', 'govuk-tag--red']
   ])('maps %s to %s and %s', (value, netPercentageChange, text, classes) => {
     expect(percentageSummary(value)).toEqual({
