@@ -1,5 +1,5 @@
-function isBaselineOnlyProject(project) {
-  return Boolean(project?.baseline) && !project?.postIntervention
+function hasBaselineData(project) {
+  return Boolean(project?.baseline)
 }
 
-export { isBaselineOnlyProject }
+export { hasBaselineData }

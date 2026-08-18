@@ -1,12 +1,12 @@
-import { isBaselineOnlyProject } from './project-state.js'
+import { hasBaselineData } from './project-state.js'
 
-describe('isBaselineOnlyProject', () => {
+describe('hasBaselineData', () => {
   test.each([
     [{ baseline: {} }, true],
-    [{ baseline: {}, postIntervention: {} }, false],
+    [{ baseline: {}, postIntervention: {} }, true],
     [{}, false],
     [null, false]
-  ])('identifies %j as baseline-only: %s', (project, expected) => {
-    expect(isBaselineOnlyProject(project)).toBe(expected)
+  ])('identifies whether %j has baseline data: %s', (project, expected) => {
+    expect(hasBaselineData(project)).toBe(expected)
   })
 })

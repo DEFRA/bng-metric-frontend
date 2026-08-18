@@ -11,6 +11,7 @@ const summary = {
     action: { text: 'View on-site baseline' }
   },
   postIntervention: {
+    heading: 'On-site post intervention',
     units: '0.00 units',
     action: { text: 'Upload post-intervention file', href: '/upload' }
   },

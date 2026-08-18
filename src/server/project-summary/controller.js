@@ -2,60 +2,131 @@ import Boom from '@hapi/boom'
 
 import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
-import { isBaselineOnlyProject } from '../common/helpers/project-state.js'
+import { hasBaselineData } from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
 
 const SIGNIFICANT_FIGURES = 15
 const DECIMAL_PLACES = 2
+const NET_GAIN_TARGET_PERCENTAGE = 10
+const NO_POST_INTERVENTION_PERCENTAGE = -100
 const FETCH_PROJECT_ERROR = 'Failed to fetch project'
 
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
 function normaliseUnits(value) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+  return isFiniteNumber(value) ? value : 0
 }
 
 function formatUnits(value) {
   const normalised = normaliseUnits(value)
   const rounded = Number(normalised.toPrecision(SIGNIFICANT_FIGURES))
-  return (rounded === 0 ? 0 : rounded).toFixed(DECIMAL_PLACES)
+  const formatted = rounded.toFixed(DECIMAL_PLACES)
+  return formatted === '-0.00' ? '0.00' : formatted
 }
 
-function areaUnits(units) {
-  return (
-    normaliseUnits(units?.habitatsTotal) + normaliseUnits(units?.treesTotal)
-  )
+function formatOptionalUnits(value) {
+  return isFiniteNumber(value) ? `${formatUnits(value)} units` : 'N/A'
 }
 
-function buildUnitSummary(label, baselineUnits, uploadHref) {
+function areaUnits(units, missingValue = 0) {
+  const habitatsTotal = units?.habitatsTotal
+  const treesTotal = units?.treesTotal
+
+  if (!isFiniteNumber(habitatsTotal) && !isFiniteNumber(treesTotal)) {
+    return missingValue
+  }
+
+  return normaliseUnits(habitatsTotal) + normaliseUnits(treesTotal)
+}
+
+function percentageSummary(value) {
+  if (!isFiniteNumber(value)) {
+    return { netPercentageChange: 'N/A', status: null }
+  }
+
+  const formattedPercentage = formatUnits(value)
+  const targetMet = Number(formattedPercentage) >= NET_GAIN_TARGET_PERCENTAGE
+
+  return {
+    netPercentageChange: `${formattedPercentage}%`,
+    status: {
+      text: targetMet ? 'Met' : 'Not met',
+      classes: targetMet ? 'govuk-tag--green' : 'govuk-tag--red'
+    }
+  }
+}
+
+function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
-  const hasBaselineUnits = normalisedBaseline > 0
+  const hasIntervention = Boolean(intervention)
+  let percentage =
+    normalisedBaseline > 0 ? NO_POST_INTERVENTION_PERCENTAGE : null
+  let netUnitChange = -normalisedBaseline
+
+  if (hasIntervention) {
+    percentage = intervention.netPercentageChange
+    netUnitChange = intervention.netUnitChange
+  }
 
   return {
     id: label.toLowerCase().replaceAll(' ', '-'),
     label,
-    netPercentageChange: hasBaselineUnits ? '-100.00%' : 'N/A',
-    status: hasBaselineUnits
-      ? { text: 'Not met', classes: 'govuk-tag--red' }
-      : null,
+    ...percentageSummary(percentage),
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,
       action: { text: 'View on-site baseline' }
     },
     postIntervention: {
-      units: '0.00 units',
-      action: {
-        text: 'Upload on-site post intervention file',
-        href: uploadHref
-      }
+      heading: hasIntervention
+        ? 'On-site post-intervention'
+        : 'On-site post intervention',
+      units: hasIntervention
+        ? formatOptionalUnits(intervention.units)
+        : '0.00 units',
+      action: hasIntervention
+        ? { text: 'View on-site post intervention' }
+        : {
+            text: 'Upload on-site post intervention file',
+            href: uploadHref
+          }
     },
-    netUnitChange: `${formatUnits(-normalisedBaseline)} units`
+    netUnitChange: hasIntervention
+      ? formatOptionalUnits(netUnitChange)
+      : `${formatUnits(netUnitChange)} units`
   }
 }
 
 function buildProjectSummary(project, projectId) {
-  const units = project?.baseline?.units
+  const baselineUnits = project?.baseline?.units
+  const postInterventionUnits = project?.postIntervention?.units
   const returnUrl = `/projects/${projectId}/project-summary`
   const uploadHref = uploadFileHref(projectId, returnUrl)
+
+  const interventionSummary = project?.postIntervention
+    ? {
+        areaHabitats: {
+          units: areaUnits(postInterventionUnits, null),
+          netUnitChange: postInterventionUnits?.habitatsNetUnitChange,
+          netPercentageChange:
+            postInterventionUnits?.habitatsNetUnitChangePercentage
+        },
+        hedgerows: {
+          units: postInterventionUnits?.hedgerowsTotal,
+          netUnitChange: postInterventionUnits?.hedgerowsNetUnitChange,
+          netPercentageChange:
+            postInterventionUnits?.hedgerowsNetUnitChangePercentage
+        },
+        watercourses: {
+          units: postInterventionUnits?.watercoursesTotal,
+          netUnitChange: postInterventionUnits?.watercoursesNetUnitChange,
+          netPercentageChange:
+            postInterventionUnits?.watercoursesNetUnitChangePercentage
+        }
+      }
+    : null
 
   return {
     projectName: project?.name ?? 'Project',
@@ -67,9 +138,24 @@ function buildProjectSummary(project, projectId) {
       { text: 'Watercourses' }
     ],
     unitSummaries: [
-      buildUnitSummary('Area habitats', areaUnits(units), uploadHref),
-      buildUnitSummary('Hedgerows', units?.hedgerowsTotal, uploadHref),
-      buildUnitSummary('Watercourses', units?.watercoursesTotal, uploadHref)
+      buildUnitSummary(
+        'Area habitats',
+        areaUnits(baselineUnits),
+        uploadHref,
+        interventionSummary?.areaHabitats
+      ),
+      buildUnitSummary(
+        'Hedgerows',
+        baselineUnits?.hedgerowsTotal,
+        uploadHref,
+        interventionSummary?.hedgerows
+      ),
+      buildUnitSummary(
+        'Watercourses',
+        baselineUnits?.watercoursesTotal,
+        uploadHref,
+        interventionSummary?.watercourses
+      )
     ]
   }
 }
@@ -94,7 +180,7 @@ export const getController = {
 
     const project = result.payload?.project
 
-    if (!isBaselineOnlyProject(project)) {
+    if (!hasBaselineData(project)) {
       return h.redirect(`/add-project-details/${id}`)
     }
 
@@ -108,4 +194,4 @@ export const getController = {
   }
 }
 
-export { buildProjectSummary, formatUnits }
+export { buildProjectSummary, formatUnits, percentageSummary }
