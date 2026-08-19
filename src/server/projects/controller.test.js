@@ -26,14 +26,14 @@ const authedAuth = {
 }
 
 // The list endpoint returns a projection, not the stored project document:
-// name, timestamps and a hasBaseline flag (BMD-933). Nothing here carries a
+// name, timestamps and a has_baseline flag (BMD-933). Nothing here carries a
 // baseline / postIntervention body, because the backend no longer selects one.
 const mockProjects = [
   {
     id: '0d7c6f7c-5f9e-4e7e-8f77-9d99d30a8d77',
     projectId: '0d7c6f7c-5f9e-4e7e-8f77-9d99d30a8d77',
     project: { name: 'Greenfield Meadow Restoration' },
-    hasBaseline: false,
+    has_baseline: false,
     createdAt: '2024-01-15T00:00:00.000Z',
     updatedAt: '2024-03-20T00:00:00.000Z'
   },
@@ -41,7 +41,7 @@ const mockProjects = [
     id: '16b0bb16-11f9-44f4-9b19-51fb2f0a1c6f',
     projectId: '16b0bb16-11f9-44f4-9b19-51fb2f0a1c6f',
     project: { name: 'Oakwood Farm BNG Assessment' },
-    hasBaseline: false,
+    has_baseline: false,
     createdAt: '2024-02-01T00:00:00.000Z',
     updatedAt: '2024-04-10T00:00:00.000Z'
   }
@@ -148,10 +148,10 @@ describe('#projectsListController', () => {
     )
   })
 
-  test('Should link a project flagged hasBaseline to its project summary', async () => {
+  test('Should link a project flagged has_baseline to its project summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
-      payload: [{ ...mockProjects[0], hasBaseline: true }]
+      payload: [{ ...mockProjects[0], has_baseline: true }]
     })
 
     const { result } = await server.inject({
@@ -167,7 +167,7 @@ describe('#projectsListController', () => {
 
   test('Should render the list without any project document body', async () => {
     // Guards the contract the backend now honours: the page needs a name, two
-    // timestamps and hasBaseline — nothing that lives inside the document.
+    // timestamps and has_baseline — nothing that lives inside the document.
     const { result, statusCode } = await server.inject({
       method: 'GET',
       url: '/manage-projects',
@@ -183,7 +183,7 @@ describe('#projectsListController', () => {
 
   // Frontend and backend deploy independently, so the list can still arrive
   // with the full document and no flag for one release.
-  test('Should fall back to the document when the backend sends no hasBaseline', async () => {
+  test('Should fall back to the document when the backend sends no has_baseline', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: [

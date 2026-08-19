@@ -33,7 +33,7 @@ export const projectsListController = {
         // whether a baseline exists arrives as a flag. The fallback covers the
         // window where this deploys ahead of the backend that sets it.
         href:
-          (project.hasBaseline ?? hasBaselineData(project.project))
+          (project.has_baseline ?? hasBaselineData(project.project))
             ? `/projects/${project.id}/project-summary`
             : `/add-project-details/${project.id}`
       }))
