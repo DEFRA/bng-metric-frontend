@@ -72,7 +72,12 @@ export const loginController = {
         serviceId: serviceId || null,
         useStub
       },
-      'OIDC login: initiating authorization code flow'
+      // useStub and the scope ride in the message text as well as the fields:
+      // CDP drops unmapped structured fields, so when a login fails only the
+      // message reaches OpenSearch - and the scope is the first thing to check
+      // (B2C returns no access_token unless the client-id resource scope is in
+      // it; the token exchange then fails with OAUTH_INVALID_RESPONSE).
+      `OIDC login: initiating authorization code flow [useStub=${useStub} scope="${scope}"]`
     )
 
     try {
