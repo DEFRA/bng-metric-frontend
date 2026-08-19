@@ -18,6 +18,18 @@ const backendUrl = (process.env.BACKEND_URL ?? 'http://localhost:3001').replace(
   ''
 )
 
+// Whether we are talking to the cdp-defra-id-stub is a property of the provider,
+// not an independent choice — so derive it from the discovery URL rather than
+// making an environment set two vars that must agree. When they drifted apart
+// (a stub discovery URL with OIDC_USE_STUB=false) login broke at the callback:
+// the stub omits `nonce` from the ID token, which openid-client then rejects.
+// An explicit OIDC_USE_STUB still wins, for a stub deployed under another name.
+const stubDiscoveryHost = 'cdp-defra-id-stub'
+const oidcDiscoveryUrl =
+  process.env.OIDC_DISCOVERY_URL ??
+  'http://localhost:3200/cdp-defra-id-stub/.well-known/openid-configuration'
+const usesStubProvider = oidcDiscoveryUrl.includes(stubDiscoveryHost)
+
 convict.addFormats(convictFormatWithValidator)
 
 export const config = convict({
@@ -245,8 +257,7 @@ export const config = convict({
     discoveryUrl: {
       doc: 'OIDC provider discovery URL (.well-known/openid-configuration)',
       format: String,
-      default:
-        'http://localhost:3200/cdp-defra-id-stub/.well-known/openid-configuration',
+      default: oidcDiscoveryUrl,
       env: 'OIDC_DISCOVERY_URL'
     },
     clientId: {
@@ -289,9 +300,9 @@ export const config = convict({
       env: 'OIDC_SERVICE_ID'
     },
     useStub: {
-      doc: 'True when the OIDC provider is the cdp-defra-id-stub. Live Defra ID (Azure AD B2C) requires the client ID appended to the scopes and includes nonce in the ID token; the stub does neither.',
+      doc: 'True when the OIDC provider is the cdp-defra-id-stub. Live Defra ID (Azure AD B2C) requires the client ID appended to the scopes and includes nonce in the ID token; the stub does neither. Defaults to whether the discovery URL is a stub one, so the two cannot drift apart; set explicitly to override.',
       format: Boolean,
-      default: false,
+      default: usesStubProvider,
       env: 'OIDC_USE_STUB'
     }
   },

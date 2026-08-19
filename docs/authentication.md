@@ -34,10 +34,10 @@ The stub does not ship with default users. You must register one through its UI:
 ### Start the frontend
 
 ```shell
-OIDC_USE_STUB=true npm run dev
+npm run dev
 ```
 
-The frontend runs on `http://localhost:3000`. The discovery URL, client ID, secret, and other defaults in `src/config/config.js` already point at the stub, so setting `OIDC_USE_STUB=true` is the only env var you need locally. See [Stub vs live OIDC](#stub-vs-live-oidc) below for what this flag changes.
+The frontend runs on `http://localhost:3000`. The discovery URL, client ID, secret, and other defaults in `src/config/config.js` already point at the stub, and `oidc.useStub` is derived from that discovery URL — so there is no env var to set locally. See [Stub vs live OIDC](#stub-vs-live-oidc) below for what that flag changes.
 
 ### Test the login flow
 
@@ -57,7 +57,7 @@ per-request lines (`Auth scheme: checking session` and the role-pass line),
 raise the level to `debug`:
 
 ```shell
-OIDC_USE_STUB=true LOG_LEVEL=debug npm run dev
+LOG_LEVEL=debug npm run dev
 ```
 
 ## Configuration
@@ -73,7 +73,7 @@ All OIDC settings are in `src/config/config.js` under the `oidc` key. Each has a
 | `oidc.postLogoutRedirectUri` | `OIDC_POST_LOGOUT_REDIRECT_URI` | `http://localhost:3000/auth/signed-out`                                    | Landing page after logout                                                                                                                                                                       |
 | `oidc.scopes`                | `OIDC_SCOPES`                   | `openid profile email offline_access`                                      | Scopes requested from the provider. Against live B2C the client ID is appended automatically (see `oidc.useStub`)                                                                               |
 | `oidc.serviceId`             | `OIDC_SERVICE_ID`               | _(empty)_                                                                  | Defra ID service identifier (required for real B2C, ignored by stub)                                                                                                                            |
-| `oidc.useStub`               | `OIDC_USE_STUB`                 | `false`                                                                    | Set `true` when the OIDC provider is the cdp-defra-id-stub (changes scope and nonce handling — see below)                                                                                       |
+| `oidc.useStub`               | `OIDC_USE_STUB`                 | derived from `OIDC_DISCOVERY_URL`                                          | True when the OIDC provider is the cdp-defra-id-stub (changes scope and nonce handling — see below). Derived from whether the discovery URL is a stub one; set the env var only to override    |
 
 ### Stub vs live OIDC
 
@@ -92,13 +92,29 @@ The `OIDC_USE_STUB` flag toggles two concrete behaviors that differ between the 
 
 ### When to set `OIDC_USE_STUB`
 
-| Scenario                                                                                                                     | `OIDC_USE_STUB`                   |
-| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Local development against the cdp-defra-id-stub on `localhost:3200`                                                          | `true`                            |
-| Deployed environment pointing at a stub instance (e.g. an integration env that doesn't yet have a Defra ID app registration) | `true`                            |
-| Deployed environment using live Defra ID (dev / test / prod B2C tenants)                                                     | `false` _(default — leave unset)_ |
+Normally: never. Which provider is on the other end is a property of
+`OIDC_DISCOVERY_URL`, not an independent choice, so `oidc.useStub` defaults to
+whether that URL is a `cdp-defra-id-stub` one. Point an environment at a stub and
+it gets stub behaviour; point it at a B2C tenant and it gets live behaviour.
 
-If you change which provider an environment points at (e.g. swap a dev env from stub to live B2C), update `OIDC_USE_STUB` alongside `OIDC_DISCOVERY_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_SERVICE_ID`.
+| Scenario                                                                                                                     | `OIDC_USE_STUB`                     |
+| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Local development against the cdp-defra-id-stub on `localhost:3200`                                                          | _leave unset_ (derives to `true`)   |
+| Deployed environment pointing at a stub instance (e.g. an integration env that doesn't yet have a Defra ID app registration) | _leave unset_ (derives to `true`)   |
+| Deployed environment using live Defra ID (dev / test / prod B2C tenants)                                                     | _leave unset_ (derives to `false`)  |
+| A stub deployed under a hostname that doesn't contain `cdp-defra-id-stub`                                                    | `true` — the one case worth setting |
+
+!!! warning "Don't set it to contradict the discovery URL"
+    A deployed environment pointing at a stub but pinned to `OIDC_USE_STUB=false`
+    breaks login: the frontend passes `expectedNonce` to the token grant, the stub
+    omits `nonce` from the ID token, and `openid-client` rejects the exchange at
+    `/auth/callback`. The reverse pairing fails at the token endpoint instead —
+    B2C returns no `access_token` without the client id in the scope. The login
+    handler logs `discoveryUrl` and `useStub` together on every attempt
+    ("OIDC login: initiating authorization code flow"), which is the quickest way
+    to confirm which provider an environment actually resolved.
+
+If you change which provider an environment points at (e.g. swap a dev env from stub to live B2C), update `OIDC_DISCOVERY_URL` alongside `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_SERVICE_ID` — `useStub` follows the discovery URL on its own.
 
 ### Session lifetime configuration
 

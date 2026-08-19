@@ -27,4 +27,51 @@ describe('#config', () => {
 
     vi.unstubAllEnvs()
   })
+
+  // The stub and live B2C differ in scope and nonce handling, so `oidc.useStub`
+  // has to match whichever provider `OIDC_DISCOVERY_URL` names. Deriving the
+  // default from the URL is what stops the two drifting apart in a deployed
+  // environment (a stub URL with OIDC_USE_STUB=false breaks login).
+  test('Should derive oidc.useStub from a stub discovery URL', async () => {
+    vi.stubEnv(
+      'OIDC_DISCOVERY_URL',
+      'https://cdp-defra-id-stub.dev.cdp-int.defra.cloud/cdp-defra-id-stub/.well-known/openid-configuration'
+    )
+    vi.resetModules()
+
+    const { config } = await import('./config.js')
+
+    expect(config.get('oidc.useStub')).toBe(true)
+
+    vi.unstubAllEnvs()
+  })
+
+  test('Should derive oidc.useStub as false for a live B2C discovery URL', async () => {
+    vi.stubEnv(
+      'OIDC_DISCOVERY_URL',
+      'https://example.b2clogin.com/example.onmicrosoft.com/b2c_1a_signin/v2.0/.well-known/openid-configuration'
+    )
+    vi.resetModules()
+
+    const { config } = await import('./config.js')
+
+    expect(config.get('oidc.useStub')).toBe(false)
+
+    vi.unstubAllEnvs()
+  })
+
+  test('Should let an explicit OIDC_USE_STUB override the derived value', async () => {
+    vi.stubEnv(
+      'OIDC_DISCOVERY_URL',
+      'https://cdp-defra-id-stub.dev.cdp-int.defra.cloud/cdp-defra-id-stub/.well-known/openid-configuration'
+    )
+    vi.stubEnv('OIDC_USE_STUB', 'false')
+    vi.resetModules()
+
+    const { config } = await import('./config.js')
+
+    expect(config.get('oidc.useStub')).toBe(false)
+
+    vi.unstubAllEnvs()
+  })
 })

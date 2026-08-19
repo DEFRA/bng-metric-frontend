@@ -57,6 +57,26 @@ vi.mock('../common/helpers/auth/auth-metrics.js', async (importOriginal) => {
   }
 })
 
+// controller.js reads `oidc.useStub` at import time, and that flag is derived
+// from OIDC_DISCOVERY_URL. The suites below exercise the live-B2C behaviour
+// (clientId appended to the scope, expectedNonce on the grant), so pin a
+// non-stub discovery URL before the import runs, and restore it afterwards so
+// the value cannot leak into another test file sharing the worker.
+const previousDiscoveryUrl = vi.hoisted(() => {
+  const previous = process.env.OIDC_DISCOVERY_URL
+  process.env.OIDC_DISCOVERY_URL =
+    'https://example.b2clogin.com/example.onmicrosoft.com/b2c_1a_signin/v2.0/.well-known/openid-configuration'
+  return previous
+})
+
+afterAll(() => {
+  if (previousDiscoveryUrl === undefined) {
+    delete process.env.OIDC_DISCOVERY_URL
+  } else {
+    process.env.OIDC_DISCOVERY_URL = previousDiscoveryUrl
+  }
+})
+
 const fakeOidcConfig = { fake: 'config' }
 
 function buildRequest(overrides = {}) {
