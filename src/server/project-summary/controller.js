@@ -2,7 +2,10 @@ import Boom from '@hapi/boom'
 
 import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
-import { hasBaselineData } from '../common/helpers/project-state.js'
+import {
+  hasBaselineData,
+  hasHabitatData
+} from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
 
 const SIGNIFICANT_FIGURES = 15
@@ -128,35 +131,44 @@ function buildProjectSummary(project, projectId) {
       }
     : null
 
+  const unitTypes = [
+    {
+      visible: true,
+      label: 'Area habitats',
+      navigationText: 'Area Habitats',
+      baselineUnits: areaUnits(baselineUnits),
+      intervention: interventionSummary?.areaHabitats
+    },
+    {
+      visible: hasHabitatData(project, 'hedgerows'),
+      label: 'Hedgerows',
+      navigationText: 'Hedgerows',
+      baselineUnits: baselineUnits?.hedgerowsTotal,
+      intervention: interventionSummary?.hedgerows
+    },
+    {
+      visible: hasHabitatData(project, 'watercourses'),
+      label: 'Watercourses',
+      navigationText: 'Watercourses',
+      baselineUnits: baselineUnits?.watercoursesTotal,
+      intervention: interventionSummary?.watercourses
+    }
+  ]
+  const visibleUnitTypes = unitTypes.filter(({ visible }) => visible)
+
   return {
     projectName: project?.name ?? 'Project',
     uploadHref,
     navigationItems: [
       { text: 'Summary', current: true },
-      { text: 'Area Habitats' },
-      { text: 'Hedgerows' },
-      { text: 'Watercourses' }
+      ...visibleUnitTypes.map(({ navigationText }) => ({
+        text: navigationText
+      }))
     ],
-    unitSummaries: [
-      buildUnitSummary(
-        'Area habitats',
-        areaUnits(baselineUnits),
-        uploadHref,
-        interventionSummary?.areaHabitats
-      ),
-      buildUnitSummary(
-        'Hedgerows',
-        baselineUnits?.hedgerowsTotal,
-        uploadHref,
-        interventionSummary?.hedgerows
-      ),
-      buildUnitSummary(
-        'Watercourses',
-        baselineUnits?.watercoursesTotal,
-        uploadHref,
-        interventionSummary?.watercourses
-      )
-    ]
+    unitSummaries: visibleUnitTypes.map(
+      ({ label, baselineUnits: units, intervention }) =>
+        buildUnitSummary(label, units, uploadHref, intervention)
+    )
   }
 }
 
