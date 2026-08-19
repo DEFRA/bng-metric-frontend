@@ -139,16 +139,16 @@ describe('refreshSession', () => {
     })
   })
 
-  test('lets a meaningfully-present refreshed claim overwrite the prior one', async () => {
+  test('lets a meaningfully-present refreshed NON-enrichment claim overwrite the prior one', async () => {
     const request = makeRequest({
       idToken: 'old-id',
       refreshToken: 'refresh-1',
-      user: { sub: 'u1', currentRelationshipId: 'rel-1' }
+      user: { sub: 'u1', email: 'old@example.test' }
     })
     vi.mocked(refreshTokenGrant).mockResolvedValue({
       id_token: 'new-id',
       refresh_token: 'refresh-2',
-      claims: () => ({ sub: 'u1', exp: 42, currentRelationshipId: 'rel-2' })
+      claims: () => ({ sub: 'u1', exp: 42, email: 'new@example.test' })
     })
 
     await refreshSession(request)
@@ -156,8 +156,153 @@ describe('refreshSession', () => {
     expect(request._store.auth.user).toEqual({
       sub: 'u1',
       exp: 42,
-      currentRelationshipId: 'rel-2'
+      email: 'new@example.test'
     })
+  })
+
+  describe('enrichment claims are pinned to their sign-in values (BMD-936)', () => {
+    // Defra ID re-runs relationship/role enrichment only on an interactive
+    // sign-in, so nothing a refresh grant returns in these three claims is
+    // authoritative. Each case below is a shape observed to overwrite a good
+    // sign-in claim before BMD-936, producing a claim set that
+    // hasBngCompleterRole then rejected — signing out a user whose refresh had
+    // succeeded.
+    const signedInUser = {
+      sub: 'u1',
+      roles: ['rel-1:bng completer:3', 'rel-2:bng completer:3'],
+      relationships: ['rel-1:org-1:Acme Ltd:0:Employee:1'],
+      currentRelationshipId: 'rel-2'
+    }
+
+    test.each([
+      [
+        'roles flattened to a scalar',
+        { roles: 'rel-1:bng completer:3', exp: 42 }
+      ],
+      [
+        'roles returned with a non-approved status',
+        { roles: ['rel-1:bng completer:1'], exp: 42 }
+      ],
+      [
+        'currentRelationshipId defaulted to another org',
+        { currentRelationshipId: 'rel-1', exp: 42 }
+      ],
+      [
+        'the whole enrichment set repopulated differently',
+        {
+          roles: ['rel-9:bng completer:6'],
+          relationships: ['rel-9:org-9:Other Ltd:0:Employee:1'],
+          currentRelationshipId: 'rel-9',
+          exp: 42
+        }
+      ]
+    ])(
+      'keeps the sign-in claims when the refreshed token has %s',
+      async (_name, refreshedClaims) => {
+        const request = makeRequest({
+          idToken: 'old-id',
+          refreshToken: 'refresh-1',
+          user: { ...signedInUser }
+        })
+        vi.mocked(refreshTokenGrant).mockResolvedValue({
+          id_token: 'new-id',
+          refresh_token: 'refresh-2',
+          claims: () => ({ sub: 'u1', ...refreshedClaims })
+        })
+
+        await refreshSession(request)
+
+        expect(request._store.auth.user).toEqual({
+          ...signedInUser,
+          exp: 42
+        })
+      }
+    )
+  })
+
+  test('logs the enrichment shapes in the message text, without the values', async () => {
+    // CDP drops unmapped structured fields, so the message is the only part that
+    // reaches OpenSearch — and it must never carry the claim values themselves
+    // (role and relationship strings contain org ids and names).
+    const request = makeRequest({
+      idToken: 'old-id',
+      refreshToken: 'refresh-1',
+      user: {
+        sub: 'u1',
+        roles: ['rel-1:bng completer:3'],
+        relationships: ['rel-1:org-1:Acme Ltd:0:Employee:1'],
+        currentRelationshipId: 'rel-1'
+      }
+    })
+    vi.mocked(refreshTokenGrant).mockResolvedValue({
+      id_token: 'new-id',
+      refresh_token: 'refresh-2',
+      claims: () => ({
+        sub: 'u1',
+        exp: 42,
+        roles: 'rel-1:bng completer:1',
+        relationships: [],
+        currentRelationshipId: 'rel-2'
+      })
+    })
+
+    await refreshSession(request)
+
+    const [, message] = request.logger.info.mock.calls.at(-1)
+    expect(message).toBe(
+      'OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=array:0(differs) currentRelationshipId=scalar(differs)]'
+    )
+    expect(message).not.toContain('Acme')
+    expect(message).not.toContain('rel-2')
+  })
+
+  test('does not flag a reordered array claim as differing', async () => {
+    // JSON.stringify-based comparison is order-sensitive, but B2C returning
+    // the same relationships in a different order is not a meaningful
+    // change - only a reordering, not real drift.
+    const request = makeRequest({
+      idToken: 'old-id',
+      refreshToken: 'refresh-1',
+      user: {
+        sub: 'u1',
+        roles: ['rel-1:bng completer:3', 'rel-2:bng completer:3']
+      }
+    })
+    vi.mocked(refreshTokenGrant).mockResolvedValue({
+      id_token: 'new-id',
+      refresh_token: 'refresh-2',
+      claims: () => ({
+        sub: 'u1',
+        exp: 42,
+        roles: ['rel-2:bng completer:3', 'rel-1:bng completer:3']
+      })
+    })
+
+    await refreshSession(request)
+
+    const [, message] = request.logger.info.mock.calls.at(-1)
+    expect(message).toContain('roles=array:2 ')
+    expect(message).not.toContain('roles=array:2(differs)')
+  })
+
+  test('reports enrichment claims the refreshed token omits as absent', async () => {
+    const request = makeRequest({
+      idToken: 'old-id',
+      refreshToken: 'refresh-1',
+      user: { sub: 'u1', roles: ['rel-1:bng completer:3'] }
+    })
+    vi.mocked(refreshTokenGrant).mockResolvedValue({
+      id_token: 'new-id',
+      refresh_token: 'refresh-2',
+      claims: () => ({ sub: 'u1', exp: 42 })
+    })
+
+    await refreshSession(request)
+
+    const [, message] = request.logger.info.mock.calls.at(-1)
+    expect(message).toContain(
+      '[roles=absent(differs) relationships=absent currentRelationshipId=absent]'
+    )
   })
 
   test('keeps the previous refresh token when the provider omits a new one', async () => {
@@ -209,8 +354,58 @@ describe('refreshSession', () => {
         likelyCause: expect.stringContaining('Refresh token expired'),
         detail: expect.stringContaining('oauthError=invalid_grant')
       }),
-      'OIDC: silent token refresh failed'
+      'OIDC: silent token refresh failed [category=refresh-token-rejected]'
     )
+  })
+
+  describe('when the grant returns no id_token', () => {
+    // The id_token IS the session: it carries the `exp` the expiry check reads
+    // and it is the bearer credential sent to the backend. Without one there is
+    // nothing to renew with, so the session ends and the user gets the friendly
+    // "Sign in again" page rather than a half-written session.
+    const tokensWithoutIdToken = {
+      id_token: undefined,
+      refresh_token: 'refresh-2',
+      claims: () => undefined
+    }
+
+    function signedInRequest() {
+      return makeRequest({
+        idToken: 'old-id',
+        refreshToken: 'refresh-1',
+        user: { sub: 'u1', exp: 1234567890, roles: ['rel-1:bng completer:3'] }
+      })
+    }
+
+    test('returns null so the caller ends the session', async () => {
+      const request = signedInRequest()
+      vi.mocked(refreshTokenGrant).mockResolvedValue(tokensWithoutIdToken)
+
+      expect(await refreshSession(request)).toBeNull()
+    })
+
+    test('leaves the stored session untouched rather than writing a broken one', async () => {
+      const request = signedInRequest()
+      vi.mocked(refreshTokenGrant).mockResolvedValue(tokensWithoutIdToken)
+
+      await refreshSession(request)
+
+      expect(request.yar.set).not.toHaveBeenCalled()
+      expect(request._store.auth.idToken).toBe('old-id')
+    })
+
+    test('logs it as a failure with its own category, not as a success', async () => {
+      const request = signedInRequest()
+      vi.mocked(refreshTokenGrant).mockResolvedValue(tokensWithoutIdToken)
+
+      await refreshSession(request)
+
+      expect(request.logger.info).not.toHaveBeenCalled()
+      expect(request.logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ sub: 'u1', category: 'no-id-token' }),
+        'OIDC: silent token refresh failed [category=no-id-token]'
+      )
+    })
   })
 })
 

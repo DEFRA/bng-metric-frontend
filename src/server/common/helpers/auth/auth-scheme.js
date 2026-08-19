@@ -95,27 +95,24 @@ function sessionScheme() {
       const newIdToken = await refreshSession(request)
       if (newIdToken) {
         const refreshedUser = request.yar.get('auth')?.user ?? user
-        // Preserve-seamless (refreshSession keeps enrichment claims the refreshed
-        // token blanked) covers the common case. Guard the rest: if the user was
-        // approved before the refresh but is not after, the renewed token no
-        // longer authorises them — end the session cleanly rather than leave them
-        // half signed-in (email shown, but organisation gone and every protected
-        // route denied). A user who never held an approved role is left as-is:
-        // that is a valid pending state, not a refresh regression. This relies on
-        // Defra ID's enrichment claims moving together (roles and
-        // currentRelationshipId blank or repopulate as a set on a refresh), so a
-        // post-merge role-check failure reflects a genuine downgrade.
+        // Unreachable by construction since BMD-936: refreshSession pins the
+        // enrichment claims (roles, relationships, currentRelationshipId) to
+        // their sign-in values, so the authorisation decision after a refresh is
+        // the same one made at sign-in. Kept as a tripwire rather than deleted —
+        // if a future change lets a refreshed token influence those claims
+        // again, this says so in the logs instead of the behaviour changing
+        // silently.
+        //
+        // It does NOT end the session. Ending it here is what BMD-936 was: a
+        // refresh grant carries no authoritative role information, so treating
+        // its claims as a downgrade signed out users whose renewal had just
+        // succeeded. Authorisation stays where it is enforced properly — the
+        // per-route requireBngCompleterRole gate, and the backend, which
+        // authorises from the roles it persisted at sign-in.
         if (hadApprovedRole && !hasBngCompleterRole(refreshedUser)) {
-          request.logger.info(
+          request.logger.warn(
             { sub: user.sub, path: request.path },
-            'Auth: silent refresh returned a session without the approved role, ending session'
-          )
-          expireSession(request)
-          return unauthenticated(
-            request,
-            h,
-            SESSION_EXPIRED_PATH,
-            'Session authorization lost on refresh'
+            'Auth: refreshed claims lost the approved role but the session was kept — enrichment claims should be pinned at sign-in, so this indicates a regression in mergeRefreshedClaims'
           )
         }
         return h.authenticated({ credentials: refreshedUser })

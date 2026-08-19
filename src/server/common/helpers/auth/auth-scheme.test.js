@@ -46,7 +46,7 @@ function buildRequest(session = undefined, { mode = 'required' } = {}) {
       })
     },
     route: { settings: { auth: { mode } } },
-    logger: { debug: vi.fn(), info: vi.fn() },
+    logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
     _store: store
   }
 }
@@ -321,11 +321,13 @@ describe('#authScheme', () => {
       expect(request.yar.reset).not.toHaveBeenCalled()
     })
 
-    test('ends the session when a silent refresh downgrades a previously-approved role', async () => {
-      // The realistic trigger is a MEANINGFUL downgrade (approved status 3 ->
-      // pending status 1) that the guarded merge would actually apply — not an
-      // empty roles array, which mergeRefreshedClaims preserves (so it would
-      // never reach the guard as a downgrade in the real flow).
+    test('keeps the session when the refreshed claims lose the approved role (BMD-936)', async () => {
+      // Signing the user out here is the BMD-936 bug: a refresh_token grant
+      // carries no authoritative role information, so a "downgrade" seen only
+      // after a refresh ejected users whose renewal had just succeeded. The
+      // state below cannot arise now that refreshSession pins the enrichment
+      // claims, so this asserts the tripwire behaviour: warn, keep the session,
+      // and leave authorisation to the per-route gate.
       setup()
       const approvedUser = {
         sub: 'user-1',
@@ -344,12 +346,17 @@ describe('#authScheme', () => {
       })
       const h = buildToolkit()
 
-      const result = await authenticate(request, h)
+      await authenticate(request, h)
 
-      expect(request.yar.reset).toHaveBeenCalledTimes(1)
-      expect(h.redirect).toHaveBeenCalledWith('/auth/session-expired')
-      expect(h.authenticated).not.toHaveBeenCalled()
-      expect(result).toBe('redirect-takeover-response')
+      expect(request.yar.reset).not.toHaveBeenCalled()
+      expect(h.redirect).not.toHaveBeenCalled()
+      expect(h.authenticated).toHaveBeenCalledWith({
+        credentials: downgradedUser
+      })
+      expect(request.logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ sub: 'user-1' }),
+        expect.stringContaining('should be pinned at sign-in')
+      )
     })
 
     test('does not end the session for a still-pending user after refresh', async () => {
