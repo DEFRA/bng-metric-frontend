@@ -234,7 +234,13 @@ function mergeRefreshedClaims(previous, refreshed) {
 function describeEnrichmentDrift(previous, refreshed) {
   return ENRICHMENT_CLAIMS.map((claim) => {
     const value = refreshed?.[claim]
-    const normalise = (v) => (Array.isArray(v) ? [...v].sort() : v)
+    // Explicit comparator (S2871): the claims are strings, but a bare sort()
+    // coerces implicitly. Ordering only needs to be consistent between the
+    // two sides of the comparison, not meaningful.
+    const normalise = (v) =>
+      Array.isArray(v)
+        ? [...v].sort((a, b) => String(a).localeCompare(String(b)))
+        : v
     const differs =
       JSON.stringify(normalise(value)) !==
       JSON.stringify(normalise(previous?.[claim]))
