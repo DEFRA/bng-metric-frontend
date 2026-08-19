@@ -25,28 +25,23 @@ const authedAuth = {
   credentials: authCredentials
 }
 
+// The list endpoint returns a projection, not the stored project document:
+// name, timestamps and a has_baseline flag (BMD-933). Nothing here carries a
+// baseline / postIntervention body, because the backend no longer selects one.
 const mockProjects = [
   {
     id: '0d7c6f7c-5f9e-4e7e-8f77-9d99d30a8d77',
-    project: {
-      name: 'Greenfield Meadow Restoration',
-      site: { name: 'Greenfield Meadow', grid_ref: 'TQ 123 456' },
-      units: { habitat: 10.5, hedgerow: 2.3, watercourse: 0.8 }
-    },
-    userId: 'test-user-003',
-    bngProjectVersion: 1,
+    projectId: '0d7c6f7c-5f9e-4e7e-8f77-9d99d30a8d77',
+    project: { name: 'Greenfield Meadow Restoration' },
+    has_baseline: false,
     createdAt: '2024-01-15T00:00:00.000Z',
     updatedAt: '2024-03-20T00:00:00.000Z'
   },
   {
     id: '16b0bb16-11f9-44f4-9b19-51fb2f0a1c6f',
-    project: {
-      name: 'Oakwood Farm BNG Assessment',
-      site: { name: 'Oakwood Farm', grid_ref: 'SP 987 654' },
-      units: { habitat: 25.0, hedgerow: 8.1 }
-    },
-    userId: 'test-user-003',
-    bngProjectVersion: 2,
+    projectId: '16b0bb16-11f9-44f4-9b19-51fb2f0a1c6f',
+    project: { name: 'Oakwood Farm BNG Assessment' },
+    has_baseline: false,
     createdAt: '2024-02-01T00:00:00.000Z',
     updatedAt: '2024-04-10T00:00:00.000Z'
   }
@@ -153,13 +148,50 @@ describe('#projectsListController', () => {
     )
   })
 
-  test('Should link a baseline-only project to its project summary', async () => {
+  test('Should link a project flagged has_baseline to its project summary', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: [{ ...mockProjects[0], has_baseline: true }]
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: '/manage-projects',
+      auth: authedAuth
+    })
+
+    expect(result).toContain(
+      `href="/projects/${mockProjects[0].id}/project-summary"`
+    )
+  })
+
+  test('Should render the list without any project document body', async () => {
+    // Guards the contract the backend now honours: the page needs a name, two
+    // timestamps and has_baseline — nothing that lives inside the document.
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: '/manage-projects',
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toEqual(
+      expect.stringContaining('Greenfield Meadow Restoration')
+    )
+    expect(result).toEqual(expect.stringContaining('15 January 2024'))
+  })
+
+  // Frontend and backend deploy independently, so the list can still arrive
+  // with the full document and no flag for one release.
+  test('Should fall back to the document when the backend sends no has_baseline', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: [
         {
-          ...mockProjects[0],
-          project: { ...mockProjects[0].project, baseline: { units: {} } }
+          id: mockProjects[0].id,
+          project: { name: 'Legacy Shape', baseline: { units: {} } },
+          createdAt: mockProjects[0].createdAt,
+          updatedAt: mockProjects[0].updatedAt
         }
       ]
     })
@@ -175,21 +207,7 @@ describe('#projectsListController', () => {
     )
   })
 
-  test('Should link a project with post-intervention data to the project summary', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: [
-        {
-          ...mockProjects[0],
-          project: {
-            ...mockProjects[0].project,
-            baseline: { units: {} },
-            postIntervention: { units: {} }
-          }
-        }
-      ]
-    })
-
+  test('Should link a project with no baseline to add-project-details', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: '/manage-projects',
@@ -197,7 +215,7 @@ describe('#projectsListController', () => {
     })
 
     expect(result).toContain(
-      `href="/projects/${mockProjects[0].id}/project-summary"`
+      `href="/add-project-details/${mockProjects[0].id}"`
     )
   })
 
