@@ -9,6 +9,7 @@ import {
 } from './format-habitat-values.js'
 import { interventionDisplay } from '../../post-intervention-habitat-details/retention.js'
 import { uploadFileHref } from './upload-file-navigation.js'
+import { hasHabitatData } from './project-state.js'
 
 const NO_DATA_DISPLAY = 'No data'
 const SQUARE_METRES_PER_HECTARE = 10000
@@ -44,11 +45,10 @@ export function resolveProposedDisplayFields(feature) {
   }
 }
 
-function formatLinearUnits(features, total) {
-  if (features?.length) {
-    return formatHabitatUnits(total)
-  }
-  return NO_DATA_DISPLAY
+function formatLinearValue(habitatsData, habitatType, value, formatter) {
+  return hasHabitatData(habitatsData, habitatType)
+    ? formatter(value)
+    : NO_DATA_DISPLAY
 }
 
 function featureDetailsHref(uploadType, featureId, projectId) {
@@ -60,10 +60,13 @@ function featureDetailsHref(uploadType, featureId, projectId) {
 }
 
 function buildRefLinkCell(feature, projectId, uploadType) {
+  const reference = feature.ref?.trim() ? feature.ref : feature.featureId
+
   return {
-    html: `<a class="govuk-link" href="${featureDetailsHref(uploadType, feature.featureId, projectId)}">${feature.ref}</a>`,
+    text: reference,
+    href: featureDetailsHref(uploadType, feature.featureId, projectId),
     attributes: {
-      'data-sort-value': feature.ref
+      'data-sort-value': reference
     }
   }
 }
@@ -90,8 +93,9 @@ function buildFeatureRow(feature, projectId, uploadType, sizeCell) {
 }
 
 function buildLinearSizeCell(sizeMetres) {
+  const length = formatLengthKm(sizeMetres)
   return {
-    text: formatLengthKm(sizeMetres) + KM_UNIT,
+    text: length ? `${length}${KM_UNIT}` : '',
     attributes: {
       'data-sort-value': sizeMetres
     }
@@ -127,7 +131,8 @@ function mapRowsOrNull(features, projectId, uploadType, buildRow) {
   return features.map((feature) => buildRow(feature, projectId, uploadType))
 }
 
-function buildTotalSizes(habitatSizes) {
+function buildTotalSizes(habitatsData) {
+  const habitatSizes = habitatsData?.habitatSizes
   return {
     // "Site" is parcels only (excludes special habitats); "Area habitats" is the
     // total area size (parcels + individual trees).
@@ -135,8 +140,18 @@ function buildTotalSizes(habitatSizes) {
     areaHabitats: formatTotalAreaSize(
       habitatSizes?.areaHabitats?.totalSquareMetres
     ),
-    hedgerows: formatTotalLengthSize(habitatSizes?.hedgerows?.totalMetres),
-    watercourses: formatTotalLengthSize(habitatSizes?.watercourses?.totalMetres)
+    hedgerows: formatLinearValue(
+      habitatsData,
+      'hedgerows',
+      habitatSizes?.hedgerows?.totalMetres,
+      formatTotalLengthSize
+    ),
+    watercourses: formatLinearValue(
+      habitatsData,
+      'watercourses',
+      habitatSizes?.watercourses?.totalMetres,
+      formatTotalLengthSize
+    )
   }
 }
 
@@ -154,13 +169,17 @@ function buildTotalUnits(habitatsData) {
       : (habitatsTotal ?? 0) + (treesTotal ?? 0)
   return {
     areaHabitats: formatHabitatUnits(areaHabitatsUnitsTotal),
-    hedgerows: formatLinearUnits(
-      habitatsData?.hedgerows,
-      unitsTotals?.hedgerowsTotal
+    hedgerows: formatLinearValue(
+      habitatsData,
+      'hedgerows',
+      unitsTotals?.hedgerowsTotal,
+      formatHabitatUnits
     ),
-    watercourses: formatLinearUnits(
-      habitatsData?.watercourses,
-      unitsTotals?.watercoursesTotal
+    watercourses: formatLinearValue(
+      habitatsData,
+      'watercourses',
+      unitsTotals?.watercoursesTotal,
+      formatHabitatUnits
     )
   }
 }
@@ -185,8 +204,8 @@ function formatSummaryAreaSize(squareMetres) {
 }
 
 function formatSummaryLengthSize(metres) {
-  if (typeof metres !== 'number' || !Number.isFinite(metres) || metres === 0) {
-    return NO_DATA_DISPLAY
+  if (typeof metres !== 'number' || !Number.isFinite(metres)) {
+    return ''
   }
   return `${(metres / METRES_PER_KILOMETRE).toFixed(2)}km`
 }
@@ -217,7 +236,12 @@ function buildPostInterventionSummary(project) {
       )
     },
     hedgerows: {
-      size: formatSummaryLengthSize(habitatSizes?.hedgerows?.totalMetres),
+      size: formatLinearValue(
+        postIntervention,
+        'hedgerows',
+        habitatSizes?.hedgerows?.totalMetres,
+        formatSummaryLengthSize
+      ),
       baselineUnits: formatHabitatUnits(baselineUnits?.hedgerowsTotal),
       postInterventionUnits: formatHabitatUnits(
         postInterventionUnits?.hedgerowsTotal
@@ -230,7 +254,12 @@ function buildPostInterventionSummary(project) {
       )
     },
     watercourses: {
-      size: formatSummaryLengthSize(habitatSizes?.watercourses?.totalMetres),
+      size: formatLinearValue(
+        postIntervention,
+        'watercourses',
+        habitatSizes?.watercourses?.totalMetres,
+        formatSummaryLengthSize
+      ),
       baselineUnits: formatHabitatUnits(baselineUnits?.watercoursesTotal),
       postInterventionUnits: formatHabitatUnits(
         postInterventionUnits?.watercoursesTotal
@@ -271,7 +300,7 @@ function createHabitatListController(uploadType) {
           `/projects/${id}/${uploadType.listRoute}`
         ),
         isPostIntervention: uploadType.isPostIntervention,
-        totalSizes: buildTotalSizes(habitatsData?.habitatSizes),
+        totalSizes: buildTotalSizes(habitatsData),
         totalUnits: buildTotalUnits(habitatsData),
         postInterventionSummary: uploadType.isPostIntervention
           ? buildPostInterventionSummary(projectData)

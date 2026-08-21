@@ -77,7 +77,24 @@ const projectWithPostIntervention = {
   }
 }
 
-function projectWithoutHabitatTypes(habitatTypes, withPostIntervention) {
+function removeHabitatTypes(upload, habitatTypes) {
+  for (const habitatType of habitatTypes) {
+    upload[habitatType] = []
+    upload.units[`${habitatType}Total`] = 0
+    const netUnitChange = `${habitatType}NetUnitChange`
+    const netPercentageChange = `${habitatType}NetUnitChangePercentage`
+    if (Object.hasOwn(upload.units, netUnitChange)) {
+      upload.units[netUnitChange] = 0
+      upload.units[netPercentageChange] = null
+    }
+  }
+}
+
+function projectWithoutHabitatTypes(
+  habitatTypes,
+  withPostIntervention,
+  stripFrom = 'both'
+) {
   const baseline = {
     habitats: [{}],
     hedgerows: [{}],
@@ -89,9 +106,8 @@ function projectWithoutHabitatTypes(habitatTypes, withPostIntervention) {
       watercoursesTotal: 1
     }
   }
-  for (const habitatType of habitatTypes) {
-    baseline[habitatType] = []
-    baseline.units[`${habitatType}Total`] = 0
+  if (stripFrom === 'baseline' || stripFrom === 'both') {
+    removeHabitatTypes(baseline, habitatTypes)
   }
 
   const projectData = { name: 'Area project', baseline }
@@ -114,11 +130,8 @@ function projectWithoutHabitatTypes(habitatTypes, withPostIntervention) {
         watercoursesNetUnitChangePercentage: 100
       }
     }
-    for (const habitatType of habitatTypes) {
-      postIntervention[habitatType] = []
-      postIntervention.units[`${habitatType}Total`] = 0
-      postIntervention.units[`${habitatType}NetUnitChange`] = 0
-      postIntervention.units[`${habitatType}NetUnitChangePercentage`] = null
+    if (stripFrom === 'postIntervention' || stripFrom === 'both') {
+      removeHabitatTypes(postIntervention, habitatTypes)
     }
     projectData.postIntervention = postIntervention
   }
@@ -221,7 +234,7 @@ describe('project summary', () => {
     expect(navigation.find('li')).toHaveLength(4)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
     expect(navigation.find('a')).toHaveLength(0)
-    expect(navigation.text()).toContain('Area Habitats')
+    expect(navigation.text()).toContain('Area habitats')
     expect(navigation.text()).toContain('Hedgerows')
     expect(navigation.text()).toContain('Watercourses')
     expect(result).toContain('View trading rules')
@@ -405,11 +418,87 @@ describe('project summary', () => {
 
       expect(statusCode).toBe(statusCodes.ok)
       expect(navigation.find('li')).toHaveLength(2)
-      expect(navigation.text()).toContain('Area Habitats')
+      expect(navigation.text()).toContain('Area habitats')
       expect(navigation.text()).not.toContain('Hedgerows')
       expect(navigation.text()).not.toContain('Watercourses')
       expect($('.app-unit-type-summary')).toHaveLength(1)
       expect($('#area-habitats-heading')).toHaveLength(1)
+    }
+  )
+
+  test.each(['hedgerows', 'watercourses'])(
+    'keeps %s visible when absent from baseline but present post-intervention',
+    async (habitatType) => {
+      const createdOnlyProject = projectWithoutHabitatTypes(
+        [habitatType],
+        true,
+        'baseline'
+      )
+      createdOnlyProject.project.postIntervention[habitatType][0] = {
+        retentionCategory: 'Created'
+      }
+      const interventionUnits =
+        createdOnlyProject.project.postIntervention.units
+      interventionUnits[`${habitatType}NetUnitChange`] = 2
+      interventionUnits[`${habitatType}NetUnitChangePercentage`] = null
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: createdOnlyProject
+      })
+
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      const label = habitatType === 'hedgerows' ? 'Hedgerows' : 'Watercourses'
+      const unitSummary = $(`#${habitatType}-heading`).closest('section')
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($('nav[aria-label="Project summary"]').text()).toContain(label)
+      expect(unitSummary).toHaveLength(1)
+      expect(unitSummary.text()).toContain('N/A')
+      expect(unitSummary.text()).toContain('0.00 units')
+      expect(unitSummary.text().match(/2.00 units/g)).toHaveLength(2)
+      expect(unitSummary.find('.govuk-tag')).toHaveLength(0)
+    }
+  )
+
+  test.each(['hedgerows', 'watercourses'])(
+    'keeps %s visible when present in baseline but absent post-intervention',
+    async (habitatType) => {
+      const baselineOnlyHabitatProject = projectWithoutHabitatTypes(
+        [habitatType],
+        true,
+        'postIntervention'
+      )
+      const interventionUnits =
+        baselineOnlyHabitatProject.project.postIntervention.units
+      interventionUnits[`${habitatType}NetUnitChange`] = -1
+      interventionUnits[`${habitatType}NetUnitChangePercentage`] = -100
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: baselineOnlyHabitatProject
+      })
+
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      const label = habitatType === 'hedgerows' ? 'Hedgerows' : 'Watercourses'
+      const unitSummary = $(`#${habitatType}-heading`).closest('section')
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($('nav[aria-label="Project summary"]').text()).toContain(label)
+      expect(unitSummary).toHaveLength(1)
+      expect(unitSummary.text()).toContain('-100.00%')
+      expect(unitSummary.text()).toContain('1.00 units')
+      expect(unitSummary.text()).toContain('0.00 units')
+      expect(unitSummary.text()).toContain('-1.00 units')
+      expect(unitSummary.find('.govuk-tag--red').text()).toBe('Not met')
     }
   )
 

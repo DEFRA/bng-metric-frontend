@@ -16,13 +16,18 @@
   <link href="{{ getAssetPath('stylesheets/application.scss') }}" rel="stylesheet">
 {% endblock %}
 
-{% block header %}
+{# Override the header/serviceNav sub-blocks rather than the outer `header`
+   block itself, so the parent govuk/template.njk still wraps this content in
+   its <header> landmark. #}
+{% block govukHeader %}
   {{ govukHeader({
     homepageUrl: "https://www.gov.uk/",
     classes: "app-header",
     containerClasses: "govuk-width-container"
   }) }}
+{% endblock %}
 
+{% block govukServiceNavigation %}
   {% set navItems = [] %}
   {% if isAuthenticated %}
     {% set navItems = navigation %}
@@ -52,22 +57,30 @@
 {% endblock %}
 
 {% block beforeContent %}
-  {{ govukPhaseBanner({
-    tag: {
-      text: "Beta"
-    },
-    html: 'This is a new service. Help us improve it and give your feedback (opens in a new tab).'
-  }) }}
-  {% if breadcrumbs.length > 1 %}
-    {{ govukBreadcrumbs({
-      items: breadcrumbs
+  {# This renders outside <main>, matching the GOV.UK Design System page
+     template. Wrapped in its own landmark so it isn't orphaned outside all
+     of header/main/footer for assistive tech. #}
+  <div role="region" aria-label="Page information">
+    {{ govukPhaseBanner({
+      tag: {
+        text: "Beta"
+      },
+      html: 'This is a new service. Help us improve it and give your feedback (opens in a new tab).'
     }) }}
-  {% endif %}
+    {% if breadcrumbs.length > 1 %}
+      {{ govukBreadcrumbs({
+        items: breadcrumbs
+      }) }}
+    {% endif %}
+  </div>
 {% endblock %}
 
 {% block content %}{% endblock %}
 
-{% block footer %}
+{# Override the govukFooter sub-block rather than the outer `footer` block
+   itself, so the parent govuk/template.njk still wraps this content in its
+   <footer> landmark. #}
+{% block govukFooter %}
   {{ govukFooter({
     meta: {
       items: [

@@ -29,9 +29,13 @@ export const projectsListController = {
       heading: 'Manage your Biodiversity Net Gain projects',
       projects: projects.map((project) => ({
         ...project,
-        href: hasBaselineData(project.project)
-          ? `/projects/${project.id}/project-summary`
-          : `/add-project-details/${project.id}`
+        // BMD-933: the list endpoint no longer returns the project document, so
+        // whether a baseline exists arrives as a flag. The fallback covers the
+        // window where this deploys ahead of the backend that sets it.
+        href:
+          (project.has_baseline ?? hasBaselineData(project.project))
+            ? `/projects/${project.id}/project-summary`
+            : `/add-project-details/${project.id}`
       }))
     })
   }

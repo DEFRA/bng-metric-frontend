@@ -137,18 +137,18 @@ describe('formatTotalLengthSize', () => {
     expect(formatTotalLengthSize(1234567.891)).toBe('1234.568km')
   })
 
-  test('Returns "No data" when the total is zero', () => {
-    expect(formatTotalLengthSize(0)).toBe('No data')
+  test('Formats a recorded zero length', () => {
+    expect(formatTotalLengthSize(0)).toBe('0km')
   })
 
-  test('Returns "No data" for null, undefined or non-finite input', () => {
-    expect(formatTotalLengthSize(null)).toBe('No data')
-    expect(formatTotalLengthSize(undefined)).toBe('No data')
-    expect(formatTotalLengthSize(Number.NaN)).toBe('No data')
-    expect(formatTotalLengthSize(Number.POSITIVE_INFINITY)).toBe('No data')
+  test('Returns an empty string for null, undefined or non-finite input', () => {
+    expect(formatTotalLengthSize(null)).toBe('')
+    expect(formatTotalLengthSize(undefined)).toBe('')
+    expect(formatTotalLengthSize(Number.NaN)).toBe('')
+    expect(formatTotalLengthSize(Number.POSITIVE_INFINITY)).toBe('')
   })
 
-  test('Returns "No data" when given a non-number', () => {
-    expect(formatTotalLengthSize('100')).toBe('No data')
+  test('Returns an empty string when given a non-number', () => {
+    expect(formatTotalLengthSize('100')).toBe('')
   })
 })

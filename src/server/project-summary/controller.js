@@ -4,7 +4,7 @@ import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
-  hasHabitatData
+  projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
 
@@ -102,56 +102,60 @@ function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
   }
 }
 
+function buildUnitTypeSummary(
+  unitType,
+  postInterventionUnits,
+  uploadHref,
+  hasPostIntervention
+) {
+  const intervention = hasPostIntervention
+    ? unitType.buildIntervention(postInterventionUnits)
+    : null
+
+  return buildUnitSummary(
+    unitType.label,
+    unitType.baselineUnits,
+    uploadHref,
+    intervention
+  )
+}
+
 function buildProjectSummary(project, projectId) {
   const baselineUnits = project?.baseline?.units
   const postInterventionUnits = project?.postIntervention?.units
   const returnUrl = `/projects/${projectId}/project-summary`
   const uploadHref = uploadFileHref(projectId, returnUrl)
 
-  const interventionSummary = project?.postIntervention
-    ? {
-        areaHabitats: {
-          units: areaUnits(postInterventionUnits, null),
-          netUnitChange: postInterventionUnits?.habitatsNetUnitChange,
-          netPercentageChange:
-            postInterventionUnits?.habitatsNetUnitChangePercentage
-        },
-        hedgerows: {
-          units: postInterventionUnits?.hedgerowsTotal,
-          netUnitChange: postInterventionUnits?.hedgerowsNetUnitChange,
-          netPercentageChange:
-            postInterventionUnits?.hedgerowsNetUnitChangePercentage
-        },
-        watercourses: {
-          units: postInterventionUnits?.watercoursesTotal,
-          netUnitChange: postInterventionUnits?.watercoursesNetUnitChange,
-          netPercentageChange:
-            postInterventionUnits?.watercoursesNetUnitChangePercentage
-        }
-      }
-    : null
-
   const unitTypes = [
     {
       visible: true,
       label: 'Area habitats',
-      navigationText: 'Area Habitats',
       baselineUnits: areaUnits(baselineUnits),
-      intervention: interventionSummary?.areaHabitats
+      buildIntervention: (units) => ({
+        units: areaUnits(units, null),
+        netUnitChange: units?.habitatsNetUnitChange,
+        netPercentageChange: units?.habitatsNetUnitChangePercentage
+      })
     },
     {
-      visible: hasHabitatData(project, 'hedgerows'),
+      visible: projectHasHabitatData(project, 'hedgerows'),
       label: 'Hedgerows',
-      navigationText: 'Hedgerows',
       baselineUnits: baselineUnits?.hedgerowsTotal,
-      intervention: interventionSummary?.hedgerows
+      buildIntervention: (units) => ({
+        units: units?.hedgerowsTotal,
+        netUnitChange: units?.hedgerowsNetUnitChange,
+        netPercentageChange: units?.hedgerowsNetUnitChangePercentage
+      })
     },
     {
-      visible: hasHabitatData(project, 'watercourses'),
+      visible: projectHasHabitatData(project, 'watercourses'),
       label: 'Watercourses',
-      navigationText: 'Watercourses',
       baselineUnits: baselineUnits?.watercoursesTotal,
-      intervention: interventionSummary?.watercourses
+      buildIntervention: (units) => ({
+        units: units?.watercoursesTotal,
+        netUnitChange: units?.watercoursesNetUnitChange,
+        netPercentageChange: units?.watercoursesNetUnitChangePercentage
+      })
     }
   ]
   const visibleUnitTypes = unitTypes.filter(({ visible }) => visible)
@@ -161,13 +165,17 @@ function buildProjectSummary(project, projectId) {
     uploadHref,
     navigationItems: [
       { text: 'Summary', current: true },
-      ...visibleUnitTypes.map(({ navigationText }) => ({
-        text: navigationText
+      ...visibleUnitTypes.map(({ label }) => ({
+        text: label
       }))
     ],
-    unitSummaries: visibleUnitTypes.map(
-      ({ label, baselineUnits: units, intervention }) =>
-        buildUnitSummary(label, units, uploadHref, intervention)
+    unitSummaries: visibleUnitTypes.map((unitType) =>
+      buildUnitTypeSummary(
+        unitType,
+        postInterventionUnits,
+        uploadHref,
+        Boolean(project?.postIntervention)
+      )
     )
   }
 }
