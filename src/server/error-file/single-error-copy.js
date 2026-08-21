@@ -1,5 +1,5 @@
 // BMD-405 — exact GOV.UK copy for the "exactly one validation error" dropout
-// page, keyed by the backend's ERROR_CODES (backend/src/validation/baseline/errors.js).
+// page, keyed by the backend's ERROR_CODES (backend/src/validation/geopackage/errors.js).
 // Copy is taken verbatim from the BMD-405 acceptance criteria; the Figma linked
 // on the ticket is the source of truth for anything not covered here.
 
@@ -56,7 +56,7 @@ const noRedlineEntry = () =>
 // considered, so the old "a thin strip of land" wording described something the
 // service never measures. Naming the limit tells the user what to draw instead.
 // The 1 square metre figure mirrors MIN_PARCEL_AREA_SQ_M in the backend
-// (validation/baseline/postgis/index.js); change both together.
+// (validation/geopackage/postgis/index.js); change both together.
 // It also names the offending parcel, so the title can too (QA-clarified on the
 // BMD-405 thread: a sliver carries a parcel ref like any other polygon).
 const tooSmallParcelEntry = (error) => {
@@ -152,6 +152,15 @@ const CODE_ENTRIES = {
   SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
+
+  // The uploaded file's own name was rejected (backend SAFE_FILENAME_RE). Its
+  // sibling code INVALID_FILE_METADATA means the document structure is wrong,
+  // so it stays on the layer/column catch-all below.
+  INVALID_FILENAME: () =>
+    standard(
+      GEOPACKAGE_ERROR_H1,
+      'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets and '
+    ),
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
