@@ -4,9 +4,11 @@ import * as matchers from 'vitest-axe/matchers'
 expect.extend(matchers)
 
 export const configuredAxe = configureAxe({
-  globalOptions: {
-    checks: [{ id: 'wcag22a' }, { id: 'wcag22aa' }]
-  }
+  runOnly: {
+    type: 'tag',
+    values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
+  },
+  rules: { 'target-size': { enabled: true } }
 })
 
 /**

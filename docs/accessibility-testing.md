@@ -55,5 +55,8 @@ The GOV.UK Design System's own page template renders the phase banner and
 breadcrumbs in `beforeContent`, which sits outside `<main>` by design — see
 [the page template](https://design-system.service.gov.uk/styles/page-template/).
 `page.njk` wraps that block in `<div role="region" aria-label="Page
-information">` so it's still contained in a landmark for the `region` axe
-rule, without deviating from the framework's recommended structure.
+information">` so it's still contained in a landmark, matching the
+framework's recommended structure. (`runAxeChecks` is scoped to WCAG 2.x/2.2
+A/AA tags, so the best-practice `region` rule this originally targeted
+doesn't actually run — the wrapper is kept for the structural landmark it
+provides regardless.)
