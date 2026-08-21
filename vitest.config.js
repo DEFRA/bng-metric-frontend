@@ -23,7 +23,9 @@ export default defineConfig({
         // application.js is the module-load entry point — pure wiring of
         // govuk-frontend `createAll` + module inits, with no behaviour to
         // exercise that isn't already covered by the per-module tests.
-        'src/client/javascripts/application.js'
+        'src/client/javascripts/application.js',
+        // A copy-paste template, not real code — never imported or run.
+        'src/server/test-helpers/accessibility-test.template.js'
       ]
     }
   }
