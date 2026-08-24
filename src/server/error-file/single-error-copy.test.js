@@ -230,6 +230,40 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
+  test('INVALID_FILENAME names the filename problem rather than the layers and columns', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'INVALID_FILENAME', message: 'x' },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets and '
+    )
+    expect(result.linkText).toBe('upload the renamed file')
+  })
+
+  test('INVALID_FILENAME reads as a full sentence when uploadHref is null', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'INVALID_FILENAME', message: 'x' },
+      null
+    )
+    expect(result.linkText).toBeNull()
+    expect(result.messageBefore).toBe(
+      'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets.'
+    )
+  })
+
+  test('INVALID_FILE_METADATA describes a malformed document, not the file name', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'INVALID_FILE_METADATA', message: 'x' },
+      UPLOAD_HREF
+    )
+    expect(result.messageBefore).toBe(
+      'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
+    )
+    expect(result.messageBefore).not.toContain('file name')
+  })
+
   test('ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
     const result = resolveSingleErrorCopy(
       { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
