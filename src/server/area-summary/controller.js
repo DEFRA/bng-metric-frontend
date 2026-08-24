@@ -11,6 +11,7 @@ import {
 
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
+const AREA_HABITATS_LABEL = 'Area habitats'
 
 function buildTargetsSummary(baselineAreaUnits, postInterventionAreaUnits) {
   const unitsRequired =
@@ -51,10 +52,10 @@ function buildAreaSummary(project, projectId) {
     navigationItems: buildUnitTypeNavigation(
       project,
       projectId,
-      'Area habitats'
+      AREA_HABITATS_LABEL
     ),
     unitSummary: buildUnitSummary(
-      'Area habitats',
+      AREA_HABITATS_LABEL,
       baselineAreaUnits,
       uploadHref,
       interventionSummary
@@ -78,8 +79,8 @@ export const getController = {
     const summary = buildAreaSummary(project, id)
 
     return h.view('area-summary/index', {
-      pageTitle: 'Area habitats',
-      heading: 'Area habitats',
+      pageTitle: AREA_HABITATS_LABEL,
+      heading: AREA_HABITATS_LABEL,
       ...summary
     })
   }
