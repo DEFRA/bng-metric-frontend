@@ -87,6 +87,15 @@ const advanceAndDelayEntry = () =>
     'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
   )
 
+// The uploaded file's own name was rejected (backend SAFE_FILENAME_RE). Its
+// sibling code INVALID_FILE_METADATA means the document structure is wrong,
+// so it stays on the layer/column catch-all below.
+const invalidFilenameEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets and '
+  )
+
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
   GPKG_RLB_NO_POLYGON: noRedlineEntry,
@@ -152,15 +161,7 @@ const CODE_ENTRIES = {
   SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
-
-  // The uploaded file's own name was rejected (backend SAFE_FILENAME_RE). Its
-  // sibling code INVALID_FILE_METADATA means the document structure is wrong,
-  // so it stays on the layer/column catch-all below.
-  INVALID_FILENAME: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets and '
-    ),
+  INVALID_FILENAME: invalidFilenameEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
