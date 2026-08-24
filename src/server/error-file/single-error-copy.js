@@ -90,11 +90,13 @@ const advanceAndDelayEntry = () =>
 // The uploaded file's own name was rejected (backend SAFE_FILENAME_RE). Its
 // sibling code INVALID_FILE_METADATA means the document structure is wrong,
 // so it stays on the layer/column catch-all below.
-const invalidFilenameEntry = () =>
-  standard(
+const invalidFilenameEntry = () => ({
+  ...standard(
     GEOPACKAGE_ERROR_H1,
     'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets and '
-  )
+  ),
+  linkText: 'upload the renamed file'
+})
 
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,

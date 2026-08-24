@@ -239,7 +239,7 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.messageBefore).toBe(
       'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets and '
     )
-    expect(result.linkText).toBe('upload a new file')
+    expect(result.linkText).toBe('upload the renamed file')
   })
 
   test('INVALID_FILENAME reads as a full sentence when uploadHref is null', () => {
