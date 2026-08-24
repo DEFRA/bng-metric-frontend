@@ -211,21 +211,132 @@ function mergeRefreshedClaims(previous, refreshed) {
   return merged
 }
 
+// How a refreshed enrichment claim differs from its pinned sign-in value. The
+// point of the breakdown is to tell an OUR-BUG cause apart from a THEIR-BUG one
+// without ever logging the value: `case-only` / `format-only` mean Defra ID sent
+// the SAME id dressed differently and our comparison is what rejected it, while
+// `unknown` means it genuinely sent something else. See docs/authentication.md.
+const DRIFT = Object.freeze({
+  plain: 'differs',
+  previouslyAbsent: 'differs:previously-absent',
+  caseOnly: 'differs:case-only',
+  formatOnly: 'differs:format-only',
+  knownRelationship: 'differs:known-relationship',
+  unknown: 'differs:unknown'
+})
+
+// Sort comparator for the order-insensitive array compare. Explicit (S2871);
+// ordering only needs to be consistent between the two sides, not meaningful.
+const byText = (a, b) => String(a).localeCompare(String(b))
+
+const lowerIfString = (value) =>
+  typeof value === 'string' ? value.toLowerCase() : value
+
+// Compare shape-and-content, ignoring array order. Lower-casing (when asked)
+// happens BEFORE the sort so a case-only difference cannot also reorder the
+// array and hide itself as a content difference.
+function comparable(value, { caseless = false } = {}) {
+  const item = caseless ? lowerIfString : (v) => v
+  const normalised = Array.isArray(value)
+    ? [...value].map(item).sort(byText)
+    : item(value)
+  return JSON.stringify(normalised)
+}
+
+// Strip the dressing a GUID picks up between claim pipelines — surrounding
+// whitespace, the {braces} Dataverse/ADFS sometimes add — and fold case, so the
+// same id in a different costume is recognised as the same id.
+function canonicaliseId(value) {
+  return String(value)
+    .trim()
+    .replace(/^\{/, '')
+    .replace(/\}$/, '')
+    .toLowerCase()
+}
+
+// Every relationship id the user is known to hold, taken from the PINNED
+// sign-in claims: the leading colon-field of each `relationships` and `roles`
+// entry. This is the set hasBngCompleterRole matches currentRelationshipId
+// against, so membership tells us whether a drifted value is at least one of
+// the user's own relationships rather than an unrelated id.
+function knownRelationshipIds(claims) {
+  const entries = [claims?.relationships, claims?.roles].flatMap((value) => {
+    if (Array.isArray(value)) {
+      return value
+    }
+    return typeof value === 'string' && value.length > 0 ? [value] : []
+  })
+  return new Set(
+    entries
+      .filter((entry) => typeof entry === 'string')
+      .map((entry) => canonicaliseId(entry.split(':')[0]))
+  )
+}
+
 /**
- * Describe the SHAPE of each enrichment claim in a refreshed id_token, and
- * whether it differs from the pinned sign-in value — never the value itself
- * (role strings and relationship strings carry org names and ids: PII).
+ * Classify HOW a refreshed claim differs from its pinned sign-in value. Only
+ * called once the two are known to differ.
+ *
+ * The distinction that matters operationally:
+ *   - `case-only` / `format-only` — Defra ID returned the SAME id in different
+ *     dress. Nothing is wrong at the IdP; our comparison is case- and
+ *     format-sensitive (verify-role.js lower-cases the role NAME but not the
+ *     relationship id, and does not normalise currentRelationshipId), so the
+ *     fix belongs here, not in a bug report.
+ *   - `known-relationship` — a different relationship the user genuinely holds;
+ *     only possible for a multi-relationship user.
+ *   - `unknown` — an id we hold no record of. THIS is the one worth raising
+ *     with Defra ID, and the only one consistent with a single-relationship
+ *     user seeing drift.
+ *
+ * @param {unknown} previousValue the pinned sign-in value
+ * @param {unknown} refreshedValue the refreshed id_token's value
+ * @param {object} previousClaims all pinned claims, for the known-id lookup
+ * @returns {string} one of DRIFT
+ */
+function classifyDrift(previousValue, refreshedValue, previousClaims) {
+  if (
+    previousValue === undefined ||
+    previousValue === null ||
+    previousValue === ''
+  ) {
+    return DRIFT.previouslyAbsent
+  }
+  if (
+    comparable(refreshedValue, { caseless: true }) ===
+    comparable(previousValue, { caseless: true })
+  ) {
+    return DRIFT.caseOnly
+  }
+  if (typeof refreshedValue !== 'string' || typeof previousValue !== 'string') {
+    return DRIFT.plain
+  }
+  if (canonicaliseId(refreshedValue) === canonicaliseId(previousValue)) {
+    return DRIFT.formatOnly
+  }
+  return knownRelationshipIds(previousClaims).has(
+    canonicaliseId(refreshedValue)
+  )
+    ? DRIFT.knownRelationship
+    : DRIFT.unknown
+}
+
+/**
+ * Describe the SHAPE of each enrichment claim in a refreshed id_token, and — when
+ * it differs from the pinned sign-in value — HOW it differs. Never the value
+ * itself: role and relationship strings carry org names and ids (PII).
  *
  * This goes into the log MESSAGE rather than a structured field because CDP's
  * log ingestion drops non-allowlisted fields, so the message text is all that
  * survives to OpenSearch — the same reason session.id is prefixed onto messages
  * in logging/logger-options.js.
  *
- * Reads as e.g. `roles=array:1(differs) relationships=blank
- * currentRelationshipId=scalar(differs)`, which names the mechanism directly:
- * `scalar` where an array is expected is a collection claim B2C has flattened,
- * and `(differs)` on any of the three is a value that would have overwritten a
- * good sign-in claim before BMD-936 pinned them.
+ * Reads as e.g. `roles=array:1 relationships=array:1
+ * currentRelationshipId=scalar(differs:unknown)`. The shape names one mechanism
+ * (`scalar` where an array is expected is a collection B2C has flattened) and
+ * the drift class names the other — see classifyDrift for what each implies.
+ * Every marker is informational only: BMD-936 pins these claims, so none of it
+ * changes what the session does.
  *
  * @param {object} previous the claims stored at login
  * @param {object|null|undefined} refreshed the refreshed id_token's claims
@@ -234,17 +345,12 @@ function mergeRefreshedClaims(previous, refreshed) {
 function describeEnrichmentDrift(previous, refreshed) {
   return ENRICHMENT_CLAIMS.map((claim) => {
     const value = refreshed?.[claim]
-    // Explicit comparator (S2871): the claims are strings, but a bare sort()
-    // coerces implicitly. Ordering only needs to be consistent between the
-    // two sides of the comparison, not meaningful.
-    const normalise = (v) =>
-      Array.isArray(v)
-        ? [...v].sort((a, b) => String(a).localeCompare(String(b)))
-        : v
-    const differs =
-      JSON.stringify(normalise(value)) !==
-      JSON.stringify(normalise(previous?.[claim]))
-    return `${claim}=${describeClaimShape(value)}${differs ? '(differs)' : ''}`
+    const previousValue = previous?.[claim]
+    const shape = describeClaimShape(value)
+    if (comparable(value) === comparable(previousValue)) {
+      return `${claim}=${shape}`
+    }
+    return `${claim}=${shape}(${classifyDrift(previousValue, value, previous)})`
   }).join(' ')
 }
 

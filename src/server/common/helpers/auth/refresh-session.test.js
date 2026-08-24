@@ -250,7 +250,9 @@ describe('refreshSession', () => {
 
     const [, message] = request.logger.info.mock.calls.at(-1)
     expect(message).toBe(
-      'OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=array:0(differs) currentRelationshipId=scalar(differs)]'
+      // roles drifts array -> scalar, which is not an id-to-id comparison, so it
+      // stays the plain marker; only scalar-vs-scalar drift gets classified.
+      'OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=array:0(differs) currentRelationshipId=scalar(differs:unknown)]'
     )
     expect(message).not.toContain('Acme')
     expect(message).not.toContain('rel-2')
@@ -303,6 +305,111 @@ describe('refreshSession', () => {
     expect(message).toContain(
       '[roles=absent(differs) relationships=absent currentRelationshipId=absent]'
     )
+  })
+
+  describe('drift classification (BMD-936 follow-up)', () => {
+    // The deployed logs showed roles and relationships coming back IDENTICAL
+    // while only currentRelationshipId differed - for single- AND
+    // multi-relationship users alike. These cases separate the possible causes
+    // without ever logging the value: case/format drift is OUR comparison being
+    // strict, a known relationship is a real org switch, and `unknown` is the
+    // only one worth raising with Defra ID.
+    function signedIn(overrides = {}) {
+      return {
+        idToken: 'old-id',
+        refreshToken: 'refresh-1',
+        user: {
+          sub: 'u1',
+          roles: ['rel-1:bng completer:3'],
+          relationships: ['rel-1:org-1:Acme Ltd:0:Employee:1'],
+          currentRelationshipId: 'rel-1',
+          ...overrides
+        }
+      }
+    }
+
+    async function driftFor(refreshedCurrent, sessionOverrides = {}) {
+      const request = makeRequest(signedIn(sessionOverrides))
+      vi.mocked(refreshTokenGrant).mockResolvedValue({
+        id_token: 'new-id',
+        refresh_token: 'refresh-2',
+        claims: () => ({
+          sub: 'u1',
+          exp: 42,
+          roles: request._store.auth.user.roles,
+          relationships: request._store.auth.user.relationships,
+          currentRelationshipId: refreshedCurrent
+        })
+      })
+
+      await refreshSession(request)
+      const [, message] = request.logger.info.mock.calls.at(-1)
+      return message
+    }
+
+    test('flags a case-only difference as case-only, not a real change', async () => {
+      // The most likely mundane cause: the same GUID upper-cased by a different
+      // claim pipeline. verify-role.js compares relationship ids case-
+      // sensitively, so this alone was enough to end a session pre-BMD-936.
+      const message = await driftFor('REL-1')
+
+      expect(message).toContain(
+        'currentRelationshipId=scalar(differs:case-only)'
+      )
+    })
+
+    test('flags brace/whitespace dressing as format-only', async () => {
+      const message = await driftFor('{rel-1}')
+
+      expect(message).toContain(
+        'currentRelationshipId=scalar(differs:format-only)'
+      )
+    })
+
+    test('flags another relationship the user holds as known-relationship', async () => {
+      const message = await driftFor('rel-2', {
+        roles: ['rel-1:bng completer:3', 'rel-2:bng completer:3'],
+        relationships: [
+          'rel-1:org-1:Acme Ltd:0:Employee:1',
+          'rel-2:org-2:Globex:0:Employee:1'
+        ]
+      })
+
+      expect(message).toContain(
+        'currentRelationshipId=scalar(differs:known-relationship)'
+      )
+    })
+
+    test('flags an id the user holds no record of as unknown', async () => {
+      // The single-relationship case seen in the deployed logs - and the only
+      // classification that points at Defra ID rather than at our comparison.
+      const message = await driftFor('eb18c414-5349-f111-bec6-000d3a495d27')
+
+      expect(message).toContain('currentRelationshipId=scalar(differs:unknown)')
+    })
+
+    test('flags a claim that was absent at sign-in as previously-absent', async () => {
+      const message = await driftFor('rel-1', { currentRelationshipId: '' })
+
+      expect(message).toContain(
+        'currentRelationshipId=scalar(differs:previously-absent)'
+      )
+    })
+
+    test('still logs no drift marker when the value is unchanged', async () => {
+      const message = await driftFor('rel-1')
+
+      expect(message).toContain('currentRelationshipId=scalar]')
+      expect(message).not.toContain('currentRelationshipId=scalar(')
+    })
+
+    test('never logs the claim values themselves', async () => {
+      const message = await driftFor('eb18c414-5349-f111-bec6-000d3a495d27')
+
+      expect(message).not.toContain('eb18c414')
+      expect(message).not.toContain('Acme')
+      expect(message).not.toContain('rel-1')
+    })
   })
 
   test('keeps the previous refresh token when the provider omits a new one', async () => {

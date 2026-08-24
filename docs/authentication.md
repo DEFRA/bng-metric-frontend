@@ -195,20 +195,35 @@ A successful refresh logs the shape of each pinned enrichment claim as the
 refreshed token carried it:
 
 ```
-OIDC: silently refreshed session tokens [roles=scalar(differs) relationships=array:0 currentRelationshipId=scalar(differs)]
+OIDC: silently refreshed session tokens [roles=array:1 relationships=array:1 currentRelationshipId=scalar(differs:unknown)]
 ```
 
-| Shape       | Meaning                                                                      |
-| ----------- | ---------------------------------------------------------------------------- |
-| `absent`    | The refreshed token omitted the claim                                        |
-| `array:N`   | A collection with N entries (`array:0` is the BMD-829 empty-array shape)     |
-| `string:0`  | Present but an empty string — the BMD-829 empty-scalar shape                 |
-| `scalar`    | A non-empty **string** where a collection is expected — B2C has flattened it |
-| `(differs)` | The value differs from the one pinned at sign-in                             |
+| Shape         | Meaning                                                                        |
+| ------------- | ------------------------------------------------------------------------------ |
+| `absent`      | The refreshed token omitted the claim                                          |
+| `array:N`     | A collection with N entries (`array:0` is the BMD-829 empty-array shape)       |
+| `string:0`    | Present but an empty string — the BMD-829 empty-scalar shape                   |
+| `scalar`      | A non-empty **string** where a collection is expected — B2C has flattened it   |
+| `(differs:…)` | The value differs from the one pinned at sign-in — see the drift classes below |
 
 Values are never logged — role and relationship strings carry org ids and names.
-Any `scalar` or `(differs)` marker is a claim that would have overwritten a good
+Any `scalar` or `(differs…)` marker is a claim that would have overwritten a good
 sign-in value before BMD-936 pinned them; it is now informational only.
+
+When a claim differs, the marker says **how**. This is what separates a fault at
+the identity provider from an over-strict comparison on our side:
+
+| Drift class                  | Meaning and what to do                                                                                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `differs:case-only`          | The **same id**, differently cased. Not an IdP fault — `verify-role.js` compares relationship ids case-sensitively (it lower-cases the role _name_ only), so this alone ended sessions pre-BMD-936. Fix by normalising here. |
+| `differs:format-only`        | The same id wearing `{braces}` or whitespace. Same conclusion as `case-only`.                                                                                                                                                |
+| `differs:known-relationship` | A different relationship the user genuinely holds, per their pinned `relationships`/`roles`. Only possible for a multi-relationship user.                                                                                    |
+| `differs:unknown`            | An id we hold **no record of**. The one class that points at Defra ID rather than at our comparison — and the only one consistent with a single-relationship user seeing drift.                                              |
+| `differs:previously-absent`  | The claim was missing or empty at sign-in, so there was nothing to compare against.                                                                                                                                          |
+| `differs`                    | The two sides aren't both strings (e.g. an array flattened to a scalar), so an id-to-id comparison doesn't apply.                                                                                                            |
+
+The classification is derived from values already in the session; none of them
+are written to the log.
 
 `detail` always carries the raw evidence (`oauthError=`, `oauthErrorDescription=`, HTTP/cause codes, response body), PII-free.
 
