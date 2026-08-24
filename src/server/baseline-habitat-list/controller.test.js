@@ -176,13 +176,15 @@ describe('#habitatListController - GET', () => {
     expect(result).toContain('1km')
   })
 
-  test('shows "No data" for hedgerows when their total size is zero', async () => {
+  test('shows a zero hedgerow length when hedgerow data is present', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: {
         project: {
           name: 'Greenfield Meadow Restoration',
           baseline: {
+            hedgerows: [{ featureId: 'h-1' }],
+            watercourses: [{ featureId: 'w-1' }],
             habitatSizes: {
               areaHabitats: { totalSquareMetres: 25000 },
               hedgerows: { totalMetres: 0 },
@@ -199,18 +201,19 @@ describe('#habitatListController - GET', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain('No data')
+    expect(result).toContain('0km')
     expect(result).toContain('1km')
-    expect(result).not.toContain('0km')
   })
 
-  test('shows "No data" for watercourses when their total size is zero', async () => {
+  test('shows a zero watercourse length when watercourse data is present', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: {
         project: {
           name: 'Greenfield Meadow Restoration',
           baseline: {
+            hedgerows: [{ featureId: 'h-1' }],
+            watercourses: [{ featureId: 'w-1' }],
             habitatSizes: {
               areaHabitats: { totalSquareMetres: 25000 },
               hedgerows: { totalMetres: 2500 },
@@ -227,9 +230,8 @@ describe('#habitatListController - GET', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain('No data')
+    expect(result).toContain('0km')
     expect(result).toContain('2.5km')
-    expect(result).not.toContain('0km')
   })
 
   test('shows "No data" for hedgerows and watercourses when habitatSizes is missing', async () => {
@@ -617,10 +619,10 @@ describe('#habitatListController - habitat rows', () => {
     })
 
     expect(result).toContain(
-      `href="/baseline-habitat-details?featureId=${mockHabitat.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockHabitat.featureId}&amp;projectId=${projectId}"`
     )
     expect(result).toContain(
-      `href="/baseline-habitat-details?featureId=${mockHabitatNullFields.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockHabitatNullFields.featureId}&amp;projectId=${projectId}"`
     )
   })
 
@@ -633,6 +635,27 @@ describe('#habitatListController - habitat rows', () => {
 
     expect(result).toContain('>P-1<')
     expect(result).toContain('>P-2<')
+  })
+
+  test('escapes uploaded habitat refs before rendering them as link text', async () => {
+    const projectWithMarkupInRef = structuredClone(mockProjectWithHabitats)
+    projectWithMarkupInRef.project.baseline.habitats[0].ref =
+      '<script>alert("xss")</script>'
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: projectWithMarkupInRef
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+
+    expect(result).not.toContain('<script>alert("xss")</script>')
+    expect(result).toContain(
+      '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+    )
   })
 
   test('renders data-sort-value with the ref on the ref cell', async () => {
@@ -807,7 +830,7 @@ describe('#habitatListController - hedgerow rows', () => {
     })
 
     expect(result).toContain(
-      `href="/baseline-habitat-details?featureId=${mockHedgerow.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockHedgerow.featureId}&amp;projectId=${projectId}"`
     )
     expect(result).toContain('>H-1<')
   })
@@ -981,7 +1004,7 @@ describe('#habitatListController - watercourse rows', () => {
     })
 
     expect(result).toContain(
-      `href="/baseline-habitat-details?featureId=${mockWatercourse.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockWatercourse.featureId}&amp;projectId=${projectId}"`
     )
   })
 
@@ -1116,10 +1139,10 @@ describe('#habitatListController - watercourse rows', () => {
     })
 
     expect(result).toContain(
-      `href="/baseline-habitat-details?featureId=${mockWatercourse.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockWatercourse.featureId}&amp;projectId=${projectId}"`
     )
     expect(result).toContain(
-      `href="/baseline-habitat-details?featureId=${mockWatercourseNullFields.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockWatercourseNullFields.featureId}&amp;projectId=${projectId}"`
     )
   })
 })
@@ -1195,7 +1218,7 @@ describe('#habitatListController - individual trees', () => {
     })
 
     expect(result).toContain(
-      `href="/baseline-habitat-details?featureId=${mockTree.featureId}&projectId=${projectId}"`
+      `href="/baseline-habitat-details?featureId=${mockTree.featureId}&amp;projectId=${projectId}"`
     )
     expect(result).toContain('>T-1<')
     expect(result).toContain('Urban tree')

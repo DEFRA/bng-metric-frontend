@@ -2,7 +2,10 @@ import Boom from '@hapi/boom'
 
 import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
-import { hasBaselineData } from '../common/helpers/project-state.js'
+import {
+  hasBaselineData,
+  projectHasHabitatData
+} from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
 import {
   areaUnits,
@@ -13,65 +16,85 @@ import {
 
 const FETCH_PROJECT_ERROR = 'Failed to fetch project'
 
+function buildUnitTypeSummary(
+  unitType,
+  postInterventionUnits,
+  uploadHref,
+  hasPostIntervention
+) {
+  const intervention = hasPostIntervention
+    ? unitType.buildIntervention(postInterventionUnits)
+    : null
+
+  return buildUnitSummary(
+    unitType.label,
+    unitType.baselineUnits,
+    uploadHref,
+    intervention,
+    unitType.headingHref
+  )
+}
+
 function buildProjectSummary(project, projectId) {
   const baselineUnits = project?.baseline?.units
   const postInterventionUnits = project?.postIntervention?.units
   const returnUrl = `/projects/${projectId}/project-summary`
   const uploadHref = uploadFileHref(projectId, returnUrl)
 
-  const interventionSummary = project?.postIntervention
-    ? {
-        areaHabitats: {
-          units: areaUnits(postInterventionUnits, null),
-          netUnitChange: postInterventionUnits?.habitatsNetUnitChange,
-          netPercentageChange:
-            postInterventionUnits?.habitatsNetUnitChangePercentage
-        },
-        hedgerows: {
-          units: postInterventionUnits?.hedgerowsTotal,
-          netUnitChange: postInterventionUnits?.hedgerowsNetUnitChange,
-          netPercentageChange:
-            postInterventionUnits?.hedgerowsNetUnitChangePercentage
-        },
-        watercourses: {
-          units: postInterventionUnits?.watercoursesTotal,
-          netUnitChange: postInterventionUnits?.watercoursesNetUnitChange,
-          netPercentageChange:
-            postInterventionUnits?.watercoursesNetUnitChangePercentage
-        }
-      }
-    : null
+  const unitTypes = [
+    {
+      visible: true,
+      label: 'Area habitats',
+      href: `/projects/${projectId}/area-summary`,
+      headingHref: `/projects/${projectId}/area-summary`,
+      baselineUnits: areaUnits(baselineUnits),
+      buildIntervention: (units) => ({
+        units: areaUnits(units, null),
+        netUnitChange: units?.habitatsNetUnitChange,
+        netPercentageChange: units?.habitatsNetUnitChangePercentage
+      })
+    },
+    {
+      visible: projectHasHabitatData(project, 'hedgerows'),
+      label: 'Hedgerows',
+      baselineUnits: baselineUnits?.hedgerowsTotal,
+      buildIntervention: (units) => ({
+        units: units?.hedgerowsTotal,
+        netUnitChange: units?.hedgerowsNetUnitChange,
+        netPercentageChange: units?.hedgerowsNetUnitChangePercentage
+      })
+    },
+    {
+      visible: projectHasHabitatData(project, 'watercourses'),
+      label: 'Watercourses',
+      baselineUnits: baselineUnits?.watercoursesTotal,
+      buildIntervention: (units) => ({
+        units: units?.watercoursesTotal,
+        netUnitChange: units?.watercoursesNetUnitChange,
+        netPercentageChange: units?.watercoursesNetUnitChangePercentage
+      })
+    }
+  ]
+  const visibleUnitTypes = unitTypes.filter(({ visible }) => visible)
 
   return {
     projectName: project?.name ?? 'Project',
     uploadHref,
     navigationItems: [
       { text: 'Summary', current: true },
-      { text: 'Area Habitats', href: `/projects/${projectId}/area-summary` },
-      { text: 'Hedgerows' },
-      { text: 'Watercourses' }
+      ...visibleUnitTypes.map(({ label, href }) => ({
+        text: label,
+        ...(href && { href })
+      }))
     ],
-    unitSummaries: [
-      buildUnitSummary(
-        'Area habitats',
-        areaUnits(baselineUnits),
+    unitSummaries: visibleUnitTypes.map((unitType) =>
+      buildUnitTypeSummary(
+        unitType,
+        postInterventionUnits,
         uploadHref,
-        interventionSummary?.areaHabitats,
-        `/projects/${projectId}/area-summary`
-      ),
-      buildUnitSummary(
-        'Hedgerows',
-        baselineUnits?.hedgerowsTotal,
-        uploadHref,
-        interventionSummary?.hedgerows
-      ),
-      buildUnitSummary(
-        'Watercourses',
-        baselineUnits?.watercoursesTotal,
-        uploadHref,
-        interventionSummary?.watercourses
+        Boolean(project?.postIntervention)
       )
-    ]
+    )
   }
 }
 

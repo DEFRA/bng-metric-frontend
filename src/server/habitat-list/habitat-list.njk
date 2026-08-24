@@ -5,6 +5,10 @@
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/table/macro.njk" import govukTable %}
 
+{% macro habitatTableCell(cell) -%}
+  <td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{% if cell.href %}<a class="govuk-link" href="{{ cell.href }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
+{%- endmacro %}
+
 {% block beforeContent %}
   {{ super() }}
   {{ govukBackLink({
@@ -81,7 +85,7 @@
         <tbody class="govuk-table__body">
           {% for row in habitatRows %}
             <tr class="govuk-table__row">
-              {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+              {% for cell in row %}{{ habitatTableCell(cell) }}{% endfor %}
             </tr>
           {% endfor %}
         </tbody>
@@ -121,7 +125,7 @@
           <tbody class="govuk-table__body">
             {% for row in hedgerowRows %}
               <tr class="govuk-table__row">
-                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+                {% for cell in row %}{{ habitatTableCell(cell) }}{% endfor %}
               </tr>
             {% endfor %}
           </tbody>
@@ -164,7 +168,7 @@
           <tbody class="govuk-table__body">
             {% for row in watercourseRows %}
               <tr class="govuk-table__row">
-                {% for cell in row %}<td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{{ cell.html | safe if cell.html else cell.text }}</td>{% endfor %}
+                {% for cell in row %}{{ habitatTableCell(cell) }}{% endfor %}
               </tr>
             {% endfor %}
           </tbody>

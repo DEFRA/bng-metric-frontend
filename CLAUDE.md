@@ -22,6 +22,17 @@ nothing to register per route.
 
 Full reference, exceptions, and PR review checklist: [`docs/csrf.md`](docs/csrf.md).
 
+## Accessibility testing
+
+Pages are checked with `axe-core` (via `vitest-axe`) against real rendered
+markup, using shared helpers in `src/server/test-helpers/`
+(`load-page.js`, `axe-helper.js`). To add coverage for a page, copy
+`src/server/test-helpers/accessibility-test.template.js` into that page's
+route folder as `accessibility.test.js` and fill in the `TODO`s — see
+`src/server/projects/accessibility.test.js` for a filled-in example and
+[`docs/accessibility-testing.md`](docs/accessibility-testing.md) for the full
+pattern.
+
 ## Code style
 
 - **Always attempt to respect default SonarCloud conventions where possible** — write to them in the first draft rather than waiting for the scan to flag them. Code is scanned by SonarCloud (project key in `sonar-project.properties`); after pushing, run `/check-sonar-pr` for PR-scoped issues. Commonly flagged: brace every single-line `if`/`for` body (S121), extract magic numbers to named constants (S109), keep nesting ≤ 3 levels (S134), keep cognitive complexity per function low (S3776), prefer `replaceAll`/template literals over `replace`/concat, and remove dead/commented-out code (S125).

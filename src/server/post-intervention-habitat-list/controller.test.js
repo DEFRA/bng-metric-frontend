@@ -65,6 +65,20 @@ const mockProject = {
           sizeSquareMetres: 25000,
           units: 2.5
         }
+      ],
+      hedgerows: [
+        {
+          featureId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+          ref: 'H-1',
+          sizeMetres: 1500
+        }
+      ],
+      watercourses: [
+        {
+          featureId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+          ref: 'W-1',
+          sizeMetres: 750
+        }
       ]
     }
   }
@@ -104,7 +118,7 @@ describe('#postInterventionHabitatListController - GET', () => {
     expect(result).toContain('On-site post intervention habitats')
     expect(result).toContain('2.5ha')
     expect(result).toContain(
-      `href="/post-intervention-habitat-details?featureId=${featureId}&projectId=${projectId}"`
+      `href="/post-intervention-habitat-details?featureId=${featureId}&amp;projectId=${projectId}"`
     )
     expect(result).toContain(
       `/projects/${projectId}/upload-file?returnUrl=%2Fprojects%2F${projectId}%2Fpost-intervention-habitat-list`

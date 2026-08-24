@@ -15,7 +15,6 @@ const HABITAT_UNITS_SIGNIFICANT_FIGURES = 7
 const KM_UNIT = 'km'
 
 const EMPTY_DISPLAY = ''
-const NO_DATA_DISPLAY = 'No data'
 
 function isUsableNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
@@ -101,17 +100,15 @@ function formatTotalAreaSize(squareMetres) {
 
 /**
  * Format a total linear length for the Habitat List summary as a kilometre
- * value with the "km" suffix (no space between number and suffix). Returns
- * "No data" when the total is zero or missing — the summary cells for
- * hedgerows/watercourses show "No data" when no habitats of that type were
- * present on the import.
+ * value with the "km" suffix (no space between number and suffix). Habitat
+ * presence is handled by the caller; missing numeric values remain empty.
  *
  * @param {number|null|undefined} metres
  * @returns {string}
  */
 function formatTotalLengthSize(metres) {
-  if (!isUsableNumber(metres) || metres === 0) {
-    return NO_DATA_DISPLAY
+  if (!isUsableNumber(metres)) {
+    return EMPTY_DISPLAY
   }
   const kilometres = metres / METRES_PER_KILOMETRE
   const rounded = Number(

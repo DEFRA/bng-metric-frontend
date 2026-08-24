@@ -56,6 +56,24 @@ describe('Unit type summary component', () => {
     expect(headingLink.text()).toBe('Area habitats')
   })
 
+  test('uses body typography for the text-only post-intervention action', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      postIntervention: {
+        ...summary.postIntervention,
+        action: { text: 'View on-site post intervention' }
+      }
+    })
+    const postInterventionTile = $('.app-unit-type-summary__secondary')
+      .find('.app-unit-type-summary__tile')
+      .eq(1)
+    const action = postInterventionTile.find('p.govuk-body')
+
+    expect(action).toHaveLength(1)
+    expect(action.hasClass('govuk-!-margin-bottom-0')).toBe(true)
+    expect(action.text().trim()).toBe('View on-site post intervention')
+  })
+
   test('does not render an empty status when one does not apply', () => {
     const $ = renderComponent('unit-type-summary', {
       ...summary,

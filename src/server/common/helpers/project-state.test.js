@@ -1,7 +1,7 @@
 import {
   hasBaselineData,
-  hasHedgerows,
-  hasWatercourses
+  hasHabitatData,
+  projectHasHabitatData
 } from './project-state.js'
 
 describe('hasBaselineData', () => {
@@ -15,28 +15,47 @@ describe('hasBaselineData', () => {
   })
 })
 
-describe('hasHedgerows', () => {
+describe('hasHabitatData', () => {
   test.each([
-    [{ baseline: { hedgerows: [{}] } }, true],
-    [{ postIntervention: { hedgerows: [{}] } }, true],
-    [{ baseline: { hedgerows: [] } }, false],
-    [{ baseline: {} }, false],
-    [{}, false],
-    [null, false]
-  ])('identifies whether %j has hedgerows: %s', (project, expected) => {
-    expect(hasHedgerows(project)).toBe(expected)
-  })
+    [{ hedgerows: [{}] }, 'hedgerows', true],
+    [{ watercourses: [{}] }, 'watercourses', true],
+    [{ hedgerows: [] }, 'hedgerows', false],
+    [{}, 'watercourses', false],
+    [null, 'hedgerows', false]
+  ])(
+    'identifies whether %j has uploaded %s data: %s',
+    (habitatData, habitatType, expected) => {
+      expect(hasHabitatData(habitatData, habitatType)).toBe(expected)
+    }
+  )
 })
 
-describe('hasWatercourses', () => {
+describe('projectHasHabitatData', () => {
   test.each([
-    [{ baseline: { watercourses: [{}] } }, true],
-    [{ postIntervention: { watercourses: [{}] } }, true],
-    [{ baseline: { watercourses: [] } }, false],
-    [{ baseline: {} }, false],
-    [{}, false],
-    [null, false]
-  ])('identifies whether %j has watercourses: %s', (project, expected) => {
-    expect(hasWatercourses(project)).toBe(expected)
-  })
+    [{ baseline: { hedgerows: [{}] } }, 'hedgerows', true],
+    [{ postIntervention: { hedgerows: [{}] } }, 'hedgerows', true],
+    [
+      {
+        baseline: { watercourses: [] },
+        postIntervention: { watercourses: [{}] }
+      },
+      'watercourses',
+      true
+    ],
+    [
+      {
+        baseline: { hedgerows: [] },
+        postIntervention: { hedgerows: [] }
+      },
+      'hedgerows',
+      false
+    ],
+    [{ baseline: {} }, 'watercourses', false],
+    [null, 'hedgerows', false]
+  ])(
+    'identifies whether %j has %s data in either upload: %s',
+    (project, habitatType, expected) => {
+      expect(projectHasHabitatData(project, habitatType)).toBe(expected)
+    }
+  )
 })
