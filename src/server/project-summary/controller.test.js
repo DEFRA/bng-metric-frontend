@@ -162,7 +162,10 @@ describe('project summary', () => {
     expect(navigation).toHaveLength(1)
     expect(navigation.find('li')).toHaveLength(4)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
-    expect(navigation.find('a')).toHaveLength(0)
+    expect(navigation.find('a')).toHaveLength(1)
+    expect(navigation.find('a').attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-summary`
+    )
     expect(navigation.text()).toContain('Area Habitats')
     expect(navigation.text()).toContain('Hedgerows')
     expect(navigation.text()).toContain('Watercourses')
@@ -175,6 +178,25 @@ describe('project summary', () => {
     expect(result).toContain(
       'View and amend your project details, including project name and target percentage'
     )
+  })
+
+  test('links the Area habitats tile title to the area summary page, leaving other titles as text', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const areaHeadingLink = $('#area-habitats-heading a')
+
+    expect(areaHeadingLink).toHaveLength(1)
+    expect(areaHeadingLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-summary`
+    )
+    expect(areaHeadingLink.text().trim()).toBe('Area habitats')
+    expect($('#hedgerows-heading a')).toHaveLength(0)
+    expect($('#watercourses-heading a')).toHaveLength(0)
   })
 
   test('returns not found when the backend cannot find the project', async () => {

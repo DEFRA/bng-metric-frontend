@@ -1,0 +1,23 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "project-navigation/macro.njk" import appProjectNavigation %}
+
+{% set containerClasses = "app-width-container--wide" %}
+
+{% block content %}
+  <div class="govuk-grid-row app-project-summary-layout">
+    <div class="app-grid-column-one-sixth">
+      {{ appProjectNavigation({
+        label: "Project summary",
+        items: navigationItems
+      }) }}
+    </div>
+
+    <div class="app-grid-column-five-sixths">
+      <span class="govuk-caption-l">{{ projectName }}</span>
+      <h1 class="govuk-heading-xl">{{ heading }}</h1>
+
+      <p class="govuk-body">The {{ label }} summary page is under construction.</p>
+    </div>
+  </div>
+{% endblock %}

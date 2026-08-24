@@ -20,6 +20,9 @@ import { baselineHabitatList } from './baseline-habitat-list/index.js'
 import { postInterventionHabitatList } from './post-intervention-habitat-list/index.js'
 import { projectDetails } from './project-details/index.js'
 import { projectSummary } from './project-summary/index.js'
+import { areaSummary } from './area-summary/index.js'
+import { hedgerowsSummary } from './hedgerows-summary/index.js'
+import { watercoursesSummary } from './watercourses-summary/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -53,7 +56,10 @@ export const router = {
         postInterventionHabitatList,
         invalidFile,
         projectDetails,
-        projectSummary
+        projectSummary,
+        areaSummary,
+        hedgerowsSummary,
+        watercoursesSummary
       ])
 
       // Static assets
