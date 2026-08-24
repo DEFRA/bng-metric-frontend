@@ -259,6 +259,73 @@ describe('createHabitatListController', () => {
     )
   })
 
+  it('uses the feature id as accessible link text when the ref is missing', async () => {
+    const habitatWithoutRef = structuredClone(PI_FEATURE)
+    habitatWithoutRef.ref = null
+    vi.mocked(fetchProject).mockResolvedValue({
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitats: [habitatWithoutRef],
+            hedgerows: [],
+            watercourses: []
+          }
+        }
+      }
+    })
+
+    await callHandler()
+
+    expect(h.view.mock.calls[0][1].habitatRows[0][0]).toEqual(
+      expect.objectContaining({
+        text: habitatWithoutRef.featureId,
+        attributes: {
+          'data-sort-value': habitatWithoutRef.featureId
+        }
+      })
+    )
+  })
+
+  it('uses feature presence when linear measurements have not been recorded', async () => {
+    const hedgerowWithoutMeasurements = structuredClone(HEDGEROW_FEATURE)
+    hedgerowWithoutMeasurements.sizeMetres = null
+    hedgerowWithoutMeasurements.units = null
+
+    vi.mocked(fetchProject).mockResolvedValue({
+      statusCode: 200,
+      payload: {
+        project: {
+          name: 'Test Project',
+          postIntervention: {
+            habitats: [],
+            hedgerows: [hedgerowWithoutMeasurements],
+            watercourses: [],
+            habitatSizes: {
+              hedgerows: { totalMetres: 0 },
+              watercourses: { totalMetres: 0 }
+            },
+            units: { hedgerowsTotal: 0, watercoursesTotal: 0 }
+          }
+        }
+      }
+    })
+
+    await callHandler()
+
+    const viewModel = h.view.mock.calls[0][1]
+    expect(viewModel.totalSizes).toEqual(
+      expect.objectContaining({ hedgerows: '0km', watercourses: 'No data' })
+    )
+    expect(viewModel.totalUnits).toEqual(
+      expect.objectContaining({ hedgerows: '0.00', watercourses: 'No data' })
+    )
+    expect(viewModel.postInterventionSummary.hedgerows.size).toBe('0.00km')
+    expect(viewModel.postInterventionSummary.watercourses.size).toBe('No data')
+    expect(viewModel.hedgerowRows[0][3].text).toBe('')
+  })
+
   it('builds watercourse rows from proposed fields', async () => {
     vi.mocked(fetchProject).mockResolvedValue({
       statusCode: 200,
@@ -329,7 +396,9 @@ describe('createHabitatListController', () => {
     // Row shape: [ref, intervention type, habitat type, size, ...]. The
     // intervention type sits in the second cell and the ref link is untouched.
     expect(viewModel.habitatRows[0][1]).toEqual({ text: 'Enhanced' })
-    expect(viewModel.habitatRows[0][0].html).toContain('H1-1')
+    expect(viewModel.habitatRows[0][0]).toEqual(
+      expect.objectContaining({ text: 'H1-1' })
+    )
     expect(viewModel.habitatRows[0][2]).toEqual({
       text: 'Developed land; sealed surface'
     })

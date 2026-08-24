@@ -28,6 +28,9 @@ const project = {
   project: {
     name: 'Riverbank restoration',
     baseline: {
+      habitats: [{}],
+      hedgerows: [{}],
+      watercourses: [{}],
       units: {
         habitatsTotal: 1.23456789012345,
         treesTotal: 0.285,
@@ -42,6 +45,9 @@ const projectWithPostIntervention = {
   project: {
     name: 'Riverbank restoration',
     baseline: {
+      habitats: [{}],
+      hedgerows: [{}],
+      watercourses: [{}],
       units: {
         habitatsTotal: 8,
         treesTotal: 2,
@@ -50,6 +56,9 @@ const projectWithPostIntervention = {
       }
     },
     postIntervention: {
+      habitats: [{}],
+      hedgerows: [{}],
+      watercourses: [{}],
       units: {
         habitatsTotal: 11,
         treesTotal: 5,
@@ -66,6 +75,68 @@ const projectWithPostIntervention = {
       }
     }
   }
+}
+
+function removeHabitatTypes(upload, habitatTypes) {
+  for (const habitatType of habitatTypes) {
+    upload[habitatType] = []
+    upload.units[`${habitatType}Total`] = 0
+    const netUnitChange = `${habitatType}NetUnitChange`
+    const netPercentageChange = `${habitatType}NetUnitChangePercentage`
+    if (Object.hasOwn(upload.units, netUnitChange)) {
+      upload.units[netUnitChange] = 0
+      upload.units[netPercentageChange] = null
+    }
+  }
+}
+
+function projectWithoutHabitatTypes(
+  habitatTypes,
+  withPostIntervention,
+  stripFrom = 'both'
+) {
+  const baseline = {
+    habitats: [{}],
+    hedgerows: [{}],
+    watercourses: [{}],
+    units: {
+      habitatsTotal: 1,
+      treesTotal: 0,
+      hedgerowsTotal: 1,
+      watercoursesTotal: 1
+    }
+  }
+  if (stripFrom === 'baseline' || stripFrom === 'both') {
+    removeHabitatTypes(baseline, habitatTypes)
+  }
+
+  const projectData = { name: 'Area project', baseline }
+
+  if (withPostIntervention) {
+    const postIntervention = {
+      habitats: [{}],
+      hedgerows: [{}],
+      watercourses: [{}],
+      units: {
+        habitatsTotal: 2,
+        treesTotal: 0,
+        habitatsNetUnitChange: 1,
+        habitatsNetUnitChangePercentage: 100,
+        hedgerowsTotal: 2,
+        hedgerowsNetUnitChange: 1,
+        hedgerowsNetUnitChangePercentage: 100,
+        watercoursesTotal: 2,
+        watercoursesNetUnitChange: 1,
+        watercoursesNetUnitChangePercentage: 100
+      }
+    }
+    if (stripFrom === 'postIntervention' || stripFrom === 'both') {
+      removeHabitatTypes(postIntervention, habitatTypes)
+    }
+    projectData.postIntervention = postIntervention
+  }
+
+  return { project: projectData }
 }
 
 describe('project summary', () => {
@@ -163,7 +234,7 @@ describe('project summary', () => {
     expect(navigation.find('li')).toHaveLength(4)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
     expect(navigation.find('a')).toHaveLength(0)
-    expect(navigation.text()).toContain('Area Habitats')
+    expect(navigation.text()).toContain('Area habitats')
     expect(navigation.text()).toContain('Hedgerows')
     expect(navigation.text()).toContain('Watercourses')
     expect(result).toContain('View trading rules')
@@ -235,6 +306,9 @@ describe('project summary', () => {
       payload: {
         project: {
           baseline: {
+            habitats: [{}],
+            hedgerows: [{}],
+            watercourses: [{}],
             units: {
               habitatsTotal: 'not-a-number',
               treesTotal: Number.POSITIVE_INFINITY
@@ -259,13 +333,16 @@ describe('project summary', () => {
     expect(result.match(/0.00 units/g)).toHaveLength(9)
   })
 
-  test('shows N/A without a status for zero-unit habitat categories', async () => {
+  test('keeps present zero-unit habitat categories and shows N/A without a status', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
         project: {
           name: 'Area-only project',
           baseline: {
+            habitats: [{}],
+            hedgerows: [{}],
+            watercourses: [{}],
             units: {
               habitatsTotal: 1,
               hedgerowsTotal: 0,
@@ -287,6 +364,143 @@ describe('project summary', () => {
     expect(result.match(/-100.00%/g)).toHaveLength(1)
     expect(result.match(/Not met/g)).toHaveLength(1)
   })
+
+  test.each([
+    ['AC1: baseline-only project without hedgerows', 'hedgerows', false],
+    ['AC2: baseline and PI project without hedgerows', 'hedgerows', true],
+    ['AC3: baseline-only project without watercourses', 'watercourses', false],
+    ['AC4: baseline and PI project without watercourses', 'watercourses', true]
+  ])(
+    'hides %s from the navigation and main page',
+    async (_, habitatType, withPi) => {
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: projectWithoutHabitatTypes([habitatType], withPi)
+      })
+
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      const navigation = $('nav[aria-label="Project summary"]')
+      const label = habitatType === 'hedgerows' ? 'Hedgerows' : 'Watercourses'
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect(navigation.text()).not.toContain(label)
+      expect($(`#${habitatType}-heading`)).toHaveLength(0)
+      expect($('.app-unit-type-summary')).toHaveLength(2)
+    }
+  )
+
+  test.each([
+    ['baseline-only', false],
+    ['baseline and PI', true]
+  ])(
+    'shows only area habitats for a %s project without either linear habitat type',
+    async (_, withPi) => {
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: projectWithoutHabitatTypes(
+          ['hedgerows', 'watercourses'],
+          withPi
+        )
+      })
+
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      const navigation = $('nav[aria-label="Project summary"]')
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect(navigation.find('li')).toHaveLength(2)
+      expect(navigation.text()).toContain('Area habitats')
+      expect(navigation.text()).not.toContain('Hedgerows')
+      expect(navigation.text()).not.toContain('Watercourses')
+      expect($('.app-unit-type-summary')).toHaveLength(1)
+      expect($('#area-habitats-heading')).toHaveLength(1)
+    }
+  )
+
+  test.each(['hedgerows', 'watercourses'])(
+    'keeps %s visible when absent from baseline but present post-intervention',
+    async (habitatType) => {
+      const createdOnlyProject = projectWithoutHabitatTypes(
+        [habitatType],
+        true,
+        'baseline'
+      )
+      createdOnlyProject.project.postIntervention[habitatType][0] = {
+        retentionCategory: 'Created'
+      }
+      const interventionUnits =
+        createdOnlyProject.project.postIntervention.units
+      interventionUnits[`${habitatType}NetUnitChange`] = 2
+      interventionUnits[`${habitatType}NetUnitChangePercentage`] = null
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: createdOnlyProject
+      })
+
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      const label = habitatType === 'hedgerows' ? 'Hedgerows' : 'Watercourses'
+      const unitSummary = $(`#${habitatType}-heading`).closest('section')
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($('nav[aria-label="Project summary"]').text()).toContain(label)
+      expect(unitSummary).toHaveLength(1)
+      expect(unitSummary.text()).toContain('N/A')
+      expect(unitSummary.text()).toContain('0.00 units')
+      expect(unitSummary.text().match(/2.00 units/g)).toHaveLength(2)
+      expect(unitSummary.find('.govuk-tag')).toHaveLength(0)
+    }
+  )
+
+  test.each(['hedgerows', 'watercourses'])(
+    'keeps %s visible when present in baseline but absent post-intervention',
+    async (habitatType) => {
+      const baselineOnlyHabitatProject = projectWithoutHabitatTypes(
+        [habitatType],
+        true,
+        'postIntervention'
+      )
+      const interventionUnits =
+        baselineOnlyHabitatProject.project.postIntervention.units
+      interventionUnits[`${habitatType}NetUnitChange`] = -1
+      interventionUnits[`${habitatType}NetUnitChangePercentage`] = -100
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: baselineOnlyHabitatProject
+      })
+
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      const label = habitatType === 'hedgerows' ? 'Hedgerows' : 'Watercourses'
+      const unitSummary = $(`#${habitatType}-heading`).closest('section')
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($('nav[aria-label="Project summary"]').text()).toContain(label)
+      expect(unitSummary).toHaveLength(1)
+      expect(unitSummary.text()).toContain('-100.00%')
+      expect(unitSummary.text()).toContain('1.00 units')
+      expect(unitSummary.text()).toContain('0.00 units')
+      expect(unitSummary.text()).toContain('-1.00 units')
+      expect(unitSummary.find('.govuk-tag--red').text()).toBe('Not met')
+    }
+  )
 
   test('renders post-intervention values and includes changed tree units in the area summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
@@ -354,6 +568,9 @@ describe('project summary', () => {
         project: {
           name: 'Incomplete post-intervention data',
           baseline: {
+            habitats: [{}],
+            hedgerows: [{}],
+            watercourses: [{}],
             units: {
               habitatsTotal: 1,
               treesTotal: 0,
@@ -361,7 +578,12 @@ describe('project summary', () => {
               watercoursesTotal: 1
             }
           },
-          postIntervention: { units: {} }
+          postIntervention: {
+            habitats: [{}],
+            hedgerows: [{}],
+            watercourses: [{}],
+            units: {}
+          }
         }
       }
     })
