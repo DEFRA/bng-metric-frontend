@@ -20,20 +20,54 @@ const auth = {
 }
 
 function projectWithLinearHabitats(hasLinearHabitats) {
-  const linearHabitats = hasLinearHabitats ? [{}] : []
-
   return {
     project: {
       name: 'Riverbank restoration',
       baseline: {
         habitats: [{}],
-        hedgerows: linearHabitats,
-        watercourses: linearHabitats,
+        hedgerows: hasLinearHabitats ? [{}] : [],
+        watercourses: hasLinearHabitats ? [{}] : [],
         units: {
           habitatsTotal: 8,
           treesTotal: 2,
           hedgerowsTotal: hasLinearHabitats ? 4 : 0,
           watercoursesTotal: hasLinearHabitats ? 10 : 0
+        }
+      }
+    }
+  }
+}
+
+function projectWithPostInterventionOnlyLinearHabitats() {
+  return {
+    project: {
+      name: 'Created linear habitats',
+      baseline: {
+        habitats: [{}],
+        hedgerows: [],
+        watercourses: [],
+        units: {
+          habitatsTotal: 8,
+          treesTotal: 2,
+          hedgerowsTotal: 0,
+          watercoursesTotal: 0
+        }
+      },
+      postIntervention: {
+        habitats: [{}],
+        hedgerows: [{ retentionCategory: 'Created' }],
+        watercourses: [{ retentionCategory: 'Created' }],
+        units: {
+          habitatsTotal: 9,
+          treesTotal: 2,
+          habitatsNetUnitChange: 1,
+          habitatsNetUnitChangePercentage: 10,
+          hedgerowsTotal: 1.98,
+          hedgerowsNetUnitChange: 1.98,
+          hedgerowsNetUnitChangePercentage: null,
+          watercoursesTotal: 2.34,
+          watercoursesNetUnitChange: 2.34,
+          watercoursesNetUnitChangePercentage: null
         }
       }
     }
@@ -57,24 +91,25 @@ describe('Project summary page accessibility checks', () => {
   })
 
   test.each([
-    ['all habitat summaries', true],
-    ['only the area habitat summary', false]
-  ])(
-    'has no accessibility violations with %s',
-    async (_, hasLinearHabitats) => {
-      vi.mocked(wreck.get).mockResolvedValue({
-        res: { statusCode: 200 },
-        payload: projectWithLinearHabitats(hasLinearHabitats)
-      })
+    ['all habitat summaries', () => projectWithLinearHabitats(true)],
+    ['only the area habitat summary', () => projectWithLinearHabitats(false)],
+    [
+      'post-intervention-only linear habitats',
+      projectWithPostInterventionOnlyLinearHabitats
+    ]
+  ])('has no accessibility violations with %s', async (_, projectFactory) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: projectFactory()
+    })
 
-      const { document } = await loadPage({
-        requestUrl: `/projects/${PROJECT_ID}/project-summary`,
-        server,
-        auth
-      })
+    const { document } = await loadPage({
+      requestUrl: `/projects/${PROJECT_ID}/project-summary`,
+      server,
+      auth
+    })
 
-      assertLayoutLandmarks(document)
-      await runAxeChecks(document.documentElement)
-    }
-  )
+    assertLayoutLandmarks(document)
+    await runAxeChecks(document.documentElement)
+  })
 })

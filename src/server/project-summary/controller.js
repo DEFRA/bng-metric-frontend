@@ -4,6 +4,7 @@ import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
+  hasHabitatData,
   projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
@@ -13,6 +14,7 @@ const DECIMAL_PLACES = 2
 const NET_GAIN_TARGET_PERCENTAGE = 10
 const NO_POST_INTERVENTION_PERCENTAGE = -100
 const FETCH_PROJECT_ERROR = 'Failed to fetch project'
+const NOT_APPLICABLE = 'Not applicable'
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
@@ -61,7 +63,13 @@ function percentageSummary(value) {
   }
 }
 
-function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
+function buildUnitSummary({
+  label,
+  baselineUnits,
+  uploadHref,
+  intervention,
+  isPostInterventionOnly
+}) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
   let percentage =
@@ -73,28 +81,34 @@ function buildUnitSummary(label, baselineUnits, uploadHref, intervention) {
     netUnitChange = intervention.netUnitChange
   }
 
+  const percentageSummaryDisplay = isPostInterventionOnly
+    ? { netPercentageChange: NOT_APPLICABLE, status: null }
+    : percentageSummary(percentage)
+
   return {
     id: label.toLowerCase().replaceAll(' ', '-'),
     label,
-    ...percentageSummary(percentage),
+    ...percentageSummaryDisplay,
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,
-      action: { text: 'View on-site baseline' }
+      action: isPostInterventionOnly ? null : { text: 'View on-site baseline' }
     },
     postIntervention: {
-      heading: hasIntervention
-        ? 'On-site post-intervention'
-        : 'On-site post intervention',
+      heading:
+        hasIntervention && !isPostInterventionOnly
+          ? 'On-site post-intervention'
+          : 'On-site post intervention',
       units: hasIntervention
         ? formatOptionalUnits(intervention.units)
         : '0.00 units',
-      action: hasIntervention
-        ? { text: 'View on-site post intervention' }
-        : {
-            text: 'Upload on-site post intervention file',
-            href: uploadHref
-          }
+      action:
+        hasIntervention && !isPostInterventionOnly
+          ? { text: 'View on-site post intervention' }
+          : {
+              text: 'Upload on-site post intervention file',
+              href: uploadHref
+            }
     },
     netUnitChange: hasIntervention
       ? formatOptionalUnits(netUnitChange)
@@ -112,11 +126,19 @@ function buildUnitTypeSummary(
     ? unitType.buildIntervention(postInterventionUnits)
     : null
 
-  return buildUnitSummary(
-    unitType.label,
-    unitType.baselineUnits,
+  return buildUnitSummary({
+    label: unitType.label,
+    baselineUnits: unitType.baselineUnits,
     uploadHref,
-    intervention
+    intervention,
+    isPostInterventionOnly: unitType.isPostInterventionOnly
+  })
+}
+
+function isPostInterventionOnly(project, habitatType) {
+  return (
+    !hasHabitatData(project?.baseline, habitatType) &&
+    hasHabitatData(project?.postIntervention, habitatType)
   )
 }
 
@@ -141,6 +163,7 @@ function buildProjectSummary(project, projectId) {
       visible: projectHasHabitatData(project, 'hedgerows'),
       label: 'Hedgerows',
       baselineUnits: baselineUnits?.hedgerowsTotal,
+      isPostInterventionOnly: isPostInterventionOnly(project, 'hedgerows'),
       buildIntervention: (units) => ({
         units: units?.hedgerowsTotal,
         netUnitChange: units?.hedgerowsNetUnitChange,
@@ -151,6 +174,7 @@ function buildProjectSummary(project, projectId) {
       visible: projectHasHabitatData(project, 'watercourses'),
       label: 'Watercourses',
       baselineUnits: baselineUnits?.watercoursesTotal,
+      isPostInterventionOnly: isPostInterventionOnly(project, 'watercourses'),
       buildIntervention: (units) => ({
         units: units?.watercoursesTotal,
         netUnitChange: units?.watercoursesNetUnitChange,
