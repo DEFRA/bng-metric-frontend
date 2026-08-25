@@ -1,0 +1,19 @@
+{% macro appTargetsSummary(params) %}
+  <section class="app-targets-summary" aria-labelledby="targets-heading">
+    <h2 id="targets-heading" class="govuk-heading-m">Targets</h2>
+    <div class="app-unit-type-summary__secondary">
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-s">Target percentage net gain</h3>
+        <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ params.targetPercentage.text }}</p>
+      </div>
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-s">Units required</h3>
+        <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ params.unitsRequired }}</p>
+      </div>
+      <div class="app-unit-type-summary__tile">
+        <h3 class="govuk-heading-s">Unit deficit</h3>
+        <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ params.unitDeficit }}</p>
+      </div>
+    </div>
+  </section>
+{% endmacro %}
