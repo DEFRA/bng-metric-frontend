@@ -2,7 +2,6 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
-import { formatUnits, percentageSummary } from './controller.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -233,7 +232,10 @@ describe('project summary', () => {
     expect(navigation).toHaveLength(1)
     expect(navigation.find('li')).toHaveLength(4)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
-    expect(navigation.find('a')).toHaveLength(0)
+    expect(navigation.find('a')).toHaveLength(1)
+    expect(navigation.find('a').attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-summary`
+    )
     expect(navigation.text()).toContain('Area habitats')
     expect(navigation.text()).toContain('Hedgerows')
     expect(navigation.text()).toContain('Watercourses')
@@ -246,6 +248,25 @@ describe('project summary', () => {
     expect(result).toContain(
       'View and amend your project details, including project name and target percentage'
     )
+  })
+
+  test('links the Area habitats tile title to the area summary page, leaving other titles as text', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const areaHeadingLink = $('#area-habitats-heading a')
+
+    expect(areaHeadingLink).toHaveLength(1)
+    expect(areaHeadingLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-summary`
+    )
+    expect(areaHeadingLink.text().trim()).toBe('Area habitats')
+    expect($('#hedgerows-heading a')).toHaveLength(0)
+    expect($('#watercourses-heading a')).toHaveLength(0)
   })
 
   test('returns not found when the backend cannot find the project', async () => {
@@ -738,43 +759,4 @@ describe('project summary', () => {
     expect(headers.location).toBe('/auth/forbidden')
     expect(wreck.get).not.toHaveBeenCalled()
   })
-})
-
-describe('formatUnits', () => {
-  test.each([
-    [1.234567890123456, '1.23'],
-    [12345678901234.56, '12345678901234.60'],
-    [-1.235, '-1.24'],
-    [-0.004, '0.00'],
-    [-0, '0.00'],
-    [null, '0.00'],
-    [Number.NaN, '0.00']
-  ])('formats %s as %s', (value, expected) => {
-    expect(formatUnits(value)).toBe(expected)
-  })
-})
-
-describe('percentageSummary', () => {
-  test.each([
-    [10, '10.00%', 'Met', 'govuk-tag--green'],
-    [9.999, '10.00%', 'Met', 'govuk-tag--green'],
-    [9.994, '9.99%', 'Not met', 'govuk-tag--red'],
-    [-0.004, '0.00%', 'Not met', 'govuk-tag--red'],
-    [-1, '-1.00%', 'Not met', 'govuk-tag--red']
-  ])('maps %s to %s and %s', (value, netPercentageChange, text, classes) => {
-    expect(percentageSummary(value)).toEqual({
-      netPercentageChange,
-      status: { text, classes }
-    })
-  })
-
-  test.each([null, undefined, Number.NaN, Number.POSITIVE_INFINITY])(
-    'maps %s to N/A without a status',
-    (value) => {
-      expect(percentageSummary(value)).toEqual({
-        netPercentageChange: 'N/A',
-        status: null
-      })
-    }
-  )
 })

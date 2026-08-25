@@ -1,132 +1,11 @@
-import Boom from '@hapi/boom'
-
-import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
   hasHabitatData,
   projectHasHabitatData
 } from '../common/helpers/project-state.js'
-import { fetchProject } from '../common/services/projects.js'
-
-const SIGNIFICANT_FIGURES = 15
-const DECIMAL_PLACES = 2
-const NET_GAIN_TARGET_PERCENTAGE = 10
-const NO_POST_INTERVENTION_PERCENTAGE = -100
-const FETCH_PROJECT_ERROR = 'Failed to fetch project'
-const NOT_APPLICABLE = 'Not applicable'
-
-function isFiniteNumber(value) {
-  return typeof value === 'number' && Number.isFinite(value)
-}
-
-function normaliseUnits(value) {
-  return isFiniteNumber(value) ? value : 0
-}
-
-function formatUnits(value) {
-  const normalised = normaliseUnits(value)
-  const rounded = Number(normalised.toPrecision(SIGNIFICANT_FIGURES))
-  const formatted = rounded.toFixed(DECIMAL_PLACES)
-  return formatted === '-0.00' ? '0.00' : formatted
-}
-
-function formatOptionalUnits(value) {
-  return isFiniteNumber(value) ? `${formatUnits(value)} units` : 'N/A'
-}
-
-function areaUnits(units, missingValue = 0) {
-  const habitatsTotal = units?.habitatsTotal
-  const treesTotal = units?.treesTotal
-
-  if (!isFiniteNumber(habitatsTotal) && !isFiniteNumber(treesTotal)) {
-    return missingValue
-  }
-
-  return normaliseUnits(habitatsTotal) + normaliseUnits(treesTotal)
-}
-
-function percentageSummary(value) {
-  if (!isFiniteNumber(value)) {
-    return { netPercentageChange: 'N/A', status: null }
-  }
-
-  const formattedPercentage = formatUnits(value)
-  const targetMet = Number(formattedPercentage) >= NET_GAIN_TARGET_PERCENTAGE
-
-  return {
-    netPercentageChange: `${formattedPercentage}%`,
-    status: {
-      text: targetMet ? 'Met' : 'Not met',
-      classes: targetMet ? 'govuk-tag--green' : 'govuk-tag--red'
-    }
-  }
-}
-
-function buildPostInterventionSummary(
-  intervention,
-  uploadHref,
-  postInterventionOnly
-) {
-  const hasStandardIntervention = Boolean(intervention) && !postInterventionOnly
-
-  return {
-    heading: hasStandardIntervention
-      ? 'On-site post-intervention'
-      : 'On-site post intervention',
-    units: intervention
-      ? formatOptionalUnits(intervention.units)
-      : '0.00 units',
-    action: hasStandardIntervention
-      ? { text: 'View on-site post intervention' }
-      : {
-          text: 'Upload on-site post intervention file',
-          href: uploadHref
-        }
-  }
-}
-
-function buildUnitSummary({
-  label,
-  baselineUnits,
-  uploadHref,
-  intervention,
-  postInterventionOnly
-}) {
-  const normalisedBaseline = normaliseUnits(baselineUnits)
-  const hasIntervention = Boolean(intervention)
-  let percentage =
-    normalisedBaseline > 0 ? NO_POST_INTERVENTION_PERCENTAGE : null
-  let netUnitChange = -normalisedBaseline
-
-  if (hasIntervention) {
-    percentage = intervention.netPercentageChange
-    netUnitChange = intervention.netUnitChange
-  }
-
-  const percentageSummaryDisplay = postInterventionOnly
-    ? { netPercentageChange: NOT_APPLICABLE, status: null }
-    : percentageSummary(percentage)
-
-  return {
-    id: label.toLowerCase().replaceAll(' ', '-'),
-    label,
-    ...percentageSummaryDisplay,
-    tradingRules: { text: 'View trading rules' },
-    baseline: {
-      units: `${formatUnits(normalisedBaseline)} units`,
-      action: postInterventionOnly ? null : { text: 'View on-site baseline' }
-    },
-    postIntervention: buildPostInterventionSummary(
-      intervention,
-      uploadHref,
-      postInterventionOnly
-    ),
-    netUnitChange: hasIntervention
-      ? formatOptionalUnits(netUnitChange)
-      : `${formatUnits(netUnitChange)} units`
-  }
-}
+import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
+import { areaUnits, buildUnitSummary } from '../common/helpers/unit-summary.js'
 
 function buildUnitTypeSummary(
   unitType,
@@ -143,6 +22,7 @@ function buildUnitTypeSummary(
     baselineUnits: unitType.baselineUnits,
     uploadHref,
     intervention,
+    headingHref: unitType.headingHref,
     postInterventionOnly: unitType.postInterventionOnly
   })
 }
@@ -164,6 +44,8 @@ function buildProjectSummary(project, projectId) {
     {
       visible: true,
       label: 'Area habitats',
+      href: `/projects/${projectId}/area-summary`,
+      headingHref: `/projects/${projectId}/area-summary`,
       baselineUnits: areaUnits(baselineUnits),
       buildIntervention: (units) => ({
         units: areaUnits(units, null),
@@ -207,8 +89,9 @@ function buildProjectSummary(project, projectId) {
     uploadHref,
     navigationItems: [
       { text: 'Summary', current: true },
-      ...visibleUnitTypes.map(({ label }) => ({
-        text: label
+      ...visibleUnitTypes.map(({ label, href }) => ({
+        text: label,
+        ...(href && { href })
       }))
     ],
     unitSummaries: visibleUnitTypes.map((unitType) =>
@@ -225,22 +108,7 @@ function buildProjectSummary(project, projectId) {
 export const getController = {
   async handler(request, h) {
     const { id } = request.params
-    const result = await fetchProject(request, id)
-
-    if (!result) {
-      throw Boom.badGateway(FETCH_PROJECT_ERROR)
-    }
-    if (result.statusCode === statusCodes.notFound) {
-      throw Boom.notFound('Project not found')
-    }
-    if (
-      result.statusCode < statusCodes.ok ||
-      result.statusCode >= HTTP_SUCCESS_MAX
-    ) {
-      throw Boom.badGateway(FETCH_PROJECT_ERROR)
-    }
-
-    const project = result.payload?.project
+    const project = await fetchProjectOrThrow(request, id)
 
     if (!hasBaselineData(project)) {
       return h.redirect(`/add-project-details/${id}`)
@@ -256,4 +124,4 @@ export const getController = {
   }
 }
 
-export { buildProjectSummary, formatUnits, percentageSummary }
+export { buildProjectSummary }

@@ -23,7 +23,8 @@ describe('Unit type summary component', () => {
     const $ = renderComponent('unit-type-summary', summary)
 
     expect($('section').attr('aria-labelledby')).toBe('area-habitats-heading')
-    expect($('#area-habitats-heading').text()).toBe('Area habitats')
+    expect($('#area-habitats-heading').text().trim()).toBe('Area habitats')
+    expect($('#area-habitats-heading a')).toHaveLength(0)
     expect($('.app-unit-type-summary__tile')).toHaveLength(5)
     expect($('.govuk-tag').text()).toBe('Not met')
     expect($('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
@@ -40,6 +41,19 @@ describe('Unit type summary component', () => {
     expect($('a').text()).toBe('Upload post-intervention file')
     expect($('section').text()).toContain('View trading rules')
     expect($('section').text()).toContain('View on-site baseline')
+  })
+
+  test('renders the heading as a link when headingHref is supplied', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      headingHref: '/projects/123/area-summary'
+    })
+
+    const headingLink = $('#area-habitats-heading a')
+
+    expect(headingLink).toHaveLength(1)
+    expect(headingLink.attr('href')).toBe('/projects/123/area-summary')
+    expect(headingLink.text()).toBe('Area habitats')
   })
 
   test('uses body typography for the text-only post-intervention action', () => {
