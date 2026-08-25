@@ -151,3 +151,45 @@ describe('#requireBngCompleterRole', () => {
     expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
   })
 })
+
+describe('relationship id case-insensitivity (BMD-936)', () => {
+  // Defra ID returns the same currentRelationshipId in a DIFFERENT CASE on a
+  // refresh_token grant than on interactive sign-in (confirmed locally by the
+  // drift classifier: `differs:case-only`). GUIDs are case-insensitive per RFC
+  // 4122, so this must not change the authorisation decision - comparing
+  // verbatim is what ended users' sessions ~20 minutes into a session.
+  const REL = '2819c414-5349-f111-bec6-000d3a495d27'
+
+  test.each([
+    ['upper-cased on the current relationship', REL.toUpperCase(), REL],
+    ['upper-cased on the role entry', REL, REL.toUpperCase()],
+    ['each cased differently', REL.toUpperCase(), REL.toLowerCase()],
+    ['padded with whitespace', ` ${REL} `, REL]
+  ])('approves when the ids match but are %s', (_name, current, roleRel) => {
+    expect(
+      hasBngCompleterRole({
+        roles: [`${roleRel}:bng completer:3`],
+        currentRelationshipId: current
+      })
+    ).toBe(true)
+  })
+
+  test('still denies a genuinely different relationship', () => {
+    // Case-folding must not weaken the org boundary it is protecting.
+    expect(
+      hasBngCompleterRole({
+        roles: [`${REL}:bng completer:3`],
+        currentRelationshipId: 'eb18c414-5349-f111-bec6-000d3a495d27'
+      })
+    ).toBe(false)
+  })
+
+  test('still denies when the case-matched role is not approved', () => {
+    expect(
+      hasBngCompleterRole({
+        roles: [`${REL.toUpperCase()}:bng completer:1`],
+        currentRelationshipId: REL
+      })
+    ).toBe(false)
+  })
+})

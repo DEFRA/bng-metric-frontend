@@ -182,6 +182,21 @@ A failed refresh logs `OIDC: silent token refresh failed [category=…]` (or `�
 | `no-id-token`                    | The grant succeeded but returned no `id_token`. The id_token _is_ the session (it carries the `exp` the expiry check reads, and it is the bearer credential sent to the backend), so there is nothing to renew with — check the Defra ID policy issues one on the refresh flow and that `OIDC_SCOPES` still carries `openid`. The session ends and the user gets "Sign in again". |
 | `oauth-error` / `refresh-failed` | Any other OAuth error / unclassified failure - read the `err` and `detail` fields.                                                                                                                                                                                                                                                                                                |
 
+#### Relationship ids are compared case-insensitively (BMD-936)
+
+Defra ID returns the **same** `currentRelationshipId` in a **different case** on a
+`refresh_token` grant than on interactive sign-in — confirmed locally by the drift
+classifier reporting `differs:case-only`. GUIDs are case-insensitive (RFC 4122), so
+this is legitimate provider behaviour, not a defect at the IdP.
+
+Our comparison was the defect. `hasBngCompleterRole` matched `currentRelationshipId`
+against the role entries' relationship ids verbatim, so one case flip failed the
+check and ended the session ~20 minutes in. Both sides are now folded through
+`canonicalRelationshipId` (`verify-role.js`), which mirrors the backend helper of the
+same name — the frontend forwards the raw token, so the two must agree on what counts
+as the same relationship. The backend additionally `lower()`s both sides of every SQL
+predicate and canonicalises what it writes.
+
 #### Reading a successful refresh (enrichment shapes)
 
 CDP's log ingestion keeps message text but **drops non-allowlisted structured

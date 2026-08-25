@@ -30,6 +30,22 @@ function parseStatus(raw) {
 }
 
 /**
+ * Fold a relationship id to its canonical comparable form (lower-case, trimmed),
+ * or null when there isn't one. Mirrors canonicalRelationshipId in the backend
+ * (src/services/defra-id/claims.js) — both sides of the forwarded token have to
+ * agree on what counts as the same relationship.
+ *
+ * @param {unknown} value
+ * @returns {string|null}
+ */
+function canonicalRelationshipId(value) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return null
+  }
+  return value.trim().toLowerCase()
+}
+
+/**
  * Parse a Defra ID role string "relationshipId:roleName:status". The role name
  * is rebuilt from the middle field(s) (so a stray colon can't shift the status),
  * lower-cased and trimmed; the status is coerced to a number. Roles whose status
@@ -48,7 +64,13 @@ function parseRole(entry) {
     return null
   }
   return {
-    relationshipId: parts[0],
+    // Case-folded like the name: relationship ids are GUIDs, and GUIDs are
+    // case-insensitive (RFC 4122). Defra ID emits the SAME currentRelationshipId
+    // in a different case on a refresh_token grant than on interactive sign-in —
+    // confirmed by the drift classifier in refresh-session.js
+    // (`differs:case-only`) — so a verbatim comparison rejected a valid org
+    // context and ended the session. That was the whole of BMD-936.
+    relationshipId: canonicalRelationshipId(parts[0]),
     name: parts
       .slice(1, parts.length - 1)
       .join(':')
@@ -85,10 +107,12 @@ export function hasBngCompleterRole(user) {
     return false
   }
 
-  const current = user?.currentRelationshipId
+  const current = canonicalRelationshipId(user?.currentRelationshipId)
   if (!current) {
     return true
   }
+  // Both sides are canonicalised, so the same relationship in a different case
+  // still matches.
   return approvedCompleterRels.includes(current)
 }
 
