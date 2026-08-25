@@ -63,12 +63,35 @@ function percentageSummary(value) {
   }
 }
 
+function buildPostInterventionSummary(
+  intervention,
+  uploadHref,
+  postInterventionOnly
+) {
+  const hasStandardIntervention = Boolean(intervention) && !postInterventionOnly
+
+  return {
+    heading: hasStandardIntervention
+      ? 'On-site post-intervention'
+      : 'On-site post intervention',
+    units: intervention
+      ? formatOptionalUnits(intervention.units)
+      : '0.00 units',
+    action: hasStandardIntervention
+      ? { text: 'View on-site post intervention' }
+      : {
+          text: 'Upload on-site post intervention file',
+          href: uploadHref
+        }
+  }
+}
+
 function buildUnitSummary({
   label,
   baselineUnits,
   uploadHref,
   intervention,
-  isPostInterventionOnly
+  postInterventionOnly
 }) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
@@ -81,7 +104,7 @@ function buildUnitSummary({
     netUnitChange = intervention.netUnitChange
   }
 
-  const percentageSummaryDisplay = isPostInterventionOnly
+  const percentageSummaryDisplay = postInterventionOnly
     ? { netPercentageChange: NOT_APPLICABLE, status: null }
     : percentageSummary(percentage)
 
@@ -92,24 +115,13 @@ function buildUnitSummary({
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,
-      action: isPostInterventionOnly ? null : { text: 'View on-site baseline' }
+      action: postInterventionOnly ? null : { text: 'View on-site baseline' }
     },
-    postIntervention: {
-      heading:
-        hasIntervention && !isPostInterventionOnly
-          ? 'On-site post-intervention'
-          : 'On-site post intervention',
-      units: hasIntervention
-        ? formatOptionalUnits(intervention.units)
-        : '0.00 units',
-      action:
-        hasIntervention && !isPostInterventionOnly
-          ? { text: 'View on-site post intervention' }
-          : {
-              text: 'Upload on-site post intervention file',
-              href: uploadHref
-            }
-    },
+    postIntervention: buildPostInterventionSummary(
+      intervention,
+      uploadHref,
+      postInterventionOnly
+    ),
     netUnitChange: hasIntervention
       ? formatOptionalUnits(netUnitChange)
       : `${formatUnits(netUnitChange)} units`
@@ -131,11 +143,11 @@ function buildUnitTypeSummary(
     baselineUnits: unitType.baselineUnits,
     uploadHref,
     intervention,
-    isPostInterventionOnly: unitType.isPostInterventionOnly
+    postInterventionOnly: unitType.postInterventionOnly
   })
 }
 
-function isPostInterventionOnly(project, habitatType) {
+function hasPostInterventionOnlyHabitat(project, habitatType) {
   return (
     !hasHabitatData(project?.baseline, habitatType) &&
     hasHabitatData(project?.postIntervention, habitatType)
@@ -163,7 +175,10 @@ function buildProjectSummary(project, projectId) {
       visible: projectHasHabitatData(project, 'hedgerows'),
       label: 'Hedgerows',
       baselineUnits: baselineUnits?.hedgerowsTotal,
-      isPostInterventionOnly: isPostInterventionOnly(project, 'hedgerows'),
+      postInterventionOnly: hasPostInterventionOnlyHabitat(
+        project,
+        'hedgerows'
+      ),
       buildIntervention: (units) => ({
         units: units?.hedgerowsTotal,
         netUnitChange: units?.hedgerowsNetUnitChange,
@@ -174,7 +189,10 @@ function buildProjectSummary(project, projectId) {
       visible: projectHasHabitatData(project, 'watercourses'),
       label: 'Watercourses',
       baselineUnits: baselineUnits?.watercoursesTotal,
-      isPostInterventionOnly: isPostInterventionOnly(project, 'watercourses'),
+      postInterventionOnly: hasPostInterventionOnlyHabitat(
+        project,
+        'watercourses'
+      ),
       buildIntervention: (units) => ({
         units: units?.watercoursesTotal,
         netUnitChange: units?.watercoursesNetUnitChange,
