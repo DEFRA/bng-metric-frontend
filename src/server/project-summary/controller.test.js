@@ -448,7 +448,7 @@ describe('project summary', () => {
   )
 
   test.each(['hedgerows', 'watercourses'])(
-    'keeps %s visible when absent from baseline but present post-intervention',
+    'renders the PI-only %s summary variant',
     async (habitatType) => {
       const createdOnlyProject = projectWithoutHabitatTypes(
         [habitatType],
@@ -460,7 +460,8 @@ describe('project summary', () => {
       }
       const interventionUnits =
         createdOnlyProject.project.postIntervention.units
-      interventionUnits[`${habitatType}NetUnitChange`] = 2
+      interventionUnits[`${habitatType}Total`] = 1.987654321098765
+      interventionUnits[`${habitatType}NetUnitChange`] = 1.987654321098765
       interventionUnits[`${habitatType}NetUnitChangePercentage`] = null
       vi.mocked(wreck.get).mockResolvedValue({
         res: { statusCode: statusCodes.ok },
@@ -475,14 +476,101 @@ describe('project summary', () => {
       const $ = load(result)
       const label = habitatType === 'hedgerows' ? 'Hedgerows' : 'Watercourses'
       const unitSummary = $(`#${habitatType}-heading`).closest('section')
+      const primaryTiles = unitSummary.find(
+        '.app-unit-type-summary__primary .app-unit-type-summary__tile'
+      )
+      const secondaryTiles = unitSummary.find(
+        '.app-unit-type-summary__secondary .app-unit-type-summary__tile'
+      )
+      const percentageTile = primaryTiles.eq(0)
+      const tradingRulesTile = primaryTiles.eq(1)
+      const baselineTile = secondaryTiles.eq(0)
+      const postInterventionTile = secondaryTiles.eq(1)
+      const netChangeTile = secondaryTiles.eq(2)
+      const uploadLink = postInterventionTile.find('a')
+      const expectedUploadHref =
+        `/projects/${PROJECT_ID}/upload-file?` +
+        `returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
 
       expect(statusCode).toBe(statusCodes.ok)
       expect($('nav[aria-label="Project summary"]').text()).toContain(label)
       expect(unitSummary).toHaveLength(1)
-      expect(unitSummary.text()).toContain('N/A')
-      expect(unitSummary.text()).toContain('0.00 units')
-      expect(unitSummary.text().match(/2.00 units/g)).toHaveLength(2)
+
+      expect(percentageTile.find('h3').text()).toBe(
+        'Total on-site net percentage change'
+      )
+      expect(percentageTile.find('p').text()).toBe('Not applicable')
       expect(unitSummary.find('.govuk-tag')).toHaveLength(0)
+
+      expect(tradingRulesTile.find('h3').text()).toBe('Trading Rules')
+      expect(tradingRulesTile.text()).toContain('View trading rules')
+      expect(tradingRulesTile.find('a')).toHaveLength(0)
+
+      expect(baselineTile.find('h3').text()).toBe('On-site baseline')
+      expect(baselineTile.find('p').text()).toBe('0.00 units')
+      expect(baselineTile.text()).not.toContain('View on-site baseline')
+
+      expect(postInterventionTile.find('h3').text()).toBe(
+        'On-site post intervention'
+      )
+      expect(postInterventionTile.find('p.govuk-heading-l').text()).toBe(
+        '1.99 units'
+      )
+      expect(uploadLink.text().trim()).toBe(
+        'Upload on-site post intervention file'
+      )
+      expect(uploadLink.attr('href')).toBe(expectedUploadHref)
+
+      expect(netChangeTile.find('h3').text()).toBe(
+        'Total on-site net unit change'
+      )
+      expect(netChangeTile.find('p').text()).toBe('1.99 units')
+    }
+  )
+
+  test.each(['hedgerows', 'watercourses'])(
+    'does not use the PI-only variant when baseline %s habitats total zero units',
+    async (habitatType) => {
+      const zeroUnitBaselineProject = structuredClone(
+        projectWithPostIntervention
+      )
+      const baselineUnits = zeroUnitBaselineProject.project.baseline.units
+      const interventionUnits =
+        zeroUnitBaselineProject.project.postIntervention.units
+      baselineUnits[`${habitatType}Total`] = 0
+      interventionUnits[`${habitatType}NetUnitChange`] =
+        interventionUnits[`${habitatType}Total`]
+      interventionUnits[`${habitatType}NetUnitChangePercentage`] = null
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: zeroUnitBaselineProject
+      })
+
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      const unitSummary = $(`#${habitatType}-heading`).closest('section')
+      const baselineTile = unitSummary
+        .find('.app-unit-type-summary__secondary .app-unit-type-summary__tile')
+        .eq(0)
+      const postInterventionTile = unitSummary
+        .find('.app-unit-type-summary__secondary .app-unit-type-summary__tile')
+        .eq(1)
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect(unitSummary.text()).toContain('N/A')
+      expect(unitSummary.text()).not.toContain('Not applicable')
+      expect(baselineTile.text()).toContain('View on-site baseline')
+      expect(postInterventionTile.find('h3').text()).toBe(
+        'On-site post-intervention'
+      )
+      expect(postInterventionTile.text()).toContain(
+        'View on-site post intervention'
+      )
+      expect(postInterventionTile.find('a')).toHaveLength(0)
     }
   )
 

@@ -1,6 +1,7 @@
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
+  hasHabitatData,
   projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
@@ -16,12 +17,20 @@ function buildUnitTypeSummary(
     ? unitType.buildIntervention(postInterventionUnits)
     : null
 
-  return buildUnitSummary(
-    unitType.label,
-    unitType.baselineUnits,
+  return buildUnitSummary({
+    label: unitType.label,
+    baselineUnits: unitType.baselineUnits,
     uploadHref,
     intervention,
-    unitType.headingHref
+    headingHref: unitType.headingHref,
+    postInterventionOnly: unitType.postInterventionOnly
+  })
+}
+
+function hasPostInterventionOnlyHabitat(project, habitatType) {
+  return (
+    !hasHabitatData(project?.baseline, habitatType) &&
+    hasHabitatData(project?.postIntervention, habitatType)
   )
 }
 
@@ -48,6 +57,10 @@ function buildProjectSummary(project, projectId) {
       visible: projectHasHabitatData(project, 'hedgerows'),
       label: 'Hedgerows',
       baselineUnits: baselineUnits?.hedgerowsTotal,
+      postInterventionOnly: hasPostInterventionOnlyHabitat(
+        project,
+        'hedgerows'
+      ),
       buildIntervention: (units) => ({
         units: units?.hedgerowsTotal,
         netUnitChange: units?.hedgerowsNetUnitChange,
@@ -58,6 +71,10 @@ function buildProjectSummary(project, projectId) {
       visible: projectHasHabitatData(project, 'watercourses'),
       label: 'Watercourses',
       baselineUnits: baselineUnits?.watercoursesTotal,
+      postInterventionOnly: hasPostInterventionOnlyHabitat(
+        project,
+        'watercourses'
+      ),
       buildIntervention: (units) => ({
         units: units?.watercoursesTotal,
         netUnitChange: units?.watercoursesNetUnitChange,

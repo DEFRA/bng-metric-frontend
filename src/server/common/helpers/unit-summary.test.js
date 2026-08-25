@@ -75,7 +75,12 @@ describe('percentageSummary', () => {
 
 describe('buildUnitSummary', () => {
   test('shows a not-met, 100% loss when there is no post-intervention data', () => {
-    const summary = buildUnitSummary('Area habitats', 1.5, '/upload', null)
+    const summary = buildUnitSummary({
+      label: 'Area habitats',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: null
+    })
 
     expect(summary.id).toBe('area-habitats')
     expect(summary.netPercentageChange).toBe('-100.00%')
@@ -93,10 +98,15 @@ describe('buildUnitSummary', () => {
   })
 
   test('shows post-intervention values and a view-only action when data is present', () => {
-    const summary = buildUnitSummary('Area habitats', 1.5, '/upload', {
-      units: 2,
-      netUnitChange: 0.5,
-      netPercentageChange: 33.33
+    const summary = buildUnitSummary({
+      label: 'Area habitats',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: {
+        units: 2,
+        netUnitChange: 0.5,
+        netPercentageChange: 33.33
+      }
     })
 
     expect(summary.postIntervention.heading).toBe('On-site post-intervention')
@@ -109,16 +119,46 @@ describe('buildUnitSummary', () => {
   })
 
   test('passes through an optional headingHref for a linked title', () => {
-    const linked = buildUnitSummary(
-      'Area habitats',
-      1.5,
-      '/upload',
-      null,
-      '/projects/123/area-summary'
-    )
-    const unlinked = buildUnitSummary('Area habitats', 1.5, '/upload', null)
+    const linked = buildUnitSummary({
+      label: 'Area habitats',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: null,
+      headingHref: '/projects/123/area-summary'
+    })
+    const unlinked = buildUnitSummary({
+      label: 'Area habitats',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: null
+    })
 
     expect(linked.headingHref).toBe('/projects/123/area-summary')
     expect(unlinked.headingHref).toBeUndefined()
+  })
+
+  test('shows the post-intervention-only variant', () => {
+    const summary = buildUnitSummary({
+      label: 'Hedgerows',
+      baselineUnits: 0,
+      uploadHref: '/upload',
+      intervention: {
+        units: 1.98,
+        netUnitChange: 1.98,
+        netPercentageChange: null
+      },
+      postInterventionOnly: true
+    })
+
+    expect(summary.netPercentageChange).toBe('Not applicable')
+    expect(summary.status).toBeNull()
+    expect(summary.baseline.action).toBeNull()
+    expect(summary.postIntervention.heading).toBe('On-site post intervention')
+    expect(summary.postIntervention.units).toBe('1.98 units')
+    expect(summary.postIntervention.action).toEqual({
+      text: 'Upload on-site post intervention file',
+      href: '/upload'
+    })
+    expect(summary.netUnitChange).toBe('1.98 units')
   })
 })

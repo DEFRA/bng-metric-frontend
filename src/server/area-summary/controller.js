@@ -58,12 +58,12 @@ function buildAreaSummary(project, projectId) {
       projectId,
       AREA_HABITATS_LABEL
     ),
-    unitSummary: buildUnitSummary(
-      AREA_HABITATS_LABEL,
-      baselineAreaUnits,
+    unitSummary: buildUnitSummary({
+      label: AREA_HABITATS_LABEL,
+      baselineUnits: baselineAreaUnits,
       uploadHref,
-      interventionSummary
-    ),
+      intervention: interventionSummary
+    }),
     targetsSummary: buildTargetsSummary(
       baselineAreaUnits,
       postInterventionAreaUnits

@@ -84,4 +84,18 @@ describe('Unit type summary component', () => {
     expect($('section').text()).toContain('N/A')
     expect($('.govuk-tag')).toHaveLength(0)
   })
+
+  test('omits the baseline action when one does not apply', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      baseline: { units: '0.00 units', action: null }
+    })
+    const baselineTile = $('.app-unit-type-summary__secondary')
+      .find('.app-unit-type-summary__tile')
+      .eq(0)
+
+    expect(baselineTile.text()).toContain('0.00 units')
+    expect(baselineTile.find('.govuk-body')).toHaveLength(0)
+    expect(baselineTile.text()).not.toContain('View on-site baseline')
+  })
 })

@@ -2,6 +2,7 @@ const SIGNIFICANT_FIGURES = 15
 const DECIMAL_PLACES = 2
 const NET_GAIN_TARGET_PERCENTAGE = 10
 const NO_POST_INTERVENTION_PERCENTAGE = -100
+const NOT_APPLICABLE = 'Not applicable'
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
@@ -50,13 +51,37 @@ function percentageSummary(value) {
   }
 }
 
-function buildUnitSummary(
+function buildPostInterventionSummary(
+  intervention,
+  uploadHref,
+  postInterventionOnly
+) {
+  const hasStandardIntervention = Boolean(intervention) && !postInterventionOnly
+
+  return {
+    heading: hasStandardIntervention
+      ? 'On-site post-intervention'
+      : 'On-site post intervention',
+    units: intervention
+      ? formatOptionalUnits(intervention.units)
+      : '0.00 units',
+    action: hasStandardIntervention
+      ? { text: 'View on-site post intervention' }
+      : {
+          text: 'Upload on-site post intervention file',
+          href: uploadHref
+        }
+  }
+}
+
+function buildUnitSummary({
   label,
   baselineUnits,
   uploadHref,
   intervention,
-  headingHref
-) {
+  headingHref,
+  postInterventionOnly = false
+}) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
   let percentage =
@@ -68,30 +93,25 @@ function buildUnitSummary(
     netUnitChange = intervention.netUnitChange
   }
 
+  const percentageSummaryDisplay = postInterventionOnly
+    ? { netPercentageChange: NOT_APPLICABLE, status: null }
+    : percentageSummary(percentage)
+
   return {
     id: label.toLowerCase().replaceAll(' ', '-'),
     label,
     headingHref,
-    ...percentageSummary(percentage),
+    ...percentageSummaryDisplay,
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,
-      action: { text: 'View on-site baseline' }
+      action: postInterventionOnly ? null : { text: 'View on-site baseline' }
     },
-    postIntervention: {
-      heading: hasIntervention
-        ? 'On-site post-intervention'
-        : 'On-site post intervention',
-      units: hasIntervention
-        ? formatOptionalUnits(intervention.units)
-        : '0.00 units',
-      action: hasIntervention
-        ? { text: 'View on-site post intervention' }
-        : {
-            text: 'Upload on-site post intervention file',
-            href: uploadHref
-          }
-    },
+    postIntervention: buildPostInterventionSummary(
+      intervention,
+      uploadHref,
+      postInterventionOnly
+    ),
     netUnitChange: hasIntervention
       ? formatOptionalUnits(netUnitChange)
       : `${formatUnits(netUnitChange)} units`

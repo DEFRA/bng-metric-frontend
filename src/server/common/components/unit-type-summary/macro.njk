@@ -34,7 +34,9 @@
       <div class="app-unit-type-summary__tile">
         <h3 class="govuk-heading-s">On-site baseline</h3>
         <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ params.baseline.units }}</p>
-        <p class="govuk-body govuk-!-margin-bottom-0">{{ action(params.baseline.action) }}</p>
+        {% if params.baseline.action %}
+          <p class="govuk-body govuk-!-margin-bottom-0">{{ action(params.baseline.action) }}</p>
+        {% endif %}
       </div>
       <div class="app-unit-type-summary__tile">
         <h3 class="govuk-heading-s">{{ params.postIntervention.heading }}</h3>
