@@ -300,6 +300,39 @@ describe('area summary', () => {
     expect(result).not.toContain('Not met')
   })
 
+  test('shows N/A for the unit deficit, not a full deficit, when post-intervention data is present but incomplete', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          name: 'Riverbank restoration',
+          baseline: { units: { habitatsTotal: 1, treesTotal: 0 } },
+          postIntervention: {
+            units: {
+              habitatsTotal: 'not-a-number',
+              treesTotal: Number.POSITIVE_INFINITY
+            }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const areaSummary = $('#area-habitats-heading').closest('section')
+    const targets = $('#targets-heading').closest('section')
+
+    expect(areaSummary.text()).toContain('N/A')
+    expect(targets.text()).toContain('1.10 units')
+    expect(targets.text()).toContain('N/A')
+    expect(targets.text()).not.toMatch(/0\.00 units/)
+  })
+
   test('returns not found when the backend cannot find the project', async () => {
     vi.mocked(wreck.get).mockRejectedValue(
       Object.assign(new Error('Not found'), {

@@ -6,25 +6,27 @@ import {
   NET_GAIN_TARGET_PERCENTAGE,
   areaUnits,
   buildUnitSummary,
-  formatUnits
+  formatOptionalUnits,
+  formatUnits,
+  isFiniteNumber
 } from '../common/helpers/unit-summary.js'
 
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
+const NO_POST_INTERVENTION_UNITS = 0
 const AREA_HABITATS_LABEL = 'Area habitats'
 
 function buildTargetsSummary(baselineAreaUnits, postInterventionAreaUnits) {
   const unitsRequired =
     baselineAreaUnits * (1 + NET_GAIN_TARGET_PERCENTAGE / PERCENTAGE_DIVISOR)
-  const unitDeficit = Math.max(
-    MIN_UNIT_DEFICIT,
-    unitsRequired - postInterventionAreaUnits
-  )
+  const unitDeficit = isFiniteNumber(postInterventionAreaUnits)
+    ? Math.max(MIN_UNIT_DEFICIT, unitsRequired - postInterventionAreaUnits)
+    : null
 
   return {
     targetPercentage: { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
     unitsRequired: `${formatUnits(unitsRequired)} units`,
-    unitDeficit: `${formatUnits(unitDeficit)} units`
+    unitDeficit: formatOptionalUnits(unitDeficit)
   }
 }
 
@@ -44,7 +46,9 @@ function buildAreaSummary(project, projectId) {
     : null
 
   const baselineAreaUnits = areaUnits(baselineUnits)
-  const postInterventionAreaUnits = areaUnits(postInterventionUnits)
+  const postInterventionAreaUnits = interventionSummary
+    ? interventionSummary.units
+    : NO_POST_INTERVENTION_UNITS
 
   return {
     projectName: project?.name ?? 'Project',

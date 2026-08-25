@@ -4,12 +4,7 @@ import {
   projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
-import {
-  areaUnits,
-  buildUnitSummary,
-  formatUnits,
-  percentageSummary
-} from '../common/helpers/unit-summary.js'
+import { areaUnits, buildUnitSummary } from '../common/helpers/unit-summary.js'
 
 function buildUnitTypeSummary(
   unitType,
@@ -112,4 +107,4 @@ export const getController = {
   }
 }
 
-export { buildProjectSummary, formatUnits, percentageSummary }
+export { buildProjectSummary }
