@@ -104,9 +104,31 @@ describe('area summary', () => {
 
     const $ = load(result)
 
-    expect($('#area-habitats-heading')).toHaveLength(1)
     expect($('.app-unit-type-summary')).toHaveLength(1)
-    expect($('#area-habitats-heading a')).toHaveLength(0)
+    expect($('#area-habitats-heading')).toHaveLength(0)
+    expect(
+      $('.app-unit-type-summary a').filter(
+        (_, link) => $(link).text() === 'Area habitats'
+      )
+    ).toHaveLength(0)
+  })
+
+  test('links the baseline action to the area baseline page', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const baselineLink = $('a').filter(
+      (_, link) => $(link).text() === 'View on-site area baseline'
+    )
+
+    expect(baselineLink).toHaveLength(1)
+    expect(baselineLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-baseline`
+    )
   })
 
   test('renders results values matching baseline and post-intervention data', async () => {
@@ -117,7 +139,7 @@ describe('area summary', () => {
     })
 
     const $ = load(result)
-    const areaSummary = $('#area-habitats-heading').closest('section')
+    const areaSummary = $('.app-unit-type-summary')
 
     expect(areaSummary.text()).toContain('7.72%')
     expect(areaSummary.text()).toContain('1.52 units')
@@ -190,7 +212,7 @@ describe('area summary', () => {
     expect(statusCode).toBe(statusCodes.ok)
 
     const $ = load(result)
-    const areaSummary = $('#area-habitats-heading').closest('section')
+    const areaSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
 
     expect(areaSummary.text()).toContain('-100.00%')
@@ -217,6 +239,15 @@ describe('area summary', () => {
       `/projects/${PROJECT_ID}/project-summary`
     )
     expect(navigation.text()).toContain('Summary')
+    expect(
+      navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
+    ).toHaveLength(1)
+    expect(
+      navigation
+        .find('a')
+        .filter((_, link) => $(link).text() === 'Baseline')
+        .attr('href')
+    ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
   })
 
   test('shows Hedgerows and Watercourses nav links only when those habitats are present', async () => {
@@ -324,7 +355,7 @@ describe('area summary', () => {
     })
 
     const $ = load(result)
-    const areaSummary = $('#area-habitats-heading').closest('section')
+    const areaSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
 
     expect(areaSummary.text()).toContain('N/A')

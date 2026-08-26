@@ -18,4 +18,27 @@ describe('Project navigation component', () => {
     expect($('li').eq(2).text().trim()).toBe('Hedgerows')
     expect($('li').eq(2).find('a')).toHaveLength(0)
   })
+
+  test('renders nested children and marks the current child', () => {
+    const $ = renderComponent('project-navigation', {
+      label: 'Project sections',
+      items: [
+        { text: 'Summary', href: '/summary' },
+        {
+          text: 'Area habitats',
+          href: '/area-summary',
+          children: [{ text: 'Baseline', current: true }]
+        }
+      ]
+    })
+
+    expect($('.app-project-navigation__item')).toHaveLength(2)
+    expect($('.app-project-navigation__child')).toHaveLength(1)
+    expect($('[aria-current="page"]').text()).toBe('Baseline')
+    expect(
+      $('a')
+        .filter((_, link) => $(link).text() === 'Area habitats')
+        .attr('href')
+    ).toBe('/area-summary')
+  })
 })

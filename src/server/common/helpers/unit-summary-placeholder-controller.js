@@ -1,8 +1,15 @@
 import { hasBaselineData } from './project-state.js'
-import { buildUnitTypeNavigation } from './unit-type-navigation.js'
+import {
+  buildUnitTypeNavigation,
+  projectPageHref
+} from './unit-type-navigation.js'
 import { fetchProjectOrThrow } from './fetch-project.js'
 
-function createUnitSummaryPlaceholderController({ label, current }) {
+function createUnitSummaryPlaceholderController({
+  label,
+  current,
+  summaryPath
+}) {
   return {
     async handler(request, h) {
       const { id } = request.params
@@ -17,7 +24,11 @@ function createUnitSummaryPlaceholderController({ label, current }) {
         heading: current,
         label,
         projectName: project?.name ?? 'Project',
-        navigationItems: buildUnitTypeNavigation(project, id, current)
+        navigationItems: buildUnitTypeNavigation(
+          project,
+          id,
+          projectPageHref(id, summaryPath)
+        )
       })
     }
   }

@@ -21,6 +21,7 @@ import { postInterventionHabitatList } from './post-intervention-habitat-list/in
 import { projectDetails } from './project-details/index.js'
 import { projectSummary } from './project-summary/index.js'
 import { areaSummary } from './area-summary/index.js'
+import { areaBaseline } from './area-baseline/index.js'
 import { hedgerowsSummary } from './hedgerows-summary/index.js'
 import { watercoursesSummary } from './watercourses-summary/index.js'
 import { health } from './health/index.js'
@@ -58,6 +59,7 @@ export const router = {
         projectDetails,
         projectSummary,
         areaSummary,
+        areaBaseline,
         hedgerowsSummary,
         watercoursesSummary
       ])

@@ -2,8 +2,10 @@
 @use 'heading/heading';
 @use './moj-sortable-table';
 @use './habitat-summary-table';
+@use './area-habitat-details-table';
 @use './pi-stacked-fields';
 @use './project-navigation';
 @use './project-summary';
+@use './moj-scrollable-pane';
 @use './targets-summary';
 @use './unit-type-summary';

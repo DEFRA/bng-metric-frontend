@@ -1,4 +1,6 @@
 import {
+  areaBaselineAction,
+  areaInterventionSummary,
   areaUnits,
   buildUnitSummary,
   formatOptionalUnits,
@@ -30,6 +32,46 @@ describe('formatOptionalUnits', () => {
     [Number.POSITIVE_INFINITY, 'N/A']
   ])('formats %s as %s', (value, expected) => {
     expect(formatOptionalUnits(value)).toBe(expected)
+  })
+})
+
+describe('areaBaselineAction', () => {
+  test('returns text-only action when no href is given', () => {
+    expect(areaBaselineAction()).toEqual({
+      text: 'View on-site area baseline'
+    })
+  })
+
+  test('includes the href when one is given', () => {
+    expect(areaBaselineAction('/projects/123/area-baseline')).toEqual({
+      text: 'View on-site area baseline',
+      href: '/projects/123/area-baseline'
+    })
+  })
+})
+
+describe('areaInterventionSummary', () => {
+  test('maps area unit totals and net change fields', () => {
+    expect(
+      areaInterventionSummary({
+        habitatsTotal: 12,
+        treesTotal: 0.2,
+        habitatsNetUnitChange: 2,
+        habitatsNetUnitChangePercentage: 20
+      })
+    ).toEqual({
+      units: 12.2,
+      netUnitChange: 2,
+      netPercentageChange: 20
+    })
+  })
+
+  test('uses null for missing area totals so tiles can show N/A', () => {
+    expect(areaInterventionSummary({})).toEqual({
+      units: null,
+      netUnitChange: undefined,
+      netPercentageChange: undefined
+    })
   })
 })
 
@@ -160,5 +202,23 @@ describe('buildUnitSummary', () => {
       href: '/upload'
     })
     expect(summary.netUnitChange).toBe('1.98 units')
+  })
+
+  test('uses an optional baseline action in place of the default text', () => {
+    const summary = buildUnitSummary({
+      label: 'Area habitats',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: null,
+      baselineAction: {
+        text: 'View on-site area baseline',
+        href: '/area-baseline'
+      }
+    })
+
+    expect(summary.baseline.action).toEqual({
+      text: 'View on-site area baseline',
+      href: '/area-baseline'
+    })
   })
 })
