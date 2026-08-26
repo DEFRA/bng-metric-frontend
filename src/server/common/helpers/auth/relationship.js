@@ -1,3 +1,5 @@
+import { canonicalRelationshipId } from './relationship-id.js'
+
 // Pure parsers for the colon-delimited `relationships` claim carried in a Defra
 // ID (Customer Identity) token, plus a resolver for the user's CURRENT org
 // context. No I/O, no logging — safe to call from the verified-token path and
@@ -75,12 +77,17 @@ export function parseRelationships(user) {
  * @returns {{relationshipId: string, orgId: string|null, orgName: string|null, relationship: string|null}|null}
  */
 export function currentRelationship(user) {
-  const currentId = user?.currentRelationshipId
+  // Case-insensitive (BMD-936): a refreshed token spells currentRelationshipId
+  // differently from the sign-in token, and failing to match here drops the
+  // organisation from the shared header. The backend's currentOrgContext folds
+  // case for the same reason, and this parser exists to mirror it.
+  const currentId = canonicalRelationshipId(user?.currentRelationshipId)
   if (!currentId) {
     return null
   }
   return (
-    parseRelationships(user).find((rel) => rel.relationshipId === currentId) ??
-    null
+    parseRelationships(user).find(
+      (rel) => canonicalRelationshipId(rel.relationshipId) === currentId
+    ) ?? null
   )
 }

@@ -1,3 +1,5 @@
+import { canonicalRelationshipId } from './relationship-id.js'
+
 export const bngCompleterRole = 'bng completer'
 
 // Defra Identity enrolment status that grants access. Only an APPROVED role
@@ -27,22 +29,6 @@ function parseStatus(raw) {
     return null
   }
   return status
-}
-
-/**
- * Fold a relationship id to its canonical comparable form (lower-case, trimmed),
- * or null when there isn't one. Mirrors canonicalRelationshipId in the backend
- * (src/services/defra-id/claims.js) — both sides of the forwarded token have to
- * agree on what counts as the same relationship.
- *
- * @param {unknown} value
- * @returns {string|null}
- */
-function canonicalRelationshipId(value) {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return null
-  }
-  return value.trim().toLowerCase()
 }
 
 /**

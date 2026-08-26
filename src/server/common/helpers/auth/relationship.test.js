@@ -114,3 +114,37 @@ describe('#currentRelationship', () => {
     expect(currentRelationship({})).toBeNull()
   })
 })
+
+describe('currentRelationship case-insensitivity (BMD-936)', () => {
+  // A refreshed token spells currentRelationshipId differently from the sign-in
+  // token; failing to match drops the organisation from the shared header.
+  const REL = '2819c414-5349-f111-bec6-000d3a495d27'
+  const entry = `${REL}:org-1:Acme Ltd:0:Employee:1`
+
+  test('resolves the relationship when the current id is cased differently', () => {
+    const result = currentRelationship({
+      currentRelationshipId: REL.toUpperCase(),
+      relationships: [entry]
+    })
+
+    expect(result).toMatchObject({ orgId: 'org-1', orgName: 'Acme Ltd' })
+  })
+
+  test('resolves when the relationships entry is the one cased differently', () => {
+    const result = currentRelationship({
+      currentRelationshipId: REL,
+      relationships: [entry.toUpperCase()]
+    })
+
+    expect(result).not.toBeNull()
+  })
+
+  test('still returns null for a relationship the user does not hold', () => {
+    const result = currentRelationship({
+      currentRelationshipId: 'eb18c414-5349-f111-bec6-000d3a495d27',
+      relationships: [entry]
+    })
+
+    expect(result).toBeNull()
+  })
+})
