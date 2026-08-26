@@ -232,7 +232,7 @@ describe('project summary', () => {
     expect(navigation).toHaveLength(1)
     expect(navigation.find('li')).toHaveLength(4)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
-    expect(navigation.find('a')).toHaveLength(1)
+    expect(navigation.find('a')).toHaveLength(2)
     expect(navigation.find('a').attr('href')).toBe(
       `/projects/${PROJECT_ID}/area-summary`
     )
@@ -250,7 +250,7 @@ describe('project summary', () => {
     )
   })
 
-  test('links the Area habitats tile title to the area summary page, leaving other titles as text', async () => {
+  test('links the Area habitats and Hedgerows tile titles to their summary pages, leaving Watercourses as text', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/project-summary`,
@@ -259,13 +259,18 @@ describe('project summary', () => {
 
     const $ = load(result)
     const areaHeadingLink = $('#area-habitats-heading a')
+    const hedgerowsHeadingLink = $('#hedgerows-heading a')
 
     expect(areaHeadingLink).toHaveLength(1)
     expect(areaHeadingLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/area-summary`
     )
     expect(areaHeadingLink.text().trim()).toBe('Area habitats')
-    expect($('#hedgerows-heading a')).toHaveLength(0)
+    expect(hedgerowsHeadingLink).toHaveLength(1)
+    expect(hedgerowsHeadingLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-summary`
+    )
+    expect(hedgerowsHeadingLink.text().trim()).toBe('Hedgerows')
     expect($('#watercourses-heading a')).toHaveLength(0)
   })
 

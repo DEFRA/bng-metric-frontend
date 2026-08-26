@@ -12,4 +12,16 @@ function projectHasHabitatData(project, habitatType) {
   )
 }
 
-export { hasBaselineData, hasHabitatData, projectHasHabitatData }
+function hasPostInterventionOnlyHabitat(project, habitatType) {
+  return (
+    !hasHabitatData(project?.baseline, habitatType) &&
+    hasHabitatData(project?.postIntervention, habitatType)
+  )
+}
+
+export {
+  hasBaselineData,
+  hasHabitatData,
+  hasPostInterventionOnlyHabitat,
+  projectHasHabitatData
+}

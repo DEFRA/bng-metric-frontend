@@ -1,7 +1,7 @@
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
-  hasHabitatData,
+  hasPostInterventionOnlyHabitat,
   projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
@@ -27,13 +27,6 @@ function buildUnitTypeSummary(
   })
 }
 
-function hasPostInterventionOnlyHabitat(project, habitatType) {
-  return (
-    !hasHabitatData(project?.baseline, habitatType) &&
-    hasHabitatData(project?.postIntervention, habitatType)
-  )
-}
-
 function buildProjectSummary(project, projectId) {
   const baselineUnits = project?.baseline?.units
   const postInterventionUnits = project?.postIntervention?.units
@@ -56,6 +49,8 @@ function buildProjectSummary(project, projectId) {
     {
       visible: projectHasHabitatData(project, 'hedgerows'),
       label: 'Hedgerows',
+      href: `/projects/${projectId}/hedgerows-summary`,
+      headingHref: `/projects/${projectId}/hedgerows-summary`,
       baselineUnits: baselineUnits?.hedgerowsTotal,
       postInterventionOnly: hasPostInterventionOnlyHabitat(
         project,
