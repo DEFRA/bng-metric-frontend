@@ -37,6 +37,18 @@
           <h2 id="project-details-heading" class="govuk-heading-m govuk-!-margin-bottom-3">View project details</h2>
           <p class="govuk-body">View and amend your project details, including project name and target percentage</p>
         </section>
+
+        <section aria-labelledby="site-report-heading">
+          <h2 id="site-report-heading" class="govuk-heading-m govuk-!-margin-bottom-3">Download site report</h2>
+          <p class="govuk-body">A printable summary of your site, with each habitat parcel shown on a map.</p>
+          {# A link, not a button: GOV.UK treats document downloads as links, and it keeps
+             "Upload file" as the page's only call to action. The file size is not stated
+             because it is not known until the report is generated — better to say nothing
+             than to print a figure we would be guessing at. #}
+          <p class="govuk-body">
+            <a class="govuk-link" href="{{ siteReportHref }}" download data-testid="site-report-link">Download the site report (PDF)</a>
+          </p>
+        </section>
       </div>
     </div>
   </div>

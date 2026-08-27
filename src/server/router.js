@@ -20,6 +20,7 @@ import { baselineHabitatList } from './baseline-habitat-list/index.js'
 import { postInterventionHabitatList } from './post-intervention-habitat-list/index.js'
 import { projectDetails } from './project-details/index.js'
 import { projectSummary } from './project-summary/index.js'
+import { projectReport } from './project-report/index.js'
 import { areaSummary } from './area-summary/index.js'
 import { areaBaseline } from './area-baseline/index.js'
 import { hedgerowsSummary } from './hedgerows-summary/index.js'
@@ -58,6 +59,7 @@ export const router = {
         invalidFile,
         projectDetails,
         projectSummary,
+        projectReport,
         areaSummary,
         areaBaseline,
         hedgerowsSummary,

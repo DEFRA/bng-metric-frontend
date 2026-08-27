@@ -190,6 +190,26 @@ describe('project summary', () => {
     expect(result.match(/Trading Rules/g)).toHaveLength(3)
   })
 
+  test('offers the site report as a download, not as another call to action', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    const $ = load(result)
+    const link = $('[data-testid="site-report-link"]')
+
+    expect(link.attr('href')).toBe(`/projects/${PROJECT_ID}/report.pdf`)
+    expect(link.text()).toBe('Download the site report (PDF)')
+    // A link rather than a button, so "Upload file" stays the only primary
+    // action on the page.
+    expect(link.is('a')).toBe(true)
+    expect(link.hasClass('govuk-link')).toBe(true)
+    expect($('#site-report-heading').text()).toBe('Download site report')
+  })
+
   test('formats baseline, zero post-intervention and negative net units', async () => {
     const { result } = await server.inject({
       method: 'GET',
