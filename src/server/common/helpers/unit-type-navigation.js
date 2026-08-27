@@ -1,33 +1,98 @@
 import { projectHasHabitatData } from './project-state.js'
 
-function buildUnitTypeNavigation(project, projectId, current) {
+const SUMMARY_TEXT = 'Summary'
+const AREA_HABITATS_TEXT = 'Area habitats'
+const BASELINE_TEXT = 'Baseline'
+const HEDGEROWS_TEXT = 'Hedgerows'
+const WATERCOURSES_TEXT = 'Watercourses'
+
+const PROJECT_SUMMARY_PATH = 'project-summary'
+const AREA_SUMMARY_PATH = 'area-summary'
+const AREA_BASELINE_PATH = 'area-baseline'
+const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
+const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
+
+function projectPageHref(projectId, path) {
+  return `/projects/${projectId}/${path}`
+}
+
+function markCurrent(item, currentHref) {
+  if (item.href === currentHref) {
+    item.current = true
+    delete item.href
+    return
+  }
+
+  if (!item.children) {
+    return
+  }
+
+  for (const child of item.children) {
+    markCurrent(child, currentHref)
+  }
+}
+
+// Only the unit type being viewed expands, so moving between unit types collapses
+// the section you came from and Summary shows every unit type collapsed.
+function buildUnitTypeItem({ text, summaryHref, baselineHref, currentHref }) {
+  const item = { text, href: summaryHref }
+
+  if (currentHref !== summaryHref && currentHref !== baselineHref) {
+    return item
+  }
+
+  return {
+    ...item,
+    children: [{ text: BASELINE_TEXT, href: baselineHref }]
+  }
+}
+
+function buildUnitTypeNavigation(project, projectId, currentHref) {
   const items = [
-    { text: 'Summary', href: `/projects/${projectId}/project-summary` },
-    { text: 'Area habitats', href: `/projects/${projectId}/area-summary` }
+    {
+      text: SUMMARY_TEXT,
+      href: projectPageHref(projectId, PROJECT_SUMMARY_PATH)
+    },
+    buildUnitTypeItem({
+      text: AREA_HABITATS_TEXT,
+      summaryHref: projectPageHref(projectId, AREA_SUMMARY_PATH),
+      baselineHref: projectPageHref(projectId, AREA_BASELINE_PATH),
+      currentHref
+    })
   ]
 
   if (projectHasHabitatData(project, 'hedgerows')) {
     items.push({
-      text: 'Hedgerows',
-      href: `/projects/${projectId}/hedgerows-summary`
+      text: HEDGEROWS_TEXT,
+      href: projectPageHref(projectId, HEDGEROWS_SUMMARY_PATH)
     })
   }
 
   if (projectHasHabitatData(project, 'watercourses')) {
     items.push({
-      text: 'Watercourses',
-      href: `/projects/${projectId}/watercourses-summary`
+      text: WATERCOURSES_TEXT,
+      href: projectPageHref(projectId, WATERCOURSES_SUMMARY_PATH)
     })
   }
 
-  const currentItem = items.find((item) => item.text === current)
-
-  if (currentItem) {
-    currentItem.current = true
-    delete currentItem.href
+  for (const item of items) {
+    markCurrent(item, currentHref)
   }
 
   return items
 }
 
-export { buildUnitTypeNavigation }
+export {
+  AREA_BASELINE_PATH,
+  AREA_HABITATS_TEXT,
+  AREA_SUMMARY_PATH,
+  BASELINE_TEXT,
+  HEDGEROWS_SUMMARY_PATH,
+  HEDGEROWS_TEXT,
+  PROJECT_SUMMARY_PATH,
+  SUMMARY_TEXT,
+  WATERCOURSES_SUMMARY_PATH,
+  WATERCOURSES_TEXT,
+  buildUnitTypeNavigation,
+  projectPageHref
+}

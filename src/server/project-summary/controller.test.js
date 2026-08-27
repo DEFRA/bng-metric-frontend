@@ -219,7 +219,7 @@ describe('project summary', () => {
     expect(result.split(`href="${href}"`)).toHaveLength(5)
   })
 
-  test('renders text-only navigation, trading rules, and project details', async () => {
+  test('renders navigation links, trading rules, and project details', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/project-summary`,
@@ -232,13 +232,22 @@ describe('project summary', () => {
     expect(navigation).toHaveLength(1)
     expect(navigation.find('li')).toHaveLength(4)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
-    expect(navigation.find('a')).toHaveLength(1)
-    expect(navigation.find('a').attr('href')).toBe(
-      `/projects/${PROJECT_ID}/area-summary`
-    )
-    expect(navigation.text()).toContain('Area habitats')
-    expect(navigation.text()).toContain('Hedgerows')
-    expect(navigation.text()).toContain('Watercourses')
+    expect(
+      navigation
+        .find('a')
+        .map((_, link) => ({
+          text: $(link).text(),
+          href: $(link).attr('href')
+        }))
+        .get()
+    ).toEqual([
+      { text: 'Area habitats', href: `/projects/${PROJECT_ID}/area-summary` },
+      { text: 'Hedgerows', href: `/projects/${PROJECT_ID}/hedgerows-summary` },
+      {
+        text: 'Watercourses',
+        href: `/projects/${PROJECT_ID}/watercourses-summary`
+      }
+    ])
     expect(result).toContain('View trading rules')
     expect(result).not.toContain('>View trading rules</a>')
     expect(result).toContain('View project details')
@@ -250,7 +259,7 @@ describe('project summary', () => {
     )
   })
 
-  test('links the Area habitats tile title to the area summary page, leaving other titles as text', async () => {
+  test('links each unit-type tile title to its summary page', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/project-summary`,
@@ -259,14 +268,55 @@ describe('project summary', () => {
 
     const $ = load(result)
     const areaHeadingLink = $('#area-habitats-heading a')
+    const hedgerowsHeadingLink = $('#hedgerows-heading a')
+    const watercoursesHeadingLink = $('#watercourses-heading a')
 
     expect(areaHeadingLink).toHaveLength(1)
     expect(areaHeadingLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/area-summary`
     )
     expect(areaHeadingLink.text().trim()).toBe('Area habitats')
-    expect($('#hedgerows-heading a')).toHaveLength(0)
-    expect($('#watercourses-heading a')).toHaveLength(0)
+    expect(hedgerowsHeadingLink).toHaveLength(1)
+    expect(hedgerowsHeadingLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-summary`
+    )
+    expect(hedgerowsHeadingLink.text().trim()).toBe('Hedgerows')
+    expect(watercoursesHeadingLink).toHaveLength(1)
+    expect(watercoursesHeadingLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-summary`
+    )
+    expect(watercoursesHeadingLink.text().trim()).toBe('Watercourses')
+  })
+
+  test('links the Area habitats baseline action to the area baseline page', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const areaSummary = $('#area-habitats-heading').closest('section')
+    const baselineLink = areaSummary
+      .find('a')
+      .filter((_, link) => $(link).text() === 'View on-site area baseline')
+
+    expect(baselineLink).toHaveLength(1)
+    expect(baselineLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-baseline`
+    )
+    expect(
+      $('#hedgerows-heading')
+        .closest('section')
+        .text()
+        .includes('View on-site baseline')
+    ).toBe(true)
+    expect(
+      $('#hedgerows-heading')
+        .closest('section')
+        .find('a')
+        .filter((_, link) => $(link).text() === 'View on-site area baseline')
+    ).toHaveLength(0)
   })
 
   test('returns not found when the backend cannot find the project', async () => {

@@ -1,0 +1,33 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "project-navigation/macro.njk" import appProjectNavigation %}
+
+{% set containerClasses = "app-width-container--wide" %}
+
+{% block content %}
+  <div class="govuk-grid-row app-project-summary-layout">
+    <div class="app-grid-column-one-sixth">
+      {{ appProjectNavigation({
+        label: "Project summary",
+        items: navigationItems
+      }) }}
+    </div>
+
+    <div class="app-grid-column-five-sixths">
+      <div class="app-project-summary__heading">
+        <div>
+          <span class="govuk-caption-l">{{ projectName }}</span>
+          <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">{{ heading }}</h1>
+        </div>
+        {{ govukButton({
+          text: "Upload file",
+          href: uploadHref,
+          classes: "govuk-!-margin-bottom-0"
+        }) }}
+      </div>
+
+      {% block unitTypeBody %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

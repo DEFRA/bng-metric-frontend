@@ -1,0 +1,39 @@
+{% extends "unit-type-page.njk" %}
+
+{% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
+
+{% macro areaBaselineCell(cell) -%}
+  <td class="govuk-table__cell{% if cell.numeric %} govuk-table__cell--numeric{% endif %}{% if cell.classes %} {{ cell.classes }}{% endif %}"{% if cell.attributes %}{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}{% endif %}>{% if cell.href %}<a class="govuk-link" href="{{ cell.href }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
+{%- endmacro %}
+
+{% block unitTypeBody %}
+  <h2 class="govuk-heading-m">{{ resultsHeading }}</h2>
+
+  {{ appUnitTypeSummary(unitSummary) }}
+
+  <h2 class="govuk-heading-m">{{ detailsHeading }}</h2>
+
+  <div class="moj-scrollable-pane" role="region" aria-label="{{ detailsRegionLabel }}" tabindex="0">
+    <table class="govuk-table app-area-habitat-details-table" data-module="moj-sortable-table">
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          {% for column in columns %}
+            <th class="govuk-table__header{% if column.numeric %} govuk-table__header--numeric{% endif %}" scope="col" aria-sort="none">{{ column.text }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for row in habitatRows %}
+          <tr class="govuk-table__row">
+            {% for cell in row %}{{ areaBaselineCell(cell) }}{% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="govuk-table__foot">
+        <tr class="govuk-table__row">
+          {% for cell in totalsRow %}{{ areaBaselineCell(cell) }}{% endfor %}
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+{% endblock %}

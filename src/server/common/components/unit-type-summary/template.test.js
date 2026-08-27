@@ -22,9 +22,8 @@ describe('Unit type summary component', () => {
   test('renders the supplied summary values and status', () => {
     const $ = renderComponent('unit-type-summary', summary)
 
-    expect($('section').attr('aria-labelledby')).toBe('area-habitats-heading')
-    expect($('#area-habitats-heading').text().trim()).toBe('Area habitats')
-    expect($('#area-habitats-heading a')).toHaveLength(0)
+    expect($('section').attr('aria-label')).toBe('Area habitats')
+    expect($('#area-habitats-heading')).toHaveLength(0)
     expect($('.app-unit-type-summary__tile')).toHaveLength(5)
     expect($('.govuk-tag').text()).toBe('Not met')
     expect($('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
@@ -54,6 +53,8 @@ describe('Unit type summary component', () => {
     expect(headingLink).toHaveLength(1)
     expect(headingLink.attr('href')).toBe('/projects/123/area-summary')
     expect(headingLink.text()).toBe('Area habitats')
+    expect($('section').attr('aria-labelledby')).toBe('area-habitats-heading')
+    expect($('section').attr('aria-label')).toBeUndefined()
   })
 
   test('uses body typography for the text-only post-intervention action', () => {

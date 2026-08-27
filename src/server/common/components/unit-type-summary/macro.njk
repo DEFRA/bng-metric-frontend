@@ -7,14 +7,12 @@
 {% endmacro %}
 
 {% macro appUnitTypeSummary(params) %}
-  <section class="app-unit-type-summary" aria-labelledby="{{ params.id }}-heading">
-    <h2 id="{{ params.id }}-heading" class="govuk-heading-m app-unit-type-summary__heading">
-      {% if params.headingHref %}
+  <section class="app-unit-type-summary"{% if params.headingHref %} aria-labelledby="{{ params.id }}-heading"{% else %} aria-label="{{ params.label }}"{% endif %}>
+    {% if params.headingHref %}
+      <h2 id="{{ params.id }}-heading" class="govuk-heading-m app-unit-type-summary__heading">
         <a class="govuk-link" href="{{ params.headingHref }}">{{ params.label }}</a>
-      {% else %}
-        {{ params.label }}
-      {% endif %}
-    </h2>
+      </h2>
+    {% endif %}
 
     <div class="app-unit-type-summary__primary">
       <div class="app-unit-type-summary__tile">

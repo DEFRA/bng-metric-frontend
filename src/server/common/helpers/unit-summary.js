@@ -3,6 +3,18 @@ const DECIMAL_PLACES = 2
 const NET_GAIN_TARGET_PERCENTAGE = 10
 const NO_POST_INTERVENTION_PERCENTAGE = -100
 const NOT_APPLICABLE = 'Not applicable'
+const DEFAULT_BASELINE_ACTION_TEXT = 'View on-site baseline'
+const AREA_BASELINE_ACTION_TEXT = 'View on-site area baseline'
+
+function areaBaselineAction(href) {
+  const action = { text: AREA_BASELINE_ACTION_TEXT }
+
+  if (href) {
+    action.href = href
+  }
+
+  return action
+}
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
@@ -32,6 +44,14 @@ function areaUnits(units, missingValue = 0) {
   }
 
   return normaliseUnits(habitatsTotal) + normaliseUnits(treesTotal)
+}
+
+function areaInterventionSummary(units) {
+  return {
+    units: areaUnits(units, null),
+    netUnitChange: units?.habitatsNetUnitChange,
+    netPercentageChange: units?.habitatsNetUnitChangePercentage
+  }
 }
 
 function percentageSummary(value) {
@@ -80,7 +100,8 @@ function buildUnitSummary({
   uploadHref,
   intervention,
   headingHref,
-  postInterventionOnly = false
+  postInterventionOnly = false,
+  baselineAction
 }) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
@@ -105,7 +126,9 @@ function buildUnitSummary({
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,
-      action: postInterventionOnly ? null : { text: 'View on-site baseline' }
+      action: postInterventionOnly
+        ? null
+        : (baselineAction ?? { text: DEFAULT_BASELINE_ACTION_TEXT })
     },
     postIntervention: buildPostInterventionSummary(
       intervention,
@@ -121,6 +144,8 @@ function buildUnitSummary({
 export {
   NET_GAIN_TARGET_PERCENTAGE,
   NO_POST_INTERVENTION_PERCENTAGE,
+  areaBaselineAction,
+  areaInterventionSummary,
   areaUnits,
   buildUnitSummary,
   formatOptionalUnits,

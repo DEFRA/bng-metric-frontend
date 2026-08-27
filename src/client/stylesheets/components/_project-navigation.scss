@@ -16,3 +16,15 @@
 .app-project-navigation__current {
   color: $govuk-link-colour;
 }
+
+.app-project-navigation__children {
+  padding: 0 0 0 govuk-spacing(3);
+  margin: govuk-spacing(2) 0 0;
+  list-style: none;
+}
+
+.app-project-navigation__child {
+  margin: 0;
+  padding: govuk-spacing(1) 0;
+  border-bottom: 0;
+}

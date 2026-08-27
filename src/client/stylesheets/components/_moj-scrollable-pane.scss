@@ -1,0 +1,23 @@
+@use 'govuk-frontend' as *;
+
+$moj-scrollable-pane-shadow-size: 8px;
+$moj-scrollable-pane-shadow-opacity: 0.2;
+$moj-scrollable-pane-shadow-colour: rgb(
+  0,
+  0,
+  0,
+  $moj-scrollable-pane-shadow-opacity
+);
+
+.moj-scrollable-pane {
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-shadow: inset (-$moj-scrollable-pane-shadow-size) 0
+    $moj-scrollable-pane-shadow-size (-$moj-scrollable-pane-shadow-size)
+    $moj-scrollable-pane-shadow-colour;
+}
+
+.moj-scrollable-pane:focus {
+  outline: $govuk-focus-width solid $govuk-focus-colour;
+  outline-offset: 0;
+}
