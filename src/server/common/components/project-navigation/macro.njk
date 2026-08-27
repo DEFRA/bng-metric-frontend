@@ -6,7 +6,7 @@
           {% if item.current %}
             <strong class="app-project-navigation__current" aria-current="page">{{ item.text }}</strong>
           {% elif item.href %}
-            <a class="govuk-link" href="{{ item.href }}">{{ item.text }}</a>
+            <a class="govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ item.href }}">{{ item.text }}</a>
           {% else %}
             {{ item.text }}
           {% endif %}
