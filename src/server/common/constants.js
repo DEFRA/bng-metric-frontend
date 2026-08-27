@@ -1,5 +1,9 @@
 export const DEFAULT_PROJECT_NAME = 'Project'
 
+// Backend field names for the per-unit-type baseline/post-intervention totals.
+export const HEDGEROWS_TOTAL_KEY = 'hedgerowsTotal'
+export const WATERCOURSES_TOTAL_KEY = 'watercoursesTotal'
+
 export const statusCodes = {
   ok: 200,
   noContent: 204,

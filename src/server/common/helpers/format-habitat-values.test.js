@@ -3,8 +3,10 @@ import { describe, test, expect } from 'vitest'
 import {
   formatAreaHectares,
   formatAreaHectaresValue,
+  formatBaselineTotalLengthSize,
   formatHabitatUnits,
   formatLengthKm,
+  formatLengthKmDisplay,
   formatTotalAreaSize,
   formatTotalLengthSize
 } from './format-habitat-values.js'
@@ -100,6 +102,23 @@ describe('formatLengthKm', () => {
   })
 })
 
+describe('formatLengthKmDisplay', () => {
+  test('Converts metres to kilometres and appends "km" with no space', () => {
+    expect(formatLengthKmDisplay(1000)).toBe('1km')
+    expect(formatLengthKmDisplay(2500)).toBe('2.5km')
+  })
+
+  test('Rounds to 7 significant figures', () => {
+    expect(formatLengthKmDisplay(1234567.891)).toBe('1234.568km')
+  })
+
+  test('Returns empty string for null, undefined or non-finite input', () => {
+    expect(formatLengthKmDisplay(null)).toBe('')
+    expect(formatLengthKmDisplay(undefined)).toBe('')
+    expect(formatLengthKmDisplay(Number.NaN)).toBe('')
+  })
+})
+
 describe('formatTotalAreaSize', () => {
   test('Converts square metres to hectares and appends "ha" with no space', () => {
     expect(formatTotalAreaSize(10000)).toBe('1ha')
@@ -150,5 +169,32 @@ describe('formatTotalLengthSize', () => {
 
   test('Returns an empty string when given a non-number', () => {
     expect(formatTotalLengthSize('100')).toBe('')
+  })
+})
+
+describe('formatBaselineTotalLengthSize', () => {
+  test('Converts metres to kilometres and appends "km" with no space', () => {
+    expect(formatBaselineTotalLengthSize(1000)).toBe('1km')
+    expect(formatBaselineTotalLengthSize(2500)).toBe('2.5km')
+  })
+
+  test('Rounds to 10 significant figures rather than the habitat-list 7', () => {
+    expect(formatBaselineTotalLengthSize(1234567.891)).toBe('1234.567891km')
+    expect(formatTotalLengthSize(1234567.891)).toBe('1234.568km')
+  })
+
+  test('Formats a recorded zero length', () => {
+    expect(formatBaselineTotalLengthSize(0)).toBe('0km')
+  })
+
+  test('Returns an empty string for null, undefined or non-finite input', () => {
+    expect(formatBaselineTotalLengthSize(null)).toBe('')
+    expect(formatBaselineTotalLengthSize(undefined)).toBe('')
+    expect(formatBaselineTotalLengthSize(Number.NaN)).toBe('')
+    expect(formatBaselineTotalLengthSize(Number.POSITIVE_INFINITY)).toBe('')
+  })
+
+  test('Returns an empty string when given a non-number', () => {
+    expect(formatBaselineTotalLengthSize('100')).toBe('')
   })
 })

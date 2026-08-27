@@ -1,21 +1,40 @@
+import { HEDGEROWS_TOTAL_KEY, WATERCOURSES_TOTAL_KEY } from '../constants.js'
+
 const SIGNIFICANT_FIGURES = 15
 const DECIMAL_PLACES = 2
+const ZERO_UNITS_DISPLAY = '0.00'
+const NEGATIVE_ZERO_UNITS_DISPLAY = '-0.00'
 const NET_GAIN_TARGET_PERCENTAGE = 10
 const NO_POST_INTERVENTION_PERCENTAGE = -100
+const NOT_AVAILABLE = 'N/A'
 const NOT_APPLICABLE = 'Not applicable'
 const DEFAULT_BASELINE_ACTION_TEXT = 'View on-site baseline'
 const AREA_BASELINE_ACTION_TEXT = 'View on-site area baseline'
+const HEDGEROWS_BASELINE_ACTION_TEXT = 'View on-site hedgerows baseline'
+const WATERCOURSES_BASELINE_ACTION_TEXT = 'View on-site watercourses baseline'
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
 
-function areaBaselineAction(href) {
-  const action = { text: AREA_BASELINE_ACTION_TEXT }
+function createBaselineAction(text, href) {
+  const action = { text }
 
   if (href) {
     action.href = href
   }
 
   return action
+}
+
+function areaBaselineAction(href) {
+  return createBaselineAction(AREA_BASELINE_ACTION_TEXT, href)
+}
+
+function hedgerowsBaselineAction(href) {
+  return createBaselineAction(HEDGEROWS_BASELINE_ACTION_TEXT, href)
+}
+
+function watercoursesBaselineAction(href) {
+  return createBaselineAction(WATERCOURSES_BASELINE_ACTION_TEXT, href)
 }
 
 function isFiniteNumber(value) {
@@ -30,11 +49,13 @@ function formatUnits(value) {
   const normalised = normaliseUnits(value)
   const rounded = Number(normalised.toPrecision(SIGNIFICANT_FIGURES))
   const formatted = rounded.toFixed(DECIMAL_PLACES)
-  return formatted === '-0.00' ? '0.00' : formatted
+  return formatted === NEGATIVE_ZERO_UNITS_DISPLAY
+    ? ZERO_UNITS_DISPLAY
+    : formatted
 }
 
 function formatOptionalUnits(value) {
-  return isFiniteNumber(value) ? `${formatUnits(value)} units` : 'N/A'
+  return isFiniteNumber(value) ? `${formatUnits(value)} units` : NOT_AVAILABLE
 }
 
 function areaUnits(units, missingValue = 0) {
@@ -56,9 +77,25 @@ function areaInterventionSummary(units) {
   }
 }
 
+function hedgerowsInterventionSummary(units) {
+  return {
+    units: units?.[HEDGEROWS_TOTAL_KEY],
+    netUnitChange: units?.hedgerowsNetUnitChange,
+    netPercentageChange: units?.hedgerowsNetUnitChangePercentage
+  }
+}
+
+function watercoursesInterventionSummary(units) {
+  return {
+    units: units?.[WATERCOURSES_TOTAL_KEY],
+    netUnitChange: units?.watercoursesNetUnitChange,
+    netPercentageChange: units?.watercoursesNetUnitChangePercentage
+  }
+}
+
 function percentageSummary(value) {
   if (!isFiniteNumber(value)) {
-    return { netPercentageChange: 'N/A', status: null }
+    return { netPercentageChange: NOT_AVAILABLE, status: null }
   }
 
   const formattedPercentage = formatUnits(value)
@@ -86,7 +123,7 @@ function buildPostInterventionSummary(
       : 'On-site post intervention',
     units: intervention
       ? formatOptionalUnits(intervention.units)
-      : '0.00 units',
+      : `${ZERO_UNITS_DISPLAY} units`,
     action: hasStandardIntervention
       ? { text: 'View on-site post intervention' }
       : {
@@ -167,7 +204,11 @@ export {
   buildUnitSummary,
   formatOptionalUnits,
   formatUnits,
+  hedgerowsBaselineAction,
+  hedgerowsInterventionSummary,
   isFiniteNumber,
   normaliseUnits,
-  percentageSummary
+  percentageSummary,
+  watercoursesBaselineAction,
+  watercoursesInterventionSummary
 }

@@ -9,7 +9,7 @@ const SQUARE_METRES_PER_HECTARE = 10000
 const METRES_PER_KILOMETRE = 1000
 const AREA_SIGNIFICANT_FIGURES = 10
 const LENGTH_SIGNIFICANT_FIGURES = 7
-const LENGTH_TOTAL_SIGNIFICANT_FIGURES = 7
+const LENGTH_BASELINE_TOTAL_SIGNIFICANT_FIGURES = 10
 const HABITAT_UNITS_DECIMAL_PLACES = 2
 const HABITAT_UNITS_SIGNIFICANT_FIGURES = 7
 const KM_UNIT = 'km'
@@ -66,6 +66,21 @@ function formatHabitatUnits(units) {
   return capped.toFixed(HABITAT_UNITS_DECIMAL_PLACES)
 }
 
+function formatKilometres(metres, significantFigures) {
+  if (!isUsableNumber(metres)) {
+    return EMPTY_DISPLAY
+  }
+  const kilometres = metres / METRES_PER_KILOMETRE
+  return Number(kilometres.toPrecision(significantFigures)).toString()
+}
+
+function withKmSuffix(value) {
+  if (value === EMPTY_DISPLAY) {
+    return EMPTY_DISPLAY
+  }
+  return `${value}${KM_UNIT}`
+}
+
 /**
  * Convert a metres length to a display string in kilometres, rounded to 7
  * significant figures (BMD-500 AC4). Returns '' for null/undefined/non-finite.
@@ -74,11 +89,18 @@ function formatHabitatUnits(units) {
  * @returns {string}
  */
 function formatLengthKm(metres) {
-  if (!isUsableNumber(metres)) {
-    return EMPTY_DISPLAY
-  }
-  const kilometres = metres / METRES_PER_KILOMETRE
-  return Number(kilometres.toPrecision(LENGTH_SIGNIFICANT_FIGURES)).toString()
+  return formatKilometres(metres, LENGTH_SIGNIFICANT_FIGURES)
+}
+
+/**
+ * As formatLengthKm but with the "km" suffix (no space), for baseline grid
+ * size cells.
+ *
+ * @param {number|null|undefined} metres
+ * @returns {string}
+ */
+function formatLengthKmDisplay(metres) {
+  return withKmSuffix(formatLengthKm(metres))
 }
 
 /**
@@ -107,20 +129,28 @@ function formatTotalAreaSize(squareMetres) {
  * @returns {string}
  */
 function formatTotalLengthSize(metres) {
-  if (!isUsableNumber(metres)) {
-    return EMPTY_DISPLAY
-  }
-  const kilometres = metres / METRES_PER_KILOMETRE
-  const rounded = Number(
-    kilometres.toPrecision(LENGTH_TOTAL_SIGNIFICANT_FIGURES)
+  return withKmSuffix(formatKilometres(metres, LENGTH_SIGNIFICANT_FIGURES))
+}
+
+/**
+ * Format a summed linear length for a baseline details grid as kilometres
+ * to 10 significant figures, with the "km" suffix (no space).
+ *
+ * @param {number|null|undefined} metres
+ * @returns {string}
+ */
+function formatBaselineTotalLengthSize(metres) {
+  return withKmSuffix(
+    formatKilometres(metres, LENGTH_BASELINE_TOTAL_SIGNIFICANT_FIGURES)
   )
-  return `${rounded}${KM_UNIT}`
 }
 
 export {
   formatAreaHectares,
   formatAreaHectaresValue,
+  formatBaselineTotalLengthSize,
   formatLengthKm,
+  formatLengthKmDisplay,
   formatHabitatUnits,
   formatTotalAreaSize,
   formatTotalLengthSize,

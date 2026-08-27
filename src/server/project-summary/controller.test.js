@@ -305,18 +305,26 @@ describe('project summary', () => {
     expect(baselineLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/area-baseline`
     )
-    expect(
-      $('#hedgerows-heading')
-        .closest('section')
-        .text()
-        .includes('View on-site baseline')
-    ).toBe(true)
-    expect(
-      $('#hedgerows-heading')
-        .closest('section')
-        .find('a')
-        .filter((_, link) => $(link).text() === 'View on-site area baseline')
-    ).toHaveLength(0)
+    const hedgerowsBaselineLink = $('#hedgerows-heading')
+      .closest('section')
+      .find('a')
+      .filter((_, link) => $(link).text() === 'View on-site hedgerows baseline')
+
+    expect(hedgerowsBaselineLink).toHaveLength(1)
+    expect(hedgerowsBaselineLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-baseline`
+    )
+    const watercoursesBaselineLink = $('#watercourses-heading')
+      .closest('section')
+      .find('a')
+      .filter(
+        (_, link) => $(link).text() === 'View on-site watercourses baseline'
+      )
+
+    expect(watercoursesBaselineLink).toHaveLength(1)
+    expect(watercoursesBaselineLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-baseline`
+    )
   })
 
   test('returns not found when the backend cannot find the project', async () => {
@@ -558,7 +566,9 @@ describe('project summary', () => {
 
       expect(baselineTile.find('h3').text()).toBe('On-site baseline')
       expect(baselineTile.find('p').text()).toBe('0.00 units')
-      expect(baselineTile.text()).not.toContain('View on-site baseline')
+      expect(baselineTile.text()).not.toContain(
+        `View on-site ${habitatType} baseline`
+      )
 
       expect(postInterventionTile.find('h3').text()).toBe(
         'On-site post intervention'
@@ -613,7 +623,9 @@ describe('project summary', () => {
       expect(statusCode).toBe(statusCodes.ok)
       expect(unitSummary.text()).toContain('N/A')
       expect(unitSummary.text()).not.toContain('Not applicable')
-      expect(baselineTile.text()).toContain('View on-site baseline')
+      expect(baselineTile.text()).toContain(
+        `View on-site ${habitatType} baseline`
+      )
       expect(postInterventionTile.find('h3').text()).toBe(
         'On-site post-intervention'
       )

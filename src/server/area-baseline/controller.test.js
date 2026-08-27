@@ -441,7 +441,7 @@ describe('area baseline', () => {
     const $ = load(result)
 
     expect($('table').attr('data-module')).toBe('moj-sortable-table')
-    expect($('table').hasClass('app-area-habitat-details-table')).toBe(true)
+    expect($('table').hasClass('app-habitat-details-table')).toBe(true)
     expect($('th[aria-sort="none"]')).toHaveLength(8)
     expect($('th[aria-sort="ascending"]')).toHaveLength(0)
     expect($('.moj-scrollable-pane').attr('aria-label')).toBe(
@@ -468,6 +468,10 @@ describe('area baseline', () => {
     ).toBe(`/projects/${PROJECT_ID}/area-summary`)
     expect(navigation.text()).toContain('Hedgerows')
     expect(navigation.text()).not.toContain('Watercourses')
+    expect(
+      navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
+    ).toHaveLength(0)
+    expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
   })
 
   test('redirects a project without baseline data to the existing task list', async () => {
