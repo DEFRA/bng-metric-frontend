@@ -91,3 +91,38 @@ describe('#clearStateOnOrganisationSwitch', () => {
     }
   })
 })
+
+describe('relationship ids are compared case-insensitively (BMD-936)', () => {
+  // Raised in review on #239. Both ids here come from two separate interactive
+  // sign-ins, so the ENRICHMENT_CLAIMS pin does not cover them — and Defra ID
+  // has no single canonical spelling for a relationship id. Reading a case flip
+  // as a genuine switch clears ORG_SCOPED_SESSION_KEYS and wipes an in-flight
+  // upload journey.
+  const REL = '2819c414-5349-f111-bec6-000d3a495d27'
+
+  test('does not clear journey state when only the case differs', () => {
+    const request = buildRequest()
+
+    const changed = clearStateOnOrganisationSwitch(
+      request,
+      REL,
+      REL.toUpperCase()
+    )
+
+    expect(changed).toBe(false)
+    expect(request.yar.clear).not.toHaveBeenCalled()
+  })
+
+  test('still clears on a genuine change of organisation', () => {
+    const request = buildRequest()
+
+    const changed = clearStateOnOrganisationSwitch(
+      request,
+      REL,
+      'eb18c414-5349-f111-bec6-000d3a495d27'
+    )
+
+    expect(changed).toBe(true)
+    expect(request.yar.clear).toHaveBeenCalled()
+  })
+})
