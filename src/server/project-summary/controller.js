@@ -5,7 +5,22 @@ import {
   projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
-import { areaUnits, buildUnitSummary } from '../common/helpers/unit-summary.js'
+import {
+  AREA_HABITATS_TEXT,
+  HEDGEROWS_TEXT,
+  PROJECT_SUMMARY_PATH,
+  SUMMARY_TEXT,
+  WATERCOURSES_TEXT,
+  buildUnitTypeNavigation,
+  projectPageHref
+} from '../common/helpers/unit-type-navigation.js'
+import {
+  areaBaselineAction,
+  areaInterventionSummary,
+  areaUnits,
+  buildUnitSummary
+} from '../common/helpers/unit-summary.js'
+import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 function buildUnitTypeSummary(
   unitType,
@@ -22,8 +37,9 @@ function buildUnitTypeSummary(
     baselineUnits: unitType.baselineUnits,
     uploadHref,
     intervention,
-    headingHref: unitType.headingHref,
-    postInterventionOnly: unitType.postInterventionOnly
+    headingHref: unitType.href,
+    postInterventionOnly: unitType.postInterventionOnly,
+    baselineAction: unitType.baselineAction
   })
 }
 
@@ -36,21 +52,18 @@ function buildProjectSummary(project, projectId) {
   const unitTypes = [
     {
       visible: true,
-      label: 'Area habitats',
+      label: AREA_HABITATS_TEXT,
       href: `/projects/${projectId}/area-summary`,
-      headingHref: `/projects/${projectId}/area-summary`,
+      baselineAction: areaBaselineAction(
+        `/projects/${projectId}/area-baseline`
+      ),
       baselineUnits: areaUnits(baselineUnits),
-      buildIntervention: (units) => ({
-        units: areaUnits(units, null),
-        netUnitChange: units?.habitatsNetUnitChange,
-        netPercentageChange: units?.habitatsNetUnitChangePercentage
-      })
+      buildIntervention: areaInterventionSummary
     },
     {
       visible: projectHasHabitatData(project, 'hedgerows'),
-      label: 'Hedgerows',
+      label: HEDGEROWS_TEXT,
       href: `/projects/${projectId}/hedgerows-summary`,
-      headingHref: `/projects/${projectId}/hedgerows-summary`,
       baselineUnits: baselineUnits?.hedgerowsTotal,
       postInterventionOnly: hasPostInterventionOnlyHabitat(
         project,
@@ -64,7 +77,8 @@ function buildProjectSummary(project, projectId) {
     },
     {
       visible: projectHasHabitatData(project, 'watercourses'),
-      label: 'Watercourses',
+      label: WATERCOURSES_TEXT,
+      href: `/projects/${projectId}/watercourses-summary`,
       baselineUnits: baselineUnits?.watercoursesTotal,
       postInterventionOnly: hasPostInterventionOnlyHabitat(
         project,
@@ -80,15 +94,13 @@ function buildProjectSummary(project, projectId) {
   const visibleUnitTypes = unitTypes.filter(({ visible }) => visible)
 
   return {
-    projectName: project?.name ?? 'Project',
+    projectName: project?.name ?? DEFAULT_PROJECT_NAME,
     uploadHref,
-    navigationItems: [
-      { text: 'Summary', current: true },
-      ...visibleUnitTypes.map(({ label, href }) => ({
-        text: label,
-        ...(href && { href })
-      }))
-    ],
+    navigationItems: buildUnitTypeNavigation(
+      project,
+      projectId,
+      projectPageHref(projectId, PROJECT_SUMMARY_PATH)
+    ),
     unitSummaries: visibleUnitTypes.map((unitType) =>
       buildUnitTypeSummary(
         unitType,
@@ -112,8 +124,8 @@ export const getController = {
     const summary = buildProjectSummary(project, id)
 
     return h.view('project-summary/index', {
-      pageTitle: 'Summary',
-      heading: 'Summary',
+      pageTitle: SUMMARY_TEXT,
+      heading: SUMMARY_TEXT,
       ...summary
     })
   }

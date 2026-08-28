@@ -3,7 +3,12 @@ import {
   hasBaselineData,
   hasPostInterventionOnlyHabitat
 } from '../common/helpers/project-state.js'
-import { buildUnitTypeNavigation } from '../common/helpers/unit-type-navigation.js'
+import {
+  HEDGEROWS_SUMMARY_PATH,
+  HEDGEROWS_TEXT,
+  buildUnitTypeNavigation,
+  projectPageHref
+} from '../common/helpers/unit-type-navigation.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
   NET_GAIN_TARGET_PERCENTAGE,
@@ -13,11 +18,11 @@ import {
   isFiniteNumber,
   normaliseUnits
 } from '../common/helpers/unit-summary.js'
+import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
 const NO_POST_INTERVENTION_UNITS = 0
-const HEDGEROWS_LABEL = 'Hedgerows'
 
 function buildTargetsSummary(baselineUnits, postInterventionUnits) {
   const unitsRequired =
@@ -60,15 +65,15 @@ function buildHedgerowsSummary(project, projectId) {
     : NO_POST_INTERVENTION_UNITS
 
   return {
-    projectName: project?.name ?? 'Project',
+    projectName: project?.name ?? DEFAULT_PROJECT_NAME,
     uploadHref,
     navigationItems: buildUnitTypeNavigation(
       project,
       projectId,
-      HEDGEROWS_LABEL
+      projectPageHref(projectId, HEDGEROWS_SUMMARY_PATH)
     ),
     unitSummary: buildUnitSummary({
-      label: HEDGEROWS_LABEL,
+      label: HEDGEROWS_TEXT,
       baselineUnits: baselineHedgerowsUnits,
       uploadHref,
       intervention: interventionSummary,
@@ -93,8 +98,8 @@ export const getController = {
     const summary = buildHedgerowsSummary(project, id)
 
     return h.view('hedgerows-summary/index', {
-      pageTitle: HEDGEROWS_LABEL,
-      heading: HEDGEROWS_LABEL,
+      pageTitle: HEDGEROWS_TEXT,
+      heading: HEDGEROWS_TEXT,
       ...summary
     })
   }

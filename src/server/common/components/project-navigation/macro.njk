@@ -1,14 +1,27 @@
+{% macro projectNavLabel(item) %}
+  {% if item.current %}
+    <strong class="app-project-navigation__current" aria-current="page">{{ item.text }}</strong>
+  {% elif item.href %}
+    <a class="govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ item.href }}">{{ item.text }}</a>
+  {% else %}
+    {{ item.text }}
+  {% endif %}
+{% endmacro %}
+
 {% macro appProjectNavigation(params) %}
   <nav aria-label="{{ params.label }}">
     <ul class="app-project-navigation">
       {% for item in params.items %}
         <li class="govuk-body app-project-navigation__item">
-          {% if item.current %}
-            <strong class="app-project-navigation__current" aria-current="page">{{ item.text }}</strong>
-          {% elif item.href %}
-            <a class="govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ item.href }}">{{ item.text }}</a>
-          {% else %}
-            {{ item.text }}
+          {{ projectNavLabel(item) }}
+          {% if item.children %}
+            <ul class="app-project-navigation__children">
+              {% for child in item.children %}
+                <li class="govuk-body app-project-navigation__child">
+                  {{ projectNavLabel(child) }}
+                </li>
+              {% endfor %}
+            </ul>
           {% endif %}
         </li>
       {% endfor %}

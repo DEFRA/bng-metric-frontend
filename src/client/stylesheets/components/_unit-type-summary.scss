@@ -6,13 +6,6 @@
   border-bottom: 1px solid $govuk-border-colour;
 }
 
-.app-unit-type-summary__heading {
-  color: $govuk-link-colour;
-  text-decoration: underline;
-  text-decoration-thickness: max(1px, 0.0625rem);
-  text-underline-offset: 0.1578em;
-}
-
 .app-unit-type-summary__primary,
 .app-unit-type-summary__secondary {
   display: grid;

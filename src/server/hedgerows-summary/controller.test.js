@@ -109,7 +109,7 @@ describe('hedgerows summary', () => {
     expect(result).toContain('class="app-grid-column-five-sixths"')
   })
 
-  test('renders a single Results section for hedgerows only', async () => {
+  test('renders a single Results section for hedgerows only, with no heading link', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/hedgerows-summary`,
@@ -118,9 +118,13 @@ describe('hedgerows summary', () => {
 
     const $ = load(result)
 
-    expect($('#hedgerows-heading')).toHaveLength(1)
     expect($('.app-unit-type-summary')).toHaveLength(1)
-    expect($('#hedgerows-heading a')).toHaveLength(0)
+    expect($('#hedgerows-heading')).toHaveLength(0)
+    expect(
+      $('.app-unit-type-summary a').filter(
+        (_, link) => $(link).text() === 'Hedgerows'
+      )
+    ).toHaveLength(0)
   })
 
   test('renders results values matching baseline and post-intervention data', async () => {
@@ -131,7 +135,7 @@ describe('hedgerows summary', () => {
     })
 
     const $ = load(result)
-    const hedgerowsSummary = $('#hedgerows-heading').closest('section')
+    const hedgerowsSummary = $('.app-unit-type-summary')
 
     expect(hedgerowsSummary.text()).toContain('2.22%')
     expect(hedgerowsSummary.text()).toContain('4.50 units')
@@ -204,7 +208,7 @@ describe('hedgerows summary', () => {
     expect(statusCode).toBe(statusCodes.ok)
 
     const $ = load(result)
-    const hedgerowsSummary = $('#hedgerows-heading').closest('section')
+    const hedgerowsSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
 
     expect(hedgerowsSummary.text()).toContain('-100.00%')
@@ -227,7 +231,7 @@ describe('hedgerows summary', () => {
     })
 
     const $ = load(result)
-    const hedgerowsSummary = $('#hedgerows-heading').closest('section')
+    const hedgerowsSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
     const uploadLink = hedgerowsSummary.find('a')
 
@@ -362,7 +366,7 @@ describe('hedgerows summary', () => {
     })
 
     const $ = load(result)
-    const hedgerowsSummary = $('#hedgerows-heading').closest('section')
+    const hedgerowsSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
 
     expect(hedgerowsSummary.text()).toContain('N/A')

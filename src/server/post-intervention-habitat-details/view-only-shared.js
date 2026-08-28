@@ -275,7 +275,7 @@ export function buildViewOnlyViewModel(
   // feature; `proposed` is only a fallback for features with no baseline side.
   const retained = (key) => baseline[key] ?? proposed[key] ?? ''
 
-  return {
+  const baseViewModel = {
     pageTitle: PI_DETAILS_HEADING,
     heading: PI_DETAILS_HEADING,
     caption: projectName,
@@ -294,7 +294,14 @@ export function buildViewOnlyViewModel(
     strategicSignificanceDisplay: FIXED_STRATEGIC_SIGNIFICANCE,
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
     viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${spec.tabAnchor}`,
-    ...(spec.extraFields?.({ feature, baseline, proposed, retained }) ?? {})
+    backHref: `/projects/${projectId}/post-intervention-habitat-list${spec.tabAnchor}`
   }
+
+  const extraFields = spec.extraFields?.({
+    feature,
+    baseline,
+    proposed,
+    retained
+  })
+  return extraFields ? { ...baseViewModel, ...extraFields } : baseViewModel
 }

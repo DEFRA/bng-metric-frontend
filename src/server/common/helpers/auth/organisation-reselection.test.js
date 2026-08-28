@@ -59,3 +59,21 @@ describe('#canSelectDifferentOrganisation', () => {
     expect(canSelectDifferentOrganisation({})).toBe(false)
   })
 })
+
+describe('relationship/role pairing is case-insensitive (BMD-936)', () => {
+  const REL = '2819c414-5349-f111-bec6-000d3a495d27'
+
+  test('pairs a relationship with its role when the two claims disagree on case', () => {
+    // One relationship, and it HAS a role — so there is no second org to select.
+    // Without case folding the role would not pair up, the relationship would
+    // count as role-less, and the "choose a different organisation" affordance
+    // would be offered to a user who has nowhere else to go.
+    const result = canSelectDifferentOrganisation({
+      relationships: [`${REL}:org-1:Acme Ltd:0:Employee:1`],
+      roles: [`${REL.toUpperCase()}:bng completer:3`],
+      enrolmentCount: 1
+    })
+
+    expect(result).toBe(false)
+  })
+})

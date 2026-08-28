@@ -1,3 +1,5 @@
+export const DEFAULT_PROJECT_NAME = 'Project'
+
 export const statusCodes = {
   ok: 200,
   noContent: 204,

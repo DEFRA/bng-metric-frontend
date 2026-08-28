@@ -1,3 +1,5 @@
+import { canonicalRelationshipId } from './relationship-id.js'
+
 function toArray(value) {
   if (Array.isArray(value)) {
     return value
@@ -10,8 +12,12 @@ function toNumber(value) {
   return Number.isFinite(number) ? number : 0
 }
 
+// Canonicalised so a relationship and its role entry still pair up when the two
+// claims spell the same id differently (BMD-936).
 function claimId(entry) {
-  return typeof entry === 'string' ? entry.split(':')[0] : null
+  return typeof entry === 'string'
+    ? canonicalRelationshipId(entry.split(':')[0])
+    : null
 }
 
 function countRelationshipsWithoutRoles(relationships, roles) {

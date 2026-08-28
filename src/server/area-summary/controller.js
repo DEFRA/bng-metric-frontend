@@ -1,20 +1,27 @@
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { hasBaselineData } from '../common/helpers/project-state.js'
-import { buildUnitTypeNavigation } from '../common/helpers/unit-type-navigation.js'
+import {
+  AREA_HABITATS_TEXT,
+  AREA_SUMMARY_PATH,
+  buildUnitTypeNavigation,
+  projectPageHref
+} from '../common/helpers/unit-type-navigation.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
   NET_GAIN_TARGET_PERCENTAGE,
+  areaBaselineAction,
+  areaInterventionSummary,
   areaUnits,
   buildUnitSummary,
   formatOptionalUnits,
   formatUnits,
   isFiniteNumber
 } from '../common/helpers/unit-summary.js'
+import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
 const NO_POST_INTERVENTION_UNITS = 0
-const AREA_HABITATS_LABEL = 'Area habitats'
 
 function buildTargetsSummary(baselineAreaUnits, postInterventionAreaUnits) {
   const unitsRequired =
@@ -37,12 +44,7 @@ function buildAreaSummary(project, projectId) {
   const uploadHref = uploadFileHref(projectId, returnUrl)
 
   const interventionSummary = project?.postIntervention
-    ? {
-        units: areaUnits(postInterventionUnits, null),
-        netUnitChange: postInterventionUnits?.habitatsNetUnitChange,
-        netPercentageChange:
-          postInterventionUnits?.habitatsNetUnitChangePercentage
-      }
+    ? areaInterventionSummary(postInterventionUnits)
     : null
 
   const baselineAreaUnits = areaUnits(baselineUnits)
@@ -51,18 +53,19 @@ function buildAreaSummary(project, projectId) {
     : NO_POST_INTERVENTION_UNITS
 
   return {
-    projectName: project?.name ?? 'Project',
+    projectName: project?.name ?? DEFAULT_PROJECT_NAME,
     uploadHref,
     navigationItems: buildUnitTypeNavigation(
       project,
       projectId,
-      AREA_HABITATS_LABEL
+      projectPageHref(projectId, AREA_SUMMARY_PATH)
     ),
     unitSummary: buildUnitSummary({
-      label: AREA_HABITATS_LABEL,
+      label: AREA_HABITATS_TEXT,
       baselineUnits: baselineAreaUnits,
       uploadHref,
-      intervention: interventionSummary
+      intervention: interventionSummary,
+      baselineAction: areaBaselineAction(`/projects/${projectId}/area-baseline`)
     }),
     targetsSummary: buildTargetsSummary(
       baselineAreaUnits,
@@ -83,8 +86,8 @@ export const getController = {
     const summary = buildAreaSummary(project, id)
 
     return h.view('area-summary/index', {
-      pageTitle: AREA_HABITATS_LABEL,
-      heading: AREA_HABITATS_LABEL,
+      pageTitle: AREA_HABITATS_TEXT,
+      heading: AREA_HABITATS_TEXT,
       ...summary
     })
   }

@@ -1,39 +1,12 @@
-{% extends 'layouts/page.njk' %}
+{% extends "unit-type-page.njk" %}
 
-{% from "govuk/components/button/macro.njk" import govukButton %}
-{% from "project-navigation/macro.njk" import appProjectNavigation %}
 {% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
 {% from "targets-summary/macro.njk" import appTargetsSummary %}
 
-{% set containerClasses = "app-width-container--wide" %}
+{% block unitTypeBody %}
+  <h2 class="govuk-heading-m">Results</h2>
 
-{% block content %}
-  <div class="govuk-grid-row app-project-summary-layout">
-    <div class="app-grid-column-one-sixth">
-      {{ appProjectNavigation({
-        label: "Project summary",
-        items: navigationItems
-      }) }}
-    </div>
+  {{ appUnitTypeSummary(unitSummary) }}
 
-    <div class="app-grid-column-five-sixths">
-      <div class="app-project-summary__heading">
-        <div>
-          <span class="govuk-caption-l">{{ projectName }}</span>
-          <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">{{ heading }}</h1>
-        </div>
-        {{ govukButton({
-          text: "Upload file",
-          href: uploadHref,
-          classes: "govuk-!-margin-bottom-0"
-        }) }}
-      </div>
-
-      <h2 class="govuk-heading-m">Results</h2>
-
-      {{ appUnitTypeSummary(unitSummary) }}
-
-      {{ appTargetsSummary(targetsSummary) }}
-    </div>
-  </div>
+  {{ appTargetsSummary(targetsSummary) }}
 {% endblock %}
