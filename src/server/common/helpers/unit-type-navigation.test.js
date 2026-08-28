@@ -6,6 +6,7 @@ const AREA_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-summary`
 const AREA_BASELINE_HREF = `/projects/${PROJECT_ID}/area-baseline`
 const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
+const REPORTS_HREF = `/projects/${PROJECT_ID}/reports`
 
 describe('buildUnitTypeNavigation', () => {
   test('always includes Summary and Area habitats', () => {
@@ -17,8 +18,17 @@ describe('buildUnitTypeNavigation', () => {
         text: 'Area habitats',
         current: true,
         children: [{ text: 'Baseline', href: AREA_BASELINE_HREF }]
-      }
+      },
+      { text: 'Reports', href: REPORTS_HREF }
     ])
+  })
+
+  test('always includes Reports, last, whatever the project holds', () => {
+    const items = buildUnitTypeNavigation({}, PROJECT_ID, AREA_SUMMARY_HREF)
+    expect(items.at(-1)).toEqual({ text: 'Reports', href: REPORTS_HREF })
+
+    const reportsPage = buildUnitTypeNavigation({}, PROJECT_ID, REPORTS_HREF)
+    expect(reportsPage.at(-1)).toEqual({ text: 'Reports', current: true })
   })
 
   test('includes Hedgerows only when the project has hedgerow habitats', () => {
@@ -126,7 +136,8 @@ describe('buildUnitTypeNavigation', () => {
       { text: 'Summary', current: true },
       { text: 'Area habitats', href: AREA_SUMMARY_HREF },
       { text: 'Hedgerows', href: HEDGEROWS_SUMMARY_HREF },
-      { text: 'Watercourses', href: WATERCOURSES_SUMMARY_HREF }
+      { text: 'Watercourses', href: WATERCOURSES_SUMMARY_HREF },
+      { text: 'Reports', href: REPORTS_HREF }
     ])
   })
 })

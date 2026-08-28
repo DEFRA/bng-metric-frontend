@@ -103,7 +103,6 @@ function buildProjectSummary(project, projectId) {
   return {
     projectName: project?.name ?? DEFAULT_PROJECT_NAME,
     uploadHref,
-    siteReportHref: `/projects/${projectId}/report.pdf`,
     navigationItems: buildUnitTypeNavigation(
       project,
       projectId,
