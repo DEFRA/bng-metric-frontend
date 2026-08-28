@@ -1,7 +1,7 @@
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
-  hasHabitatData,
+  hasPostInterventionOnlyHabitat,
   projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
@@ -41,13 +41,6 @@ function buildUnitTypeSummary(
     postInterventionOnly: unitType.postInterventionOnly,
     baselineAction: unitType.baselineAction
   })
-}
-
-function hasPostInterventionOnlyHabitat(project, habitatType) {
-  return (
-    !hasHabitatData(project?.baseline, habitatType) &&
-    hasHabitatData(project?.postIntervention, habitatType)
-  )
 }
 
 function buildProjectSummary(project, projectId) {
