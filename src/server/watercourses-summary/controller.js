@@ -11,32 +11,14 @@ import {
 } from '../common/helpers/unit-type-navigation.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
-  NET_GAIN_TARGET_PERCENTAGE,
+  buildTargetsSummary,
   buildUnitSummary,
-  formatOptionalUnits,
-  formatUnits,
   isFiniteNumber,
   normaliseUnits
 } from '../common/helpers/unit-summary.js'
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
-const PERCENTAGE_DIVISOR = 100
-const MIN_UNIT_DEFICIT = 0
 const NO_POST_INTERVENTION_UNITS = 0
-
-function buildTargetsSummary(baselineUnits, postInterventionUnits) {
-  const unitsRequired =
-    baselineUnits * (1 + NET_GAIN_TARGET_PERCENTAGE / PERCENTAGE_DIVISOR)
-  const unitDeficit = isFiniteNumber(postInterventionUnits)
-    ? Math.max(MIN_UNIT_DEFICIT, unitsRequired - postInterventionUnits)
-    : null
-
-  return {
-    targetPercentage: { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
-    unitsRequired: `${formatUnits(unitsRequired)} units`,
-    unitDeficit: formatOptionalUnits(unitDeficit)
-  }
-}
 
 function buildWatercoursesSummary(project, projectId) {
   const baselineUnits = project?.baseline?.units

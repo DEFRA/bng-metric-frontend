@@ -2,6 +2,7 @@ import {
   areaBaselineAction,
   areaInterventionSummary,
   areaUnits,
+  buildTargetsSummary,
   buildUnitSummary,
   formatOptionalUnits,
   formatUnits,
@@ -113,6 +114,40 @@ describe('percentageSummary', () => {
       })
     }
   )
+})
+
+describe('buildTargetsSummary', () => {
+  test('reports a 10% target and the deficit against the post-intervention total', () => {
+    expect(buildTargetsSummary(4.5, 4.6)).toEqual({
+      targetPercentage: { text: '10%' },
+      unitsRequired: '4.95 units',
+      unitDeficit: '0.35 units'
+    })
+  })
+
+  test('clamps the deficit to zero when post-intervention meets the target', () => {
+    expect(buildTargetsSummary(1, 2)).toEqual({
+      targetPercentage: { text: '10%' },
+      unitsRequired: '1.10 units',
+      unitDeficit: '0.00 units'
+    })
+  })
+
+  test('treats no post-intervention data as zero units, deficit equal to units required', () => {
+    expect(buildTargetsSummary(1.5, 0)).toEqual({
+      targetPercentage: { text: '10%' },
+      unitsRequired: '1.65 units',
+      unitDeficit: '1.65 units'
+    })
+  })
+
+  test('shows N/A for the deficit when post-intervention data is present but incomplete', () => {
+    expect(buildTargetsSummary(1, null)).toEqual({
+      targetPercentage: { text: '10%' },
+      unitsRequired: '1.10 units',
+      unitDeficit: 'N/A'
+    })
+  })
 })
 
 describe('buildUnitSummary', () => {
