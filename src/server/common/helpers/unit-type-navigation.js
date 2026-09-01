@@ -5,12 +5,14 @@ const AREA_HABITATS_TEXT = 'Area habitats'
 const BASELINE_TEXT = 'Baseline'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
+const REPORTS_TEXT = 'Reports'
 
 const PROJECT_SUMMARY_PATH = 'project-summary'
 const AREA_SUMMARY_PATH = 'area-summary'
 const AREA_BASELINE_PATH = 'area-baseline'
 const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
 const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
+const REPORTS_PATH = 'reports'
 
 function projectPageHref(projectId, path) {
   return `/projects/${projectId}/${path}`
@@ -75,6 +77,14 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
     })
   }
 
+  // Always last, and not conditional on any habitat type: the site report
+  // draws whatever the project holds, so the page it lives on is reachable
+  // whenever the project is.
+  items.push({
+    text: REPORTS_TEXT,
+    href: projectPageHref(projectId, REPORTS_PATH)
+  })
+
   for (const item of items) {
     markCurrent(item, currentHref)
   }
@@ -90,6 +100,8 @@ export {
   HEDGEROWS_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   PROJECT_SUMMARY_PATH,
+  REPORTS_PATH,
+  REPORTS_TEXT,
   SUMMARY_TEXT,
   WATERCOURSES_SUMMARY_PATH,
   WATERCOURSES_TEXT,

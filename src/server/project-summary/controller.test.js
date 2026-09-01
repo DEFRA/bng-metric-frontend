@@ -190,6 +190,24 @@ describe('project summary', () => {
     expect(result.match(/Trading Rules/g)).toHaveLength(3)
   })
 
+  test('points at the Reports page from the navigation instead of inlining the download', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    const $ = load(result)
+    // The download moved to its own Reports page (see project-reports/);
+    // the summary carries the navigation entry, not the link itself.
+    expect($('[data-testid="site-report-link"]')).toHaveLength(0)
+    const reportsNavLink = $('nav a').filter(
+      (_, el) => $(el).text().trim() === 'Reports'
+    )
+    expect(reportsNavLink.attr('href')).toBe(`/projects/${PROJECT_ID}/reports`)
+  })
+
   test('formats baseline, zero post-intervention and negative net units', async () => {
     const { result } = await server.inject({
       method: 'GET',
@@ -230,7 +248,7 @@ describe('project summary', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation).toHaveLength(1)
-    expect(navigation.find('li')).toHaveLength(4)
+    expect(navigation.find('li')).toHaveLength(5)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
     expect(
       navigation
@@ -246,6 +264,10 @@ describe('project summary', () => {
       {
         text: 'Watercourses',
         href: `/projects/${PROJECT_ID}/watercourses-summary`
+      },
+      {
+        text: 'Reports',
+        href: `/projects/${PROJECT_ID}/reports`
       }
     ])
     expect(result).toContain('View trading rules')
@@ -488,7 +510,7 @@ describe('project summary', () => {
       const navigation = $('nav[aria-label="Project summary"]')
 
       expect(statusCode).toBe(statusCodes.ok)
-      expect(navigation.find('li')).toHaveLength(2)
+      expect(navigation.find('li')).toHaveLength(3)
       expect(navigation.text()).toContain('Area habitats')
       expect(navigation.text()).not.toContain('Hedgerows')
       expect(navigation.text()).not.toContain('Watercourses')
