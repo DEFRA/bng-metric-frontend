@@ -5,6 +5,8 @@ const NO_POST_INTERVENTION_PERCENTAGE = -100
 const NOT_APPLICABLE = 'Not applicable'
 const DEFAULT_BASELINE_ACTION_TEXT = 'View on-site baseline'
 const AREA_BASELINE_ACTION_TEXT = 'View on-site area baseline'
+const PERCENTAGE_DIVISOR = 100
+const MIN_UNIT_DEFICIT = 0
 
 function areaBaselineAction(href) {
   const action = { text: AREA_BASELINE_ACTION_TEXT }
@@ -94,6 +96,20 @@ function buildPostInterventionSummary(
   }
 }
 
+function buildTargetsSummary(baselineUnits, postInterventionUnits) {
+  const unitsRequired =
+    baselineUnits * (1 + NET_GAIN_TARGET_PERCENTAGE / PERCENTAGE_DIVISOR)
+  const unitDeficit = isFiniteNumber(postInterventionUnits)
+    ? Math.max(MIN_UNIT_DEFICIT, unitsRequired - postInterventionUnits)
+    : null
+
+  return {
+    targetPercentage: { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
+    unitsRequired: `${formatUnits(unitsRequired)} units`,
+    unitDeficit: formatOptionalUnits(unitDeficit)
+  }
+}
+
 function buildUnitSummary({
   label,
   baselineUnits,
@@ -147,6 +163,7 @@ export {
   areaBaselineAction,
   areaInterventionSummary,
   areaUnits,
+  buildTargetsSummary,
   buildUnitSummary,
   formatOptionalUnits,
   formatUnits,

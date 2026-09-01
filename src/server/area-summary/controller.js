@@ -8,34 +8,15 @@ import {
 } from '../common/helpers/unit-type-navigation.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
-  NET_GAIN_TARGET_PERCENTAGE,
   areaBaselineAction,
   areaInterventionSummary,
   areaUnits,
-  buildUnitSummary,
-  formatOptionalUnits,
-  formatUnits,
-  isFiniteNumber
+  buildTargetsSummary,
+  buildUnitSummary
 } from '../common/helpers/unit-summary.js'
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
-const PERCENTAGE_DIVISOR = 100
-const MIN_UNIT_DEFICIT = 0
 const NO_POST_INTERVENTION_UNITS = 0
-
-function buildTargetsSummary(baselineAreaUnits, postInterventionAreaUnits) {
-  const unitsRequired =
-    baselineAreaUnits * (1 + NET_GAIN_TARGET_PERCENTAGE / PERCENTAGE_DIVISOR)
-  const unitDeficit = isFiniteNumber(postInterventionAreaUnits)
-    ? Math.max(MIN_UNIT_DEFICIT, unitsRequired - postInterventionAreaUnits)
-    : null
-
-  return {
-    targetPercentage: { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
-    unitsRequired: `${formatUnits(unitsRequired)} units`,
-    unitDeficit: formatOptionalUnits(unitDeficit)
-  }
-}
 
 function buildAreaSummary(project, projectId) {
   const baselineUnits = project?.baseline?.units
