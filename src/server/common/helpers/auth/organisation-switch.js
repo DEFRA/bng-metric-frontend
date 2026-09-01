@@ -17,6 +17,7 @@
 // home for that, so a future project-scoped key outside the upload journeys has
 // one obvious place to be registered.
 import { ORG_SCOPED_SESSION_KEYS } from '../session-keys.js'
+import { isSameRelationship } from './relationship-id.js'
 
 /**
  * Drop the journey state tied to a project in the org the user has just left.
@@ -34,9 +35,16 @@ export function clearStateOnOrganisationSwitch(
 ) {
   // A first sign-in has nothing to carry over, and an unchanged (or absent)
   // relationship is not a switch.
+  //
+  // Compared case-insensitively (BMD-936): both ids come from separate
+  // interactive sign-ins, and Defra ID has no single canonical spelling for a
+  // relationship id. Reading a case flip as a genuine switch would clear every
+  // ORG_SCOPED_SESSION_KEYS entry and wipe an in-flight upload journey — the
+  // exact opposite of what this function promises for signing in again as the
+  // same org.
   if (
     !previousRelationshipId ||
-    previousRelationshipId === nextRelationshipId
+    isSameRelationship(previousRelationshipId, nextRelationshipId)
   ) {
     return false
   }
