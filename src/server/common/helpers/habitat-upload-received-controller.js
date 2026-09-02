@@ -31,9 +31,16 @@ const GPKG_FORMAT_ERROR_MESSAGE =
 const SERVICE_BUSY_MESSAGE =
   'The service is busy checking other files. Please try again in a few moments.'
 
-/** A refresh interval that will not put every waiting browser in lockstep. */
-function jitteredRefreshInterval() {
-  return REFRESH_INTERVAL_SECONDS + Math.random() * REFRESH_JITTER_SECONDS
+/**
+ * A refresh interval that will not put every waiting browser in lockstep.
+ *
+ * `baseSeconds` lets the backend set the pace via `Retry-After` — it is the side
+ * that knows how loaded it is — while the jitter stays on this side, because
+ * spreading clients out is a client-side concern. Falls back to the standard
+ * interval when the backend has not said.
+ */
+function jitteredRefreshInterval(baseSeconds = REFRESH_INTERVAL_SECONDS) {
+  return baseSeconds + Math.random() * REFRESH_JITTER_SECONDS
 }
 
 function clearUploadSession(request, uploadType) {
@@ -70,7 +77,7 @@ async function handleReadyUpload(
   // it already does while the uploader is still working. Handled BEFORE the
   // session is cleared, because the retry needs the uploadId that lives in it.
   if (result.busy) {
-    return waitForCapacity(request, h, uploadType, id)
+    return waitForCapacity(request, h, uploadType, id, result.retryAfterSeconds)
   }
 
   clearUploadSession(request, uploadType)
@@ -108,7 +115,7 @@ async function handleReadyUpload(
  * has been too busy for two minutes is not going to be free in another five
  * seconds, and polling forever would be worse than saying so.
  */
-function waitForCapacity(request, h, uploadType, id) {
+function waitForCapacity(request, h, uploadType, id, retryAfterSeconds) {
   const elapsed = (Date.now() - uploadStartedAt(request, uploadType)) / 1000
 
   if (elapsed > MAX_WAIT_SECONDS) {
@@ -122,7 +129,7 @@ function waitForCapacity(request, h, uploadType, id) {
     heading: 'Checking your file',
     projectId: id,
     backHref: uploadHref(uploadType, id),
-    refreshInterval: jitteredRefreshInterval()
+    refreshInterval: jitteredRefreshInterval(retryAfterSeconds ?? undefined)
   })
 }
 

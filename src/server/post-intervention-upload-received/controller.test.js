@@ -316,4 +316,37 @@ describe('post-intervention-upload-received controller', () => {
 
     expect(intervals.size).toBeGreaterThan(1)
   })
+
+  // The backend sets the pace via Retry-After; the jitter stays on this side.
+  it('should pace the retry from the backend Retry-After when given one', async () => {
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true,
+      retryAfterSeconds: 12
+    })
+
+    const h = createMockH()
+    await getController.handler(createMockRequest('test-upload-id'), h)
+
+    const { refreshInterval } = h.view.mock.calls.at(-1)[1]
+    expect(refreshInterval).toBeGreaterThanOrEqual(12)
+    expect(refreshInterval).toBeLessThanOrEqual(15)
+  })
+
+  it('should fall back to its own interval when the backend gives no pace', async () => {
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true,
+      retryAfterSeconds: null
+    })
+
+    const h = createMockH()
+    await getController.handler(createMockRequest('test-upload-id'), h)
+
+    const { refreshInterval } = h.view.mock.calls.at(-1)[1]
+    expect(refreshInterval).toBeGreaterThanOrEqual(5)
+    expect(refreshInterval).toBeLessThanOrEqual(8)
+  })
 })
