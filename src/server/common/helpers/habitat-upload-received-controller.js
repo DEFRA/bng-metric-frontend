@@ -14,6 +14,15 @@ const GPKG_FORMAT_ERROR_CODES = new Set([
 const GPKG_FORMAT_ERROR_MESSAGE =
   'The selected file must be a GeoPackage (.gpkg)'
 
+/**
+ * Shown when the backend refuses the upload because every geometry-validation
+ * worker is busy. Deliberately says nothing about the file: there is nothing
+ * wrong with it and nothing for the user to change, so the message has to avoid
+ * sending them off to re-draw perfectly good polygons.
+ */
+const SERVICE_BUSY_MESSAGE =
+  'The service is busy checking other files. Please try again in a few moments.'
+
 function clearUploadSession(request, uploadType) {
   request.yar.clear(uploadType.pendingUploadSessionKey)
   request.yar.clear(uploadType.uploadStartedAtSessionKey)
@@ -44,6 +53,14 @@ async function handleReadyUpload(
   const result = await validateUpload(request, id, uploadId)
 
   clearUploadSession(request, uploadType)
+
+  // Capacity, not a bad file. Send them back to the upload page with a retry
+  // prompt rather than to the file-problem page — same treatment the upload
+  // timeout already gets, because the user's next action is the same: try again.
+  if (result.busy) {
+    request.yar.set(uploadType.uploadErrorSessionKey, SERVICE_BUSY_MESSAGE)
+    return h.redirect(uploadHref(uploadType, id))
+  }
 
   if (!result.valid) {
     const errors = result.errors ?? []

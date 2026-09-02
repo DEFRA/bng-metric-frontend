@@ -96,9 +96,9 @@ describe('#validateBaseline', () => {
 
   test('Should throw a Boom badGateway error on 5xx response from backend', async () => {
     const boomError = {
-      output: { statusCode: 503 },
+      output: { statusCode: 500 },
       data: { payload: {} },
-      message: 'Service Unavailable'
+      message: 'Internal Server Error'
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
@@ -108,6 +108,26 @@ describe('#validateBaseline', () => {
       isBoom: true,
       output: { statusCode: 502 }
     })
+  })
+
+  // 503 is the backend saying every geometry-validation worker is busy and the
+  // file was never looked at. It must NOT become a badGateway: there is nothing
+  // wrong with the upload, and the user's next action is simply to retry.
+  test('Should report a 503 from the backend as busy rather than an error', async () => {
+    vi.mocked(wreck.post).mockRejectedValue({
+      output: { statusCode: 503 },
+      data: {
+        payload: {
+          valid: false,
+          errors: [{ code: 'VALIDATION_BUSY', message: 'The service is busy' }]
+        }
+      },
+      message: 'Service Unavailable'
+    })
+
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
+
+    expect(result).toEqual({ valid: false, busy: true, errors: [] })
   })
 
   test('Should throw a Boom badGateway error on network failure', async () => {

@@ -239,4 +239,29 @@ describe('post-intervention-upload-received controller', () => {
       '/projects/proj-123/upload-post-intervention-file'
     )
   })
+
+  // A busy backend is not a bad file. The user must land back on the upload
+  // page with a retry prompt, NOT on /error-file, and nothing may be stored as
+  // a validation error against the project.
+  it('should redirect to the upload page with a retry prompt when the service is busy', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true,
+      errors: []
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionUploadError',
+      'The service is busy checking other files. Please try again in a few moments.'
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-post-intervention-file'
+    )
+    expect(h.redirect).not.toHaveBeenCalledWith('/error-file')
+  })
 })

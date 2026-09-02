@@ -40,6 +40,17 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
       `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
 
+    // 503 means every validation worker was busy and the file was never
+    // looked at. It is the one backend failure that is NOT about the user's
+    // file, so it must not reach the "there is a problem with your file"
+    // screen — the answer is simply to try again in a moment.
+    if (statusCode === statusCodes.serviceUnavailable) {
+      logger.warn(
+        `${uploadType.label} habitat validation refused as busy - uploadId: ${uploadId}`
+      )
+      return { valid: false, busy: true, errors: [] }
+    }
+
     // Client errors from the backend indicate a validation problem —
     // surface the structured errors if present.
     if (
@@ -77,7 +88,7 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
  * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {string} projectId - The project to persist the baseline against
  * @param {string} uploadId - The upload ID to validate
- * @returns {Promise<{valid: boolean, errors?: object[]}>}
+ * @returns {Promise<{valid: boolean, busy?: boolean, errors?: object[]}>}
  */
 export async function validateBaseline(request, projectId, uploadId) {
   return validateHabitatUpload(

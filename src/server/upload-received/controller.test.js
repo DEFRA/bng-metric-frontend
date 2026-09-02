@@ -239,4 +239,29 @@ describe('upload-received controller', () => {
 
     expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
   })
+
+  // A busy backend is not a bad file. The user must land back on the upload
+  // page with a retry prompt, NOT on /error-file, and nothing may be stored as
+  // a validation error against the project.
+  it('should redirect to the upload page with a retry prompt when the service is busy', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validateBaseline).mockResolvedValue({
+      valid: false,
+      busy: true,
+      errors: []
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'uploadError',
+      'The service is busy checking other files. Please try again in a few moments.'
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-baseline-file'
+    )
+    expect(h.redirect).not.toHaveBeenCalledWith('/error-file')
+  })
 })

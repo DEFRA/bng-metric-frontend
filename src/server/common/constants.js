@@ -16,7 +16,8 @@ export const statusCodes = {
   imATeapot: 418,
   internalServerError: 500,
   badGateway: 502,
-  gatewayTimeout: 504
+  gatewayTimeout: 504,
+  serviceUnavailable: 503
 }
 
 export const MAX_FILE_SIZE_BYTES = 104857600 // 100 MB
