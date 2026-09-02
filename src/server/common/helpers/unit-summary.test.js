@@ -6,7 +6,11 @@ import {
   buildUnitSummary,
   formatOptionalUnits,
   formatUnits,
-  percentageSummary
+  hedgerowsBaselineAction,
+  hedgerowsInterventionSummary,
+  percentageSummary,
+  watercoursesBaselineAction,
+  watercoursesInterventionSummary
 } from './unit-summary.js'
 
 describe('formatUnits', () => {
@@ -47,6 +51,72 @@ describe('areaBaselineAction', () => {
     expect(areaBaselineAction('/projects/123/area-baseline')).toEqual({
       text: 'View on-site area baseline',
       href: '/projects/123/area-baseline'
+    })
+  })
+})
+
+describe('hedgerowsBaselineAction', () => {
+  test('returns text-only action when no href is given', () => {
+    expect(hedgerowsBaselineAction()).toEqual({
+      text: 'View on-site hedgerows baseline'
+    })
+  })
+
+  test('includes the href when one is given', () => {
+    expect(hedgerowsBaselineAction('/projects/123/hedgerows-baseline')).toEqual(
+      {
+        text: 'View on-site hedgerows baseline',
+        href: '/projects/123/hedgerows-baseline'
+      }
+    )
+  })
+})
+
+describe('watercoursesBaselineAction', () => {
+  test('returns text-only action when no href is given', () => {
+    expect(watercoursesBaselineAction()).toEqual({
+      text: 'View on-site watercourses baseline'
+    })
+  })
+
+  test('includes the href when one is given', () => {
+    expect(
+      watercoursesBaselineAction('/projects/123/watercourses-baseline')
+    ).toEqual({
+      text: 'View on-site watercourses baseline',
+      href: '/projects/123/watercourses-baseline'
+    })
+  })
+})
+
+describe('hedgerowsInterventionSummary', () => {
+  test('maps hedgerow unit totals and net change fields', () => {
+    expect(
+      hedgerowsInterventionSummary({
+        hedgerowsTotal: 4,
+        hedgerowsNetUnitChange: 1,
+        hedgerowsNetUnitChangePercentage: 25
+      })
+    ).toEqual({
+      units: 4,
+      netUnitChange: 1,
+      netPercentageChange: 25
+    })
+  })
+})
+
+describe('watercoursesInterventionSummary', () => {
+  test('maps watercourse unit totals and net change fields', () => {
+    expect(
+      watercoursesInterventionSummary({
+        watercoursesTotal: 3,
+        watercoursesNetUnitChange: 0.5,
+        watercoursesNetUnitChangePercentage: 10
+      })
+    ).toEqual({
+      units: 3,
+      netUnitChange: 0.5,
+      netPercentageChange: 10
     })
   })
 })

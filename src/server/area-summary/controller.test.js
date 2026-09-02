@@ -279,6 +279,10 @@ describe('area summary', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Hedgerows')
     ).toHaveLength(1)
+    expect(
+      navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
+    ).toHaveLength(1)
+    expect($('.app-project-navigation__child')).toHaveLength(1)
   })
 
   test('does not render the out-of-scope map or actions sections', async () => {
