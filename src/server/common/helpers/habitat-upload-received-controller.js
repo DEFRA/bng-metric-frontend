@@ -3,6 +3,14 @@ import { createLogger } from './logging/logger.js'
 
 const logger = createLogger()
 const REFRESH_INTERVAL_SECONDS = 5
+
+/**
+ * Seconds of jitter added to the refresh interval when we are waiting on a busy
+ * validator. Without it every waiting browser retries in lockstep, so the pool
+ * sees a burst every five seconds and idles in between — the worst possible
+ * arrival pattern for a small fixed pool.
+ */
+const REFRESH_JITTER_SECONDS = 3
 const MAX_WAIT_SECONDS = 120
 const STATUS_READY = 'ready'
 const STATUS_REJECTED = 'rejected'
@@ -15,13 +23,18 @@ const GPKG_FORMAT_ERROR_MESSAGE =
   'The selected file must be a GeoPackage (.gpkg)'
 
 /**
- * Shown when the backend refuses the upload because every geometry-validation
- * worker is busy. Deliberately says nothing about the file: there is nothing
- * wrong with it and nothing for the user to change, so the message has to avoid
- * sending them off to re-draw perfectly good polygons.
+ * Shown once we give up waiting for a busy validator — see MAX_WAIT_SECONDS.
+ * Deliberately says nothing about the file: there is nothing wrong with it and
+ * nothing for the user to change, so the message must not send them off to
+ * re-draw perfectly good polygons.
  */
 const SERVICE_BUSY_MESSAGE =
   'The service is busy checking other files. Please try again in a few moments.'
+
+/** A refresh interval that will not put every waiting browser in lockstep. */
+function jitteredRefreshInterval() {
+  return REFRESH_INTERVAL_SECONDS + Math.random() * REFRESH_JITTER_SECONDS
+}
 
 function clearUploadSession(request, uploadType) {
   request.yar.clear(uploadType.pendingUploadSessionKey)
@@ -52,15 +65,15 @@ async function handleReadyUpload(
 ) {
   const result = await validateUpload(request, id, uploadId)
 
-  clearUploadSession(request, uploadType)
-
-  // Capacity, not a bad file. Send them back to the upload page with a retry
-  // prompt rather than to the file-problem page — same treatment the upload
-  // timeout already gets, because the user's next action is the same: try again.
+  // Capacity, not a bad file — the backend never looked at it. Keep the user on
+  // the "Checking your file" page and let its meta-refresh try again, exactly as
+  // it already does while the uploader is still working. Handled BEFORE the
+  // session is cleared, because the retry needs the uploadId that lives in it.
   if (result.busy) {
-    request.yar.set(uploadType.uploadErrorSessionKey, SERVICE_BUSY_MESSAGE)
-    return h.redirect(uploadHref(uploadType, id))
+    return waitForCapacity(request, h, uploadType, id)
   }
+
+  clearUploadSession(request, uploadType)
 
   if (!result.valid) {
     const errors = result.errors ?? []
@@ -81,6 +94,36 @@ async function handleReadyUpload(
   }
 
   return h.redirect(successHref(uploadType, id))
+}
+
+/**
+ * Hold the user on the polling page while the validator is saturated.
+ *
+ * The refresh loop IS the queue. Bouncing a request the backend cannot take is
+ * cheap — it refuses before downloading the file — so retrying every few seconds
+ * costs far less than holding a connection open, and it degrades gracefully:
+ * everyone waits a little longer rather than some requests failing outright.
+ *
+ * Bounded by the same MAX_WAIT_SECONDS the uploader wait uses. A service that
+ * has been too busy for two minutes is not going to be free in another five
+ * seconds, and polling forever would be worse than saying so.
+ */
+function waitForCapacity(request, h, uploadType, id) {
+  const elapsed = (Date.now() - uploadStartedAt(request, uploadType)) / 1000
+
+  if (elapsed > MAX_WAIT_SECONDS) {
+    clearUploadSession(request, uploadType)
+    request.yar.set(uploadType.uploadErrorSessionKey, SERVICE_BUSY_MESSAGE)
+    return h.redirect(uploadHref(uploadType, id))
+  }
+
+  return h.view('upload-received/upload-received', {
+    pageTitle: 'Checking your file',
+    heading: 'Checking your file',
+    projectId: id,
+    backHref: uploadHref(uploadType, id),
+    refreshInterval: jitteredRefreshInterval()
+  })
 }
 
 function handleRejectedUpload(request, h, uploadType, id) {
@@ -117,7 +160,7 @@ function handleWaitingUpload(request, h, uploadType, id) {
     heading: 'Checking your file',
     projectId: id,
     backHref: uploadHref(uploadType, id),
-    refreshInterval: REFRESH_INTERVAL_SECONDS
+    refreshInterval: jitteredRefreshInterval()
   })
 }
 

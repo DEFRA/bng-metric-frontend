@@ -20,7 +20,10 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
   try {
     const { payload } = await backendRequest(request, 'post', url, {
       payload: JSON.stringify({ projectId }),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      // Overrides the short default every other backend call uses. Validation
+      // is the one call that legitimately takes seconds.
+      timeout: config.get('backend').validateTimeoutMs
     })
 
     if (!payload.valid) {
