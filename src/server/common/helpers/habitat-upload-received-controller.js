@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto'
+
 import { getUploadStatus } from '../services/uploader.js'
 import { createLogger } from './logging/logger.js'
 
@@ -11,6 +13,13 @@ const REFRESH_INTERVAL_SECONDS = 5
  * arrival pattern for a small fixed pool.
  */
 const REFRESH_JITTER_SECONDS = 3
+
+/**
+ * Jitter is drawn in milliseconds and divided back down, so the spread is fine
+ * grained rather than a choice between whole seconds. `crypto.randomInt` takes
+ * an integer bound, which is why the scaling is explicit.
+ */
+const JITTER_STEPS_PER_SECOND = 1000
 const MAX_WAIT_SECONDS = 120
 const STATUS_READY = 'ready'
 const STATUS_REJECTED = 'rejected'
@@ -38,9 +47,42 @@ const SERVICE_BUSY_MESSAGE =
  * that knows how loaded it is — while the jitter stays on this side, because
  * spreading clients out is a client-side concern. Falls back to the standard
  * interval when the backend has not said.
+ *
+ * Drawn from `crypto`, not `Math.random`. Nothing here is secret — it paces a
+ * page refresh — but at one call per poll a CSPRNG costs nothing, and it keeps
+ * a generator with no place in a service out of the codebase entirely.
  */
 function jitteredRefreshInterval(baseSeconds = REFRESH_INTERVAL_SECONDS) {
-  return baseSeconds + Math.random() * REFRESH_JITTER_SECONDS
+  return (
+    baseSeconds +
+    randomInt(REFRESH_JITTER_SECONDS * JITTER_STEPS_PER_SECOND) /
+      JITTER_STEPS_PER_SECOND
+  )
+}
+
+/**
+ * The "Checking your file" holding page, which self-refreshes.
+ *
+ * Both waits render it — the one for a busy validator and the one for an upload
+ * still being scanned — and they differ only in who sets the pace. Sharing the
+ * render keeps the page the user sees identical whichever wait they are in, and
+ * keeps its title in one place.
+ *
+ * @param {object} h hapi response toolkit
+ * @param {object} uploadType the upload flow's session keys and routes
+ * @param {string} projectId
+ * @param {number} [baseSeconds] pace from the backend's Retry-After, if it sent one
+ */
+function checkingFileView(h, uploadType, projectId, baseSeconds) {
+  const title = 'Checking your file'
+
+  return h.view('upload-received/upload-received', {
+    pageTitle: title,
+    heading: title,
+    projectId,
+    backHref: uploadHref(uploadType, projectId),
+    refreshInterval: jitteredRefreshInterval(baseSeconds)
+  })
 }
 
 function clearUploadSession(request, uploadType) {
@@ -124,13 +166,7 @@ function waitForCapacity(request, h, uploadType, id, retryAfterSeconds) {
     return h.redirect(uploadHref(uploadType, id))
   }
 
-  return h.view('upload-received/upload-received', {
-    pageTitle: 'Checking your file',
-    heading: 'Checking your file',
-    projectId: id,
-    backHref: uploadHref(uploadType, id),
-    refreshInterval: jitteredRefreshInterval(retryAfterSeconds ?? undefined)
-  })
+  return checkingFileView(h, uploadType, id, retryAfterSeconds ?? undefined)
 }
 
 function handleRejectedUpload(request, h, uploadType, id) {
@@ -162,13 +198,7 @@ function handleWaitingUpload(request, h, uploadType, id) {
     return h.redirect(uploadHref(uploadType, id))
   }
 
-  return h.view('upload-received/upload-received', {
-    pageTitle: 'Checking your file',
-    heading: 'Checking your file',
-    projectId: id,
-    backHref: uploadHref(uploadType, id),
-    refreshInterval: jitteredRefreshInterval()
-  })
+  return checkingFileView(h, uploadType, id)
 }
 
 function createUploadReceivedController(uploadType, validateUpload) {
