@@ -1,0 +1,11 @@
+@use 'govuk-frontend' as *;
+
+// BMD-983: text links should not change appearance once visited — most
+// content in this service is dashboards/lists that change frequently, so
+// distinguishing visited links isn't useful. Applied as a site-wide default
+// rather than the govuk-link--no-visited-state modifier so it also covers
+// future pages automatically.
+.govuk-link:visited,
+.govuk-footer__link:visited {
+  color: govuk-functional-colour(link);
+}
