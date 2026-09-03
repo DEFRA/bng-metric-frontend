@@ -109,6 +109,25 @@ describe('watercourses summary', () => {
     expect(result).toContain('class="app-grid-column-five-sixths"')
   })
 
+  test('renders a "View on-site watercourses baseline" link in the On-site baseline tile', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/watercourses-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const baselineLink = $('.app-unit-type-summary a').filter(
+      (_, link) =>
+        $(link).text().trim() === 'View on-site watercourses baseline'
+    )
+
+    expect(baselineLink).toHaveLength(1)
+    expect(baselineLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-baseline`
+    )
+  })
+
   test('renders a single Results section for watercourses only, with no heading link', async () => {
     const { result } = await server.inject({
       method: 'GET',
