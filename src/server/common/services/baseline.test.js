@@ -139,6 +139,38 @@ describe('#validateBaseline', () => {
     })
   })
 
+  // A 503 is also what an ingress returns when it has no healthy backend to
+  // reach. Reading that as "busy" would leave the user politely retrying the
+  // "Checking your file" page for two minutes while the service is down, so the
+  // marker in the body — not the status code — is what decides.
+  test.each([
+    [
+      'an HTML error page from the platform',
+      '<html>503 Service Unavailable</html>'
+    ],
+    ['no body at all', undefined],
+    [
+      'a JSON body with different errors',
+      { valid: false, errors: [{ code: 'VALIDATION_FAILED' }] }
+    ]
+  ])(
+    'Should treat a 503 carrying %s as an error, not busy',
+    async (_label, payload) => {
+      vi.mocked(wreck.post).mockRejectedValue({
+        output: { statusCode: 503 },
+        data: { payload, res: { headers: {} } },
+        message: 'Service Unavailable'
+      })
+
+      await expect(
+        validateBaseline(makeRequest(), projectId, uploadId)
+      ).rejects.toMatchObject({
+        isBoom: true,
+        output: { statusCode: 502 }
+      })
+    }
+  )
+
   // The backend is the side that knows how loaded it is, so it sets the pace.
   test('Should honour a Retry-After header on the 503', async () => {
     vi.mocked(wreck.post).mockRejectedValue(

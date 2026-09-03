@@ -22,6 +22,9 @@ const backendUrl = config.get('backend').url
 const MIN_RETRY_AFTER_SECONDS = 1
 const MAX_RETRY_AFTER_SECONDS = 30
 
+/** The backend's code for "the pool was full, your file was never looked at". */
+const VALIDATION_BUSY_CODE = 'VALIDATION_BUSY'
+
 /**
  * Seconds from a `Retry-After` header, or null if it does not carry a usable
  * one.
@@ -44,6 +47,30 @@ function retryAfterSeconds(headers) {
     return null
   }
   return seconds
+}
+
+/**
+ * Is this the backend telling us every validation worker was busy?
+ *
+ * The status code alone cannot answer that. A 503 is also what the platform
+ * returns when there is no healthy backend to reach at all, and reading one of
+ * those as "busy" would park the user on the "Checking your file" page,
+ * politely retrying, for the full two minutes while the service is actually
+ * down. The body is what separates them: only our own backend sends
+ * VALIDATION_BUSY, and it sends it on exactly this path.
+ *
+ * Anything else wearing a 503 therefore falls through to the error handling
+ * below, which is the honest answer for an unreachable service.
+ *
+ * @param {number} statusCode
+ * @param {object} [payload] parsed response body, when the body was JSON
+ */
+function isValidationBusy(statusCode, payload) {
+  return (
+    statusCode === statusCodes.serviceUnavailable &&
+    Array.isArray(payload?.errors) &&
+    payload.errors.some((error) => error?.code === VALIDATION_BUSY_CODE)
+  )
 }
 
 async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
@@ -79,11 +106,11 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
       `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
     )
 
-    // 503 means every validation worker was busy and the file was never
-    // looked at. It is the one backend failure that is NOT about the user's
-    // file, so it must not reach the "there is a problem with your file"
-    // screen — the answer is simply to try again in a moment.
-    if (statusCode === statusCodes.serviceUnavailable) {
+    // A busy validator means the file was never looked at. It is the one
+    // backend failure that is NOT about the user's file, so it must not reach
+    // the "there is a problem with your file" screen — the answer is simply to
+    // try again in a moment.
+    if (isValidationBusy(statusCode, responsePayload)) {
       // The backend decides the pace, because it is the side that knows how
       // loaded it is. Null here just means "use your own default".
       const retryAfter = retryAfterSeconds(error?.data?.res?.headers)
