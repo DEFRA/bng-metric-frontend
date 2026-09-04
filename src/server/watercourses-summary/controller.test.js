@@ -102,7 +102,7 @@ describe('watercourses summary', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('Riverbank restoration')
     expect(result).toContain(
-      '<h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Watercourses</h1>'
+      '<h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Watercourse habitats</h1>'
     )
     expect(result).toContain('<h2 class="govuk-heading-m">Results</h2>')
     expect(result).toContain('class="app-grid-column-one-sixth"')
