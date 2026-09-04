@@ -54,10 +54,16 @@ export const config = convict({
       env: 'BACKEND_URL'
     },
     timeoutMs: {
-      doc: 'Timeout in milliseconds for HTTP requests to backend services',
+      doc: 'Timeout in milliseconds for HTTP requests to backend services. This is the DEFAULT for every backend call, so it stays short: a hung project list or login should fail fast rather than hold a page for a minute.',
       format: Number,
       default: 10000,
       env: 'BACKEND_TIMEOUT_MS'
+    },
+    validateTimeoutMs: {
+      doc: 'Timeout for the GeoPackage validate call specifically, which legitimately takes seconds — download, parse, geometry checks and persist all happen inside it. Separate from the default above so validation can be given room without making every other call hang. Must stay inside the CDP ingress idle timeout, or the user gets a dropped connection instead of a handled error; 25s is chosen to be safe under either a 30s or a 60s ingress, and can be raised once that value is known.',
+      format: Number,
+      default: 25000,
+      env: 'BACKEND_VALIDATE_TIMEOUT_MS'
     }
   },
   staticCacheTimeout: {

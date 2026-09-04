@@ -164,7 +164,7 @@ describe('post-intervention-upload-received controller', () => {
       heading: 'Checking your file',
       projectId: 'proj-123',
       backHref: '/projects/proj-123/upload-post-intervention-file',
-      refreshInterval: 5
+      refreshInterval: expect.any(Number) // jittered — see the range test
     })
   })
 
@@ -211,7 +211,7 @@ describe('post-intervention-upload-received controller', () => {
       heading: 'Checking your file',
       projectId: 'proj-123',
       backHref: '/projects/proj-123/upload-post-intervention-file',
-      refreshInterval: 5
+      refreshInterval: expect.any(Number) // jittered — see the range test
     })
   })
 
@@ -238,5 +238,115 @@ describe('post-intervention-upload-received controller', () => {
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-post-intervention-file'
     )
+  })
+
+  // A busy backend is not a bad file, and it is not a reason to give up: the
+  // user stays on the polling page and its meta-refresh retries.
+  it('should keep the user on the polling page when the service is busy', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true,
+      errors: []
+    })
+
+    await getController.handler(request, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-received/upload-received',
+      expect.objectContaining({ refreshInterval: expect.any(Number) })
+    )
+    expect(h.redirect).not.toHaveBeenCalled()
+  })
+
+  it('should keep the pending upload in session so the retry still has an id', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.clear).not.toHaveBeenCalled()
+  })
+
+  it('should give up once the service has been busy past the maximum wait', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id', 'proj-123', {
+      postInterventionUploadStartedAt: Date.now() - 121_000
+    })
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionUploadError',
+      'The service is busy checking other files. Please try again in a few moments.'
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-post-intervention-file'
+    )
+    expect(h.redirect).not.toHaveBeenCalledWith('/error-file')
+  })
+
+  // The interval is jittered so that browsers waiting on a busy validator do not
+  // all retry on the same tick — a small fixed worker pool sees a burst every
+  // five seconds and idles in between, which is the worst arrival pattern for it.
+  it('should jitter the refresh interval within a sensible range', async () => {
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'pending' })
+    const intervals = new Set()
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const h = createMockH()
+      await getController.handler(createMockRequest('test-upload-id'), h)
+      const { refreshInterval } = h.view.mock.calls.at(-1)[1]
+      expect(refreshInterval).toBeGreaterThanOrEqual(5)
+      expect(refreshInterval).toBeLessThanOrEqual(8)
+      intervals.add(refreshInterval)
+    }
+
+    expect(intervals.size).toBeGreaterThan(1)
+  })
+
+  // The backend sets the pace via Retry-After; the jitter stays on this side.
+  it('should pace the retry from the backend Retry-After when given one', async () => {
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true,
+      retryAfterSeconds: 12
+    })
+
+    const h = createMockH()
+    await getController.handler(createMockRequest('test-upload-id'), h)
+
+    const { refreshInterval } = h.view.mock.calls.at(-1)[1]
+    expect(refreshInterval).toBeGreaterThanOrEqual(12)
+    expect(refreshInterval).toBeLessThanOrEqual(15)
+  })
+
+  it('should fall back to its own interval when the backend gives no pace', async () => {
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      busy: true,
+      retryAfterSeconds: null
+    })
+
+    const h = createMockH()
+    await getController.handler(createMockRequest('test-upload-id'), h)
+
+    const { refreshInterval } = h.view.mock.calls.at(-1)[1]
+    expect(refreshInterval).toBeGreaterThanOrEqual(5)
+    expect(refreshInterval).toBeLessThanOrEqual(8)
   })
 })

@@ -1,8 +1,25 @@
+import { randomInt } from 'node:crypto'
+
 import { getUploadStatus } from '../services/uploader.js'
 import { createLogger } from './logging/logger.js'
 
 const logger = createLogger()
 const REFRESH_INTERVAL_SECONDS = 5
+
+/**
+ * Seconds of jitter added to the refresh interval when we are waiting on a busy
+ * validator. Without it every waiting browser retries in lockstep, so the pool
+ * sees a burst every five seconds and idles in between — the worst possible
+ * arrival pattern for a small fixed pool.
+ */
+const REFRESH_JITTER_SECONDS = 3
+
+/**
+ * Jitter is drawn in milliseconds and divided back down, so the spread is fine
+ * grained rather than a choice between whole seconds. `crypto.randomInt` takes
+ * an integer bound, which is why the scaling is explicit.
+ */
+const JITTER_STEPS_PER_SECOND = 1000
 const MAX_WAIT_SECONDS = 120
 const STATUS_READY = 'ready'
 const STATUS_REJECTED = 'rejected'
@@ -13,6 +30,60 @@ const GPKG_FORMAT_ERROR_CODES = new Set([
 ])
 const GPKG_FORMAT_ERROR_MESSAGE =
   'The selected file must be a GeoPackage (.gpkg)'
+
+/**
+ * Shown once we give up waiting for a busy validator — see MAX_WAIT_SECONDS.
+ * Deliberately says nothing about the file: there is nothing wrong with it and
+ * nothing for the user to change, so the message must not send them off to
+ * re-draw perfectly good polygons.
+ */
+const SERVICE_BUSY_MESSAGE =
+  'The service is busy checking other files. Please try again in a few moments.'
+
+/**
+ * A refresh interval that will not put every waiting browser in lockstep.
+ *
+ * `baseSeconds` lets the backend set the pace via `Retry-After` — it is the side
+ * that knows how loaded it is — while the jitter stays on this side, because
+ * spreading clients out is a client-side concern. Falls back to the standard
+ * interval when the backend has not said.
+ *
+ * Drawn from `crypto`, not `Math.random`. Nothing here is secret — it paces a
+ * page refresh — but at one call per poll a CSPRNG costs nothing, and it keeps
+ * a generator with no place in a service out of the codebase entirely.
+ */
+function jitteredRefreshInterval(baseSeconds = REFRESH_INTERVAL_SECONDS) {
+  return (
+    baseSeconds +
+    randomInt(REFRESH_JITTER_SECONDS * JITTER_STEPS_PER_SECOND) /
+      JITTER_STEPS_PER_SECOND
+  )
+}
+
+/**
+ * The "Checking your file" holding page, which self-refreshes.
+ *
+ * Both waits render it — the one for a busy validator and the one for an upload
+ * still being scanned — and they differ only in who sets the pace. Sharing the
+ * render keeps the page the user sees identical whichever wait they are in, and
+ * keeps its title in one place.
+ *
+ * @param {object} h hapi response toolkit
+ * @param {object} uploadType the upload flow's session keys and routes
+ * @param {string} projectId
+ * @param {number} [baseSeconds] pace from the backend's Retry-After, if it sent one
+ */
+function checkingFileView(h, uploadType, projectId, baseSeconds) {
+  const title = 'Checking your file'
+
+  return h.view('upload-received/upload-received', {
+    pageTitle: title,
+    heading: title,
+    projectId,
+    backHref: uploadHref(uploadType, projectId),
+    refreshInterval: jitteredRefreshInterval(baseSeconds)
+  })
+}
 
 function clearUploadSession(request, uploadType) {
   request.yar.clear(uploadType.pendingUploadSessionKey)
@@ -43,6 +114,14 @@ async function handleReadyUpload(
 ) {
   const result = await validateUpload(request, id, uploadId)
 
+  // Capacity, not a bad file — the backend never looked at it. Keep the user on
+  // the "Checking your file" page and let its meta-refresh try again, exactly as
+  // it already does while the uploader is still working. Handled BEFORE the
+  // session is cleared, because the retry needs the uploadId that lives in it.
+  if (result.busy) {
+    return waitForCapacity(request, h, uploadType, id, result.retryAfterSeconds)
+  }
+
   clearUploadSession(request, uploadType)
 
   if (!result.valid) {
@@ -64,6 +143,30 @@ async function handleReadyUpload(
   }
 
   return h.redirect(successHref(uploadType, id))
+}
+
+/**
+ * Hold the user on the polling page while the validator is saturated.
+ *
+ * The refresh loop IS the queue. Bouncing a request the backend cannot take is
+ * cheap — it refuses before downloading the file — so retrying every few seconds
+ * costs far less than holding a connection open, and it degrades gracefully:
+ * everyone waits a little longer rather than some requests failing outright.
+ *
+ * Bounded by the same MAX_WAIT_SECONDS the uploader wait uses. A service that
+ * has been too busy for two minutes is not going to be free in another five
+ * seconds, and polling forever would be worse than saying so.
+ */
+function waitForCapacity(request, h, uploadType, id, retryAfterSeconds) {
+  const elapsed = (Date.now() - uploadStartedAt(request, uploadType)) / 1000
+
+  if (elapsed > MAX_WAIT_SECONDS) {
+    clearUploadSession(request, uploadType)
+    request.yar.set(uploadType.uploadErrorSessionKey, SERVICE_BUSY_MESSAGE)
+    return h.redirect(uploadHref(uploadType, id))
+  }
+
+  return checkingFileView(h, uploadType, id, retryAfterSeconds ?? undefined)
 }
 
 function handleRejectedUpload(request, h, uploadType, id) {
@@ -95,13 +198,7 @@ function handleWaitingUpload(request, h, uploadType, id) {
     return h.redirect(uploadHref(uploadType, id))
   }
 
-  return h.view('upload-received/upload-received', {
-    pageTitle: 'Checking your file',
-    heading: 'Checking your file',
-    projectId: id,
-    backHref: uploadHref(uploadType, id),
-    refreshInterval: REFRESH_INTERVAL_SECONDS
-  })
+  return checkingFileView(h, uploadType, id)
 }
 
 function createUploadReceivedController(uploadType, validateUpload) {
