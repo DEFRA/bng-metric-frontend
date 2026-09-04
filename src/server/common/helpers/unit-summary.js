@@ -147,6 +147,18 @@ function buildTargetsSummary(baselineUnits, postInterventionUnits) {
   }
 }
 
+function resolveBaselineAction(baselineAction, postInterventionOnly) {
+  if (postInterventionOnly) {
+    return null
+  }
+
+  if (baselineAction === undefined) {
+    return { text: DEFAULT_BASELINE_ACTION_TEXT }
+  }
+
+  return baselineAction
+}
+
 function buildUnitSummary({
   label,
   baselineUnits,
@@ -179,9 +191,7 @@ function buildUnitSummary({
     tradingRules: { text: 'View trading rules' },
     baseline: {
       units: `${formatUnits(normalisedBaseline)} units`,
-      action: postInterventionOnly
-        ? null
-        : (baselineAction ?? { text: DEFAULT_BASELINE_ACTION_TEXT })
+      action: resolveBaselineAction(baselineAction, postInterventionOnly)
     },
     postIntervention: buildPostInterventionSummary(
       intervention,

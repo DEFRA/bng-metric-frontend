@@ -236,6 +236,7 @@ describe('buildUnitSummary', () => {
       classes: 'govuk-tag--red'
     })
     expect(summary.baseline.units).toBe('1.50 units')
+    expect(summary.baseline.action).toEqual({ text: 'View on-site baseline' })
     expect(summary.postIntervention.units).toBe('0.00 units')
     expect(summary.postIntervention.action).toEqual({
       text: 'Upload on-site post intervention file',
@@ -307,6 +308,18 @@ describe('buildUnitSummary', () => {
       href: '/upload'
     })
     expect(summary.netUnitChange).toBe('1.98 units')
+  })
+
+  test('hides the baseline action when it is explicitly null', () => {
+    const summary = buildUnitSummary({
+      label: 'Area habitats',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: null,
+      baselineAction: null
+    })
+
+    expect(summary.baseline.action).toBeNull()
   })
 
   test('uses an optional baseline action in place of the default text', () => {

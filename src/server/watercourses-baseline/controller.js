@@ -3,10 +3,7 @@ import {
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_TEXT
 } from '../common/helpers/unit-type-navigation.js'
-import {
-  watercoursesBaselineAction,
-  watercoursesInterventionSummary
-} from '../common/helpers/unit-summary.js'
+import { watercoursesInterventionSummary } from '../common/helpers/unit-summary.js'
 import { createLinearHabitatBaselineController } from '../common/helpers/create-linear-habitat-baseline-controller.js'
 import { WATERCOURSES_TOTAL_KEY } from '../common/constants.js'
 
@@ -22,6 +19,5 @@ export const getController = createLinearHabitatBaselineController({
   label: WATERCOURSES_TEXT,
   habitatKey: WATERCOURSES_HABITAT_KEY,
   unitsKey: WATERCOURSES_TOTAL_KEY,
-  buildIntervention: watercoursesInterventionSummary,
-  baselineAction: watercoursesBaselineAction
+  buildIntervention: watercoursesInterventionSummary
 })

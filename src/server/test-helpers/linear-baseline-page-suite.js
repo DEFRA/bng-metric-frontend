@@ -28,6 +28,7 @@ const PROJECT_NAME = 'Riverbank restoration'
 const NAVIGATION_LABEL = 'Project summary'
 const AREA_HABITATS_LABEL = 'Area habitats'
 const BASELINE_LABEL = 'Baseline'
+const ON_SITE_BASELINE_HEADING = 'On-site baseline'
 const FORBIDDEN_PATH = '/auth/forbidden'
 
 function pageUrl(path) {
@@ -92,26 +93,25 @@ function registerPageSectionTests(ctx) {
 }
 
 function registerSummaryTileTests(ctx) {
-  test('renders five tiles with a text-only baseline action', async () => {
+  test('renders five tiles without a baseline action below the units', async () => {
     const { result } = await ctx.loadPage()
     const $ = load(result)
     const summary = $('.app-unit-type-summary')
+    const baselineTile = summary
+      .find('.app-unit-type-summary__tile')
+      .filter(
+        (_, tile) =>
+          $(tile).find('h3').first().text() === ON_SITE_BASELINE_HEADING
+      )
 
     expect(summary).toHaveLength(1)
     expect($(`#${ctx.unitLabel.toLowerCase()}-heading`)).toHaveLength(0)
     expect(summary.find('.app-unit-type-summary__tile')).toHaveLength(
       UNIT_SUMMARY_TILE_COUNT
     )
-    expect(
-      summary
-        .find('span')
-        .filter((_, node) => $(node).text() === ctx.baselineActionText)
-    ).toHaveLength(1)
-    expect(
-      summary
-        .find('a')
-        .filter((_, link) => $(link).text() === ctx.baselineActionText)
-    ).toHaveLength(0)
+    expect(baselineTile).toHaveLength(1)
+    expect(baselineTile.find('p')).toHaveLength(1)
+    expect(baselineTile.text()).not.toContain('View on-site')
   })
 }
 

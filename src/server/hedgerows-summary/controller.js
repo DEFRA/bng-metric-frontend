@@ -4,6 +4,7 @@ import {
   hasPostInterventionOnlyHabitat
 } from '../common/helpers/project-state.js'
 import {
+  HEDGEROWS_BASELINE_PATH,
   HEDGEROWS_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   buildUnitTypeNavigation,
@@ -13,6 +14,7 @@ import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
   buildTargetsSummary,
   buildUnitSummary,
+  hedgerowsBaselineAction,
   isFiniteNumber,
   normaliseUnits
 } from '../common/helpers/unit-summary.js'
@@ -59,7 +61,10 @@ function buildHedgerowsSummary(project, projectId) {
       baselineUnits: baselineHedgerowsUnits,
       uploadHref,
       intervention: interventionSummary,
-      postInterventionOnly
+      postInterventionOnly,
+      baselineAction: hedgerowsBaselineAction(
+        projectPageHref(projectId, HEDGEROWS_BASELINE_PATH)
+      )
     }),
     targetsSummary: buildTargetsSummary(
       baselineHedgerowsUnits,
