@@ -63,7 +63,6 @@ describe('watercourses baseline', () => {
     resultsHeading: 'Watercourses results',
     detailsHeading: 'Watercourses details',
     unitLabel: 'Watercourses',
-    baselineActionText: 'View on-site watercourses baseline',
     summaryPath: '/watercourses-summary',
     habitatKey: 'watercourses',
     otherHabitatKey: 'hedgerows',

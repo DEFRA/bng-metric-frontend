@@ -3,7 +3,6 @@ import {
   AREA_HABITATS_TEXT
 } from '../common/helpers/unit-type-navigation.js'
 import {
-  areaBaselineAction,
   areaInterventionSummary,
   areaUnits
 } from '../common/helpers/unit-summary.js'
@@ -30,7 +29,6 @@ export const getController = createHabitatBaselineController({
   collectFeatures: collectAreaFeatures,
   baselineUnits: (project) => areaUnits(project?.baseline?.units),
   buildIntervention: areaInterventionSummary,
-  baselineAction: areaBaselineAction,
   readSize: (feature) => feature.sizeSquareMetres,
   formatSize: formatAreaHectares,
   formatSizeTotal: formatAreaHectares,
