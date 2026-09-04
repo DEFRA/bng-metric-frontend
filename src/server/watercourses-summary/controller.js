@@ -19,6 +19,7 @@ import {
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const NO_POST_INTERVENTION_UNITS = 0
+const WATERCOURSES_HEADING_TEXT = 'Watercourse habitats'
 
 function buildWatercoursesSummary(project, projectId) {
   const baselineUnits = project?.baseline?.units
@@ -82,8 +83,8 @@ export const getController = {
     const summary = buildWatercoursesSummary(project, id)
 
     return h.view('watercourses-summary/index', {
-      pageTitle: WATERCOURSES_TEXT,
-      heading: WATERCOURSES_TEXT,
+      pageTitle: WATERCOURSES_HEADING_TEXT,
+      heading: WATERCOURSES_HEADING_TEXT,
       ...summary
     })
   }
