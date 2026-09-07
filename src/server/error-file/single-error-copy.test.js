@@ -264,6 +264,59 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.messageBefore).not.toContain('file name')
   })
 
+  test('GPKG_TOO_MANY_PARCELS names the counts rather than the layers and columns', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'GPKG_TOO_MANY_PARCELS',
+        message: 'x',
+        details: { featureCount: 30000, maxFeatureCount: 25000 }
+      },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe(
+      'Your Geopackage (.gpkg) file contains too many features'
+    )
+    expect(result.messageBefore).toBe(
+      'This file contains 30,000 features. This service can check up to 25,000. Reduce the number of features and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+  })
+
+  // Nothing is wrong with the file, so the "contains an error" heading the rest
+  // of the page family uses would be telling the user the wrong thing.
+  test('GPKG_TOO_MANY_PARCELS does not claim the file contains an error', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'GPKG_TOO_MANY_PARCELS', message: 'x', details: {} },
+      UPLOAD_HREF
+    )
+    expect(result.h1).not.toBe('Your Geopackage (.gpkg) file contains an error')
+  })
+
+  test('GPKG_TOO_MANY_PARCELS still reads as a sentence without the counts', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'GPKG_TOO_MANY_PARCELS', message: 'x' },
+      UPLOAD_HREF
+    )
+    expect(result.messageBefore).toBe(
+      'This file contains more features than this service can check. Reduce the number of features and '
+    )
+  })
+
+  test('GPKG_TOO_MANY_PARCELS reads as a full sentence when uploadHref is null', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'GPKG_TOO_MANY_PARCELS',
+        message: 'x',
+        details: { featureCount: 30000, maxFeatureCount: 25000 }
+      },
+      null
+    )
+    expect(result.linkText).toBeNull()
+    expect(result.messageBefore).toBe(
+      'This file contains 30,000 features. This service can check up to 25,000. Reduce the number of features.'
+    )
+  })
+
   test('ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
     const result = resolveSingleErrorCopy(
       { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
