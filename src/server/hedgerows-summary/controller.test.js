@@ -127,6 +127,33 @@ describe('hedgerows summary', () => {
     )
   })
 
+  test('renders a "View on-site hedgerows post intervention" link in the On-site post-intervention tile', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/hedgerows-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const interventionLink = $('.app-unit-type-summary a').filter(
+      (_, link) =>
+        $(link).text().trim() === 'View on-site hedgerows post intervention'
+    )
+    const navigation = $('nav[aria-label="Project summary"]')
+    const postInterventionNav = navigation
+      .find('a')
+      .filter((_, link) => $(link).text() === 'Post-intervention')
+
+    expect(interventionLink).toHaveLength(1)
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+    )
+    expect(postInterventionNav).toHaveLength(1)
+    expect(postInterventionNav.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+    )
+  })
+
   test('renders a single Results section for hedgerows only, with no heading link', async () => {
     const { result } = await server.inject({
       method: 'GET',

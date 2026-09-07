@@ -37,7 +37,8 @@ function buildHabitatBaseline(project, projectId, config) {
       baselineUnits: config.baselineUnits(project),
       uploadHref,
       intervention,
-      baselineAction: null
+      baselineAction: null,
+      interventionAction: config.interventionAction?.(projectId)
     }),
     ...buildBaselineHabitatGrid({
       features,

@@ -1,0 +1,39 @@
+{#
+  GOV.UK tabs keep every label as a link, including the selected one.
+  The active intervention tab must be plain text (same pattern as the
+  current item in project navigation), so this renders the selected
+  label as a span and leaves the others as in-page hash links.
+  Do not add data-module="govuk-tabs": the GOV.UK Tabs JS requires
+  every tab to be an <a> and would undo the span.
+#}
+{% macro appInterventionTabs(params) %}
+  <div class="govuk-tabs app-habitat-intervention-tabs">
+    <h2 class="govuk-tabs__title">
+      {{ params.title }}
+    </h2>
+    <ul class="govuk-tabs__list">
+      {% for item in params.items %}
+        {% if loop.first %}
+          <li class="govuk-tabs__list-item govuk-tabs__list-item--selected" data-panel-id="{{ item.id }}">
+            <span class="govuk-tabs__tab" aria-current="true" tabindex="-1">{{ item.label }}</span>
+          </li>
+        {% else %}
+          <li class="govuk-tabs__list-item" data-panel-id="{{ item.id }}">
+            <a class="govuk-tabs__tab" href="#{{ item.id }}">{{ item.label }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+    {% for item in params.items %}
+      {% if loop.first %}
+        <div class="govuk-tabs__panel" id="{{ item.id }}" tabindex="-1">
+          {{ item.panel.html | safe }}
+        </div>
+      {% else %}
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="{{ item.id }}" tabindex="-1">
+          {{ item.panel.html | safe }}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endmacro %}

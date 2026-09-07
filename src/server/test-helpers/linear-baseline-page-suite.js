@@ -190,9 +190,8 @@ function registerNavigationTests(ctx) {
         .attr('href')
     ).toBe(`/projects/${PROJECT_ID}/area-summary`)
     expect(baselineLinks).toHaveLength(0)
-    expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
     expect(
-      navigation.find('.app-project-navigation__child').text().trim()
+      navigation.find('.app-project-navigation__child').first().text().trim()
     ).toBe(BASELINE_LABEL)
     expect(navigation.text()).toContain(ctx.otherLabel)
   })

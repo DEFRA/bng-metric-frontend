@@ -5,6 +5,7 @@ import {
 } from '../common/helpers/project-state.js'
 import {
   HEDGEROWS_BASELINE_PATH,
+  HEDGEROWS_POST_INTERVENTION_PATH,
   HEDGEROWS_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   buildUnitTypeNavigation,
@@ -15,6 +16,7 @@ import {
   buildTargetsSummary,
   buildUnitSummary,
   hedgerowsBaselineAction,
+  hedgerowsInterventionAction,
   isFiniteNumber,
   normaliseUnits
 } from '../common/helpers/unit-summary.js'
@@ -64,6 +66,9 @@ function buildHedgerowsSummary(project, projectId) {
       postInterventionOnly,
       baselineAction: hedgerowsBaselineAction(
         projectPageHref(projectId, HEDGEROWS_BASELINE_PATH)
+      ),
+      interventionAction: hedgerowsInterventionAction(
+        projectPageHref(projectId, HEDGEROWS_POST_INTERVENTION_PATH)
       )
     }),
     targetsSummary: buildTargetsSummary({

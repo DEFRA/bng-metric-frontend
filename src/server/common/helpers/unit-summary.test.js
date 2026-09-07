@@ -7,6 +7,7 @@ import {
   formatOptionalUnits,
   formatUnits,
   hedgerowsBaselineAction,
+  hedgerowsInterventionAction,
   hedgerowsInterventionSummary,
   percentageSummary,
   watercoursesBaselineAction,
@@ -69,6 +70,23 @@ describe('hedgerowsBaselineAction', () => {
         href: '/projects/123/hedgerows-baseline'
       }
     )
+  })
+})
+
+describe('hedgerowsInterventionAction', () => {
+  test('returns text-only action when no href is given', () => {
+    expect(hedgerowsInterventionAction()).toEqual({
+      text: 'View on-site hedgerows post intervention'
+    })
+  })
+
+  test('includes the href when one is given', () => {
+    expect(
+      hedgerowsInterventionAction('/projects/123/hedgerows-post-intervention')
+    ).toEqual({
+      text: 'View on-site hedgerows post intervention',
+      href: '/projects/123/hedgerows-post-intervention'
+    })
   })
 })
 
@@ -342,6 +360,36 @@ describe('buildUnitSummary', () => {
     })
 
     expect(summary.baseline.action).toBeNull()
+  })
+
+  test('uses an optional intervention action in place of the default text', () => {
+    const summary = buildUnitSummary({
+      label: 'Hedgerows',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: { units: 2, netUnitChange: 0.5, netPercentageChange: 10 },
+      interventionAction: {
+        text: 'View on-site hedgerows post intervention',
+        href: '/hedgerows-post-intervention'
+      }
+    })
+
+    expect(summary.postIntervention.action).toEqual({
+      text: 'View on-site hedgerows post intervention',
+      href: '/hedgerows-post-intervention'
+    })
+  })
+
+  test('hides the intervention action when it is explicitly null', () => {
+    const summary = buildUnitSummary({
+      label: 'Hedgerows',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: { units: 2, netUnitChange: 0.5, netPercentageChange: 10 },
+      interventionAction: null
+    })
+
+    expect(summary.postIntervention.action).toBeNull()
   })
 
   test('uses an optional baseline action in place of the default text', () => {
