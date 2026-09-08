@@ -71,7 +71,8 @@ function buildWatercoursesSummary(project, projectId) {
     }),
     targetsSummary: buildTargetsSummary(
       baselineWatercoursesUnits,
-      postInterventionWatercoursesUnits
+      postInterventionWatercoursesUnits,
+      postInterventionOnly
     )
   }
 }

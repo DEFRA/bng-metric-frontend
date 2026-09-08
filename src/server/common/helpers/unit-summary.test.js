@@ -218,6 +218,14 @@ describe('buildTargetsSummary', () => {
       unitDeficit: 'N/A'
     })
   })
+
+  test('shows Not applicable for the target percentage when the habitat is post-intervention-only', () => {
+    expect(buildTargetsSummary(0, 1.99, true)).toEqual({
+      targetPercentage: { text: 'Not applicable' },
+      unitsRequired: '0.00 units',
+      unitDeficit: '0.00 units'
+    })
+  })
 })
 
 describe('buildUnitSummary', () => {

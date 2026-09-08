@@ -68,7 +68,8 @@ function buildHedgerowsSummary(project, projectId) {
     }),
     targetsSummary: buildTargetsSummary(
       baselineHedgerowsUnits,
-      postInterventionHedgerowsUnits
+      postInterventionHedgerowsUnits,
+      postInterventionOnly
     )
   }
 }
