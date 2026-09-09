@@ -2,7 +2,7 @@
 
 {% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
 {% from "habitat-details-table/macro.njk" import appHabitatDetailsTable %}
-{% from "intervention-tabs/macro.njk" import appInterventionTabs %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
 
 {% macro interventionHabitatPanel(panel) %}
   <div class="app-intervention-tab-panel">
@@ -50,7 +50,8 @@
   {% endif %}
 
   {% if tabItems.length %}
-    {{ appInterventionTabs({
+    {{ govukTabs({
+      classes: 'app-habitat-intervention-tabs',
       title: interventionTabsTitle,
       items: tabItems
     }) }}

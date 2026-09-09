@@ -4,24 +4,6 @@
   padding-top: govuk-spacing(1);
 }
 
-.app-habitat-intervention-tabs {
-  .govuk-tabs__list-item--selected > .govuk-tabs__tab {
-    color: $govuk-text-colour;
-    text-decoration: none;
-    cursor: default;
-    pointer-events: none;
-
-    &:link,
-    &:visited,
-    &:hover,
-    &:active,
-    &:focus {
-      color: $govuk-text-colour;
-      text-decoration: none;
-    }
-  }
-}
-
 @include govuk-media-query($from: tablet) {
   .govuk-frontend-supported .app-habitat-intervention-tabs .govuk-tabs__panel {
     padding-left: govuk-spacing(2);

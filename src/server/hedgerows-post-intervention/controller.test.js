@@ -322,11 +322,10 @@ describe('hedgerows post intervention', () => {
     expect(tabs.find('.govuk-tabs__title').text().trim()).toBe(
       'Intervention type'
     )
-    expect(selectedTab.get(0).tagName).toBe('span')
-    expect(selectedTab.attr('aria-current')).toBe('true')
+    expect(selectedTab.get(0).tagName).toBe('a')
     expect(
       tabs.find('a').filter((_, link) => $(link).text().trim() === 'Retained')
-    ).toHaveLength(0)
+    ).toHaveLength(1)
     expect(
       tabs
         .find('a')
@@ -357,8 +356,10 @@ describe('hedgerows post intervention', () => {
     expect($('#enhanced')).toHaveLength(1)
     expect($('#created')).toHaveLength(1)
     expect(
-      $('.govuk-tabs__list-item--selected .govuk-tabs__tab').text().trim()
-    ).toBe('Retained')
+      $('.govuk-tabs__tab')
+        .map((_, a) => $(a).text().trim())
+        .get()
+    ).toEqual(['Retained', 'Enhanced', 'Created'])
   })
 
   test('shows the retained grid subheading, columns, totals and unsorted headers', async () => {
@@ -483,8 +484,7 @@ describe('hedgerows post intervention', () => {
     const tabs = $('.govuk-tabs')
 
     expect(tabs.find('.govuk-tabs__tab').text().trim()).toBe('Created')
-    expect(tabs.find('a.govuk-tabs__tab')).toHaveLength(0)
-    expect(tabs.find('span.govuk-tabs__tab').attr('aria-current')).toBe('true')
+    expect(tabs.find('a.govuk-tabs__tab')).toHaveLength(1)
     expect(tabs.text()).not.toContain('Retained')
     expect(tabs.text()).not.toContain('Enhanced')
     expect($('#created')).toHaveLength(1)
