@@ -66,11 +66,11 @@ function buildHedgerowsSummary(project, projectId) {
         projectPageHref(projectId, HEDGEROWS_BASELINE_PATH)
       )
     }),
-    targetsSummary: buildTargetsSummary(
-      baselineHedgerowsUnits,
-      postInterventionHedgerowsUnits,
+    targetsSummary: buildTargetsSummary({
+      baselineUnits: baselineHedgerowsUnits,
+      postInterventionUnits: postInterventionHedgerowsUnits,
       postInterventionOnly
-    )
+    })
   }
 }
 

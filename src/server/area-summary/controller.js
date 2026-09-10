@@ -48,10 +48,10 @@ function buildAreaSummary(project, projectId) {
       intervention: interventionSummary,
       baselineAction: areaBaselineAction(`/projects/${projectId}/area-baseline`)
     }),
-    targetsSummary: buildTargetsSummary(
-      baselineAreaUnits,
-      postInterventionAreaUnits
-    )
+    targetsSummary: buildTargetsSummary({
+      baselineUnits: baselineAreaUnits,
+      postInterventionUnits: postInterventionAreaUnits
+    })
   }
 }
 

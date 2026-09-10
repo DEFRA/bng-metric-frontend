@@ -133,11 +133,11 @@ function buildPostInterventionSummary(
   }
 }
 
-function buildTargetsSummary(
+function buildTargetsSummary({
   baselineUnits,
   postInterventionUnits,
   postInterventionOnly = false
-) {
+}) {
   const unitsRequired =
     baselineUnits * (1 + NET_GAIN_TARGET_PERCENTAGE / PERCENTAGE_DIVISOR)
   const unitDeficit = isFiniteNumber(postInterventionUnits)
