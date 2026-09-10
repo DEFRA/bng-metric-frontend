@@ -137,6 +137,30 @@ describe('post-intervention-upload-received controller', () => {
     }
   )
 
+  test('redirects to the post-intervention upload page with the filename-error flash when validation fails with INVALID_FILENAME', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      errors: [{ code: 'INVALID_FILENAME', message: 'filename too long' }]
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionUploadError',
+      'The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets'
+    )
+    expect(request.yar.set).not.toHaveBeenCalledWith(
+      'postInterventionValidationErrors',
+      expect.anything()
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-post-intervention-file'
+    )
+  })
+
   test('defaults to an empty errors array when post-intervention validation fails without errors', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')

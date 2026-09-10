@@ -1,8 +1,14 @@
 import { validateFile } from './file-validation-rules.js'
 
+const FILE_UPLOAD_BUTTON_CLASS = 'govuk-file-upload-button'
+const HASH_PREFIX = '#'
+const SCROLL_INTO_VIEW = { block: 'center', inline: 'nearest' }
+const ERROR_SUMMARY_SELECTOR = '.govuk-error-summary'
+
 /**
  * Initialises client-side validation for the file upload form.
- * Validates file extension and size before submission.
+ * Validates extension, size and filename when a file is chosen, and again
+ * when Continue is pressed.
  * Gracefully degrades — if JS is unavailable, the server handles validation.
  */
 export function initFileUploadValidation() {
@@ -19,7 +25,7 @@ export function initFileUploadValidation() {
   }
 
   fileInput.addEventListener('change', () => {
-    clearErrors(form, fileInput)
+    clearErrors(fileInput)
 
     const file = fileInput.files[0]
 
@@ -36,7 +42,7 @@ export function initFileUploadValidation() {
   })
 
   form.addEventListener('submit', (event) => {
-    clearErrors(form, fileInput)
+    clearErrors(fileInput)
 
     const file = fileInput.files[0]
     const errors = validateFile(file)
@@ -48,32 +54,59 @@ export function initFileUploadValidation() {
   })
 }
 
+function visibleFileControl(fileInput) {
+  const wrapper = fileInput.closest('.govuk-file-upload-wrapper')
+  const button = wrapper?.querySelector(`.${FILE_UPLOAD_BUTTON_CLASS}`)
+  if (button?.id) {
+    return button
+  }
+  return fileInput
+}
+
+function revealFileControl(fileInput, focusTarget) {
+  const scrollTarget = fileInput.closest('.govuk-form-group') ?? focusTarget
+  scrollTarget.scrollIntoView(SCROLL_INTO_VIEW)
+  focusTarget.focus()
+}
+
+function visibleErrorSummaries() {
+  return [...document.querySelectorAll(ERROR_SUMMARY_SELECTOR)].filter(
+    (element) => !element.closest('template')
+  )
+}
+
+function showErrorSummary(contentBlock, fileInput, errors) {
+  const focusTarget = visibleFileControl(fileInput)
+  const summaryTemplate = document.querySelector('#tpl-error-summary')
+  const summary = summaryTemplate.content.firstElementChild.cloneNode(true)
+  const summaryBody = summary.querySelector('.govuk-error-summary__body')
+  const errorList = document.createElement('ul')
+  errorList.className = 'govuk-list govuk-error-summary__list'
+  summaryBody.appendChild(errorList)
+
+  errors.forEach((text) => {
+    const li = document.createElement('li')
+    const link = document.createElement('a')
+    link.href = `${HASH_PREFIX}${focusTarget.id}`
+    link.textContent = text
+    link.addEventListener('click', (event) => {
+      event.preventDefault()
+      revealFileControl(fileInput, focusTarget)
+    })
+    li.appendChild(link)
+    errorList.appendChild(li)
+  })
+
+  contentBlock.insertBefore(summary, contentBlock.firstChild)
+  summary.focus()
+}
+
 function showErrors(form, fileInput, errors) {
   const formGroupId = fileInput.id
-
-  // Add error summary at top of form's content area
   const contentBlock = form.closest('.govuk-grid-column-two-thirds')
-  const existingSummary = contentBlock?.querySelector('.govuk-error-summary')
 
-  if (!existingSummary && contentBlock) {
-    const summaryTemplate = document.querySelector('#tpl-error-summary')
-    const summary = summaryTemplate.content.firstElementChild.cloneNode(true)
-    const summaryBody = summary.querySelector('.govuk-error-summary__body')
-    const errorList = document.createElement('ul')
-    errorList.className = 'govuk-list govuk-error-summary__list'
-    summaryBody.appendChild(errorList)
-
-    errors.forEach((text) => {
-      const li = document.createElement('li')
-      const link = document.createElement('a')
-      link.href = `#${formGroupId}`
-      link.textContent = text
-      li.appendChild(link)
-      errorList.appendChild(li)
-    })
-
-    contentBlock.insertBefore(summary, contentBlock.firstChild)
-    summary.focus()
+  if (contentBlock) {
+    showErrorSummary(contentBlock, fileInput, errors)
   }
 
   // Add inline errors to the form group
@@ -105,10 +138,10 @@ function showErrors(form, fileInput, errors) {
   }
 }
 
-function clearErrors(form, fileInput) {
-  const contentBlock = form.closest('.govuk-grid-column-two-thirds')
-  const clientSummary = contentBlock?.querySelector('[data-client-error]')
-  clientSummary?.remove()
+function clearErrors(fileInput) {
+  visibleErrorSummaries().forEach((summary) => {
+    summary.remove()
+  })
 
   const formGroup = fileInput.closest('.govuk-form-group')
 

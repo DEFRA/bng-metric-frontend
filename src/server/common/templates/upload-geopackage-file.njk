@@ -12,18 +12,6 @@
 {% endblock %}
 
 {% block content %}
-  {% if uploadError or error %}
-    {{ govukErrorSummary({
-      titleText: "There is a problem",
-      errorList: [
-        {
-          text: error.text if error else uploadError,
-          href: "#file"
-        }
-      ]
-    }) }}
-  {% endif %}
-
   {{ appHeading({
     text: heading,
     caption: caption
@@ -31,6 +19,18 @@
 
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
+      {% if error %}
+        {{ govukErrorSummary({
+          titleText: "There is a problem",
+          errorList: [
+            {
+              text: error.text,
+              href: "#file"
+            }
+          ]
+        }) }}
+      {% endif %}
+
       {% if uploadUrl %}
         <p class="govuk-body">{{ instructionText }}</p>
 

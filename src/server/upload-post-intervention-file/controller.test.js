@@ -69,7 +69,7 @@ describe('upload-post-intervention-file controller', () => {
       'postInterventionUploadStartedAt'
     )
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         uploadUrl: '/upload-and-scan/abc-123',
         instructionText: expect.stringContaining('post-intervention')
