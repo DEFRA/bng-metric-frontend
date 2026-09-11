@@ -264,6 +264,8 @@ describe('watercourses summary', () => {
       'Upload on-site post intervention file'
     )
     expect(targets.text()).toContain('0.00 units')
+    expect(targets.text()).toContain('Not applicable')
+    expect(targets.text()).not.toContain('10%')
   })
 
   test('renders navigation with Summary linked and Watercourses current, no href', async () => {

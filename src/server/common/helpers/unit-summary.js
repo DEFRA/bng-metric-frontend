@@ -133,7 +133,11 @@ function buildPostInterventionSummary(
   }
 }
 
-function buildTargetsSummary(baselineUnits, postInterventionUnits) {
+function buildTargetsSummary({
+  baselineUnits,
+  postInterventionUnits,
+  postInterventionOnly = false
+}) {
   const unitsRequired =
     baselineUnits * (1 + NET_GAIN_TARGET_PERCENTAGE / PERCENTAGE_DIVISOR)
   const unitDeficit = isFiniteNumber(postInterventionUnits)
@@ -141,7 +145,9 @@ function buildTargetsSummary(baselineUnits, postInterventionUnits) {
     : null
 
   return {
-    targetPercentage: { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
+    targetPercentage: postInterventionOnly
+      ? { text: NOT_APPLICABLE }
+      : { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
     unitsRequired: `${formatUnits(unitsRequired)} units`,
     unitDeficit: formatOptionalUnits(unitDeficit)
   }
