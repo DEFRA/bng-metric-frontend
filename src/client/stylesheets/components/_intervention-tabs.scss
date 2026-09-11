@@ -1,9 +1,0 @@
-@use 'govuk-frontend' as *;
-
-.app-habitat-intervention-tabs {
-  .govuk-tabs__list-item--selected > .govuk-tabs__tab {
-    color: $govuk-text-colour;
-    text-decoration: none;
-    cursor: default;
-  }
-}

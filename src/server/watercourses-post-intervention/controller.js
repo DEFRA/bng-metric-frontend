@@ -34,7 +34,11 @@ export function buildWatercoursesPostIntervention(project, projectId) {
     features.some(
       (feature) => interventionDisplay(feature.retentionCategory) === label
     )
-  ).map((label) => ({ id: label.toLowerCase(), label }))
+  ).map((label) => ({
+    id: label.toLowerCase(),
+    label,
+    panel: { html: '' }
+  }))
 
   return {
     projectName: project?.name ?? DEFAULT_PROJECT_NAME,

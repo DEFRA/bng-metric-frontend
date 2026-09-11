@@ -14,7 +14,6 @@ import { SortableTable } from '@ministryofjustice/frontend'
 
 import { initFileUploadValidation } from './file-upload-validation.js'
 import { initBaselineHabitatDetails } from './baseline-habitat-details.js'
-import { initInterventionTabs } from './intervention-tabs.js'
 
 createAll(Button)
 createAll(Checkboxes)
@@ -28,4 +27,3 @@ createAll(SortableTable)
 
 initFileUploadValidation()
 initBaselineHabitatDetails()
-initInterventionTabs()

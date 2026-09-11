@@ -127,16 +127,15 @@ describe('watercourses post intervention', () => {
     expect(
       tabs
         .find('.govuk-tabs__tab')
-        .map((_, tab) => $(tab).text())
+        .map((_, tab) => $(tab).text().trim())
         .get()
     ).toEqual(['Retained', 'Enhanced', 'Created'])
-    expect(tabs.find('.govuk-tabs__list-item--selected span').text()).toBe(
+    expect(tabs.find('.govuk-tabs__list-item--selected a').text().trim()).toBe(
       'Retained'
     )
-    expect(
-      tabs.find('.govuk-tabs__list-item--selected span').attr('tabindex')
-    ).toBe('-1')
-    expect(tabs.find('a.govuk-tabs__tab')).toHaveLength(2)
+    expect(tabs.find('a.govuk-tabs__tab')).toHaveLength(3)
+    expect(tabs.attr('data-module')).toBe('govuk-tabs')
+    expect(tabs.find('.govuk-tabs__panel[hidden]')).toHaveLength(0)
     expect(tabs.find('.govuk-table')).toHaveLength(0)
   })
 
@@ -166,8 +165,8 @@ describe('watercourses post intervention', () => {
         auth
       })
       const $ = load(result)
-      expect($('.govuk-tabs__tab').text()).toBe(expectedLabel)
-      expect($('a.govuk-tabs__tab')).toHaveLength(0)
+      expect($('.govuk-tabs__tab').text().trim()).toBe(expectedLabel)
+      expect($('a.govuk-tabs__tab')).toHaveLength(1)
     }
   )
 
