@@ -24,6 +24,7 @@ import { areaSummary } from './area-summary/index.js'
 import { areaBaseline } from './area-baseline/index.js'
 import { hedgerowsSummary } from './hedgerows-summary/index.js'
 import { hedgerowsBaseline } from './hedgerows-baseline/index.js'
+import { hedgerowsPostIntervention } from './hedgerows-post-intervention/index.js'
 import { watercoursesSummary } from './watercourses-summary/index.js'
 import { watercoursesBaseline } from './watercourses-baseline/index.js'
 import { health } from './health/index.js'
@@ -64,6 +65,7 @@ export const router = {
         areaBaseline,
         hedgerowsSummary,
         hedgerowsBaseline,
+        hedgerowsPostIntervention,
         watercoursesSummary,
         watercoursesBaseline
       ])

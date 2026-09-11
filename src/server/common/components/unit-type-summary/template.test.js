@@ -86,6 +86,22 @@ describe('Unit type summary component', () => {
     expect($('.govuk-tag')).toHaveLength(0)
   })
 
+  test('omits the post-intervention action when one does not apply', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      postIntervention: { units: '1.64 units', action: null }
+    })
+    const postInterventionTile = $('.app-unit-type-summary__secondary')
+      .find('.app-unit-type-summary__tile')
+      .eq(1)
+
+    expect(postInterventionTile.text()).toContain('1.64 units')
+    expect(postInterventionTile.find('.govuk-body')).toHaveLength(0)
+    expect(postInterventionTile.text()).not.toContain(
+      'View on-site post intervention'
+    )
+  })
+
   test('omits the baseline action when one does not apply', () => {
     const $ = renderComponent('unit-type-summary', {
       ...summary,

@@ -1,5 +1,7 @@
 import { createServer } from '../server.js'
+import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
+import { wreck } from '../common/helpers/wreck-client.js'
 import {
   PROJECT_ID,
   auth,
@@ -82,5 +84,41 @@ describe('hedgerows baseline', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('Native hedgerow')
     expect(result).toContain('Species-rich hedgerow')
+  })
+
+  test('links the post-intervention tile when post-intervention has been loaded', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          name: 'Riverbank restoration',
+          baseline: {
+            units: { hedgerowsTotal: 2 },
+            hedgerows: [featureFirst]
+          },
+          postIntervention: {
+            hedgerows: [{ retentionCategory: 'Created' }],
+            units: { hedgerowsTotal: 1.64 }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/hedgerows-baseline`,
+      auth
+    })
+
+    const $ = load(result)
+    const interventionLink = $('.app-unit-type-summary a').filter(
+      (_, link) =>
+        $(link).text().trim() === 'View on-site hedgerows post intervention'
+    )
+
+    expect(interventionLink).toHaveLength(1)
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+    )
   })
 })

@@ -12,6 +12,9 @@ const DEFAULT_BASELINE_ACTION_TEXT = 'View on-site baseline'
 const AREA_BASELINE_ACTION_TEXT = 'View on-site area baseline'
 const HEDGEROWS_BASELINE_ACTION_TEXT = 'View on-site hedgerows baseline'
 const WATERCOURSES_BASELINE_ACTION_TEXT = 'View on-site watercourses baseline'
+const DEFAULT_INTERVENTION_ACTION_TEXT = 'View on-site post intervention'
+const HEDGEROWS_INTERVENTION_ACTION_TEXT =
+  'View on-site hedgerows post intervention'
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
 
@@ -35,6 +38,10 @@ function hedgerowsBaselineAction(href) {
 
 function watercoursesBaselineAction(href) {
   return createBaselineAction(WATERCOURSES_BASELINE_ACTION_TEXT, href)
+}
+
+function hedgerowsInterventionAction(href) {
+  return createBaselineAction(HEDGEROWS_INTERVENTION_ACTION_TEXT, href)
 }
 
 function isFiniteNumber(value) {
@@ -110,10 +117,30 @@ function percentageSummary(value) {
   }
 }
 
+function resolveInterventionAction(
+  hasStandardIntervention,
+  uploadHref,
+  interventionAction
+) {
+  if (!hasStandardIntervention) {
+    return {
+      text: 'Upload on-site post intervention file',
+      href: uploadHref
+    }
+  }
+
+  if (interventionAction === undefined) {
+    return { text: DEFAULT_INTERVENTION_ACTION_TEXT }
+  }
+
+  return interventionAction
+}
+
 function buildPostInterventionSummary(
   intervention,
   uploadHref,
-  postInterventionOnly
+  postInterventionOnly,
+  interventionAction
 ) {
   const hasStandardIntervention = Boolean(intervention) && !postInterventionOnly
 
@@ -124,12 +151,11 @@ function buildPostInterventionSummary(
     units: intervention
       ? formatOptionalUnits(intervention.units)
       : `${ZERO_UNITS_DISPLAY} units`,
-    action: hasStandardIntervention
-      ? { text: 'View on-site post intervention' }
-      : {
-          text: 'Upload on-site post intervention file',
-          href: uploadHref
-        }
+    action: resolveInterventionAction(
+      hasStandardIntervention,
+      uploadHref,
+      interventionAction
+    )
   }
 }
 
@@ -172,7 +198,8 @@ function buildUnitSummary({
   intervention,
   headingHref,
   postInterventionOnly = false,
-  baselineAction
+  baselineAction,
+  interventionAction
 }) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
@@ -202,7 +229,8 @@ function buildUnitSummary({
     postIntervention: buildPostInterventionSummary(
       intervention,
       uploadHref,
-      postInterventionOnly
+      postInterventionOnly,
+      interventionAction
     ),
     netUnitChange: hasIntervention
       ? formatOptionalUnits(netUnitChange)
@@ -221,6 +249,7 @@ export {
   formatOptionalUnits,
   formatUnits,
   hedgerowsBaselineAction,
+  hedgerowsInterventionAction,
   hedgerowsInterventionSummary,
   isFiniteNumber,
   normaliseUnits,

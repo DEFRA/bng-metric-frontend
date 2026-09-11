@@ -1,0 +1,11 @@
+@use 'govuk-frontend' as *;
+
+.app-intervention-tabs__heading {
+  padding-top: govuk-spacing(1);
+}
+
+@include govuk-media-query($from: tablet) {
+  .govuk-frontend-supported .app-habitat-intervention-tabs .govuk-tabs__panel {
+    padding-left: govuk-spacing(2);
+  }
+}
