@@ -124,7 +124,25 @@ describe('watercourses summary', () => {
 
     expect(baselineLink).toHaveLength(1)
     expect(baselineLink.attr('href')).toBe(
-      `/projects/${PROJECT_ID}/watercourses-baseline`
+      `/projects/${PROJECT_ID}/watercourses-baseline-summary`
+    )
+  })
+
+  test('links the post-intervention results tile to the habitat list', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/watercourses-summary`,
+      auth
+    })
+    const $ = load(result)
+    const link = $('.app-unit-type-summary a').filter(
+      (_, item) =>
+        $(item).text().trim() === 'View on-site watercourses post intervention'
+    )
+
+    expect(link).toHaveLength(1)
+    expect(link.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
     )
   })
 
@@ -283,6 +301,12 @@ describe('watercourses summary', () => {
       `/projects/${PROJECT_ID}/project-summary`
     )
     expect(navigation.text()).toContain('Summary')
+    const postInterventionLink = navigation
+      .find('a')
+      .filter((_, link) => $(link).text() === 'Post intervention')
+    expect(postInterventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
+    )
   })
 
   test('shows the Area habitats and Hedgerows links, Hedgerows only when present', async () => {

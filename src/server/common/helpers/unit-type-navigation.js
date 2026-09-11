@@ -1,8 +1,9 @@
-import { projectHasHabitatData } from './project-state.js'
+import { hasHabitatData, projectHasHabitatData } from './project-state.js'
 
 const SUMMARY_TEXT = 'Summary'
 const AREA_HABITATS_TEXT = 'Area habitats'
 const BASELINE_TEXT = 'Baseline'
+const POST_INTERVENTION_TEXT = 'Post intervention'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
 const HEDGEROWS_HABITAT_KEY = 'hedgerows'
@@ -14,7 +15,8 @@ const AREA_BASELINE_PATH = 'area-baseline'
 const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
 const HEDGEROWS_BASELINE_PATH = 'hedgerows-baseline'
 const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
-const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline'
+const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline-summary'
+const WATERCOURSES_POST_INTERVENTION_PATH = 'watercourses-post-intervention'
 
 const OPTIONAL_UNIT_TYPES = [
   {
@@ -27,7 +29,8 @@ const OPTIONAL_UNIT_TYPES = [
     habitatKey: WATERCOURSES_HABITAT_KEY,
     text: WATERCOURSES_TEXT,
     summaryPath: WATERCOURSES_SUMMARY_PATH,
-    baselinePath: WATERCOURSES_BASELINE_PATH
+    baselinePath: WATERCOURSES_BASELINE_PATH,
+    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH
   }
 ]
 
@@ -49,19 +52,31 @@ function markCurrent(item, currentHref) {
   }
 }
 
-function withBaselineChild(item, projectId, baselinePath, currentHref) {
-  const baselineHref = projectPageHref(projectId, baselinePath)
-  const isActiveSection =
-    currentHref === item.href || currentHref === baselineHref
+function withSectionChildren(item, project, projectId, unitType, currentHref) {
+  const baselineHref = projectPageHref(projectId, unitType.baselinePath)
+  const postInterventionHref = unitType.postInterventionPath
+    ? projectPageHref(projectId, unitType.postInterventionPath)
+    : null
+  const isActiveSection = [
+    item.href,
+    baselineHref,
+    postInterventionHref
+  ].includes(currentHref)
 
   if (isActiveSection) {
+    const includeBaseline =
+      !unitType.habitatKey ||
+      hasHabitatData(project?.baseline, unitType.habitatKey)
+
     return {
       ...item,
       children: [
-        {
-          text: BASELINE_TEXT,
-          href: baselineHref
-        }
+        ...(includeBaseline
+          ? [{ text: BASELINE_TEXT, href: baselineHref }]
+          : []),
+        ...(postInterventionHref
+          ? [{ text: POST_INTERVENTION_TEXT, href: postInterventionHref }]
+          : [])
       ]
     }
   }
@@ -75,13 +90,14 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
       text: SUMMARY_TEXT,
       href: projectPageHref(projectId, PROJECT_SUMMARY_PATH)
     },
-    withBaselineChild(
+    withSectionChildren(
       {
         text: AREA_HABITATS_TEXT,
         href: projectPageHref(projectId, AREA_SUMMARY_PATH)
       },
+      project,
       projectId,
-      AREA_BASELINE_PATH,
+      { baselinePath: AREA_BASELINE_PATH },
       currentHref
     )
   ]
@@ -89,13 +105,14 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
   for (const unitType of OPTIONAL_UNIT_TYPES) {
     if (projectHasHabitatData(project, unitType.habitatKey)) {
       items.push(
-        withBaselineChild(
+        withSectionChildren(
           {
             text: unitType.text,
             href: projectPageHref(projectId, unitType.summaryPath)
           },
+          project,
           projectId,
-          unitType.baselinePath,
+          unitType,
           currentHref
         )
       )
@@ -119,8 +136,10 @@ export {
   HEDGEROWS_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   PROJECT_SUMMARY_PATH,
+  POST_INTERVENTION_TEXT,
   SUMMARY_TEXT,
   WATERCOURSES_BASELINE_PATH,
+  WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
   WATERCOURSES_TEXT,

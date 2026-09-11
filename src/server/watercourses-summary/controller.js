@@ -5,6 +5,7 @@ import {
 } from '../common/helpers/project-state.js'
 import {
   WATERCOURSES_BASELINE_PATH,
+  WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_SUMMARY_PATH,
   WATERCOURSES_TEXT,
   buildUnitTypeNavigation,
@@ -15,6 +16,7 @@ import {
   buildTargetsSummary,
   buildUnitSummary,
   watercoursesBaselineAction,
+  watercoursesInterventionAction,
   isFiniteNumber,
   normaliseUnits
 } from '../common/helpers/unit-summary.js'
@@ -67,6 +69,9 @@ function buildWatercoursesSummary(project, projectId) {
       postInterventionOnly,
       baselineAction: watercoursesBaselineAction(
         projectPageHref(projectId, WATERCOURSES_BASELINE_PATH)
+      ),
+      interventionAction: watercoursesInterventionAction(
+        projectPageHref(projectId, WATERCOURSES_POST_INTERVENTION_PATH)
       )
     }),
     targetsSummary: buildTargetsSummary({

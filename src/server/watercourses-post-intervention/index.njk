@@ -1,0 +1,16 @@
+{% extends "unit-type-page.njk" %}
+{% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+
+{% block unitTypeBody %}
+  <h2 class="govuk-heading-m">{{ resultsHeading }}</h2>
+  {{ appUnitTypeSummary(unitSummary) }}
+  <h2 class="govuk-heading-m">{{ detailsHeading }}</h2>
+  {% if tabs.length %}
+    {{ govukTabs({
+      classes: "app-habitat-intervention-tabs",
+      title: "Intervention type",
+      items: tabs
+    }) }}
+  {% endif %}
+{% endblock %}

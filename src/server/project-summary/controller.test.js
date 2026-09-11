@@ -323,7 +323,7 @@ describe('project summary', () => {
 
     expect(watercoursesBaselineLink).toHaveLength(1)
     expect(watercoursesBaselineLink.attr('href')).toBe(
-      `/projects/${PROJECT_ID}/watercourses-baseline`
+      `/projects/${PROJECT_ID}/watercourses-baseline-summary`
     )
   })
 
@@ -630,9 +630,13 @@ describe('project summary', () => {
         'On-site post-intervention'
       )
       expect(postInterventionTile.text()).toContain(
-        'View on-site post intervention'
+        habitatType === 'watercourses'
+          ? 'View on-site watercourses post intervention'
+          : 'View on-site post intervention'
       )
-      expect(postInterventionTile.find('a')).toHaveLength(0)
+      expect(postInterventionTile.find('a')).toHaveLength(
+        habitatType === 'watercourses' ? 1 : 0
+      )
     }
   )
 
@@ -705,7 +709,7 @@ describe('project summary', () => {
     expect($('.govuk-tag--red').text()).toBe('Not met')
   })
 
-  test('renders post-intervention headings and text-only actions', async () => {
+  test('renders post-intervention headings and links the watercourses action', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: projectWithPostIntervention
@@ -722,14 +726,17 @@ describe('project summary', () => {
     )
 
     expect(interventionHeadings).toHaveLength(3)
-    expect(result.match(/View on-site post intervention/g)).toHaveLength(3)
+    expect(result.match(/View on-site post intervention/g)).toHaveLength(2)
+    expect(result).toContain('View on-site watercourses post intervention')
     expect(result).not.toContain('Upload on-site post intervention file')
     expect($('a[href*="/upload-file?"]')).toHaveLength(1)
-    expect(
-      $('a').filter((_, link) =>
-        $(link).text().includes('View on-site post intervention')
-      )
-    ).toHaveLength(0)
+    const watercoursesPostInterventionLink = $('a').filter((_, link) =>
+      $(link).text().includes('View on-site watercourses post intervention')
+    )
+    expect(watercoursesPostInterventionLink).toHaveLength(1)
+    expect(watercoursesPostInterventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
+    )
   })
 
   test('shows N/A for missing post-intervention unit values', async () => {
