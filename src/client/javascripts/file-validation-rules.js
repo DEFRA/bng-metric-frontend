@@ -52,13 +52,12 @@ export function validateFileCodes(file) {
     .endsWith(ALLOWED_EXTENSION)
   if (!hasAllowedExtension) {
     errors.push(ERROR_CODES.WRONG_EXTENSION)
-  }
-  if (hasAllowedExtension) {
-    if (file.name.length > MAX_FILENAME_LENGTH) {
-      errors.push(ERROR_CODES.FILENAME_TOO_LONG)
-    } else if (!SAFE_FILENAME_RE.test(file.name)) {
-      errors.push(ERROR_CODES.INVALID_FILENAME)
-    }
+  } else if (file.name.length > MAX_FILENAME_LENGTH) {
+    errors.push(ERROR_CODES.FILENAME_TOO_LONG)
+  } else if (!SAFE_FILENAME_RE.test(file.name)) {
+    errors.push(ERROR_CODES.INVALID_FILENAME)
+  } else {
+    // Filename is valid — no filename error to record
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
     errors.push(ERROR_CODES.TOO_LARGE)

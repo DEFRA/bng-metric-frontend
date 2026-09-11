@@ -26,7 +26,6 @@ function viewData(projectId, projectName, uploadType, returnUrl) {
   const safeReturnUrl = safeUploadReturnUrl(returnUrl, projectId)
   const selectionHref = uploadFileHref(projectId, safeReturnUrl)
   return {
-    pageTitle: uploadType.uploadPageTitle,
     heading: 'Upload a GeoPackage (.gpkg) file',
     caption: projectName,
     projectId,

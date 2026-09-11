@@ -4,11 +4,12 @@ const FILE_UPLOAD_BUTTON_CLASS = 'govuk-file-upload-button'
 const HASH_PREFIX = '#'
 const SCROLL_INTO_VIEW = { block: 'center', inline: 'nearest' }
 const ERROR_SUMMARY_SELECTOR = '.govuk-error-summary'
+const FORM_GROUP_SELECTOR = '.govuk-form-group'
 
 /**
  * Initialises client-side validation for the file upload form.
- * Validates extension, size and filename when a file is chosen, and again
- * when Continue is pressed.
+ * Clears previous errors when a file is chosen. Validates extension, size
+ * and filename when Continue is pressed.
  * Gracefully degrades — if JS is unavailable, the server handles validation.
  */
 export function initFileUploadValidation() {
@@ -26,19 +27,6 @@ export function initFileUploadValidation() {
 
   fileInput.addEventListener('change', () => {
     clearErrors(fileInput)
-
-    const file = fileInput.files[0]
-
-    if (!file) {
-      return
-    }
-
-    const errors = validateFile(file)
-
-    if (errors.length) {
-      fileInput.value = ''
-      showErrors(form, fileInput, errors)
-    }
   })
 
   form.addEventListener('submit', (event) => {
@@ -64,7 +52,7 @@ function visibleFileControl(fileInput) {
 }
 
 function revealFileControl(fileInput, focusTarget) {
-  const scrollTarget = fileInput.closest('.govuk-form-group') ?? focusTarget
+  const scrollTarget = fileInput.closest(FORM_GROUP_SELECTOR) ?? focusTarget
   scrollTarget.scrollIntoView(SCROLL_INTO_VIEW)
   focusTarget.focus()
 }
@@ -109,8 +97,7 @@ function showErrors(form, fileInput, errors) {
     showErrorSummary(contentBlock, fileInput, errors)
   }
 
-  // Add inline errors to the form group
-  const formGroup = fileInput.closest('.govuk-form-group')
+  const formGroup = fileInput.closest(FORM_GROUP_SELECTOR)
 
   if (formGroup) {
     formGroup.classList.add('govuk-form-group--error')
@@ -131,7 +118,6 @@ function showErrors(form, fileInput, errors) {
     fileInput.classList.add('govuk-file-upload--error')
   }
 
-  // Update page title to indicate error
   const title = document.querySelector('title')
   if (title && !title.textContent.startsWith('Error:')) {
     title.textContent = `Error: ${title.textContent}`
@@ -143,7 +129,7 @@ function clearErrors(fileInput) {
     summary.remove()
   })
 
-  const formGroup = fileInput.closest('.govuk-form-group')
+  const formGroup = fileInput.closest(FORM_GROUP_SELECTOR)
 
   if (formGroup) {
     formGroup.classList.remove('govuk-form-group--error')
