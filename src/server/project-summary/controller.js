@@ -16,6 +16,7 @@ import {
   PROJECT_SUMMARY_PATH,
   SUMMARY_TEXT,
   WATERCOURSES_BASELINE_PATH,
+  WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
   WATERCOURSES_TEXT,
@@ -30,6 +31,7 @@ import {
   hedgerowsBaselineAction,
   hedgerowsInterventionSummary,
   watercoursesBaselineAction,
+  watercoursesInterventionAction,
   watercoursesInterventionSummary
 } from '../common/helpers/unit-summary.js'
 import {
@@ -55,7 +57,8 @@ function buildUnitTypeSummary(
     intervention,
     headingHref: unitType.href,
     postInterventionOnly: unitType.postInterventionOnly,
-    baselineAction: unitType.baselineAction
+    baselineAction: unitType.baselineAction,
+    interventionAction: unitType.interventionAction
   })
 }
 
@@ -92,6 +95,9 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
       baselineUnits: baselineUnits?.[WATERCOURSES_TOTAL_KEY],
       baselineAction: watercoursesBaselineAction(
         projectPageHref(projectId, WATERCOURSES_BASELINE_PATH)
+      ),
+      interventionAction: watercoursesInterventionAction(
+        projectPageHref(projectId, WATERCOURSES_POST_INTERVENTION_PATH)
       ),
       postInterventionOnly: hasPostInterventionOnlyHabitat(
         project,

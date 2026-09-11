@@ -25,7 +25,11 @@ import { areaBaseline } from './area-baseline/index.js'
 import { hedgerowsSummary } from './hedgerows-summary/index.js'
 import { hedgerowsBaseline } from './hedgerows-baseline/index.js'
 import { watercoursesSummary } from './watercourses-summary/index.js'
-import { watercoursesBaseline } from './watercourses-baseline/index.js'
+import {
+  watercoursesBaseline,
+  watercoursesBaselineLegacy
+} from './watercourses-baseline/index.js'
+import { watercoursesPostIntervention } from './watercourses-post-intervention/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -65,7 +69,9 @@ export const router = {
         hedgerowsSummary,
         hedgerowsBaseline,
         watercoursesSummary,
-        watercoursesBaseline
+        watercoursesBaseline,
+        watercoursesBaselineLegacy,
+        watercoursesPostIntervention
       ])
 
       // Static assets

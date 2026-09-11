@@ -7,3 +7,9 @@ export const watercoursesBaseline = createProjectGetPlugin({
   path: WATERCOURSES_BASELINE_PATH,
   getController
 })
+
+export const watercoursesBaselineLegacy = createProjectGetPlugin({
+  name: 'watercourses-baseline-legacy',
+  path: 'watercourses-baseline',
+  getController
+})

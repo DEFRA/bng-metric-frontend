@@ -12,6 +12,9 @@ const DEFAULT_BASELINE_ACTION_TEXT = 'View on-site baseline'
 const AREA_BASELINE_ACTION_TEXT = 'View on-site area baseline'
 const HEDGEROWS_BASELINE_ACTION_TEXT = 'View on-site hedgerows baseline'
 const WATERCOURSES_BASELINE_ACTION_TEXT = 'View on-site watercourses baseline'
+const WATERCOURSES_INTERVENTION_ACTION_TEXT =
+  'View on-site watercourses post intervention'
+const DEFAULT_INTERVENTION_ACTION_TEXT = 'View on-site post intervention'
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
 
@@ -35,6 +38,10 @@ function hedgerowsBaselineAction(href) {
 
 function watercoursesBaselineAction(href) {
   return createBaselineAction(WATERCOURSES_BASELINE_ACTION_TEXT, href)
+}
+
+function watercoursesInterventionAction(href) {
+  return createBaselineAction(WATERCOURSES_INTERVENTION_ACTION_TEXT, href)
 }
 
 function isFiniteNumber(value) {
@@ -113,7 +120,8 @@ function percentageSummary(value) {
 function buildPostInterventionSummary(
   intervention,
   uploadHref,
-  postInterventionOnly
+  postInterventionOnly,
+  interventionAction
 ) {
   const hasStandardIntervention = Boolean(intervention) && !postInterventionOnly
 
@@ -125,7 +133,9 @@ function buildPostInterventionSummary(
       ? formatOptionalUnits(intervention.units)
       : `${ZERO_UNITS_DISPLAY} units`,
     action: hasStandardIntervention
-      ? { text: 'View on-site post intervention' }
+      ? interventionAction === undefined
+        ? { text: DEFAULT_INTERVENTION_ACTION_TEXT }
+        : interventionAction
       : {
           text: 'Upload on-site post intervention file',
           href: uploadHref
@@ -166,7 +176,8 @@ function buildUnitSummary({
   intervention,
   headingHref,
   postInterventionOnly = false,
-  baselineAction
+  baselineAction,
+  interventionAction
 }) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
@@ -196,7 +207,8 @@ function buildUnitSummary({
     postIntervention: buildPostInterventionSummary(
       intervention,
       uploadHref,
-      postInterventionOnly
+      postInterventionOnly,
+      interventionAction
     ),
     netUnitChange: hasIntervention
       ? formatOptionalUnits(netUnitChange)
@@ -220,5 +232,6 @@ export {
   normaliseUnits,
   percentageSummary,
   watercoursesBaselineAction,
+  watercoursesInterventionAction,
   watercoursesInterventionSummary
 }

@@ -65,7 +65,7 @@ describe('Watercourses baseline page accessibility checks', () => {
     })
 
     const { document } = await loadPage({
-      requestUrl: `/projects/${PROJECT_ID}/watercourses-baseline`,
+      requestUrl: `/projects/${PROJECT_ID}/watercourses-baseline-summary`,
       server,
       auth: authedAuth
     })
@@ -85,7 +85,7 @@ describe('Watercourses baseline page accessibility checks', () => {
     })
 
     const { document } = await loadPage({
-      requestUrl: `/projects/${PROJECT_ID}/watercourses-baseline`,
+      requestUrl: `/projects/${PROJECT_ID}/watercourses-baseline-summary`,
       server,
       auth: authedAuth
     })

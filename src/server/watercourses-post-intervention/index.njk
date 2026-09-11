@@ -1,0 +1,23 @@
+{% extends "unit-type-page.njk" %}
+{% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
+
+{% block unitTypeBody %}
+  <h2 class="govuk-heading-m">{{ resultsHeading }}</h2>
+  {{ appUnitTypeSummary(unitSummary) }}
+  <h2 class="govuk-heading-m">{{ detailsHeading }}</h2>
+  {% if tabs.length %}
+    <div class="govuk-tabs app-habitat-intervention-tabs">
+      <h3 class="govuk-tabs__title">Intervention type</h3>
+      <ul class="govuk-tabs__list">
+        {% for tab in tabs %}
+          <li class="govuk-tabs__list-item{% if loop.first %} govuk-tabs__list-item--selected{% endif %}" data-panel-id="{{ tab.id }}">
+            {% if loop.first %}<span class="govuk-tabs__tab" aria-current="true" tabindex="-1">{{ tab.label }}</span>{% else %}<a class="govuk-tabs__tab" href="#{{ tab.id }}">{{ tab.label }}</a>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      {% for tab in tabs %}
+        <div class="govuk-tabs__panel" id="{{ tab.id }}" tabindex="-1"{% if not loop.first %} hidden{% endif %}></div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

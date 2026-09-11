@@ -58,12 +58,13 @@ describe('watercourses baseline', () => {
 
   registerLinearBaselinePageTests({
     getServer: () => server,
-    path: '/watercourses-baseline',
+    path: '/watercourses-baseline-summary',
     pageHeading: 'Baseline for watercourses',
     resultsHeading: 'Watercourses results',
     detailsHeading: 'Watercourses details',
     unitLabel: 'Watercourses',
     summaryPath: '/watercourses-summary',
+    postInterventionPath: '/watercourses-post-intervention',
     habitatKey: 'watercourses',
     otherHabitatKey: 'hedgerows',
     otherLabel: 'Hedgerows',
@@ -75,12 +76,22 @@ describe('watercourses baseline', () => {
   test('renders watercourse feature types on the baseline page', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
-      url: `/projects/${PROJECT_ID}/watercourses-baseline`,
+      url: `/projects/${PROJECT_ID}/watercourses-baseline-summary`,
       auth
     })
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('Ditch')
     expect(result).toContain('Rivers and streams')
+  })
+
+  test('keeps the previous baseline pathname available for compatibility', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/watercourses-baseline`,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
   })
 })

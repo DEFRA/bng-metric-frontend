@@ -190,10 +190,16 @@ function registerNavigationTests(ctx) {
         .attr('href')
     ).toBe(`/projects/${PROJECT_ID}/area-summary`)
     expect(baselineLinks).toHaveLength(0)
-    expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
-    expect(
-      navigation.find('.app-project-navigation__child').text().trim()
-    ).toBe(BASELINE_LABEL)
+    const children = navigation.find('.app-project-navigation__child')
+    expect(children).toHaveLength(ctx.postInterventionPath ? 2 : 1)
+    expect(children.eq(0).text().trim()).toBe(BASELINE_LABEL)
+    if (ctx.postInterventionPath) {
+      const postInterventionLink = children.eq(1).find('a')
+      expect(postInterventionLink.text().trim()).toBe('Post intervention')
+      expect(postInterventionLink.attr('href')).toBe(
+        `/projects/${PROJECT_ID}${ctx.postInterventionPath}`
+      )
+    }
     expect(navigation.text()).toContain(ctx.otherLabel)
   })
 }
