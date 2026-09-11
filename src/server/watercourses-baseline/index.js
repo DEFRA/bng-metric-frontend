@@ -11,5 +11,14 @@ export const watercoursesBaseline = createProjectGetPlugin({
 export const watercoursesBaselineLegacy = createProjectGetPlugin({
   name: 'watercourses-baseline-legacy',
   path: 'watercourses-baseline',
-  getController
+  // Compatibility for pre-BMD-862 links. Remove after the agreed migration window.
+  getController: {
+    handler(request, h) {
+      return h
+        .redirect(
+          `/projects/${request.params.id}/${WATERCOURSES_BASELINE_PATH}`
+        )
+        .permanent()
+    }
+  }
 })

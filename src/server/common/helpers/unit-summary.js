@@ -124,6 +124,17 @@ function buildPostInterventionSummary(
   interventionAction
 ) {
   const hasStandardIntervention = Boolean(intervention) && !postInterventionOnly
+  let action = {
+    text: 'Upload on-site post intervention file',
+    href: uploadHref
+  }
+
+  if (hasStandardIntervention) {
+    action =
+      interventionAction === undefined
+        ? { text: DEFAULT_INTERVENTION_ACTION_TEXT }
+        : interventionAction
+  }
 
   return {
     heading: hasStandardIntervention
@@ -132,14 +143,7 @@ function buildPostInterventionSummary(
     units: intervention
       ? formatOptionalUnits(intervention.units)
       : `${ZERO_UNITS_DISPLAY} units`,
-    action: hasStandardIntervention
-      ? interventionAction === undefined
-        ? { text: DEFAULT_INTERVENTION_ACTION_TEXT }
-        : interventionAction
-      : {
-          text: 'Upload on-site post intervention file',
-          href: uploadHref
-        }
+    action
   }
 }
 

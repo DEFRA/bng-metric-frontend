@@ -85,13 +85,16 @@ describe('watercourses baseline', () => {
     expect(result).toContain('Rivers and streams')
   })
 
-  test('keeps the previous baseline pathname available for compatibility', async () => {
-    const { statusCode } = await server.inject({
+  test('permanently redirects the previous baseline pathname to the canonical URL', async () => {
+    const { headers, statusCode } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/watercourses-baseline`,
       auth
     })
 
-    expect(statusCode).toBe(statusCodes.ok)
+    expect(statusCode).toBe(statusCodes.movedPermanently)
+    expect(headers.location).toBe(
+      `/projects/${PROJECT_ID}/watercourses-baseline-summary`
+    )
   })
 })
