@@ -1,8 +1,15 @@
 import { validateFile } from './file-validation-rules.js'
 
+const FILE_UPLOAD_BUTTON_CLASS = 'govuk-file-upload-button'
+const HASH_PREFIX = '#'
+const SCROLL_INTO_VIEW = { block: 'center', inline: 'nearest' }
+const ERROR_SUMMARY_SELECTOR = '.govuk-error-summary'
+const FORM_GROUP_SELECTOR = '.govuk-form-group'
+
 /**
  * Initialises client-side validation for the file upload form.
- * Validates file extension and size before submission.
+ * Clears previous errors when a file is chosen. Validates extension, size
+ * and filename when Continue is pressed.
  * Gracefully degrades — if JS is unavailable, the server handles validation.
  */
 export function initFileUploadValidation() {
@@ -19,24 +26,11 @@ export function initFileUploadValidation() {
   }
 
   fileInput.addEventListener('change', () => {
-    clearErrors(form, fileInput)
-
-    const file = fileInput.files[0]
-
-    if (!file) {
-      return
-    }
-
-    const errors = validateFile(file)
-
-    if (errors.length) {
-      fileInput.value = ''
-      showErrors(form, fileInput, errors)
-    }
+    clearErrors(fileInput)
   })
 
   form.addEventListener('submit', (event) => {
-    clearErrors(form, fileInput)
+    clearErrors(fileInput)
 
     const file = fileInput.files[0]
     const errors = validateFile(file)
@@ -48,36 +42,62 @@ export function initFileUploadValidation() {
   })
 }
 
+function visibleFileControl(fileInput) {
+  const wrapper = fileInput.closest('.govuk-file-upload-wrapper')
+  const button = wrapper?.querySelector(`.${FILE_UPLOAD_BUTTON_CLASS}`)
+  if (button?.id) {
+    return button
+  }
+  return fileInput
+}
+
+function revealFileControl(fileInput, focusTarget) {
+  const scrollTarget = fileInput.closest(FORM_GROUP_SELECTOR) ?? focusTarget
+  scrollTarget.scrollIntoView(SCROLL_INTO_VIEW)
+  focusTarget.focus()
+}
+
+function visibleErrorSummaries() {
+  return [...document.querySelectorAll(ERROR_SUMMARY_SELECTOR)].filter(
+    (element) => !element.closest('template')
+  )
+}
+
+function showErrorSummary(contentBlock, fileInput, errors) {
+  const focusTarget = visibleFileControl(fileInput)
+  const summaryTemplate = document.querySelector('#tpl-error-summary')
+  const summary = summaryTemplate.content.firstElementChild.cloneNode(true)
+  const summaryBody = summary.querySelector('.govuk-error-summary__body')
+  const errorList = document.createElement('ul')
+  errorList.className = 'govuk-list govuk-error-summary__list'
+  summaryBody.appendChild(errorList)
+
+  errors.forEach((text) => {
+    const li = document.createElement('li')
+    const link = document.createElement('a')
+    link.href = `${HASH_PREFIX}${focusTarget.id}`
+    link.textContent = text
+    link.addEventListener('click', (event) => {
+      event.preventDefault()
+      revealFileControl(fileInput, focusTarget)
+    })
+    li.appendChild(link)
+    errorList.appendChild(li)
+  })
+
+  contentBlock.insertBefore(summary, contentBlock.firstChild)
+  summary.focus()
+}
+
 function showErrors(form, fileInput, errors) {
   const formGroupId = fileInput.id
-
-  // Add error summary at top of form's content area
   const contentBlock = form.closest('.govuk-grid-column-two-thirds')
-  const existingSummary = contentBlock?.querySelector('.govuk-error-summary')
 
-  if (!existingSummary && contentBlock) {
-    const summaryTemplate = document.querySelector('#tpl-error-summary')
-    const summary = summaryTemplate.content.firstElementChild.cloneNode(true)
-    const summaryBody = summary.querySelector('.govuk-error-summary__body')
-    const errorList = document.createElement('ul')
-    errorList.className = 'govuk-list govuk-error-summary__list'
-    summaryBody.appendChild(errorList)
-
-    errors.forEach((text) => {
-      const li = document.createElement('li')
-      const link = document.createElement('a')
-      link.href = `#${formGroupId}`
-      link.textContent = text
-      li.appendChild(link)
-      errorList.appendChild(li)
-    })
-
-    contentBlock.insertBefore(summary, contentBlock.firstChild)
-    summary.focus()
+  if (contentBlock) {
+    showErrorSummary(contentBlock, fileInput, errors)
   }
 
-  // Add inline errors to the form group
-  const formGroup = fileInput.closest('.govuk-form-group')
+  const formGroup = fileInput.closest(FORM_GROUP_SELECTOR)
 
   if (formGroup) {
     formGroup.classList.add('govuk-form-group--error')
@@ -98,19 +118,18 @@ function showErrors(form, fileInput, errors) {
     fileInput.classList.add('govuk-file-upload--error')
   }
 
-  // Update page title to indicate error
   const title = document.querySelector('title')
   if (title && !title.textContent.startsWith('Error:')) {
     title.textContent = `Error: ${title.textContent}`
   }
 }
 
-function clearErrors(form, fileInput) {
-  const contentBlock = form.closest('.govuk-grid-column-two-thirds')
-  const clientSummary = contentBlock?.querySelector('[data-client-error]')
-  clientSummary?.remove()
+function clearErrors(fileInput) {
+  visibleErrorSummaries().forEach((summary) => {
+    summary.remove()
+  })
 
-  const formGroup = fileInput.closest('.govuk-form-group')
+  const formGroup = fileInput.closest(FORM_GROUP_SELECTOR)
 
   if (formGroup) {
     formGroup.classList.remove('govuk-form-group--error')

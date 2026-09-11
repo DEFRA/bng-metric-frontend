@@ -26,7 +26,6 @@ function viewData(projectId, projectName, uploadType, returnUrl) {
   const safeReturnUrl = safeUploadReturnUrl(returnUrl, projectId)
   const selectionHref = uploadFileHref(projectId, safeReturnUrl)
   return {
-    pageTitle: uploadType.uploadPageTitle,
     heading: 'Upload a GeoPackage (.gpkg) file',
     caption: projectName,
     projectId,
@@ -63,8 +62,11 @@ function createUploadFileController(uploadType) {
       )
 
       return h
-        .view('habitat-upload-file/habitat-upload-file', {
+        .view('common/templates/upload-geopackage-file', {
           ...viewData(id, projectName, uploadType, request.query?.returnUrl),
+          pageTitle: uploadError
+            ? `Error: ${uploadType.uploadPageTitle}`
+            : uploadType.uploadPageTitle,
           uploadUrl: uploadSession.uploadUrl,
           error: uploadError ? { text: uploadError } : undefined
         })

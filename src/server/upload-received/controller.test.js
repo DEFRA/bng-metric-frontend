@@ -122,6 +122,30 @@ describe('upload-received controller', () => {
     }
   )
 
+  it('should redirect to the upload page with the filename-error flash when validation fails with INVALID_FILENAME', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validateBaseline).mockResolvedValue({
+      valid: false,
+      errors: [{ code: 'INVALID_FILENAME', message: 'filename too long' }]
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'uploadError',
+      'The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets'
+    )
+    expect(request.yar.set).not.toHaveBeenCalledWith(
+      'baselineValidationErrors',
+      expect.anything()
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-baseline-file'
+    )
+  })
+
   it('should default to an empty errors array when validation fails without errors', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
