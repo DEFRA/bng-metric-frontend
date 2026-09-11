@@ -1,9 +1,9 @@
 import {
   BROAD_HABITAT_COLUMN,
   BROAD_HABITAT_HEADER,
-  buildBaselineHabitatGrid,
-  sortBaselineFeatures
+  buildBaselineHabitatGrid
 } from './baseline-habitat-grid.js'
+import { sortHabitatFeatures } from './habitat-grid.js'
 import {
   formatBaselineTotalLengthSize,
   formatLengthKmDisplay
@@ -11,9 +11,9 @@ import {
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
 
-describe('sortBaselineFeatures', () => {
+describe('sortHabitatFeatures', () => {
   test('orders features by ref, using featureId when ref is blank', () => {
-    const sorted = sortBaselineFeatures([
+    const sorted = sortHabitatFeatures([
       { ref: 'H-10', featureId: 'c' },
       { ref: 'H-2', featureId: 'b' },
       { ref: 'H-1', featureId: 'a' }
@@ -25,7 +25,7 @@ describe('sortBaselineFeatures', () => {
 
 describe('buildBaselineHabitatGrid', () => {
   test('pads ref sort keys so double-figure refs stay in server order', () => {
-    const features = sortBaselineFeatures([
+    const features = sortHabitatFeatures([
       { featureId: 'a', ref: 'H-10' },
       { featureId: 'b', ref: 'H-2' },
       { featureId: 'c', ref: 'H-11' },

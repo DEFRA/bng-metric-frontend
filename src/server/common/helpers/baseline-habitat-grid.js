@@ -105,6 +105,4 @@ function buildBaselineHabitatGrid({
   })
 }
 
-export { sortHabitatFeatures as sortBaselineFeatures } from './habitat-grid.js'
-
 export { BROAD_HABITAT_COLUMN, BROAD_HABITAT_HEADER, buildBaselineHabitatGrid }

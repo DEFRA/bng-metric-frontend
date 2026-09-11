@@ -6,16 +6,14 @@ import {
 } from './unit-type-navigation.js'
 import { fetchProjectOrThrow } from './fetch-project.js'
 import { buildUnitSummary } from './unit-summary.js'
-import {
-  buildBaselineHabitatGrid,
-  sortBaselineFeatures
-} from './baseline-habitat-grid.js'
+import { buildBaselineHabitatGrid } from './baseline-habitat-grid.js'
+import { sortHabitatFeatures } from './habitat-grid.js'
 import { DEFAULT_PROJECT_NAME } from '../constants.js'
 
 function buildHabitatBaseline(project, projectId, config) {
   const returnUrl = projectPageHref(projectId, config.path)
   const uploadHref = uploadFileHref(projectId, returnUrl)
-  const features = sortBaselineFeatures(config.collectFeatures(project))
+  const features = sortHabitatFeatures(config.collectFeatures(project))
   const intervention = project?.postIntervention
     ? config.buildIntervention(project.postIntervention.units)
     : null

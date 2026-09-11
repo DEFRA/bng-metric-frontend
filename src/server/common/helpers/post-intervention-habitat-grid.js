@@ -193,7 +193,7 @@ function targetAndTimeColumns() {
       cell: (feature) => textCell(formatFinalTimeToTarget(proposedOf(feature)))
     },
     {
-      text: 'Standard Difficulty',
+      text: 'Standard difficulty',
       cell: (feature) =>
         textCell(
           formatLabelAndScore(

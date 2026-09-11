@@ -428,7 +428,7 @@ describe('hedgerows post intervention', () => {
     expect(headers).toContain('Advance')
     expect(headers).toContain('Delay')
     expect(headers).toContain('Final time to target')
-    expect(headers).toContain('Standard Difficulty')
+    expect(headers).toContain('Standard difficulty')
     expect(headers).not.toContain('Condition')
     expect(row).toContain('Good (3)')
     expect(row).toContain('10 years')

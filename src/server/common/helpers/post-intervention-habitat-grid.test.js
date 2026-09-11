@@ -123,7 +123,7 @@ describe('buildPostInterventionHabitatGrid', () => {
       'Advance',
       'Delay',
       'Final time to target',
-      'Standard Difficulty'
+      'Standard difficulty'
     ])
     expect(created.columns.map((column) => column.text)).toEqual(
       enhanced.columns.map((column) => column.text)
