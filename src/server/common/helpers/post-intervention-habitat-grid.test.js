@@ -53,11 +53,15 @@ describe('buildPostInterventionHabitatGrid', () => {
         ref: 'P-A1',
         units: 0.8,
         sizeMetres: 1234567.891,
-        proposed: {
+        baseline: {
           type: 'Native hedgerow',
+          condition: 'Fairly Poor'
+        },
+        proposed: {
+          type: 'Line of trees',
           distinctiveness: 'Medium',
           distinctivenessScore: 4,
-          condition: 'Fairly Poor',
+          condition: 'Good',
           conditionScore: 1
         }
       }

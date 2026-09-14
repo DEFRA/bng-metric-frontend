@@ -41,6 +41,16 @@ function proposedValue(feature, key) {
   return feature?.[key]
 }
 
+function retainedValue(feature, key) {
+  return feature?.baseline?.[key] ?? proposedValue(feature, key)
+}
+
+function descriptiveValue(feature, key, interventionType) {
+  return interventionType === RETENTION_RETAINED
+    ? retainedValue(feature, key)
+    : proposedValue(feature, key)
+}
+
 function bandLabel(value) {
   if (value && typeof value === 'object' && typeof value.level === 'string') {
     return value.level
@@ -120,11 +130,12 @@ function sharedSizeColumns({ readSize, formatSize, formatSizeTotal }) {
   ]
 }
 
-function habitatTypeAndDistinctivenessColumns() {
+function habitatTypeAndDistinctivenessColumns(interventionType) {
   return [
     {
       text: 'Habitat type',
-      cell: (feature) => textCell(proposedValue(feature, 'type'))
+      cell: (feature) =>
+        textCell(descriptiveValue(feature, 'type', interventionType))
     },
     {
       text: 'Distinctiveness',
@@ -139,13 +150,13 @@ function habitatTypeAndDistinctivenessColumns() {
   ]
 }
 
-function conditionColumn() {
+function conditionColumn(interventionType) {
   return {
     text: 'Condition',
     cell: (feature) =>
       textCell(
         formatLabelAndScore(
-          bandLabel(proposedValue(feature, 'condition')),
+          bandLabel(descriptiveValue(feature, 'condition', interventionType)),
           proposedValue(feature, 'conditionScore')
         )
       )
@@ -209,17 +220,19 @@ function buildColumns({
   interventionType,
   readSize,
   formatSize,
-  formatSizeTotal
+  formatSizeTotal,
+  extraColumns
 }) {
   const columns = [
     ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal }),
-    ...habitatTypeAndDistinctivenessColumns()
+    ...habitatTypeAndDistinctivenessColumns(interventionType)
   ]
 
   if (interventionType === INTERVENTION_WITH_CONDITION) {
-    columns.push(conditionColumn())
+    columns.push(conditionColumn(interventionType))
   }
 
+  columns.push(...extraColumns)
   columns.push(strategicSignificanceColumn())
 
   if (INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)) {
@@ -250,6 +263,7 @@ function habitatTabHeading(tabLabel, habitatNoun) {
  * @param {(feature: object) => number|null|undefined} options.readSize
  * @param {(value: number|null|undefined) => string} options.formatSize
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
+ * @param {object[]} [options.extraColumns]
  */
 function buildPostInterventionHabitatGrid({
   features,
@@ -257,14 +271,16 @@ function buildPostInterventionHabitatGrid({
   interventionType,
   readSize,
   formatSize,
-  formatSizeTotal
+  formatSizeTotal,
+  extraColumns = []
 }) {
   return buildHabitatGrid({
     columns: buildColumns({
       interventionType,
       readSize,
       formatSize,
-      formatSizeTotal
+      formatSizeTotal,
+      extraColumns
     }),
     features,
     projectId,

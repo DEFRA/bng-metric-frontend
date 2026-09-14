@@ -23,6 +23,107 @@ const auth = {
     roles: ['aaa-bbb:bng completer:3']
   }
 }
+
+const retainedWatercourse = {
+  featureId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  ref: 'W-A2',
+  units: 0.5,
+  sizeMetres: 1000,
+  retentionCategory: 'Retained',
+  baseline: {
+    type: 'Rivers and streams',
+    condition: 'Fairly Poor',
+    watercourseEncroachment: 'Major',
+    riparianEncroachment: 'Major/Major'
+  },
+  proposed: {
+    type: 'Culvert',
+    distinctiveness: 'High',
+    distinctivenessScore: 6,
+    condition: 'Good',
+    conditionScore: 1,
+    watercourseEncroachment: 'Minor',
+    waterEncroachmentMultiplier: 0.7,
+    riparianEncroachment: 'Minor/Minor',
+    riparianEncroachmentMultiplier: 0.9
+  }
+}
+
+const enhancedWatercourse = {
+  featureId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  ref: 'W-A3',
+  units: 0.4,
+  sizeMetres: 800,
+  retentionCategory: '1. Enhanced',
+  proposed: {
+    type: 'Ditches',
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    conditionScore: 3,
+    watercourseEncroachment: 'Minor',
+    waterEncroachmentMultiplier: 0.8,
+    riparianEncroachment: 'Minor/No Encroachment',
+    riparianEncroachmentMultiplier: 0.98,
+    standardTimeToTargetCondition: '10',
+    advanceYears: 1,
+    delayYears: 0,
+    finalTimeToTargetCondition: '9 years (0.7)',
+    difficulty: 'Low',
+    difficultyMultiplier: 1
+  }
+}
+
+const createdWatercourseFirst = {
+  featureId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  ref: 'W-A1',
+  units: 0.74,
+  sizeMetres: 500,
+  retentionCategory: 'Created',
+  proposed: {
+    type: 'Canals',
+    distinctiveness: 'Low',
+    distinctivenessScore: 2,
+    condition: 'Moderate',
+    conditionScore: 2,
+    watercourseEncroachment: 'No encroachment',
+    waterEncroachmentMultiplier: 1,
+    riparianEncroachment: 'Minor/Minor',
+    riparianEncroachmentMultiplier: 0.8,
+    standardTimeToTargetCondition: '1',
+    advanceYears: 10,
+    delayYears: 2,
+    finalTimeToTargetCondition: '10 years (0.5555)',
+    difficulty: 'Medium',
+    difficultyMultiplier: 0.67
+  }
+}
+
+const createdWatercourseSecond = {
+  featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  ref: 'W-A10',
+  units: 0.01,
+  sizeMetres: 100,
+  retentionCategory: 'Created',
+  proposed: {
+    type: 'Culvert',
+    distinctiveness: 'Low',
+    distinctivenessScore: 2,
+    condition: 'Poor',
+    conditionScore: 1,
+    watercourseEncroachment: 'N/A - Culvert',
+    waterEncroachmentMultiplier: 1,
+    riparianEncroachment: 'N/A - Culvert',
+    riparianEncroachmentMultiplier: 1,
+    standardTimeToTargetCondition: '5',
+    advanceYears: 0,
+    delayYears: 0,
+    finalTimeToTargetCondition: '5 years (1)',
+    difficulty: 'Low',
+    difficultyMultiplier: 1
+  }
+}
+
 const project = {
   project: {
     name: 'Riverbank restoration',
@@ -33,9 +134,10 @@ const project = {
     },
     postIntervention: {
       watercourses: [
-        { retentionCategory: 'Retained' },
-        { retentionCategory: '1. Enhanced' },
-        { retentionCategory: 'Created' }
+        retainedWatercourse,
+        enhancedWatercourse,
+        createdWatercourseSecond,
+        createdWatercourseFirst
       ],
       units: {
         watercoursesTotal: 4.6,
@@ -136,7 +238,120 @@ describe('watercourses post intervention', () => {
     expect(tabs.find('a.govuk-tabs__tab')).toHaveLength(3)
     expect(tabs.attr('data-module')).toBe('govuk-tabs')
     expect(tabs.find('.govuk-tabs__panel[hidden]')).toHaveLength(0)
-    expect(tabs.find('.govuk-table')).toHaveLength(0)
+    expect(tabs.find('.govuk-table')).toHaveLength(3)
+    expect($('#retained').find('h3').text()).toBe(
+      'Retained watercourse habitats'
+    )
+    expect($('#enhanced').find('h3').text()).toBe(
+      'Enhanced watercourse habitats'
+    )
+    expect($('#created').find('h3').text()).toBe('Created watercourse habitats')
+  })
+
+  test('renders retained columns, values, totals and unsorted headers', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth
+    })
+    const $ = load(result)
+    const panel = $('#retained')
+    const headers = panel
+      .find('thead th')
+      .map((_, heading) => $(heading).text().trim())
+      .get()
+    const row = panel.find('tbody').text()
+
+    expect(headers).toEqual([
+      'Ref',
+      'Units',
+      'Size',
+      'Habitat type',
+      'Distinctiveness',
+      'Condition',
+      'Watercourse encroachment',
+      'Riparian encroachment',
+      'Strategic significance'
+    ])
+    expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)
+    expect(panel.find('tbody a').text()).toBe('W-A2')
+    expect(panel.find('tbody a').attr('href')).toBe(
+      `/post-intervention-habitat-details?featureId=${retainedWatercourse.featureId}&projectId=${projectId}`
+    )
+    expect(row).toContain('0.50')
+    expect(row).toContain('1km')
+    expect(row).toContain('Rivers and streams')
+    expect(row).toContain('High (6)')
+    expect(row).toContain('Fairly Poor (1)')
+    expect(row).toContain('Major (0.7)')
+    expect(row).toContain('Major/Major (0.9)')
+    expect(row).toContain('Low (1)')
+    expect(panel.find('tfoot').text()).toContain('Total')
+    expect(panel.find('tfoot').text()).toContain('0.50')
+    expect(panel.find('tfoot').text()).toContain('1km')
+    expect(panel.find('.moj-scrollable-pane').attr('aria-label')).toBe(
+      'Retained watercourse habitats'
+    )
+  })
+
+  test('renders enhanced columns and proposed target values without condition', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth
+    })
+    const $ = load(result)
+    const panel = $('#enhanced')
+    const headers = panel
+      .find('thead th')
+      .map((_, heading) => $(heading).text().trim())
+      .get()
+    const row = panel.find('tbody').text()
+
+    expect(headers).toEqual([
+      'Ref',
+      'Units',
+      'Size',
+      'Habitat type',
+      'Distinctiveness',
+      'Watercourse encroachment',
+      'Riparian encroachment',
+      'Strategic significance',
+      'Target condition',
+      'Standard time to target',
+      'Advance',
+      'Delay',
+      'Final time to target',
+      'Standard difficulty'
+    ])
+    expect(row).toContain('Minor (0.8)')
+    expect(row).toContain('Minor/No Encroachment (0.98)')
+    expect(row).toContain('Good (3)')
+    expect(row).toContain('10 years')
+    expect(row).toContain('1 year')
+    expect(row).toContain('0 years')
+    expect(row).toContain('9 years (0.7)')
+    expect(row).toContain('Low (1)')
+  })
+
+  test('sorts created rows naturally by reference and totals units and size', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth
+    })
+    const $ = load(result)
+    const panel = $('#created')
+    const refs = panel
+      .find('tbody a')
+      .map((_, link) => $(link).text())
+      .get()
+    const footer = panel.find('tfoot').text()
+
+    expect(refs).toEqual(['W-A1', 'W-A10'])
+    expect(footer).toContain('Total')
+    expect(footer).toContain('0.75')
+    expect(footer).toContain('0.6km')
   })
 
   test.each([
