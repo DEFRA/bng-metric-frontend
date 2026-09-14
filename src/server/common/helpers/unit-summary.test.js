@@ -7,6 +7,7 @@ import {
   formatOptionalUnits,
   formatUnits,
   hedgerowsBaselineAction,
+  hedgerowsInterventionAction,
   hedgerowsInterventionSummary,
   percentageSummary,
   watercoursesBaselineAction,
@@ -69,6 +70,23 @@ describe('hedgerowsBaselineAction', () => {
         href: '/projects/123/hedgerows-baseline'
       }
     )
+  })
+})
+
+describe('hedgerowsInterventionAction', () => {
+  test('returns text-only action when no href is given', () => {
+    expect(hedgerowsInterventionAction()).toEqual({
+      text: 'View on-site hedgerows post intervention'
+    })
+  })
+
+  test('includes the href when one is given', () => {
+    expect(
+      hedgerowsInterventionAction('/projects/123/hedgerows-post-intervention')
+    ).toEqual({
+      text: 'View on-site hedgerows post intervention',
+      href: '/projects/123/hedgerows-post-intervention'
+    })
   })
 })
 
@@ -188,7 +206,9 @@ describe('percentageSummary', () => {
 
 describe('buildTargetsSummary', () => {
   test('reports a 10% target and the deficit against the post-intervention total', () => {
-    expect(buildTargetsSummary(4.5, 4.6)).toEqual({
+    expect(
+      buildTargetsSummary({ baselineUnits: 4.5, postInterventionUnits: 4.6 })
+    ).toEqual({
       targetPercentage: { text: '10%' },
       unitsRequired: '4.95 units',
       unitDeficit: '0.35 units'
@@ -196,7 +216,9 @@ describe('buildTargetsSummary', () => {
   })
 
   test('clamps the deficit to zero when post-intervention meets the target', () => {
-    expect(buildTargetsSummary(1, 2)).toEqual({
+    expect(
+      buildTargetsSummary({ baselineUnits: 1, postInterventionUnits: 2 })
+    ).toEqual({
       targetPercentage: { text: '10%' },
       unitsRequired: '1.10 units',
       unitDeficit: '0.00 units'
@@ -204,7 +226,9 @@ describe('buildTargetsSummary', () => {
   })
 
   test('treats no post-intervention data as zero units, deficit equal to units required', () => {
-    expect(buildTargetsSummary(1.5, 0)).toEqual({
+    expect(
+      buildTargetsSummary({ baselineUnits: 1.5, postInterventionUnits: 0 })
+    ).toEqual({
       targetPercentage: { text: '10%' },
       unitsRequired: '1.65 units',
       unitDeficit: '1.65 units'
@@ -212,10 +236,26 @@ describe('buildTargetsSummary', () => {
   })
 
   test('shows N/A for the deficit when post-intervention data is present but incomplete', () => {
-    expect(buildTargetsSummary(1, null)).toEqual({
+    expect(
+      buildTargetsSummary({ baselineUnits: 1, postInterventionUnits: null })
+    ).toEqual({
       targetPercentage: { text: '10%' },
       unitsRequired: '1.10 units',
       unitDeficit: 'N/A'
+    })
+  })
+
+  test('shows Not applicable for the target percentage when the habitat is post-intervention-only', () => {
+    expect(
+      buildTargetsSummary({
+        baselineUnits: 0,
+        postInterventionUnits: 1.99,
+        postInterventionOnly: true
+      })
+    ).toEqual({
+      targetPercentage: { text: 'Not applicable' },
+      unitsRequired: '0.00 units',
+      unitDeficit: '0.00 units'
     })
   })
 })
@@ -320,6 +360,36 @@ describe('buildUnitSummary', () => {
     })
 
     expect(summary.baseline.action).toBeNull()
+  })
+
+  test('uses an optional intervention action in place of the default text', () => {
+    const summary = buildUnitSummary({
+      label: 'Hedgerows',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: { units: 2, netUnitChange: 0.5, netPercentageChange: 10 },
+      interventionAction: {
+        text: 'View on-site hedgerows post intervention',
+        href: '/hedgerows-post-intervention'
+      }
+    })
+
+    expect(summary.postIntervention.action).toEqual({
+      text: 'View on-site hedgerows post intervention',
+      href: '/hedgerows-post-intervention'
+    })
+  })
+
+  test('hides the intervention action when it is explicitly null', () => {
+    const summary = buildUnitSummary({
+      label: 'Hedgerows',
+      baselineUnits: 1.5,
+      uploadHref: '/upload',
+      intervention: { units: 2, netUnitChange: 0.5, netPercentageChange: 10 },
+      interventionAction: null
+    })
+
+    expect(summary.postIntervention.action).toBeNull()
   })
 
   test('uses an optional baseline action in place of the default text', () => {

@@ -15,6 +15,8 @@ const WATERCOURSES_BASELINE_ACTION_TEXT = 'View on-site watercourses baseline'
 const WATERCOURSES_INTERVENTION_ACTION_TEXT =
   'View on-site watercourses post intervention'
 const DEFAULT_INTERVENTION_ACTION_TEXT = 'View on-site post intervention'
+const HEDGEROWS_INTERVENTION_ACTION_TEXT =
+  'View on-site hedgerows post intervention'
 const PERCENTAGE_DIVISOR = 100
 const MIN_UNIT_DEFICIT = 0
 
@@ -42,6 +44,10 @@ function watercoursesBaselineAction(href) {
 
 function watercoursesInterventionAction(href) {
   return createBaselineAction(WATERCOURSES_INTERVENTION_ACTION_TEXT, href)
+}
+
+function hedgerowsInterventionAction(href) {
+  return createBaselineAction(HEDGEROWS_INTERVENTION_ACTION_TEXT, href)
 }
 
 function isFiniteNumber(value) {
@@ -117,6 +123,25 @@ function percentageSummary(value) {
   }
 }
 
+function resolveInterventionAction(
+  hasStandardIntervention,
+  uploadHref,
+  interventionAction
+) {
+  if (!hasStandardIntervention) {
+    return {
+      text: 'Upload on-site post intervention file',
+      href: uploadHref
+    }
+  }
+
+  if (interventionAction === undefined) {
+    return { text: DEFAULT_INTERVENTION_ACTION_TEXT }
+  }
+
+  return interventionAction
+}
+
 function buildPostInterventionSummary(
   intervention,
   uploadHref,
@@ -124,17 +149,6 @@ function buildPostInterventionSummary(
   interventionAction
 ) {
   const hasStandardIntervention = Boolean(intervention) && !postInterventionOnly
-  let action = {
-    text: 'Upload on-site post intervention file',
-    href: uploadHref
-  }
-
-  if (hasStandardIntervention) {
-    action =
-      interventionAction === undefined
-        ? { text: DEFAULT_INTERVENTION_ACTION_TEXT }
-        : interventionAction
-  }
 
   return {
     heading: hasStandardIntervention
@@ -143,11 +157,19 @@ function buildPostInterventionSummary(
     units: intervention
       ? formatOptionalUnits(intervention.units)
       : `${ZERO_UNITS_DISPLAY} units`,
-    action
+    action: resolveInterventionAction(
+      hasStandardIntervention,
+      uploadHref,
+      interventionAction
+    )
   }
 }
 
-function buildTargetsSummary(baselineUnits, postInterventionUnits) {
+function buildTargetsSummary({
+  baselineUnits,
+  postInterventionUnits,
+  postInterventionOnly = false
+}) {
   const unitsRequired =
     baselineUnits * (1 + NET_GAIN_TARGET_PERCENTAGE / PERCENTAGE_DIVISOR)
   const unitDeficit = isFiniteNumber(postInterventionUnits)
@@ -155,7 +177,9 @@ function buildTargetsSummary(baselineUnits, postInterventionUnits) {
     : null
 
   return {
-    targetPercentage: { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
+    targetPercentage: postInterventionOnly
+      ? { text: NOT_APPLICABLE }
+      : { text: `${NET_GAIN_TARGET_PERCENTAGE}%` },
     unitsRequired: `${formatUnits(unitsRequired)} units`,
     unitDeficit: formatOptionalUnits(unitDeficit)
   }
@@ -231,6 +255,7 @@ export {
   formatOptionalUnits,
   formatUnits,
   hedgerowsBaselineAction,
+  hedgerowsInterventionAction,
   hedgerowsInterventionSummary,
   isFiniteNumber,
   normaliseUnits,

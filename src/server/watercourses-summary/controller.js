@@ -74,10 +74,11 @@ function buildWatercoursesSummary(project, projectId) {
         projectPageHref(projectId, WATERCOURSES_POST_INTERVENTION_PATH)
       )
     }),
-    targetsSummary: buildTargetsSummary(
-      baselineWatercoursesUnits,
-      postInterventionWatercoursesUnits
-    )
+    targetsSummary: buildTargetsSummary({
+      baselineUnits: baselineWatercoursesUnits,
+      postInterventionUnits: postInterventionWatercoursesUnits,
+      postInterventionOnly
+    })
   }
 }
 

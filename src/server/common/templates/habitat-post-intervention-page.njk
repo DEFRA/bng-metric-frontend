@@ -1,0 +1,59 @@
+{% extends "unit-type-page.njk" %}
+
+{% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
+{% from "habitat-details-table/macro.njk" import appHabitatDetailsTable %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+
+{% macro interventionHabitatPanel(panel) %}
+  <div class="app-intervention-tab-panel">
+    <h3 class="govuk-heading-s app-intervention-tabs__heading">{{ panel.heading }}</h3>
+    {{ appHabitatDetailsTable({
+      regionLabel: panel.detailsRegionLabel,
+      columns: panel.columns,
+      habitatRows: panel.habitatRows,
+      totalsRow: panel.totalsRow
+    }) }}
+  </div>
+{% endmacro %}
+
+{% block unitTypeBody %}
+  <h2 class="govuk-heading-m">{{ resultsHeading }}</h2>
+
+  {{ appUnitTypeSummary(unitSummary) }}
+
+  <h2 class="govuk-heading-m">{{ detailsHeading }}</h2>
+
+  {% set tabItems = [] %}
+  {% if retainedTab %}
+    {% set retainedHtml %}{{ interventionHabitatPanel(retainedTab) }}{% endset %}
+    {% set tabItems = tabItems.concat([{
+      label: retainedTab.label,
+      id: retainedTab.id,
+      panel: { html: retainedHtml }
+    }]) %}
+  {% endif %}
+  {% if enhancedTab %}
+    {% set enhancedHtml %}{{ interventionHabitatPanel(enhancedTab) }}{% endset %}
+    {% set tabItems = tabItems.concat([{
+      label: enhancedTab.label,
+      id: enhancedTab.id,
+      panel: { html: enhancedHtml }
+    }]) %}
+  {% endif %}
+  {% if createdTab %}
+    {% set createdHtml %}{{ interventionHabitatPanel(createdTab) }}{% endset %}
+    {% set tabItems = tabItems.concat([{
+      label: createdTab.label,
+      id: createdTab.id,
+      panel: { html: createdHtml }
+    }]) %}
+  {% endif %}
+
+  {% if tabItems.length %}
+    {{ govukTabs({
+      classes: 'app-habitat-intervention-tabs',
+      title: interventionTabsTitle,
+      items: tabItems
+    }) }}
+  {% endif %}
+{% endblock %}
