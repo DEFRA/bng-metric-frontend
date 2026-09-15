@@ -6,6 +6,7 @@ import {
 } from '../common/helpers/project-state.js'
 import {
   WATERCOURSES_BASELINE_PATH,
+  WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_TEXT,
   buildUnitTypeNavigation,
@@ -35,12 +36,12 @@ export function buildWatercoursesPostIntervention(project, projectId) {
   const uploadHref = uploadFileHref(projectId, pageHref)
   const postInterventionOnly = hasPostInterventionOnlyHabitat(
     project,
-    'watercourses'
+    WATERCOURSES_HABITAT_KEY
   )
   const intervention = project?.postIntervention
     ? watercoursesInterventionSummary(project.postIntervention.units)
     : null
-  const features = project?.postIntervention?.watercourses ?? []
+  const features = project?.postIntervention?.[WATERCOURSES_HABITAT_KEY] ?? []
   const tabs = visibleInterventionTabs(features).map(({ id, label }) => ({
     id,
     label,

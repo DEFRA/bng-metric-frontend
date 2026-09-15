@@ -15,6 +15,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 
 const projectId = '11111111-1111-4111-8111-111111111111'
 const pagePath = `/projects/${projectId}/watercourses-post-intervention`
+const forbiddenPath = '/auth/forbidden'
 const auth = {
   strategy: 'session',
   credentials: {
@@ -204,5 +205,58 @@ describe('watercourses post intervention', () => {
     expect(watercoursesSummary.find('a').text().trim()).toBe(
       'Upload on-site post intervention file'
     )
+  })
+
+  test('redirects a project without baseline data to the existing task list', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: { project: { name: 'No baseline' } }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(`/add-project-details/${projectId}`)
+  })
+
+  test('rejects an invalid project id', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/projects/not-a-uuid/watercourses-post-intervention',
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.get).not.toHaveBeenCalled()
+  })
+
+  test('requires authentication', async () => {
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: pagePath
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(forbiddenPath)
+    expect(wreck.get).not.toHaveBeenCalled()
+  })
+
+  test('requires an approved BNG completer role', async () => {
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth: {
+        strategy: 'session',
+        credentials: { ...auth.credentials, roles: [] }
+      }
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(forbiddenPath)
+    expect(wreck.get).not.toHaveBeenCalled()
   })
 })
