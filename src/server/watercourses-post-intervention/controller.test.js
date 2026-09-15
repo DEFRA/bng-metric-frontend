@@ -87,6 +87,28 @@ describe('watercourses post intervention', () => {
     )
   })
 
+  test('renders safely when optional project data is missing', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          baseline: { watercourses: [{}] }
+        }
+      }
+    })
+
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth
+    })
+    const $ = load(result)
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('>Project</span>')
+    expect($('.govuk-tabs__tab')).toHaveLength(0)
+  })
+
   test('renders post-intervention as the current left-nav item', async () => {
     const { result } = await server.inject({
       method: 'GET',
