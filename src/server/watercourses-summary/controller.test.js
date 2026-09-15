@@ -303,7 +303,7 @@ describe('watercourses summary', () => {
     expect(navigation.text()).toContain('Summary')
     const postInterventionLink = navigation
       .find('a')
-      .filter((_, link) => $(link).text() === 'Post intervention')
+      .filter((_, link) => $(link).text() === 'Post-intervention')
     expect(postInterventionLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/watercourses-post-intervention`
     )

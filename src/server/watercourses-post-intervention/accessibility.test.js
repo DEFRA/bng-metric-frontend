@@ -79,4 +79,32 @@ describe('Watercourses post-intervention page accessibility checks', () => {
     assertLayoutLandmarks(document)
     await runAxeChecks(document.documentElement)
   })
+
+  it('has no accessibility issues when only one data-grid tab is visible', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'Created only',
+          baseline: {
+            watercourses: [{}],
+            units: { watercoursesTotal: 0 }
+          },
+          postIntervention: {
+            watercourses: [{ ...feature, retentionCategory: 'Created' }],
+            units: { watercoursesTotal: 1 }
+          }
+        }
+      }
+    })
+
+    const { document } = await loadPage({
+      requestUrl: '/projects/' + PROJECT_ID + '/watercourses-post-intervention',
+      server,
+      auth
+    })
+
+    assertLayoutLandmarks(document)
+    await runAxeChecks(document.documentElement)
+  })
 })

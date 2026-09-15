@@ -15,6 +15,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 
 const projectId = '11111111-1111-4111-8111-111111111111'
 const pagePath = `/projects/${projectId}/watercourses-post-intervention`
+const forbiddenPath = '/auth/forbidden'
 const auth = {
   strategy: 'session',
   credentials: {
@@ -198,7 +199,7 @@ describe('watercourses post intervention', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post intervention'
+      'Post-intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
@@ -385,7 +386,7 @@ describe('watercourses post intervention', () => {
     }
   )
 
-  test('hides Hedgerows and Baseline navigation when those habitats are absent', async () => {
+  test('uses post-intervention-only summary behaviour when no baseline watercourses exist', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
@@ -402,10 +403,75 @@ describe('watercourses post intervention', () => {
       url: pagePath,
       auth
     })
-    const navigationText = load(result)(
-      'nav[aria-label="Project summary"]'
-    ).text()
-    expect(navigationText).not.toContain('Hedgerows')
-    expect(navigationText).not.toContain('Baseline')
+    const $ = load(result)
+    const navigation = $('nav[aria-label="Project summary"]')
+    const watercoursesSummary = $('.app-unit-type-summary')
+
+    expect(navigation.find('[aria-current="page"]').text()).toBe(
+      'Post-intervention'
+    )
+    expect(
+      navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
+    ).toHaveLength(0)
+    expect(navigation.text()).not.toContain('Hedgerows')
+    expect(watercoursesSummary.text()).toContain('Not applicable')
+    expect(watercoursesSummary.find('.govuk-tag')).toHaveLength(0)
+    expect(watercoursesSummary.text()).not.toContain('View on-site baseline')
+    expect(watercoursesSummary.find('a').text().trim()).toBe(
+      'Upload on-site post intervention file'
+    )
+  })
+
+  test('redirects a project without baseline data to the existing task list', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: { project: { name: 'No baseline' } }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(`/add-project-details/${projectId}`)
+  })
+
+  test('rejects an invalid project id', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/projects/not-a-uuid/watercourses-post-intervention',
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.get).not.toHaveBeenCalled()
+  })
+
+  test('requires authentication', async () => {
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: pagePath
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(forbiddenPath)
+    expect(wreck.get).not.toHaveBeenCalled()
+  })
+
+  test('requires an approved BNG completer role', async () => {
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: pagePath,
+      auth: {
+        strategy: 'session',
+        credentials: { ...auth.credentials, roles: [] }
+      }
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(forbiddenPath)
+    expect(wreck.get).not.toHaveBeenCalled()
   })
 })

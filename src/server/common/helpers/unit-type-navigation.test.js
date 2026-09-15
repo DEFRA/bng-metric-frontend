@@ -9,6 +9,7 @@ const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
 const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
 const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline-summary`
+const WATERCOURSES_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/watercourses-post-intervention`
 
 describe('buildUnitTypeNavigation', () => {
   test('always includes Summary and Area habitats', () => {
@@ -141,8 +142,8 @@ describe('buildUnitTypeNavigation', () => {
     expect(watercoursesItem.children).toEqual([
       { text: 'Baseline', current: true },
       {
-        text: 'Post intervention',
-        href: `/projects/${PROJECT_ID}/watercourses-post-intervention`
+        text: 'Post-intervention',
+        href: WATERCOURSES_POST_INTERVENTION_HREF
       }
     ])
     expect(areaHabitatsItem).toEqual({
@@ -152,16 +153,15 @@ describe('buildUnitTypeNavigation', () => {
   })
 
   test('omits Baseline from Watercourses when it only exists post intervention', () => {
-    const postInterventionHref = `/projects/${PROJECT_ID}/watercourses-post-intervention`
     const items = buildUnitTypeNavigation(
       { postIntervention: { watercourses: [{}] } },
       PROJECT_ID,
-      postInterventionHref
+      WATERCOURSES_POST_INTERVENTION_HREF
     )
     const watercoursesItem = items.find((item) => item.text === 'Watercourses')
 
     expect(watercoursesItem.children).toEqual([
-      { text: 'Post intervention', current: true }
+      { text: 'Post-intervention', current: true }
     ])
   })
 

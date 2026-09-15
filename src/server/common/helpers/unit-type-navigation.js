@@ -4,7 +4,6 @@ const SUMMARY_TEXT = 'Summary'
 const AREA_HABITATS_TEXT = 'Area habitats'
 const BASELINE_TEXT = 'Baseline'
 const POST_INTERVENTION_TEXT = 'Post-intervention'
-const WATERCOURSES_POST_INTERVENTION_TEXT = 'Post intervention'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
 const HEDGEROWS_HABITAT_KEY = 'hedgerows'
@@ -33,8 +32,7 @@ const OPTIONAL_UNIT_TYPES = [
     text: WATERCOURSES_TEXT,
     summaryPath: WATERCOURSES_SUMMARY_PATH,
     baselinePath: WATERCOURSES_BASELINE_PATH,
-    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH,
-    postInterventionText: WATERCOURSES_POST_INTERVENTION_TEXT
+    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH
   }
 ]
 
@@ -81,7 +79,7 @@ function buildSectionChildren(project, projectId, unitType) {
 
   if (unitType.postInterventionPath) {
     children.push({
-      text: unitType.postInterventionText ?? POST_INTERVENTION_TEXT,
+      text: POST_INTERVENTION_TEXT,
       href: projectPageHref(projectId, unitType.postInterventionPath)
     })
   }

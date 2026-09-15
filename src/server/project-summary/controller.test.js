@@ -755,23 +755,23 @@ describe('project summary', () => {
       (_, link) =>
         $(link).text().trim() === 'View on-site hedgerows post intervention'
     )
-    const watercoursesInterventionLink = $('a').filter(
-      (_, link) =>
-        $(link).text().trim() === 'View on-site watercourses post intervention'
-    )
 
     expect(interventionHeadings).toHaveLength(3)
     expect(result.match(/View on-site post intervention/g)).toHaveLength(1)
+    expect(result).toContain('View on-site watercourses post intervention')
+    expect($('a[href*="/upload-file?"]')).toHaveLength(1)
+    const watercoursesPostInterventionLink = $('a').filter((_, link) =>
+      $(link).text().includes('View on-site watercourses post intervention')
+    )
+    expect(watercoursesPostInterventionLink).toHaveLength(1)
+    expect(watercoursesPostInterventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
+    )
     expect(hedgerowsInterventionLink).toHaveLength(1)
     expect(hedgerowsInterventionLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/hedgerows-post-intervention`
     )
-    expect(watercoursesInterventionLink).toHaveLength(1)
-    expect(watercoursesInterventionLink.attr('href')).toBe(
-      `/projects/${PROJECT_ID}/watercourses-post-intervention`
-    )
     expect(result).not.toContain('Upload on-site post intervention file')
-    expect($('a[href*="/upload-file?"]')).toHaveLength(1)
     expect(
       $('a').filter(
         (_, link) => $(link).text().trim() === 'View on-site post intervention'
