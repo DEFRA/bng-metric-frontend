@@ -223,23 +223,18 @@ function buildColumns({
   formatSizeTotal,
   extraColumns
 }) {
-  const columns = [
+  return [
     ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal }),
-    ...habitatTypeAndDistinctivenessColumns(interventionType)
+    ...habitatTypeAndDistinctivenessColumns(interventionType),
+    ...(interventionType === INTERVENTION_WITH_CONDITION
+      ? [conditionColumn(interventionType)]
+      : []),
+    ...extraColumns,
+    strategicSignificanceColumn(),
+    ...(INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)
+      ? targetAndTimeColumns()
+      : [])
   ]
-
-  if (interventionType === INTERVENTION_WITH_CONDITION) {
-    columns.push(conditionColumn(interventionType))
-  }
-
-  columns.push(...extraColumns)
-  columns.push(strategicSignificanceColumn())
-
-  if (INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)) {
-    columns.push(...targetAndTimeColumns())
-  }
-
-  return columns
 }
 
 /**
