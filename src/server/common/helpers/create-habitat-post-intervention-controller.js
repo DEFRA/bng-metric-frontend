@@ -1,8 +1,5 @@
 import { uploadFileHref } from './upload-file-navigation.js'
-import {
-  hasBaselineData,
-  hasPostInterventionOnlyHabitat
-} from './project-state.js'
+import { hasBaselineData } from './project-state.js'
 import {
   buildUnitTypeNavigation,
   projectPageHref
@@ -21,6 +18,15 @@ import {
 import { DEFAULT_PROJECT_NAME } from '../constants.js'
 
 const INTERVENTION_TABS_TITLE = 'Intervention type'
+const BASELINE_PHASE = 'baseline'
+const POST_INTERVENTION_PHASE = 'postIntervention'
+
+function resolveCollectFeatures(config) {
+  return (
+    config.collectFeatures ??
+    ((project, phase) => project?.[phase]?.[config.habitatKey] ?? [])
+  )
+}
 
 function buildTabPanel(tab, features, projectId, config) {
   const heading = habitatTabHeading(tab.label, config.habitatNoun)
@@ -39,7 +45,9 @@ function buildTabPanel(tab, features, projectId, config) {
       interventionType: tab.label,
       readSize: config.readSize,
       formatSize: config.formatSize,
-      formatSizeTotal: config.formatSizeTotal
+      formatSizeTotal: config.formatSizeTotal,
+      leadingExtraColumns: config.buildLeadingExtraColumns?.(tab.label) ?? [],
+      extraColumns: config.buildExtraColumns?.(tab.label) ?? []
     })
   }
 }
@@ -51,14 +59,14 @@ function tabById(panels, id) {
 function buildHabitatPostIntervention(project, projectId, config) {
   const pageHref = projectPageHref(projectId, config.path)
   const uploadHref = uploadFileHref(projectId, pageHref)
-  const postInterventionOnly = hasPostInterventionOnlyHabitat(
-    project,
-    config.habitatKey
-  )
+  const collectFeatures = resolveCollectFeatures(config)
+  const postInterventionOnly =
+    collectFeatures(project, BASELINE_PHASE).length === 0 &&
+    collectFeatures(project, POST_INTERVENTION_PHASE).length > 0
   const intervention = project?.postIntervention
     ? config.buildIntervention(project.postIntervention.units)
     : null
-  const features = project?.postIntervention?.[config.habitatKey] ?? []
+  const features = collectFeatures(project, POST_INTERVENTION_PHASE)
   const interventionTabPanels = visibleInterventionTabs(features).map((tab) =>
     buildTabPanel(tab, features, projectId, config)
   )
@@ -80,6 +88,7 @@ function buildHabitatPostIntervention(project, projectId, config) {
       baselineAction: config.baselineAction(projectId),
       interventionAction: null
     }),
+    areaSize: config.buildAreaSize?.(project) ?? null,
     retainedTab: tabById(interventionTabPanels, 'retained'),
     enhancedTab: tabById(interventionTabPanels, 'enhanced'),
     createdTab: tabById(interventionTabPanels, 'created')

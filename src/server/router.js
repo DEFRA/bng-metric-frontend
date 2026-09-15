@@ -22,6 +22,7 @@ import { projectDetails } from './project-details/index.js'
 import { projectSummary } from './project-summary/index.js'
 import { areaSummary } from './area-summary/index.js'
 import { areaBaseline } from './area-baseline/index.js'
+import { areaPostIntervention } from './area-post-intervention/index.js'
 import { hedgerowsSummary } from './hedgerows-summary/index.js'
 import { hedgerowsBaseline } from './hedgerows-baseline/index.js'
 import { hedgerowsPostIntervention } from './hedgerows-post-intervention/index.js'
@@ -63,6 +64,7 @@ export const router = {
         projectSummary,
         areaSummary,
         areaBaseline,
+        areaPostIntervention,
         hedgerowsSummary,
         hedgerowsBaseline,
         hedgerowsPostIntervention,

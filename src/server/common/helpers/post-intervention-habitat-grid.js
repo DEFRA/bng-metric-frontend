@@ -209,10 +209,13 @@ function buildColumns({
   interventionType,
   readSize,
   formatSize,
-  formatSizeTotal
+  formatSizeTotal,
+  leadingExtraColumns = [],
+  extraColumns = []
 }) {
   const columns = [
     ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal }),
+    ...leadingExtraColumns,
     ...habitatTypeAndDistinctivenessColumns()
   ]
 
@@ -220,6 +223,7 @@ function buildColumns({
     columns.push(conditionColumn())
   }
 
+  columns.push(...extraColumns)
   columns.push(strategicSignificanceColumn())
 
   if (INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)) {
@@ -250,6 +254,8 @@ function habitatTabHeading(tabLabel, habitatNoun) {
  * @param {(feature: object) => number|null|undefined} options.readSize
  * @param {(value: number|null|undefined) => string} options.formatSize
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
+ * @param {object[]} [options.leadingExtraColumns]
+ * @param {object[]} [options.extraColumns]
  */
 function buildPostInterventionHabitatGrid({
   features,
@@ -257,14 +263,18 @@ function buildPostInterventionHabitatGrid({
   interventionType,
   readSize,
   formatSize,
-  formatSizeTotal
+  formatSizeTotal,
+  leadingExtraColumns = [],
+  extraColumns = []
 }) {
   return buildHabitatGrid({
     columns: buildColumns({
       interventionType,
       readSize,
       formatSize,
-      formatSizeTotal
+      formatSizeTotal,
+      leadingExtraColumns,
+      extraColumns
     }),
     features,
     projectId,
@@ -272,4 +282,9 @@ function buildPostInterventionHabitatGrid({
   })
 }
 
-export { buildPostInterventionHabitatGrid, formatYears, habitatTabHeading }
+export {
+  buildPostInterventionHabitatGrid,
+  formatYears,
+  habitatTabHeading,
+  proposedValue
+}
