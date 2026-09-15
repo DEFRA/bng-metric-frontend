@@ -99,8 +99,8 @@ const invalidFilenameEntry = () => ({
 })
 
 // The file is too big for the service to check, not broken (backend
-// geopackage-internals-validate-features.js pushes GPKG_TOO_MANY_PARCELS from
-// VALIDATION_MAX_PARCEL_COUNT). Without dedicated copy it fell through to the
+// geopackage-internals-validate-features.js pushes GPKG_TOO_MANY_FEATURES from
+// VALIDATION_MAX_FEATURE_COUNT). Without dedicated copy it fell through to the
 // "layer and column names" catch-all below, which would send the user off
 // renaming columns that are perfectly correct. Its own h1 too: nothing is wrong
 // with the file, so "contains an error" would be telling them the wrong thing.
@@ -194,7 +194,7 @@ const CODE_ENTRIES = {
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
   INVALID_FILENAME: invalidFilenameEntry,
-  GPKG_TOO_MANY_PARCELS: tooManyFeaturesEntry,
+  GPKG_TOO_MANY_FEATURES: tooManyFeaturesEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {

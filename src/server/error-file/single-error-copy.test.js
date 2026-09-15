@@ -264,10 +264,10 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.messageBefore).not.toContain('file name')
   })
 
-  test('GPKG_TOO_MANY_PARCELS names the counts rather than the layers and columns', () => {
+  test('GPKG_TOO_MANY_FEATURES names the counts rather than the layers and columns', () => {
     const result = resolveSingleErrorCopy(
       {
-        code: 'GPKG_TOO_MANY_PARCELS',
+        code: 'GPKG_TOO_MANY_FEATURES',
         message: 'x',
         details: { featureCount: 30000, maxFeatureCount: 25000 }
       },
@@ -284,17 +284,17 @@ describe('#resolveSingleErrorCopy', () => {
 
   // Nothing is wrong with the file, so the "contains an error" heading the rest
   // of the page family uses would be telling the user the wrong thing.
-  test('GPKG_TOO_MANY_PARCELS does not claim the file contains an error', () => {
+  test('GPKG_TOO_MANY_FEATURES does not claim the file contains an error', () => {
     const result = resolveSingleErrorCopy(
-      { code: 'GPKG_TOO_MANY_PARCELS', message: 'x', details: {} },
+      { code: 'GPKG_TOO_MANY_FEATURES', message: 'x', details: {} },
       UPLOAD_HREF
     )
     expect(result.h1).not.toBe('Your Geopackage (.gpkg) file contains an error')
   })
 
-  test('GPKG_TOO_MANY_PARCELS still reads as a sentence without the counts', () => {
+  test('GPKG_TOO_MANY_FEATURES still reads as a sentence without the counts', () => {
     const result = resolveSingleErrorCopy(
-      { code: 'GPKG_TOO_MANY_PARCELS', message: 'x' },
+      { code: 'GPKG_TOO_MANY_FEATURES', message: 'x' },
       UPLOAD_HREF
     )
     expect(result.messageBefore).toBe(
@@ -302,10 +302,10 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('GPKG_TOO_MANY_PARCELS reads as a full sentence when uploadHref is null', () => {
+  test('GPKG_TOO_MANY_FEATURES reads as a full sentence when uploadHref is null', () => {
     const result = resolveSingleErrorCopy(
       {
-        code: 'GPKG_TOO_MANY_PARCELS',
+        code: 'GPKG_TOO_MANY_FEATURES',
         message: 'x',
         details: { featureCount: 30000, maxFeatureCount: 25000 }
       },
