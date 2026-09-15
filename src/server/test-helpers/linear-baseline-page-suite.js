@@ -195,7 +195,7 @@ function registerNavigationTests(ctx) {
     expect(children.eq(0).text().trim()).toBe(BASELINE_LABEL)
     if (ctx.postInterventionPath) {
       const postInterventionLink = children.eq(1).find('a')
-      expect(postInterventionLink.text().trim()).toBe('Post intervention')
+      expect(postInterventionLink.text().trim()).toBe('Post-intervention')
       expect(postInterventionLink.attr('href')).toBe(
         `/projects/${PROJECT_ID}${ctx.postInterventionPath}`
       )

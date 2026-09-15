@@ -282,6 +282,8 @@ describe('watercourses summary', () => {
       'Upload on-site post intervention file'
     )
     expect(targets.text()).toContain('0.00 units')
+    expect(targets.text()).toContain('Not applicable')
+    expect(targets.text()).not.toContain('10%')
   })
 
   test('renders navigation with Summary linked and Watercourses current, no href', async () => {
@@ -301,7 +303,7 @@ describe('watercourses summary', () => {
     expect(navigation.text()).toContain('Summary')
     const postInterventionLink = navigation
       .find('a')
-      .filter((_, link) => $(link).text() === 'Post intervention')
+      .filter((_, link) => $(link).text() === 'Post-intervention')
     expect(postInterventionLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/watercourses-post-intervention`
     )

@@ -96,7 +96,7 @@ describe('watercourses post intervention', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post intervention'
+      'Post-intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
@@ -170,7 +170,7 @@ describe('watercourses post intervention', () => {
     }
   )
 
-  test('hides Hedgerows and Baseline navigation when those habitats are absent', async () => {
+  test('uses post-intervention-only summary behaviour when no baseline watercourses exist', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
@@ -187,10 +187,22 @@ describe('watercourses post intervention', () => {
       url: pagePath,
       auth
     })
-    const navigationText = load(result)(
-      'nav[aria-label="Project summary"]'
-    ).text()
-    expect(navigationText).not.toContain('Hedgerows')
-    expect(navigationText).not.toContain('Baseline')
+    const $ = load(result)
+    const navigation = $('nav[aria-label="Project summary"]')
+    const watercoursesSummary = $('.app-unit-type-summary')
+
+    expect(navigation.find('[aria-current="page"]').text()).toBe(
+      'Post-intervention'
+    )
+    expect(
+      navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
+    ).toHaveLength(0)
+    expect(navigation.text()).not.toContain('Hedgerows')
+    expect(watercoursesSummary.text()).toContain('Not applicable')
+    expect(watercoursesSummary.find('.govuk-tag')).toHaveLength(0)
+    expect(watercoursesSummary.text()).not.toContain('View on-site baseline')
+    expect(watercoursesSummary.find('a').text().trim()).toBe(
+      'Upload on-site post intervention file'
+    )
   })
 })

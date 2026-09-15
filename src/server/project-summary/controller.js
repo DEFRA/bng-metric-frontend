@@ -11,6 +11,7 @@ import {
   AREA_SUMMARY_PATH,
   HEDGEROWS_BASELINE_PATH,
   HEDGEROWS_HABITAT_KEY,
+  HEDGEROWS_POST_INTERVENTION_PATH,
   HEDGEROWS_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   PROJECT_SUMMARY_PATH,
@@ -29,6 +30,7 @@ import {
   areaUnits,
   buildUnitSummary,
   hedgerowsBaselineAction,
+  hedgerowsInterventionAction,
   hedgerowsInterventionSummary,
   watercoursesBaselineAction,
   watercoursesInterventionAction,
@@ -81,6 +83,9 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
       baselineUnits: baselineUnits?.[HEDGEROWS_TOTAL_KEY],
       baselineAction: hedgerowsBaselineAction(
         projectPageHref(projectId, HEDGEROWS_BASELINE_PATH)
+      ),
+      interventionAction: hedgerowsInterventionAction(
+        projectPageHref(projectId, HEDGEROWS_POST_INTERVENTION_PATH)
       ),
       postInterventionOnly: hasPostInterventionOnlyHabitat(
         project,

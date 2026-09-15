@@ -98,6 +98,36 @@ const invalidFilenameEntry = () => ({
   linkText: 'upload the renamed file'
 })
 
+// The file is too big for the service to check, not broken (backend
+// geopackage-internals-validate-features.js pushes GPKG_TOO_MANY_PARCELS from
+// VALIDATION_MAX_PARCEL_COUNT). Without dedicated copy it fell through to the
+// "layer and column names" catch-all below, which would send the user off
+// renaming columns that are perfectly correct. Its own h1 too: nothing is wrong
+// with the file, so "contains an error" would be telling them the wrong thing.
+const TOO_MANY_FEATURES_H1 =
+  'Your Geopackage (.gpkg) file contains too many features'
+
+// The counts ride on the error's details rather than being parsed back out of
+// the message. When they are missing the sentence still has to stand up, so the
+// copy falls back to naming the problem without the numbers.
+function describeCount(error, key) {
+  const value = error?.details?.[key]
+  return Number.isFinite(value) ? value.toLocaleString('en-GB') : null
+}
+
+const tooManyFeaturesEntry = (error) => {
+  const featureCount = describeCount(error, 'featureCount')
+  const maxFeatureCount = describeCount(error, 'maxFeatureCount')
+  const counts =
+    featureCount && maxFeatureCount
+      ? `This file contains ${featureCount} features. This service can check up to ${maxFeatureCount}. `
+      : 'This file contains more features than this service can check. '
+  return standard(
+    TOO_MANY_FEATURES_H1,
+    `${counts}Reduce the number of features and `
+  )
+}
+
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
   GPKG_RLB_NO_POLYGON: noRedlineEntry,
@@ -164,6 +194,7 @@ const CODE_ENTRIES = {
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
   INVALID_FILENAME: invalidFilenameEntry,
+  GPKG_TOO_MANY_PARCELS: tooManyFeaturesEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {

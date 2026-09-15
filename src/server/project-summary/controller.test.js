@@ -327,6 +327,33 @@ describe('project summary', () => {
     )
   })
 
+  test('links the Hedgerows post-intervention action to the hedgerows post-intervention page', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: projectWithPostIntervention
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const interventionLink = $('#hedgerows-heading')
+      .closest('section')
+      .find('a')
+      .filter(
+        (_, link) =>
+          $(link).text() === 'View on-site hedgerows post intervention'
+      )
+
+    expect(interventionLink).toHaveLength(1)
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+    )
+  })
+
   test('returns not found when the backend cannot find the project', async () => {
     vi.mocked(wreck.get).mockRejectedValue(
       Object.assign(new Error('Not found'), {
@@ -629,13 +656,13 @@ describe('project summary', () => {
       expect(postInterventionTile.find('h3').text()).toBe(
         'On-site post-intervention'
       )
-      expect(postInterventionTile.text()).toContain(
-        habitatType === 'watercourses'
-          ? 'View on-site watercourses post intervention'
-          : 'View on-site post intervention'
+      const interventionLink = postInterventionTile.find('a')
+
+      expect(interventionLink.text().trim()).toBe(
+        `View on-site ${habitatType} post intervention`
       )
-      expect(postInterventionTile.find('a')).toHaveLength(
-        habitatType === 'watercourses' ? 1 : 0
+      expect(interventionLink.attr('href')).toBe(
+        `/projects/${PROJECT_ID}/${habitatType}-post-intervention`
       )
     }
   )
@@ -709,7 +736,7 @@ describe('project summary', () => {
     expect($('.govuk-tag--red').text()).toBe('Not met')
   })
 
-  test('renders post-intervention headings and links the watercourses action', async () => {
+  test('renders post-intervention headings and actions', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: projectWithPostIntervention
@@ -724,11 +751,14 @@ describe('project summary', () => {
     const interventionHeadings = $('h3').filter((_, heading) =>
       $(heading).text().includes('On-site post-intervention')
     )
+    const hedgerowsInterventionLink = $('a').filter(
+      (_, link) =>
+        $(link).text().trim() === 'View on-site hedgerows post intervention'
+    )
 
     expect(interventionHeadings).toHaveLength(3)
-    expect(result.match(/View on-site post intervention/g)).toHaveLength(2)
+    expect(result.match(/View on-site post intervention/g)).toHaveLength(1)
     expect(result).toContain('View on-site watercourses post intervention')
-    expect(result).not.toContain('Upload on-site post intervention file')
     expect($('a[href*="/upload-file?"]')).toHaveLength(1)
     const watercoursesPostInterventionLink = $('a').filter((_, link) =>
       $(link).text().includes('View on-site watercourses post intervention')
@@ -737,6 +767,16 @@ describe('project summary', () => {
     expect(watercoursesPostInterventionLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/watercourses-post-intervention`
     )
+    expect(hedgerowsInterventionLink).toHaveLength(1)
+    expect(hedgerowsInterventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+    )
+    expect(result).not.toContain('Upload on-site post intervention file')
+    expect(
+      $('a').filter(
+        (_, link) => $(link).text().trim() === 'View on-site post intervention'
+      )
+    ).toHaveLength(0)
   })
 
   test('shows N/A for missing post-intervention unit values', async () => {
