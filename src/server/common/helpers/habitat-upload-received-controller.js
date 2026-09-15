@@ -2,6 +2,11 @@ import { randomInt } from 'node:crypto'
 
 import { getUploadStatus } from '../services/uploader.js'
 import { createLogger } from './logging/logger.js'
+import {
+  ERROR_FILENAME_TOO_LONG,
+  ERROR_INVALID_FILENAME
+} from './file-validation-messages.js'
+import { storeValidationErrors } from './store-validation-errors.js'
 
 const logger = createLogger()
 const REFRESH_INTERVAL_SECONDS = 5
@@ -30,6 +35,11 @@ const GPKG_FORMAT_ERROR_CODES = new Set([
 ])
 const GPKG_FORMAT_ERROR_MESSAGE =
   'The selected file must be a GeoPackage (.gpkg)'
+
+const FILENAME_ERROR_MESSAGES = Object.freeze({
+  INVALID_FILENAME: ERROR_INVALID_FILENAME,
+  FILENAME_TOO_LONG: ERROR_FILENAME_TOO_LONG
+})
 
 /**
  * Shown once we give up waiting for a busy validator — see MAX_WAIT_SECONDS.
@@ -90,12 +100,6 @@ function clearUploadSession(request, uploadType) {
   request.yar.clear(uploadType.uploadStartedAtSessionKey)
 }
 
-function storeValidationErrors(request, uploadType, projectId, errors) {
-  request.yar.set(uploadType.validationErrorsSessionKey, errors)
-  request.yar.set(uploadType.validationErrorsProjectIdSessionKey, projectId)
-  request.yar.set(uploadType.validationUploadTypeSessionKey, uploadType.key)
-}
-
 function uploadHref(uploadType, projectId) {
   return `/projects/${projectId}/${uploadType.uploadRoute}`
 }
@@ -129,11 +133,20 @@ async function handleReadyUpload(
     const isFormatError = errors.some((e) =>
       GPKG_FORMAT_ERROR_CODES.has(e?.code)
     )
+    const filenameError = errors.find((e) => FILENAME_ERROR_MESSAGES[e?.code])
 
     if (isFormatError) {
       request.yar.set(
         uploadType.uploadErrorSessionKey,
         GPKG_FORMAT_ERROR_MESSAGE
+      )
+      return h.redirect(uploadHref(uploadType, id))
+    }
+
+    if (filenameError) {
+      request.yar.set(
+        uploadType.uploadErrorSessionKey,
+        FILENAME_ERROR_MESSAGES[filenameError.code]
       )
       return h.redirect(uploadHref(uploadType, id))
     }

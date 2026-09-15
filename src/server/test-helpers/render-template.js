@@ -12,9 +12,9 @@ import * as globals from '../../config/nunjucks/globals/globals.js'
 // HTML matches what the real page produces, but it lives in its own
 // environment so it doesn't fight the global Nunjucks state and doesn't
 // require Hapi to be running. The extra search path under `src/server`
-// is what lets pages like `habitat-upload-file/habitat-upload-file.njk`
-// be addressed by the same relative name the Vision plugin uses at
-// runtime.
+// is what lets pages like `upload-geopackage-file.njk` be addressed by
+// the name Nunjucks uses for includes. Hapi Vision still resolves
+// `h.view()` paths from `src/server/` (e.g. `common/templates/...`).
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(dirname, '../../..')
 

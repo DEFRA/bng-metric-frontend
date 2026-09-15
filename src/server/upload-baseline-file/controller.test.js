@@ -60,7 +60,7 @@ describe('upload-baseline-file controller', () => {
     expect(request.yar.set).toHaveBeenCalledWith('pendingUploadId', 'abc-123')
     expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         uploadUrl: '/upload-and-scan/abc-123',
         heading: 'Upload a GeoPackage (.gpkg) file'
@@ -97,7 +97,7 @@ describe('upload-baseline-file controller', () => {
     await getController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         caption: 'My BNG Project'
       })
@@ -117,7 +117,7 @@ describe('upload-baseline-file controller', () => {
     await getController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         caption: 'Project'
       })
@@ -140,7 +140,7 @@ describe('upload-baseline-file controller', () => {
     await getController.handler(request, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         caption: 'Project'
       })
@@ -169,8 +169,9 @@ describe('upload-baseline-file controller', () => {
 
     expect(request.yar.clear).toHaveBeenCalledWith('uploadError')
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
+        pageTitle: 'Error: Upload Baseline File',
         error: { text: 'File must be a GeoPackage' }
       })
     )
@@ -189,7 +190,7 @@ describe('upload-baseline-file controller', () => {
 
     expect(request.yar.clear).not.toHaveBeenCalledWith('uploadError')
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         error: undefined
       })
