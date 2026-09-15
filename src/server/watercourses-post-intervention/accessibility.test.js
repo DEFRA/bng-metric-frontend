@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { createServer } from '../server.js'
+import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { loadPage } from '../test-helpers/load-page.js'
 import { runAxeChecks } from '../test-helpers/axe-helper.js'
@@ -10,8 +11,9 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 }))
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
+const PAGE_PATH = `/projects/${PROJECT_ID}/watercourses-post-intervention`
 
-const authedAuth = {
+const auth = {
   strategy: 'session',
   credentials: {
     sub: 'test-user',
@@ -24,25 +26,25 @@ const populatedProject = {
   project: {
     name: 'Riverbank restoration',
     baseline: {
-      units: { watercoursesTotal: 0.8 },
+      units: { watercoursesTotal: 1.52 },
+      watercourses: [{}]
+    },
+    postIntervention: {
       watercourses: [
-        {
-          featureId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-          ref: 'W-1',
-          type: 'Ditch',
-          condition: 'Moderate',
-          conditionScore: 2,
-          distinctiveness: 'Medium',
-          distinctivenessScore: 4,
-          units: 0.8,
-          sizeMetres: 500
-        }
-      ]
+        { retentionCategory: 'Retained' },
+        { retentionCategory: 'Enhanced' },
+        { retentionCategory: 'Created' }
+      ],
+      units: {
+        watercoursesTotal: 1.64,
+        watercoursesNetUnitChange: 0.12,
+        watercoursesNetUnitChangePercentage: 7.72
+      }
     }
   }
 }
 
-describe('Watercourses baseline page accessibility checks', () => {
+describe('Watercourses post-intervention page accessibility checks', () => {
   let server
 
   beforeAll(async () => {
@@ -58,37 +60,46 @@ describe('Watercourses baseline page accessibility checks', () => {
     vi.mocked(wreck.get).mockReset()
   })
 
-  it('should have no HTML accessibility issues with a populated grid', async () => {
+  it('should have no HTML accessibility issues with all tabs visible', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
+      res: { statusCode: statusCodes.ok },
       payload: populatedProject
     })
 
     const { document } = await loadPage({
-      requestUrl: `/projects/${PROJECT_ID}/watercourses-baseline-summary`,
+      requestUrl: PAGE_PATH,
       server,
-      auth: authedAuth
+      auth
     })
+
     assertLayoutLandmarks(document)
     await runAxeChecks(document.documentElement)
   })
 
-  it('should have no HTML accessibility issues when there are no habitat rows', async () => {
+  it('should have no HTML accessibility issues when only one tab is visible', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
+      res: { statusCode: statusCodes.ok },
       payload: {
         project: {
-          name: 'Empty baseline',
-          baseline: { units: { watercoursesTotal: 0 } }
+          name: 'Created only',
+          baseline: {
+            units: { watercoursesTotal: 0 },
+            watercourses: [{}]
+          },
+          postIntervention: {
+            watercourses: [{ retentionCategory: 'Created' }],
+            units: { watercoursesTotal: 1 }
+          }
         }
       }
     })
 
     const { document } = await loadPage({
-      requestUrl: `/projects/${PROJECT_ID}/watercourses-baseline-summary`,
+      requestUrl: PAGE_PATH,
       server,
-      auth: authedAuth
+      auth
     })
+
     assertLayoutLandmarks(document)
     await runAxeChecks(document.documentElement)
   })

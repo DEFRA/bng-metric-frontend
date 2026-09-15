@@ -323,7 +323,7 @@ describe('project summary', () => {
 
     expect(watercoursesBaselineLink).toHaveLength(1)
     expect(watercoursesBaselineLink.attr('href')).toBe(
-      `/projects/${PROJECT_ID}/watercourses-baseline`
+      `/projects/${PROJECT_ID}/watercourses-baseline-summary`
     )
   })
 
@@ -656,21 +656,14 @@ describe('project summary', () => {
       expect(postInterventionTile.find('h3').text()).toBe(
         'On-site post-intervention'
       )
-      if (habitatType === 'hedgerows') {
-        const interventionLink = postInterventionTile.find('a')
+      const interventionLink = postInterventionTile.find('a')
 
-        expect(interventionLink.text().trim()).toBe(
-          'View on-site hedgerows post intervention'
-        )
-        expect(interventionLink.attr('href')).toBe(
-          `/projects/${PROJECT_ID}/hedgerows-post-intervention`
-        )
-      } else {
-        expect(postInterventionTile.text()).toContain(
-          'View on-site post intervention'
-        )
-        expect(postInterventionTile.find('a')).toHaveLength(0)
-      }
+      expect(interventionLink.text().trim()).toBe(
+        `View on-site ${habitatType} post intervention`
+      )
+      expect(interventionLink.attr('href')).toBe(
+        `/projects/${PROJECT_ID}/${habitatType}-post-intervention`
+      )
     }
   )
 
@@ -764,13 +757,21 @@ describe('project summary', () => {
     )
 
     expect(interventionHeadings).toHaveLength(3)
-    expect(result.match(/View on-site post intervention/g)).toHaveLength(2)
+    expect(result.match(/View on-site post intervention/g)).toHaveLength(1)
+    expect(result).toContain('View on-site watercourses post intervention')
+    expect($('a[href*="/upload-file?"]')).toHaveLength(1)
+    const watercoursesPostInterventionLink = $('a').filter((_, link) =>
+      $(link).text().includes('View on-site watercourses post intervention')
+    )
+    expect(watercoursesPostInterventionLink).toHaveLength(1)
+    expect(watercoursesPostInterventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
+    )
     expect(hedgerowsInterventionLink).toHaveLength(1)
     expect(hedgerowsInterventionLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/hedgerows-post-intervention`
     )
     expect(result).not.toContain('Upload on-site post intervention file')
-    expect($('a[href*="/upload-file?"]')).toHaveLength(1)
     expect(
       $('a').filter(
         (_, link) => $(link).text().trim() === 'View on-site post intervention'

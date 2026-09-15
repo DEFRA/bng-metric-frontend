@@ -12,6 +12,8 @@ const DEFAULT_BASELINE_ACTION_TEXT = 'View on-site baseline'
 const AREA_BASELINE_ACTION_TEXT = 'View on-site area baseline'
 const HEDGEROWS_BASELINE_ACTION_TEXT = 'View on-site hedgerows baseline'
 const WATERCOURSES_BASELINE_ACTION_TEXT = 'View on-site watercourses baseline'
+const WATERCOURSES_INTERVENTION_ACTION_TEXT =
+  'View on-site watercourses post intervention'
 const DEFAULT_INTERVENTION_ACTION_TEXT = 'View on-site post intervention'
 const HEDGEROWS_INTERVENTION_ACTION_TEXT =
   'View on-site hedgerows post intervention'
@@ -38,6 +40,10 @@ function hedgerowsBaselineAction(href) {
 
 function watercoursesBaselineAction(href) {
   return createBaselineAction(WATERCOURSES_BASELINE_ACTION_TEXT, href)
+}
+
+function watercoursesInterventionAction(href) {
+  return createBaselineAction(WATERCOURSES_INTERVENTION_ACTION_TEXT, href)
 }
 
 function hedgerowsInterventionAction(href) {
@@ -255,5 +261,6 @@ export {
   normaliseUnits,
   percentageSummary,
   watercoursesBaselineAction,
+  watercoursesInterventionAction,
   watercoursesInterventionSummary
 }

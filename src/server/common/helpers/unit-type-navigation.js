@@ -16,7 +16,8 @@ const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
 const HEDGEROWS_BASELINE_PATH = 'hedgerows-baseline'
 const HEDGEROWS_POST_INTERVENTION_PATH = 'hedgerows-post-intervention'
 const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
-const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline'
+const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline-summary'
+const WATERCOURSES_POST_INTERVENTION_PATH = 'watercourses-post-intervention'
 
 const OPTIONAL_UNIT_TYPES = [
   {
@@ -30,7 +31,8 @@ const OPTIONAL_UNIT_TYPES = [
     habitatKey: WATERCOURSES_HABITAT_KEY,
     text: WATERCOURSES_TEXT,
     summaryPath: WATERCOURSES_SUMMARY_PATH,
-    baselinePath: WATERCOURSES_BASELINE_PATH
+    baselinePath: WATERCOURSES_BASELINE_PATH,
+    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH
   }
 ]
 
@@ -152,6 +154,7 @@ export {
   PROJECT_SUMMARY_PATH,
   SUMMARY_TEXT,
   WATERCOURSES_BASELINE_PATH,
+  WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
   WATERCOURSES_TEXT,
