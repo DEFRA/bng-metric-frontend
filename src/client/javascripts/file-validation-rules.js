@@ -1,5 +1,9 @@
 import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants.js'
-import { ERROR_INVALID_FILENAME } from '../../server/common/helpers/file-validation-messages.js'
+import {
+  ERROR_FILENAME_TOO_LONG,
+  ERROR_INVALID_FILENAME,
+  MAX_FILENAME_LENGTH
+} from '../../server/common/helpers/file-validation-messages.js'
 
 // Pure validators for the upload form. Kept DOM-free so the rules can be
 // unit-tested with plain objects; the DOM shell that wires these into the
@@ -7,16 +11,13 @@ import { ERROR_INVALID_FILENAME } from '../../server/common/helpers/file-validat
 
 const ALLOWED_EXTENSION = '.gpkg'
 const MAX_FILE_SIZE_LABEL = '100 MB'
-// Same allowed characters as the backend whitelist, including as the first
-// character. The backend still requires a leading letter or digit; JS-off
-// uploads of names like "(copy).gpkg" can still be rejected after CDP.
-const MAX_FILENAME_LENGTH = 255
-const SAFE_FILENAME_RE = /^[a-z0-9 ._()-]+\.gpkg$/i
+// Same whitelist as the backend. Leading punctuation is allowed, but the stem
+// must include at least one letter or digit so names like `..gpkg` are rejected.
+const SAFE_FILENAME_RE = /^[ ._()-]*[a-z0-9][a-z0-9 ._()-]*\.gpkg$/i
 
 const ERROR_NO_FILE = 'Select a GeoPackage (.gpkg) file'
 const ERROR_WRONG_EXTENSION = 'The selected file must be a GeoPackage (.gpkg)'
 const ERROR_TOO_LARGE = `The selected file must be smaller than ${MAX_FILE_SIZE_LABEL}`
-const ERROR_FILENAME_TOO_LONG = `The file name must be ${MAX_FILENAME_LENGTH} characters or fewer`
 
 const ERROR_CODES = Object.freeze({
   NO_FILE: 'NO_FILE',

@@ -1,5 +1,9 @@
 import { getUploadStatus } from '../common/services/uploader.js'
 import { validateBaseline } from '../common/services/baseline.js'
+import {
+  ERROR_FILENAME_TOO_LONG,
+  ERROR_INVALID_FILENAME
+} from '../common/helpers/file-validation-messages.js'
 
 vi.mock('../common/services/uploader.js')
 vi.mock('../common/services/baseline.js')
@@ -128,14 +132,38 @@ describe('upload-received controller', () => {
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
     vi.mocked(validateBaseline).mockResolvedValue({
       valid: false,
-      errors: [{ code: 'INVALID_FILENAME', message: 'filename too long' }]
+      errors: [{ code: 'INVALID_FILENAME', message: 'unsafe filename' }]
     })
 
     await getController.handler(request, h)
 
     expect(request.yar.set).toHaveBeenCalledWith(
       'uploadError',
-      'The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets'
+      ERROR_INVALID_FILENAME
+    )
+    expect(request.yar.set).not.toHaveBeenCalledWith(
+      'baselineValidationErrors',
+      expect.anything()
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-baseline-file'
+    )
+  })
+
+  it('should redirect to the upload page with the too-long-filename flash when validation fails with FILENAME_TOO_LONG', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validateBaseline).mockResolvedValue({
+      valid: false,
+      errors: [{ code: 'FILENAME_TOO_LONG', message: 'filename too long' }]
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'uploadError',
+      ERROR_FILENAME_TOO_LONG
     )
     expect(request.yar.set).not.toHaveBeenCalledWith(
       'baselineValidationErrors',

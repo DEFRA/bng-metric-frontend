@@ -68,6 +68,15 @@ describe('validateFile', () => {
     )
   })
 
+  test('rejects a filename with no letter or digit in the stem', () => {
+    expect(validateFile({ name: '---.gpkg', size: 1024 })).toEqual([
+      ERROR_INVALID_FILENAME
+    ])
+    expect(validateFile({ name: ' ().gpkg', size: 1024 })).toEqual([
+      ERROR_INVALID_FILENAME
+    ])
+  })
+
   test.each([
     {
       description: 'apostrophe and SQL characters',
