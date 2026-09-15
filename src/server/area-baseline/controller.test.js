@@ -470,7 +470,13 @@ describe('area baseline', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(0)
-    expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
+    expect(navigation.find('.app-project-navigation__child')).toHaveLength(2)
+    expect(
+      navigation
+        .find('a')
+        .filter((_, link) => $(link).text() === 'Post-intervention')
+        .attr('href')
+    ).toBe(`/projects/${PROJECT_ID}/area-post-intervention`)
   })
 
   test('redirects a project without baseline data to the existing task list', async () => {

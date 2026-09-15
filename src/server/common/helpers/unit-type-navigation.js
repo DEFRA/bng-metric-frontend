@@ -12,6 +12,7 @@ const WATERCOURSES_HABITAT_KEY = 'watercourses'
 const PROJECT_SUMMARY_PATH = 'project-summary'
 const AREA_SUMMARY_PATH = 'area-summary'
 const AREA_BASELINE_PATH = 'area-baseline'
+const AREA_POST_INTERVENTION_PATH = 'area-post-intervention'
 const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
 const HEDGEROWS_BASELINE_PATH = 'hedgerows-baseline'
 const HEDGEROWS_POST_INTERVENTION_PATH = 'hedgerows-post-intervention'
@@ -109,7 +110,10 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
       },
       project,
       projectId,
-      { baselinePath: AREA_BASELINE_PATH },
+      {
+        baselinePath: AREA_BASELINE_PATH,
+        postInterventionPath: AREA_POST_INTERVENTION_PATH
+      },
       currentHref
     )
   ]
@@ -141,6 +145,7 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
 export {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
+  AREA_POST_INTERVENTION_PATH,
   AREA_SUMMARY_PATH,
   BASELINE_TEXT,
   HEDGEROWS_BASELINE_PATH,

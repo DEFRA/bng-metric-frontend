@@ -21,6 +21,15 @@
 
   {{ appUnitTypeSummary(unitSummary) }}
 
+  {% if areaSize %}
+    <div class="app-area-size govuk-!-margin-bottom-6">
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Site size</h3>
+      <p class="govuk-body">{{ areaSize.site }}</p>
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Area habitats size</h3>
+      <p class="govuk-body">{{ areaSize.areaHabitats }}</p>
+    </div>
+  {% endif %}
+
   <h2 class="govuk-heading-m">{{ detailsHeading }}</h2>
 
   {% set tabItems = [] %}
