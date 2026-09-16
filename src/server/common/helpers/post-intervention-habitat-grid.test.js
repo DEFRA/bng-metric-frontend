@@ -53,11 +53,18 @@ describe('buildPostInterventionHabitatGrid', () => {
         ref: 'P-A1',
         units: 0.8,
         sizeMetres: 1234567.891,
-        proposed: {
+        baseline: {
           type: 'Native hedgerow',
+          distinctiveness: 'Low',
+          distinctivenessScore: 2,
+          condition: 'Fairly Poor',
+          conditionScore: 1.5
+        },
+        proposed: {
+          type: 'Line of trees',
           distinctiveness: 'Medium',
           distinctivenessScore: 4,
-          condition: 'Fairly Poor',
+          condition: 'Good',
           conditionScore: 1
         }
       }
@@ -78,13 +85,43 @@ describe('buildPostInterventionHabitatGrid', () => {
     expect(grid.habitatRows[0][1].text).toBe('0.80')
     expect(grid.habitatRows[0][2].text).toBe('1234.568km')
     expect(grid.habitatRows[0][3].text).toBe('Native hedgerow')
-    expect(grid.habitatRows[0][4].text).toBe('Medium (4)')
-    expect(grid.habitatRows[0][5].text).toBe('Fairly Poor (1)')
+    expect(grid.habitatRows[0][4].text).toBe('Low (2)')
+    expect(grid.habitatRows[0][5].text).toBe('Fairly Poor (1.5)')
     expect(grid.habitatRows[0][6].text).toBe('Low (1)')
     expect(grid.totalsRow[0].text).toBe('Total')
     expect(grid.totalsRow[1].text).toBe('0.80')
     expect(grid.totalsRow[2].text).toBe('1234.568km')
     expect(grid.totalsRow).toHaveLength(grid.columns.length)
+  })
+
+  test('falls back to top-level values for blank retained fields', () => {
+    const grid = buildGrid('Retained', [
+      {
+        type: 'Native hedgerow',
+        distinctiveness: 'Low',
+        distinctivenessScore: 2,
+        condition: 'Fairly Poor',
+        conditionScore: 1.5,
+        baseline: {
+          type: '',
+          distinctiveness: '',
+          distinctivenessScore: '',
+          condition: '',
+          conditionScore: ''
+        },
+        proposed: {
+          type: 'Line of trees',
+          distinctiveness: 'Medium',
+          distinctivenessScore: 4,
+          condition: 'Good',
+          conditionScore: 3
+        }
+      }
+    ])
+
+    expect(grid.habitatRows[0][3].text).toBe('Native hedgerow')
+    expect(grid.habitatRows[0][4].text).toBe('Low (2)')
+    expect(grid.habitatRows[0][5].text).toBe('Fairly Poor (1.5)')
   })
 
   test('builds enhanced and created columns with target, time and difficulty', () => {

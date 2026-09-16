@@ -39,7 +39,8 @@ function buildTabPanel(tab, features, projectId, config) {
       interventionType: tab.label,
       readSize: config.readSize,
       formatSize: config.formatSize,
-      formatSizeTotal: config.formatSizeTotal
+      formatSizeTotal: config.formatSizeTotal,
+      extraColumns: config.buildExtraColumns?.(tab.label) ?? []
     })
   }
 }

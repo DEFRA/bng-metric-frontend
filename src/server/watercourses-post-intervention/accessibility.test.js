@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import { createServer } from '../server.js'
-import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { loadPage } from '../test-helpers/load-page.js'
 import { runAxeChecks } from '../test-helpers/axe-helper.js'
@@ -11,8 +10,6 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 }))
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
-const PAGE_PATH = `/projects/${PROJECT_ID}/watercourses-post-intervention`
-
 const auth = {
   strategy: 'session',
   credentials: {
@@ -22,25 +19,21 @@ const auth = {
   }
 }
 
-const populatedProject = {
-  project: {
-    name: 'Riverbank restoration',
-    baseline: {
-      units: { watercoursesTotal: 1.52 },
-      watercourses: [{}]
-    },
-    postIntervention: {
-      watercourses: [
-        { retentionCategory: 'Retained' },
-        { retentionCategory: 'Enhanced' },
-        { retentionCategory: 'Created' }
-      ],
-      units: {
-        watercoursesTotal: 1.64,
-        watercoursesNetUnitChange: 0.12,
-        watercoursesNetUnitChangePercentage: 7.72
-      }
-    }
+const feature = {
+  featureId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  ref: 'W-1',
+  units: 0.5,
+  sizeMetres: 1000,
+  proposed: {
+    type: 'Ditches',
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    conditionScore: 3,
+    watercourseEncroachment: 'Minor',
+    waterEncroachmentMultiplier: 0.8,
+    riparianEncroachment: 'Minor/Minor',
+    riparianEncroachmentMultiplier: 0.8
   }
 }
 
@@ -52,22 +45,33 @@ describe('Watercourses post-intervention page accessibility checks', () => {
     await server.initialize()
   })
 
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-  })
+  afterAll(async () => server.stop({ timeout: 0 }))
+  afterEach(() => vi.mocked(wreck.get).mockReset())
 
-  afterEach(() => {
-    vi.mocked(wreck.get).mockReset()
-  })
-
-  it('should have no HTML accessibility issues with all tabs visible', async () => {
+  it('has no accessibility issues with all data-grid tabs visible', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: statusCodes.ok },
-      payload: populatedProject
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: 'River restoration',
+          baseline: {
+            watercourses: [{}],
+            units: { watercoursesTotal: 1 }
+          },
+          postIntervention: {
+            watercourses: [
+              { ...feature, retentionCategory: 'Retained' },
+              { ...feature, retentionCategory: 'Enhanced' },
+              { ...feature, retentionCategory: 'Created' }
+            ],
+            units: { watercoursesTotal: 1.5 }
+          }
+        }
+      }
     })
 
     const { document } = await loadPage({
-      requestUrl: PAGE_PATH,
+      requestUrl: `/projects/${PROJECT_ID}/watercourses-post-intervention`,
       server,
       auth
     })
@@ -76,18 +80,18 @@ describe('Watercourses post-intervention page accessibility checks', () => {
     await runAxeChecks(document.documentElement)
   })
 
-  it('should have no HTML accessibility issues when only one tab is visible', async () => {
+  it('has no accessibility issues when only one data-grid tab is visible', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: statusCodes.ok },
+      res: { statusCode: 200 },
       payload: {
         project: {
           name: 'Created only',
           baseline: {
-            units: { watercoursesTotal: 0 },
-            watercourses: [{}]
+            watercourses: [{}],
+            units: { watercoursesTotal: 0 }
           },
           postIntervention: {
-            watercourses: [{ retentionCategory: 'Created' }],
+            watercourses: [{ ...feature, retentionCategory: 'Created' }],
             units: { watercoursesTotal: 1 }
           }
         }
@@ -95,7 +99,7 @@ describe('Watercourses post-intervention page accessibility checks', () => {
     })
 
     const { document } = await loadPage({
-      requestUrl: PAGE_PATH,
+      requestUrl: '/projects/' + PROJECT_ID + '/watercourses-post-intervention',
       server,
       auth
     })
