@@ -33,9 +33,14 @@ const retainedWatercourse = {
   retentionCategory: 'Retained',
   baseline: {
     type: 'Rivers and streams',
+    distinctiveness: 'V.High',
+    distinctivenessScore: 8,
     condition: 'Fairly Poor',
+    conditionScore: 1.5,
     watercourseEncroachment: 'Major',
-    riparianEncroachment: 'Major/Major'
+    waterEncroachmentMultiplier: 0.5,
+    riparianEncroachment: 'Major/Major',
+    riparianEncroachmentMultiplier: 0.6
   },
   proposed: {
     type: 'Culvert',
@@ -304,10 +309,10 @@ describe('watercourses post intervention', () => {
     expect(row).toContain('0.50')
     expect(row).toContain('1km')
     expect(row).toContain('Rivers and streams')
-    expect(row).toContain('High (6)')
-    expect(row).toContain('Fairly Poor (1)')
-    expect(row).toContain('Major (0.7)')
-    expect(row).toContain('Major/Major (0.9)')
+    expect(row).toContain('V.High (8)')
+    expect(row).toContain('Fairly Poor (1.5)')
+    expect(row).toContain('Major (0.5)')
+    expect(row).toContain('Major/Major (0.6)')
     expect(row).toContain('Low (1)')
     expect(panel.find('tfoot').text()).toContain('Total')
     expect(panel.find('tfoot').text()).toContain('0.50')

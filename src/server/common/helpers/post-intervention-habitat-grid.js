@@ -33,22 +33,22 @@ function proposedOf(feature) {
   return feature?.proposed ?? {}
 }
 
-function proposedValue(feature, key) {
-  const nested = proposedOf(feature)[key]
+function sourceValue(feature, source, key) {
+  const nested = source?.[key]
   if (nested != null && nested !== EMPTY_DISPLAY) {
     return nested
   }
   return feature?.[key]
 }
 
-function retainedValue(feature, key) {
-  return feature?.baseline?.[key] ?? proposedValue(feature, key)
+function proposedValue(feature, key) {
+  return sourceValue(feature, proposedOf(feature), key)
 }
 
-function descriptiveValue(feature, key, interventionType) {
-  return interventionType === RETENTION_RETAINED
-    ? retainedValue(feature, key)
-    : proposedValue(feature, key)
+function descriptiveSource(feature, interventionType) {
+  return interventionType === RETENTION_RETAINED && feature?.baseline
+    ? feature.baseline
+    : proposedOf(feature)
 }
 
 function bandLabel(value) {
@@ -134,18 +134,22 @@ function habitatTypeAndDistinctivenessColumns(interventionType) {
   return [
     {
       text: 'Habitat type',
-      cell: (feature) =>
-        textCell(descriptiveValue(feature, 'type', interventionType))
+      cell: (feature) => {
+        const source = descriptiveSource(feature, interventionType)
+        return textCell(sourceValue(feature, source, 'type'))
+      }
     },
     {
       text: 'Distinctiveness',
-      cell: (feature) =>
-        textCell(
+      cell: (feature) => {
+        const source = descriptiveSource(feature, interventionType)
+        return textCell(
           formatLabelAndScore(
-            bandLabel(proposedValue(feature, 'distinctiveness')),
-            proposedValue(feature, 'distinctivenessScore')
+            bandLabel(sourceValue(feature, source, 'distinctiveness')),
+            sourceValue(feature, source, 'distinctivenessScore')
           )
         )
+      }
     }
   ]
 }
@@ -153,13 +157,15 @@ function habitatTypeAndDistinctivenessColumns(interventionType) {
 function conditionColumn(interventionType) {
   return {
     text: 'Condition',
-    cell: (feature) =>
-      textCell(
+    cell: (feature) => {
+      const source = descriptiveSource(feature, interventionType)
+      return textCell(
         formatLabelAndScore(
-          bandLabel(descriptiveValue(feature, 'condition', interventionType)),
-          proposedValue(feature, 'conditionScore')
+          bandLabel(sourceValue(feature, source, 'condition')),
+          sourceValue(feature, source, 'conditionScore')
         )
       )
+    }
   }
 }
 
@@ -283,4 +289,10 @@ function buildPostInterventionHabitatGrid({
   })
 }
 
-export { buildPostInterventionHabitatGrid, formatYears, habitatTabHeading }
+export {
+  buildPostInterventionHabitatGrid,
+  descriptiveSource,
+  formatYears,
+  habitatTabHeading,
+  sourceValue
+}

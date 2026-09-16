@@ -1,17 +1,8 @@
-import { RETENTION_RETAINED } from '../../post-intervention-habitat-details/retention.js'
 import { formatLabelAndScore, textCell } from './habitat-grid.js'
-
-function proposedValue(feature, key) {
-  return feature?.proposed?.[key] ?? feature?.[key]
-}
-
-function encroachmentValue(feature, interventionType, key) {
-  if (interventionType === RETENTION_RETAINED) {
-    return feature?.baseline?.[key] ?? proposedValue(feature, key)
-  }
-
-  return proposedValue(feature, key)
-}
+import {
+  descriptiveSource,
+  sourceValue
+} from './post-intervention-habitat-grid.js'
 
 function encroachmentColumn({
   text,
@@ -21,13 +12,15 @@ function encroachmentColumn({
 }) {
   return {
     text,
-    cell: (feature) =>
-      textCell(
+    cell: (feature) => {
+      const source = descriptiveSource(feature, interventionType)
+      return textCell(
         formatLabelAndScore(
-          encroachmentValue(feature, interventionType, valueKey),
-          proposedValue(feature, multiplierKey)
+          sourceValue(feature, source, valueKey),
+          sourceValue(feature, source, multiplierKey)
         )
       )
+    }
   }
 }
 
