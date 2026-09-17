@@ -62,7 +62,7 @@ describe.each([
     await controller.handler(request(), h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         backHref: SELECTION_HREF,
         cancelHref: SELECTION_HREF
@@ -77,7 +77,7 @@ describe.each([
 
     const encodedTaskList = `%2Fadd-project-details%2F${PROJECT_ID}`
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-upload-file/habitat-upload-file',
+      'common/templates/upload-geopackage-file',
       expect.objectContaining({
         backHref: `/projects/${PROJECT_ID}/upload-file?returnUrl=${encodedTaskList}`,
         cancelHref: `/projects/${PROJECT_ID}/upload-file?returnUrl=${encodedTaskList}`

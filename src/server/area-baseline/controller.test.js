@@ -134,7 +134,7 @@ describe('area baseline', () => {
     expect(result).toContain(`href="${href}"`)
   })
 
-  test('renders five area habitat tiles with a text-only baseline action', async () => {
+  test('renders five area habitat tiles without a baseline action below the units', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/area-baseline`,
@@ -143,19 +143,18 @@ describe('area baseline', () => {
 
     const $ = load(result)
     const summary = $('.app-unit-type-summary')
-    const baselineAction = summary
-      .find('span')
-      .filter((_, node) => $(node).text() === 'View on-site area baseline')
+    const baselineTile = summary
+      .find('.app-unit-type-summary__tile')
+      .filter(
+        (_, tile) => $(tile).find('h3').first().text() === 'On-site baseline'
+      )
 
     expect($('.app-unit-type-summary')).toHaveLength(1)
     expect($('#area-habitats-heading')).toHaveLength(0)
     expect(summary.find('.app-unit-type-summary__tile')).toHaveLength(5)
-    expect(baselineAction).toHaveLength(1)
-    expect(
-      summary
-        .find('a')
-        .filter((_, link) => $(link).text() === 'View on-site area baseline')
-    ).toHaveLength(0)
+    expect(baselineTile).toHaveLength(1)
+    expect(baselineTile.find('p')).toHaveLength(1)
+    expect(baselineTile.text()).not.toContain('View on-site')
   })
 
   test('orders habitat and tree rows by ref and links refs with featureId', async () => {
@@ -441,7 +440,7 @@ describe('area baseline', () => {
     const $ = load(result)
 
     expect($('table').attr('data-module')).toBe('moj-sortable-table')
-    expect($('table').hasClass('app-area-habitat-details-table')).toBe(true)
+    expect($('table').hasClass('app-habitat-details-table')).toBe(true)
     expect($('th[aria-sort="none"]')).toHaveLength(8)
     expect($('th[aria-sort="ascending"]')).toHaveLength(0)
     expect($('.moj-scrollable-pane').attr('aria-label')).toBe(
@@ -468,6 +467,10 @@ describe('area baseline', () => {
     ).toBe(`/projects/${PROJECT_ID}/area-summary`)
     expect(navigation.text()).toContain('Hedgerows')
     expect(navigation.text()).not.toContain('Watercourses')
+    expect(
+      navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
+    ).toHaveLength(0)
+    expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
   })
 
   test('redirects a project without baseline data to the existing task list', async () => {

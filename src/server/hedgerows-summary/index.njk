@@ -1,0 +1,12 @@
+{% extends "unit-type-page.njk" %}
+
+{% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
+{% from "targets-summary/macro.njk" import appTargetsSummary %}
+
+{% block unitTypeBody %}
+  <h2 class="govuk-heading-m">Results</h2>
+
+  {{ appUnitTypeSummary(unitSummary) }}
+
+  {{ appTargetsSummary(targetsSummary) }}
+{% endblock %}

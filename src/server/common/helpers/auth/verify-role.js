@@ -1,3 +1,5 @@
+import { canonicalRelationshipId } from './relationship-id.js'
+
 export const bngCompleterRole = 'bng completer'
 
 // Defra Identity enrolment status that grants access. Only an APPROVED role
@@ -48,7 +50,13 @@ function parseRole(entry) {
     return null
   }
   return {
-    relationshipId: parts[0],
+    // Case-folded like the name: relationship ids are GUIDs, and GUIDs are
+    // case-insensitive (RFC 4122). Defra ID emits the SAME currentRelationshipId
+    // in a different case on a refresh_token grant than on interactive sign-in —
+    // confirmed by the drift classifier in refresh-session.js
+    // (`differs:case-only`) — so a verbatim comparison rejected a valid org
+    // context and ended the session. That was the whole of BMD-936.
+    relationshipId: canonicalRelationshipId(parts[0]),
     name: parts
       .slice(1, parts.length - 1)
       .join(':')
@@ -85,10 +93,12 @@ export function hasBngCompleterRole(user) {
     return false
   }
 
-  const current = user?.currentRelationshipId
+  const current = canonicalRelationshipId(user?.currentRelationshipId)
   if (!current) {
     return true
   }
+  // Both sides are canonicalised, so the same relationship in a different case
+  // still matches.
   return approvedCompleterRels.includes(current)
 }
 

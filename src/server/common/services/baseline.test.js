@@ -96,9 +96,9 @@ describe('#validateBaseline', () => {
 
   test('Should throw a Boom badGateway error on 5xx response from backend', async () => {
     const boomError = {
-      output: { statusCode: 503 },
+      output: { statusCode: 500 },
       data: { payload: {} },
-      message: 'Service Unavailable'
+      message: 'Internal Server Error'
     }
     vi.mocked(wreck.post).mockRejectedValue(boomError)
 
@@ -108,6 +108,97 @@ describe('#validateBaseline', () => {
       isBoom: true,
       output: { statusCode: 502 }
     })
+  })
+
+  // 503 is the backend saying every geometry-validation worker is busy and the
+  // file was never looked at. It must NOT become a badGateway: there is nothing
+  // wrong with the upload, and the user's next action is simply to retry.
+  /** A 503 from the backend, optionally carrying a Retry-After header. */
+  const busyResponse = (headers) => ({
+    output: { statusCode: 503 },
+    data: {
+      payload: {
+        valid: false,
+        errors: [{ code: 'VALIDATION_BUSY', message: 'The service is busy' }]
+      },
+      res: { headers }
+    },
+    message: 'Service Unavailable'
+  })
+
+  test('Should report a 503 from the backend as busy rather than an error', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(busyResponse({}))
+
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
+
+    expect(result).toEqual({
+      valid: false,
+      busy: true,
+      retryAfterSeconds: null,
+      errors: []
+    })
+  })
+
+  // A 503 is also what an ingress returns when it has no healthy backend to
+  // reach. Reading that as "busy" would leave the user politely retrying the
+  // "Checking your file" page for two minutes while the service is down, so the
+  // marker in the body — not the status code — is what decides.
+  test.each([
+    [
+      'an HTML error page from the platform',
+      '<html>503 Service Unavailable</html>'
+    ],
+    ['no body at all', undefined],
+    [
+      'a JSON body with different errors',
+      { valid: false, errors: [{ code: 'VALIDATION_FAILED' }] }
+    ]
+  ])(
+    'Should treat a 503 carrying %s as an error, not busy',
+    async (_label, payload) => {
+      vi.mocked(wreck.post).mockRejectedValue({
+        output: { statusCode: 503 },
+        data: { payload, res: { headers: {} } },
+        message: 'Service Unavailable'
+      })
+
+      await expect(
+        validateBaseline(makeRequest(), projectId, uploadId)
+      ).rejects.toMatchObject({
+        isBoom: true,
+        output: { statusCode: 502 }
+      })
+    }
+  )
+
+  // The backend is the side that knows how loaded it is, so it sets the pace.
+  test('Should honour a Retry-After header on the 503', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(
+      busyResponse({ 'retry-after': '7' })
+    )
+
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
+
+    expect(result.retryAfterSeconds).toBe(7)
+  })
+
+  // Treated as a hint, not an instruction: it comes from another service, and a
+  // bad value should not hammer the backend or strand the user on a spinner.
+  test.each([
+    ['absent', undefined],
+    ['not a number', 'soon'],
+    ['an HTTP-date, which we do not parse', 'Wed, 21 Oct 2026 07:28:00 GMT'],
+    ['zero, which would hammer the backend', '0'],
+    ['negative', '-5'],
+    ['implausibly far in the future', '3600']
+  ])('Should ignore a Retry-After that is %s', async (_label, value) => {
+    vi.mocked(wreck.post).mockRejectedValue(
+      busyResponse(value === undefined ? {} : { 'retry-after': value })
+    )
+
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
+
+    expect(result.retryAfterSeconds).toBeNull()
   })
 
   test('Should throw a Boom badGateway error on network failure', async () => {
