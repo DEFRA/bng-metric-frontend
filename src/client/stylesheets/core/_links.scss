@@ -5,7 +5,20 @@
 // distinguishing visited links isn't useful. Applied as a site-wide default
 // rather than the govuk-link--no-visited-state modifier so it also covers
 // future pages automatically.
-.govuk-link:visited,
-.govuk-footer__link:visited {
+//
+// Coverage notes:
+//   - Bare `a` is included so a future page using an unclassed anchor still
+//     inherits the default (GOV.UK Frontend otherwise repaints `a:visited`).
+//   - `.govuk-tabs__tab` is a link but carries no `.govuk-link` class; without
+//     JavaScript its visited state would otherwise go purple. The JS-enhanced
+//     tabs are unaffected — `.govuk-frontend-supported .govuk-tabs__tab:visited`
+//     keeps its higher specificity.
+//   - The colour-modifier classes (--muted, --text-colour, --inverse) set
+//     their own visited colour deliberately and share this rule's specificity,
+//     so they are excluded explicitly rather than relying on source order.
+a:visited,
+.govuk-link:not(.govuk-link--muted):not(.govuk-link--text-colour):not(.govuk-link--inverse):visited,
+.govuk-footer__link:visited,
+.govuk-tabs__tab:visited {
   color: govuk-functional-colour(link);
 }
