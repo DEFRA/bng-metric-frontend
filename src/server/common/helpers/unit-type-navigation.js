@@ -6,6 +6,7 @@ const BASELINE_TEXT = 'Baseline'
 const POST_INTERVENTION_TEXT = 'Post-intervention'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
+const REPORTS_TEXT = 'Reports'
 const HEDGEROWS_HABITAT_KEY = 'hedgerows'
 const WATERCOURSES_HABITAT_KEY = 'watercourses'
 
@@ -16,6 +17,7 @@ const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
 const HEDGEROWS_BASELINE_PATH = 'hedgerows-baseline'
 const HEDGEROWS_POST_INTERVENTION_PATH = 'hedgerows-post-intervention'
 const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
+const REPORTS_PATH = 'reports'
 const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline-summary'
 const WATERCOURSES_POST_INTERVENTION_PATH = 'watercourses-post-intervention'
 
@@ -133,6 +135,14 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
     }
   }
 
+  // Always last, and not conditional on any habitat type: the site report
+  // draws whatever the project holds, so the page it lives on is reachable
+  // whenever the project is.
+  items.push({
+    text: REPORTS_TEXT,
+    href: projectPageHref(projectId, REPORTS_PATH)
+  })
+
   for (const item of items) {
     markCurrent(item, currentHref)
   }
@@ -152,6 +162,8 @@ export {
   HEDGEROWS_TEXT,
   POST_INTERVENTION_TEXT,
   PROJECT_SUMMARY_PATH,
+  REPORTS_PATH,
+  REPORTS_TEXT,
   SUMMARY_TEXT,
   WATERCOURSES_BASELINE_PATH,
   WATERCOURSES_POST_INTERVENTION_PATH,

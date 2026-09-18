@@ -8,6 +8,7 @@ const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
 const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
+const REPORTS_HREF = `/projects/${PROJECT_ID}/reports`
 const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline-summary`
 const WATERCOURSES_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/watercourses-post-intervention`
 
@@ -26,8 +27,17 @@ describe('buildUnitTypeNavigation', () => {
             href: AREA_BASELINE_HREF
           }
         ]
-      }
+      },
+      { text: 'Reports', href: REPORTS_HREF }
     ])
+  })
+
+  test('always includes Reports, last, whatever the project holds', () => {
+    const items = buildUnitTypeNavigation({}, PROJECT_ID, AREA_SUMMARY_HREF)
+    expect(items.at(-1)).toEqual({ text: 'Reports', href: REPORTS_HREF })
+
+    const reportsPage = buildUnitTypeNavigation({}, PROJECT_ID, REPORTS_HREF)
+    expect(reportsPage.at(-1)).toEqual({ text: 'Reports', current: true })
   })
 
   test('includes Hedgerows as a collapsed link when the project has hedgerows', () => {
@@ -247,7 +257,8 @@ describe('buildUnitTypeNavigation', () => {
       { text: 'Summary', current: true },
       { text: 'Area habitats', href: AREA_SUMMARY_HREF },
       { text: 'Hedgerows', href: HEDGEROWS_SUMMARY_HREF },
-      { text: 'Watercourses', href: WATERCOURSES_SUMMARY_HREF }
+      { text: 'Watercourses', href: WATERCOURSES_SUMMARY_HREF },
+      { text: 'Reports', href: REPORTS_HREF }
     ])
   })
 })

@@ -1,0 +1,38 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "project-navigation/macro.njk" import appProjectNavigation %}
+
+{% set containerClasses = "app-width-container--wide" %}
+
+{% block content %}
+  <div class="govuk-grid-row app-project-summary-layout">
+    <div class="app-grid-column-one-sixth">
+      {{ appProjectNavigation({
+        label: "Reports",
+        items: navigationItems
+      }) }}
+    </div>
+
+    <div class="app-grid-column-five-sixths">
+      <span class="govuk-caption-l">{{ projectName }}</span>
+      <h1 class="govuk-heading-xl">{{ heading }}</h1>
+
+      <h2 class="govuk-heading-m">Site report</h2>
+      <p class="govuk-body">
+        A printable summary of your site: the baseline and post-intervention
+        habitats drawn on a map, the key figures, and every habitat parcel
+        listed with its type, condition and area.
+      </p>
+      <p class="govuk-body">
+        The report is generated from your project as it is now, so download it
+        again after making changes.
+      </p>
+      {{ govukButton({
+        text: "Download site report (PDF)",
+        href: siteReportHref,
+        attributes: { download: "", "data-testid": "site-report-link" }
+      }) }}
+    </div>
+  </div>
+{% endblock %}
