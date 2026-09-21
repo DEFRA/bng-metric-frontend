@@ -186,7 +186,10 @@ describe('project summary', () => {
     expect(result).toContain('Watercourses')
     expect(result.match(/Total on-site net percentage change/g)).toHaveLength(3)
     expect(result.match(/-100.00%/g)).toHaveLength(3)
-    expect(result.match(/Not met/g)).toHaveLength(3)
+    // One net-gain verdict per unit type, plus the area-habitat trading rules:
+    // with no post-intervention file there is nothing to trade against. The
+    // hedgerow and watercourse trading rules are not calculated yet.
+    expect(result.match(/Not met/g)).toHaveLength(4)
     expect(result.match(/Trading Rules/g)).toHaveLength(3)
   })
 
@@ -456,7 +459,9 @@ describe('project summary', () => {
     expect(result).toContain('>Project</span>')
     expect(result.match(/N\/A/g)).toHaveLength(3)
     expect(result).not.toContain('-100.00%')
-    expect(result).not.toContain('Not met')
+    // Nothing to judge on any percentage, so no net-gain verdict anywhere. The
+    // area trading rules are a different question and still have an answer.
+    expect(result.match(/Not met/g)).toHaveLength(1)
     expect(result).not.toContain('-0.00 units')
     expect(result.match(/0.00 units/g)).toHaveLength(9)
   })
@@ -490,7 +495,8 @@ describe('project summary', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result.match(/N\/A/g)).toHaveLength(2)
     expect(result.match(/-100.00%/g)).toHaveLength(1)
-    expect(result.match(/Not met/g)).toHaveLength(1)
+    // The area habitats net-gain verdict, plus its trading-rules verdict.
+    expect(result.match(/Not met/g)).toHaveLength(2)
   })
 
   test.each([

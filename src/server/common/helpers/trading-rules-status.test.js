@@ -10,7 +10,7 @@ describe('areaTradingRulesStatus', () => {
   test('renders Met as a green tag', () => {
     expect(
       areaTradingRulesStatus(
-        projectWith({ medium: 'Met', low: 'Met', areaHabitats: 'Met' })
+        projectWith({ medium: 'Met', low: 'Met', overall: 'Met' })
       )
     ).toEqual({ text: 'Met', classes: 'govuk-tag--green' })
   })
@@ -18,7 +18,7 @@ describe('areaTradingRulesStatus', () => {
   test('renders Not met as a red tag', () => {
     expect(
       areaTradingRulesStatus(
-        projectWith({ medium: 'Not met', low: 'Met', areaHabitats: 'Not met' })
+        projectWith({ medium: 'Not met', low: 'Met', overall: 'Not met' })
       )
     ).toEqual({ text: 'Not met', classes: 'govuk-tag--red' })
   })
@@ -28,15 +28,13 @@ describe('areaTradingRulesStatus', () => {
     // ignores a Medium deficit that the site-wide status does not. Showing the
     // Low band here would tell a site it is compliant when it is not.
     const status = areaTradingRulesStatus(
-      projectWith({ medium: 'Not met', low: 'Met', areaHabitats: 'Not met' })
+      projectWith({ medium: 'Not met', low: 'Met', overall: 'Not met' })
     )
 
     expect(status.text).toBe('Not met')
   })
 
   test.each([
-    ['no project', undefined],
-    ['no post-intervention upload', {}],
     ['no trading rules calculated', { postIntervention: {} }],
     [
       'no statuses on the trading rules',
@@ -46,9 +44,7 @@ describe('areaTradingRulesStatus', () => {
       'an unrecognised status',
       {
         postIntervention: {
-          tradingRules: {
-            areaHabitats: { statuses: { areaHabitats: 'Unknown' } }
-          }
+          tradingRules: { areaHabitats: { statuses: { overall: 'Unknown' } } }
         }
       }
     ],
@@ -56,11 +52,26 @@ describe('areaTradingRulesStatus', () => {
       'a null status',
       {
         postIntervention: {
-          tradingRules: { areaHabitats: { statuses: { areaHabitats: null } } }
+          tradingRules: { areaHabitats: { statuses: { overall: null } } }
         }
       }
     ]
   ])('shows nothing for %s', (_label, project) => {
+    // A post-intervention file was uploaded but the figures were never
+    // calculated, so the answer is genuinely unknown. No tag, rather than a
+    // red one claiming the site was assessed and fell short.
     expect(areaTradingRulesStatus(project)).toBeNull()
+  })
+
+  test.each([
+    ['a baseline with no post-intervention upload', {}],
+    ['no project at all', undefined]
+  ])('reports Not met for %s', (_label, project) => {
+    // Nothing has been delivered to trade against, so the rules cannot be met.
+    // The engine and the site report both say the same for this case.
+    expect(areaTradingRulesStatus(project)).toEqual({
+      text: 'Not met',
+      classes: 'govuk-tag--red'
+    })
   })
 })

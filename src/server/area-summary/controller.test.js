@@ -55,6 +55,15 @@ const baselineOnlyProject = {
   }
 }
 
+/** The tile whose heading contains this text — tiles carry no ids. */
+const tileContaining = ($, heading) =>
+  $('.app-unit-type-summary__tile').filter((_, tile) =>
+    $(tile).text().includes(heading)
+  )
+
+const NET_PERCENTAGE_TILE = 'Total on-site net percentage change'
+const TRADING_RULES_TILE = 'Trading Rules'
+
 describe('area summary', () => {
   let server
 
@@ -216,7 +225,14 @@ describe('area summary', () => {
     const targets = $('#targets-heading').closest('section')
 
     expect(areaSummary.text()).toContain('-100.00%')
-    expect($('.govuk-tag--red').text()).toBe('Not met')
+    expect(
+      tileContaining($, NET_PERCENTAGE_TILE).find('.govuk-tag--red').text()
+    ).toBe('Not met')
+    // A baseline with nothing delivered fails the trading rules too: there is
+    // nothing to trade against.
+    expect(
+      tileContaining($, TRADING_RULES_TILE).find('.govuk-tag--red').text()
+    ).toBe('Not met')
     expect(result).toContain('Upload on-site post intervention file')
     expect(targets.text()).toContain('1.67 units')
     expect(targets.text().match(/1\.67 units/g)).toHaveLength(2)
@@ -332,7 +348,17 @@ describe('area summary', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('>Project</span>')
-    expect(result).not.toContain('Not met')
+
+    // Nothing to judge on the percentage, so no verdict there. The trading
+    // rules are a different question and still have an answer: no
+    // post-intervention file was uploaded.
+    const $ = load(result)
+    expect(
+      tileContaining($, NET_PERCENTAGE_TILE).find('.govuk-tag')
+    ).toHaveLength(0)
+    expect(
+      tileContaining($, TRADING_RULES_TILE).find('.govuk-tag--red').text()
+    ).toBe('Not met')
   })
 
   test('shows N/A for the unit deficit, not a full deficit, when post-intervention data is present but incomplete', async () => {
@@ -476,14 +502,14 @@ describe('area summary', () => {
 describe('area summary trading rules status', () => {
   let server
 
-  const projectWithStatus = (areaHabitats) => ({
+  const projectWithStatus = (overall) => ({
     project: {
       ...projectWithPostIntervention.project,
       postIntervention: {
         ...projectWithPostIntervention.project.postIntervention,
         tradingRules: {
           areaHabitats: {
-            statuses: { medium: 'Not met', low: 'Met', areaHabitats }
+            statuses: { medium: 'Not met', low: 'Met', overall }
           }
         }
       }
@@ -544,9 +570,13 @@ describe('area summary trading rules status', () => {
     expect(tradingRulesTile($).text()).toContain('View trading rules')
   })
 
-  test('shows no status when only a baseline has been uploaded', async () => {
+  test('shows Not met when only a baseline has been uploaded', async () => {
+    // Nothing has been delivered to trade against, so the rules cannot be met.
     const $ = await renderWith(baselineOnlyProject)
 
-    expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
+    expect(tradingRulesTile($).find('.govuk-tag').text()).toBe('Not met')
+    expect(
+      tradingRulesTile($).find('.govuk-tag').hasClass('govuk-tag--red')
+    ).toBe(true)
   })
 })

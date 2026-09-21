@@ -267,14 +267,14 @@ describe('#postInterventionHabitatListController - summary table', () => {
 describe('#postInterventionHabitatListController - trading rules column', () => {
   let server
 
-  const projectWithStatus = (areaHabitats) => ({
+  const projectWithStatus = (overall) => ({
     project: {
       ...mockProject.project,
       postIntervention: {
         ...mockProject.project.postIntervention,
         tradingRules: {
           areaHabitats: {
-            statuses: { medium: 'Not met', low: 'Met', areaHabitats }
+            statuses: { medium: 'Not met', low: 'Met', overall }
           }
         }
       }

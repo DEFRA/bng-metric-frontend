@@ -17,25 +17,42 @@ const TAG_CLASSES = {
 }
 
 /**
- * The persisted area-habitat trading-rules status for a project, as a GOV.UK
- * tag, or null when there is nothing to show.
+ * The area-habitat trading-rules status for a project, as a GOV.UK tag, or
+ * null where there is nothing to show.
  *
- * Null covers a project with no post-intervention upload yet, and one uploaded
- * before the status was calculated. The pages render no tag at all in that
- * case rather than guessing at Met or Not met.
+ * Reads `statuses.overall` — the site-wide status, not either band. The Low
+ * band can pass while the site fails, because the figure it reads deliberately
+ * ignores a Medium deficit the metric spreadsheet would net off. Showing the
+ * Low band here would tell a site it is compliant when it is not.
+ *
+ * With a baseline but no post-intervention upload the answer is Not met:
+ * nothing has been delivered to trade against. The engine says the same, and
+ * so does the site report, but a project in that state has no
+ * post-intervention document to carry a status, so it is answered here.
+ *
+ * Null is kept for the one case that is genuinely unknown: a post-intervention
+ * upload whose status has not been calculated. No tag at all, rather than
+ * guessing at Met or Not met.
  *
  * @param {object} project the project document
  * @returns {{ text: string, classes: string }|null}
  */
 export function areaTradingRulesStatus(project) {
+  if (!project?.postIntervention) {
+    return tag(NOT_MET)
+  }
+
   const status =
-    project?.postIntervention?.tradingRules?.areaHabitats?.statuses
-      ?.areaHabitats
+    project.postIntervention.tradingRules?.areaHabitats?.statuses?.overall
 
   if (status !== MET && status !== NOT_MET) {
     return null
   }
 
+  return tag(status)
+}
+
+function tag(status) {
   return { text: status, classes: TAG_CLASSES[status] }
 }
 
