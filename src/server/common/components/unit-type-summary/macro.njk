@@ -24,6 +24,9 @@
       </div>
       <div class="app-unit-type-summary__tile">
         <h3 class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">Trading Rules</h3>
+        {% if params.tradingRules.status %}
+          <p class="govuk-body govuk-!-margin-bottom-3"><strong class="govuk-tag {{ params.tradingRules.status.classes }}">{{ params.tradingRules.status.text }}</strong></p>
+        {% endif %}
         <p class="govuk-body govuk-!-margin-bottom-0">{{ action(params.tradingRules) }}</p>
       </div>
     </div>

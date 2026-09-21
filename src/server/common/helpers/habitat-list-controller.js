@@ -10,6 +10,7 @@ import {
 import { interventionDisplay } from '../../post-intervention-habitat-details/retention.js'
 import { uploadFileHref } from './upload-file-navigation.js'
 import { hasHabitatData } from './project-state.js'
+import { areaTradingRulesStatus } from './trading-rules-status.js'
 
 const NO_DATA_DISPLAY = 'No data'
 const SQUARE_METRES_PER_HECTARE = 10000
@@ -221,6 +222,10 @@ function buildPostInterventionSummary(project) {
       size: formatSummaryAreaSize(habitatSizes?.site?.totalSquareMetres)
     },
     areaHabitats: {
+      // Area habitats are the only unit type with a trading-rules status so
+      // far. The hedgerow and watercourse cells stay empty until their own
+      // rules are calculated.
+      tradingRulesStatus: areaTradingRulesStatus(project),
       size: formatSummaryAreaSize(
         habitatSizes?.areaHabitats?.totalSquareMetres
       ),

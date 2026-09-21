@@ -79,7 +79,8 @@ function buildHabitatPostIntervention(project, projectId, config) {
       intervention,
       postInterventionOnly,
       baselineAction: config.baselineAction(projectId),
-      interventionAction: null
+      interventionAction: null,
+      tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null
     }),
     retainedTab: tabById(interventionTabPanels, 'retained'),
     enhancedTab: tabById(interventionTabPanels, 'enhanced'),
