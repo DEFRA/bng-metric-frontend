@@ -268,16 +268,9 @@ describe('#postInterventionHabitatListController - trading rules column', () => 
   let server
 
   const projectWithStatus = (overall) => ({
-    project: {
-      ...mockProject.project,
-      postIntervention: {
-        ...mockProject.project.postIntervention,
-        tradingRules: {
-          areaHabitats: {
-            statuses: { medium: 'Not met', low: 'Met', overall }
-          }
-        }
-      }
+    ...mockProject,
+    tradingRuleStatuses: {
+      areaHabitats: { medium: 'Not met', low: 'Met', overall }
     }
   })
 

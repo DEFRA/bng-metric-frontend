@@ -186,10 +186,10 @@ describe('project summary', () => {
     expect(result).toContain('Watercourses')
     expect(result.match(/Total on-site net percentage change/g)).toHaveLength(3)
     expect(result.match(/-100.00%/g)).toHaveLength(3)
-    // One net-gain verdict per unit type, plus the area-habitat trading rules:
-    // with no post-intervention file there is nothing to trade against. The
-    // hedgerow and watercourse trading rules are not calculated yet.
-    expect(result.match(/Not met/g)).toHaveLength(4)
+    // One net-gain verdict per unit type. No trading-rules verdict: this
+    // payload carries no `tradingRuleStatuses`, which is what the backend
+    // returns when the figures have not been calculated.
+    expect(result.match(/Not met/g)).toHaveLength(3)
     expect(result.match(/Trading Rules/g)).toHaveLength(3)
   })
 
@@ -459,9 +459,7 @@ describe('project summary', () => {
     expect(result).toContain('>Project</span>')
     expect(result.match(/N\/A/g)).toHaveLength(3)
     expect(result).not.toContain('-100.00%')
-    // Nothing to judge on any percentage, so no net-gain verdict anywhere. The
-    // area trading rules are a different question and still have an answer.
-    expect(result.match(/Not met/g)).toHaveLength(1)
+    expect(result).not.toContain('Not met')
     expect(result).not.toContain('-0.00 units')
     expect(result.match(/0.00 units/g)).toHaveLength(9)
   })
@@ -495,8 +493,7 @@ describe('project summary', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result.match(/N\/A/g)).toHaveLength(2)
     expect(result.match(/-100.00%/g)).toHaveLength(1)
-    // The area habitats net-gain verdict, plus its trading-rules verdict.
-    expect(result.match(/Not met/g)).toHaveLength(2)
+    expect(result.match(/Not met/g)).toHaveLength(1)
   })
 
   test.each([
@@ -895,5 +892,63 @@ describe('project summary', () => {
     expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/auth/forbidden')
     expect(wreck.get).not.toHaveBeenCalled()
+  })
+})
+
+describe('project summary trading rules status', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+    return load(result)
+  }
+
+  const tradingRulesTiles = ($) =>
+    $('.app-unit-type-summary__tile').filter((_, tile) =>
+      $(tile).text().includes('Trading Rules')
+    )
+
+  test('shows the backend verdict against area habitats only', async () => {
+    // Three unit types, three Trading Rules tiles, but only area habitats has
+    // a verdict so far — the hedgerow and watercourse rules are separate work.
+    const $ = await renderWith({
+      ...projectWithPostIntervention,
+      tradingRuleStatuses: {
+        areaHabitats: { medium: 'Not met', low: 'Met', overall: 'Not met' }
+      }
+    })
+
+    const tiles = tradingRulesTiles($)
+    expect(tiles).toHaveLength(3)
+    expect(tiles.find('.govuk-tag')).toHaveLength(1)
+    expect(tiles.find('.govuk-tag').text()).toBe('Not met')
+    expect(tiles.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows no verdict where the backend gave none', async () => {
+    const $ = await renderWith(projectWithPostIntervention)
+
+    expect(tradingRulesTiles($).find('.govuk-tag')).toHaveLength(0)
   })
 })

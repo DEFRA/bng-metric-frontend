@@ -43,7 +43,13 @@ const projectWithPostIntervention = {
   }
 }
 
+/** What the backend derives for a project with no post-intervention file. */
+const NO_INTERVENTION_STATUSES = {
+  areaHabitats: { medium: null, low: null, overall: 'Not met' }
+}
+
 const baselineOnlyProject = {
+  tradingRuleStatuses: NO_INTERVENTION_STATUSES,
   project: {
     name: 'Baseline only project',
     baseline: {
@@ -329,6 +335,7 @@ describe('area summary', () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
+        tradingRuleStatuses: NO_INTERVENTION_STATUSES,
         project: {
           baseline: {
             units: {
@@ -502,17 +509,12 @@ describe('area summary', () => {
 describe('area summary trading rules status', () => {
   let server
 
+  // The backend derives these per request and returns them on the envelope,
+  // beside `project` rather than inside it.
   const projectWithStatus = (overall) => ({
-    project: {
-      ...projectWithPostIntervention.project,
-      postIntervention: {
-        ...projectWithPostIntervention.project.postIntervention,
-        tradingRules: {
-          areaHabitats: {
-            statuses: { medium: 'Not met', low: 'Met', overall }
-          }
-        }
-      }
+    ...projectWithPostIntervention,
+    tradingRuleStatuses: {
+      areaHabitats: { medium: 'Not met', low: 'Met', overall }
     }
   })
 
@@ -572,6 +574,7 @@ describe('area summary trading rules status', () => {
 
   test('shows Not met when only a baseline has been uploaded', async () => {
     // Nothing has been delivered to trade against, so the rules cannot be met.
+    // The backend reaches that verdict; the page only draws it.
     const $ = await renderWith(baselineOnlyProject)
 
     expect(tradingRulesTile($).find('.govuk-tag').text()).toBe('Not met')

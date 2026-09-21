@@ -1,11 +1,12 @@
 /**
- * Display shape for the trading-rules status the engine derives.
+ * Display shape for the trading-rules status the backend derives.
  *
- * The status itself is calculated in `bng-library` and persisted by the
- * backend. Nothing is derived here: the Low band rule reads a figure that
- * deliberately differs from the metric spreadsheet and is only safe when it is
- * paired with the Medium band rule, so the calculation lives in one place and
- * this file only decides how to draw the answer.
+ * Nothing is decided here. The verdict is worked out once, in the engine, and
+ * served on the project response — this file only turns it into a GOV.UK tag.
+ * That matters because the rule is easy to get wrong in a way that wrongly
+ * reports "Met": the Low band figure deliberately ignores a Medium deficit the
+ * statutory metric nets off, and is sound only when paired with the Medium
+ * band. Reading the site-wide verdict is the only safe thing to do with it.
  */
 
 const MET = 'Met'
@@ -17,42 +18,28 @@ const TAG_CLASSES = {
 }
 
 /**
- * The area-habitat trading-rules status for a project, as a GOV.UK tag, or
- * null where there is nothing to show.
+ * The area-habitat trading-rules status as a GOV.UK tag, or null for no tag.
  *
- * Reads `statuses.overall` — the site-wide status, not either band. The Low
- * band can pass while the site fails, because the figure it reads deliberately
- * ignores a Medium deficit the metric spreadsheet would net off. Showing the
- * Low band here would tell a site it is compliant when it is not.
+ * Reads `overall` — the site-wide verdict, not either band. The Low band can
+ * pass while the site fails, so showing that one would tell a site it is
+ * compliant when it is not.
  *
- * With a baseline but no post-intervention upload the answer is Not met:
- * nothing has been delivered to trade against. The engine says the same, and
- * so does the site report, but a project in that state has no
- * post-intervention document to carry a status, so it is answered here.
+ * Null means the backend had no verdict to give: a post-intervention file was
+ * uploaded but its figures were never calculated. Unknown is not failed, so the
+ * pages show no tag rather than a red one claiming the site was assessed. A
+ * project with no post-intervention file at all is not this case — the backend
+ * returns Not met for it, because nothing has been delivered to trade against.
  *
- * Null is kept for the one case that is genuinely unknown: a post-intervention
- * upload whose status has not been calculated. No tag at all, rather than
- * guessing at Met or Not met.
- *
- * @param {object} project the project document
+ * @param {object} project the project, as returned by `fetchProjectOrThrow`
  * @returns {{ text: string, classes: string }|null}
  */
 export function areaTradingRulesStatus(project) {
-  if (!project?.postIntervention) {
-    return tag(NOT_MET)
-  }
-
-  const status =
-    project.postIntervention.tradingRules?.areaHabitats?.statuses?.overall
+  const status = project?.tradingRuleStatuses?.areaHabitats?.overall
 
   if (status !== MET && status !== NOT_MET) {
     return null
   }
 
-  return tag(status)
-}
-
-function tag(status) {
   return { text: status, classes: TAG_CLASSES[status] }
 }
 

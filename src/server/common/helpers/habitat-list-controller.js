@@ -211,7 +211,12 @@ function formatSummaryLengthSize(metres) {
   return `${(metres / METRES_PER_KILOMETRE).toFixed(2)}km`
 }
 
-function buildPostInterventionSummary(project) {
+/**
+ * @param {object} project the stored project document
+ * @param {object} [tradingRuleStatuses] the backend's derived statuses, which
+ *   ride on the response envelope rather than inside the document
+ */
+function buildPostInterventionSummary(project, tradingRuleStatuses) {
   const baselineUnits = project?.baseline?.units
   const postIntervention = project?.postIntervention
   const postInterventionUnits = postIntervention?.units
@@ -225,7 +230,7 @@ function buildPostInterventionSummary(project) {
       // Area habitats are the only unit type with a trading-rules status so
       // far. The hedgerow and watercourse cells stay empty until their own
       // rules are calculated.
-      tradingRulesStatus: areaTradingRulesStatus(project),
+      tradingRulesStatus: areaTradingRulesStatus({ tradingRuleStatuses }),
       size: formatSummaryAreaSize(
         habitatSizes?.areaHabitats?.totalSquareMetres
       ),
@@ -308,7 +313,10 @@ function createHabitatListController(uploadType) {
         totalSizes: buildTotalSizes(habitatsData),
         totalUnits: buildTotalUnits(habitatsData),
         postInterventionSummary: uploadType.isPostIntervention
-          ? buildPostInterventionSummary(projectData)
+          ? buildPostInterventionSummary(
+              projectData,
+              project?.payload?.tradingRuleStatuses
+            )
           : null,
         habitatRows: mapRowsOrNull(
           areaFeatures,
