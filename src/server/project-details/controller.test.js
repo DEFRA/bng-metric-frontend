@@ -1,4 +1,14 @@
 import Boom from '@hapi/boom'
+import { fetchLocalPlanningAuthorities } from '../common/services/local-planning-authorities.js'
+
+vi.mock('../common/services/local-planning-authorities.js', () => ({
+  fetchLocalPlanningAuthorities: vi.fn()
+}))
+beforeEach(() => {
+  vi.mocked(fetchLocalPlanningAuthorities).mockResolvedValue([
+    { name: 'Anytown Borough Council', reference: 'E60000001' }
+  ])
+})
 
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
@@ -31,6 +41,7 @@ const url = `/project-details/${projectId}`
 const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
 const savedDetails = {
   localPlanningAuthority: 'Anytown Borough Council',
+  localPlanningAuthorityReference: 'E60000001',
   surveyCompleters: 'Jane Smith',
   surveyCompletionDate: '01/06/2025',
   developmentType: 'Small site',
@@ -44,8 +55,11 @@ const mockProjectWithDetails = {
   }
 }
 
-const { surveyCompletionDate: _savedDate, ...savedDetailsWithoutDate } =
-  savedDetails
+const {
+  surveyCompletionDate: _savedDate,
+  localPlanningAuthority: _savedName,
+  ...savedDetailsWithoutDate
+} = savedDetails
 const savedDateFormFields = {
   'surveyCompletionDate-day': '01',
   'surveyCompletionDate-month': '06',
@@ -106,6 +120,28 @@ describe('#projectDetailsController', () => {
     expect(result).toContain('govuk-heading-xl')
   })
 
+  test('returns 502 rather than an empty dropdown when the lookup fails', async () => {
+    vi.mocked(fetchLocalPlanningAuthorities).mockRejectedValueOnce(
+      Boom.badGateway('Lookup unavailable')
+    )
+    const res = await server.inject({ method: 'GET', url, auth: authedAuth })
+    expect(res.statusCode).toBe(statusCodes.badGateway)
+  })
+
+  test('shows legacy free text without guessing a reference', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: { details: { localPlanningAuthority: 'Historic council' } }
+      }
+    })
+    const res = await server.inject({ method: 'GET', url, auth: authedAuth })
+    expect(res.result).toContain(
+      'Previously saved Local Planning Authority: Historic council'
+    )
+    expect(res.result).toMatch(/value="" selected/)
+  })
+
   test('renders the back link', async () => {
     const { result } = await server.inject({
       method: 'GET',
@@ -145,7 +181,9 @@ describe('#projectDetailsController', () => {
       url,
       auth: authedAuth
     })
-    expect(result).not.toContain('Anytown Borough Council')
+    expect(result).toContain('<select')
+    expect(result).toMatch(/value="" selected/)
+    expect(result).not.toMatch(/value="E60000001" selected/)
   })
 
   test('pre-fills the form with previously saved details', async () => {
@@ -158,7 +196,7 @@ describe('#projectDetailsController', () => {
       url,
       auth: authedAuth
     })
-    expect(result).toContain('value="Anytown Borough Council"')
+    expect(result).toMatch(/value="E60000001" selected/)
     expect(result).toContain('value="Jane Smith"')
     expect(result).toContain('value="Acme Developments Ltd"')
     // Date input: day/month/year pre-filled from the saved DD/MM/YYYY string
@@ -317,12 +355,70 @@ describe('#projectDetailsPostController', () => {
     expect(body).toEqual(savedDetails)
   })
 
+  test.each(['E60099999', 'not-a-reference'])(
+    'rejects unknown or malformed reference %s and retains the rest of the form',
+    async (reference) => {
+      const res = await server.inject({
+        method: 'POST',
+        url,
+        auth: authedAuth,
+        headers: { cookie: crumb.cookie },
+        payload: {
+          ...savedDetailsFormPayload,
+          localPlanningAuthorityReference: reference,
+          crumb: crumb.token
+        }
+      })
+      expect(res.statusCode).toBe(statusCodes.ok)
+      expect(res.result).toContain(
+        'Select a Local Planning Authority from the list'
+      )
+      expect(res.result).toContain('href="#localPlanningAuthorityReference"')
+      expect(res.result).toContain('value="Jane Smith"')
+      expect(wreck.patch).not.toHaveBeenCalled()
+    }
+  )
+
+  test('clears the LPA when the blank option is selected', async () => {
+    await server.inject({
+      method: 'POST',
+      url,
+      auth: authedAuth,
+      headers: { cookie: crumb.cookie },
+      payload: {
+        ...savedDetailsFormPayload,
+        localPlanningAuthorityReference: '',
+        crumb: crumb.token
+      }
+    })
+    const body = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
+    expect(body).toMatchObject({
+      localPlanningAuthority: null,
+      localPlanningAuthorityReference: null
+    })
+  })
+
+  test('does not save when the lookup is unavailable', async () => {
+    vi.mocked(fetchLocalPlanningAuthorities).mockRejectedValueOnce(
+      Boom.badGateway('Lookup unavailable')
+    )
+    const res = await server.inject({
+      method: 'POST',
+      url,
+      auth: authedAuth,
+      headers: { cookie: crumb.cookie },
+      payload: { ...savedDetailsFormPayload, crumb: crumb.token }
+    })
+    expect(res.statusCode).toBe(statusCodes.badGateway)
+    expect(wreck.patch).not.toHaveBeenCalled()
+  })
+
   test('sends explicit null for fields left blank, so the backend clears them', async () => {
     await server.inject({
       method: 'POST',
       url,
       payload: {
-        localPlanningAuthority: 'Anytown Borough Council',
+        localPlanningAuthorityReference: 'E60000001',
         crumb: crumb.token
       },
       headers: { cookie: crumb.cookie },
@@ -334,6 +430,7 @@ describe('#projectDetailsPostController', () => {
 
     expect(body).toEqual({
       localPlanningAuthority: 'Anytown Borough Council',
+      localPlanningAuthorityReference: 'E60000001',
       surveyCompleters: null,
       surveyCompletionDate: null,
       developmentType: null,
@@ -471,7 +568,7 @@ describe('#projectDetailsPostController', () => {
       method: 'POST',
       url,
       payload: {
-        localPlanningAuthority: 'Anytown Borough Council',
+        localPlanningAuthorityReference: 'E60000001',
         'surveyCompletionDate-day': '31',
         'surveyCompletionDate-month': '2',
         'surveyCompletionDate-year': '2025',
@@ -481,7 +578,7 @@ describe('#projectDetailsPostController', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain('value="Anytown Borough Council"')
+    expect(result).toMatch(/value="E60000001" selected/)
     expect(result).toMatch(/id="surveyCompletionDate-day"[^>]*value="31"/)
     expect(result).toMatch(/id="surveyCompletionDate-month"[^>]*value="2"/)
     expect(result).toMatch(/id="surveyCompletionDate-year"[^>]*value="2025"/)
@@ -518,6 +615,7 @@ describe('#projectDetailsPostController', () => {
     const [, options] = vi.mocked(wreck.patch).mock.calls[0]
     expect(JSON.parse(options.payload)).toEqual({
       localPlanningAuthority: null,
+      localPlanningAuthorityReference: null,
       surveyCompleters: null,
       surveyCompletionDate: null,
       developmentType: null,

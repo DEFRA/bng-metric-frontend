@@ -46,7 +46,7 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *           schema:
  *             type: object
  *             properties:
- *               localPlanningAuthority:
+ *               localPlanningAuthorityReference:
  *                 type: string
  *               surveyCompleters:
  *                 type: string
