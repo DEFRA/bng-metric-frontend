@@ -5,6 +5,12 @@
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/table/macro.njk" import govukTable %}
 
+{# Renders the trading-rules status as a GOV.UK tag, or an empty cell when the
+   unit type has no status yet. #}
+{% macro tradingRulesTag(status) -%}
+  {%- if status -%}<strong class="govuk-tag {{ status.classes }}">{{ status.text }}</strong>{%- endif -%}
+{%- endmacro %}
+
 {% macro habitatTableCell(cell) -%}
   <td class="govuk-table__cell"{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}>{% if cell.href %}<a class="govuk-link" href="{{ cell.href }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
 {%- endmacro %}
@@ -41,7 +47,7 @@
           ],
           rows: [
             [{ text: "Site" }, { text: postInterventionSummary.site.size }, { text: "" }, { text: "" }, { text: "" }, { text: "" }, { text: "" }],
-            [{ text: "Area habitats" }, { text: postInterventionSummary.areaHabitats.size }, { text: postInterventionSummary.areaHabitats.baselineUnits }, { text: postInterventionSummary.areaHabitats.postInterventionUnits }, { text: postInterventionSummary.areaHabitats.netUnitChange }, { text: postInterventionSummary.areaHabitats.netPercentageChange }, { text: "" }],
+            [{ text: "Area habitats" }, { text: postInterventionSummary.areaHabitats.size }, { text: postInterventionSummary.areaHabitats.baselineUnits }, { text: postInterventionSummary.areaHabitats.postInterventionUnits }, { text: postInterventionSummary.areaHabitats.netUnitChange }, { text: postInterventionSummary.areaHabitats.netPercentageChange }, { html: tradingRulesTag(postInterventionSummary.areaHabitats.tradingRulesStatus) }],
             [{ text: "Hedgerows" }, { text: postInterventionSummary.hedgerows.size }, { text: postInterventionSummary.hedgerows.baselineUnits }, { text: postInterventionSummary.hedgerows.postInterventionUnits }, { text: postInterventionSummary.hedgerows.netUnitChange }, { text: postInterventionSummary.hedgerows.netPercentageChange }, { text: "" }],
             [{ text: "Watercourses" }, { text: postInterventionSummary.watercourses.size }, { text: postInterventionSummary.watercourses.baselineUnits }, { text: postInterventionSummary.watercourses.postInterventionUnits }, { text: postInterventionSummary.watercourses.netUnitChange }, { text: postInterventionSummary.watercourses.netPercentageChange }, { text: "" }]
           ]

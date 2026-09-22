@@ -36,7 +36,8 @@ function buildHabitatBaseline(project, projectId, config) {
       uploadHref,
       intervention,
       baselineAction: null,
-      interventionAction: config.interventionAction?.(projectId)
+      interventionAction: config.interventionAction?.(projectId),
+      tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null
     }),
     ...buildBaselineHabitatGrid({
       features,

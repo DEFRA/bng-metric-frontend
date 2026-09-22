@@ -14,6 +14,7 @@ import {
   buildTargetsSummary,
   buildUnitSummary
 } from '../common/helpers/unit-summary.js'
+import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const NO_POST_INTERVENTION_UNITS = 0
@@ -46,7 +47,10 @@ function buildAreaSummary(project, projectId) {
       baselineUnits: baselineAreaUnits,
       uploadHref,
       intervention: interventionSummary,
-      baselineAction: areaBaselineAction(`/projects/${projectId}/area-baseline`)
+      baselineAction: areaBaselineAction(
+        `/projects/${projectId}/area-baseline`
+      ),
+      tradingRulesStatus: areaTradingRulesStatus(project)
     }),
     targetsSummary: buildTargetsSummary({
       baselineUnits: baselineAreaUnits,

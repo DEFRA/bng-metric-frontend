@@ -500,3 +500,107 @@ describe('area baseline', () => {
     expect(wreck.get).not.toHaveBeenCalled()
   })
 })
+
+describe('area baseline trading rules status', () => {
+  let server
+
+  // The backend derives these per request and returns them on the envelope,
+  // beside `project` rather than inside it. `medium` and `low` deliberately
+  // disagree with `overall` here: the page must read the site-wide verdict, and
+  // a Low band can pass while the site fails.
+  const projectWithStatus = (overall) => ({
+    ...projectWithHabitats,
+    tradingRuleStatuses: {
+      areaHabitats: { medium: 'Not met', low: 'Met', overall }
+    }
+  })
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-baseline`,
+      auth
+    })
+    return load(result)
+  }
+
+  // Selected on the heading rather than the tile's whole text, because the
+  // net-percentage tile carries a tag of its own — matching loosely would let
+  // this assert the wrong one.
+  const tileByHeading = ($, heading) =>
+    $('.app-unit-type-summary__tile').filter(
+      (_, tile) => $(tile).find('h3').first().text() === heading
+    )
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('shows Met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Met'))
+    const tag = tileByHeading($, 'Trading Rules').find('.govuk-tag')
+
+    expect(tag.text()).toBe('Met')
+    expect(tag.hasClass('govuk-tag--green')).toBe(true)
+  })
+
+  test('shows Not met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Not met'))
+    const tag = tileByHeading($, 'Trading Rules').find('.govuk-tag')
+
+    expect(tag.text()).toBe('Not met')
+    expect(tag.hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('reads the trading-rules verdict, not the net-gain one beside it', async () => {
+    // The net percentage tile carries its own Met / Not met tag for the 10%
+    // net-gain target — same words, same colours, different rule. With the two
+    // verdicts deliberately opposed, crossed wiring cannot pass this.
+    const $ = await renderWith(projectWithStatus('Met'))
+    const tradingTag = tileByHeading($, 'Trading Rules').find('.govuk-tag')
+    const netGainTag = tileByHeading(
+      $,
+      'Total on-site net percentage change'
+    ).find('.govuk-tag')
+
+    expect(tradingTag.text()).toBe('Met')
+    expect(tradingTag.hasClass('govuk-tag--green')).toBe(true)
+    expect(netGainTag.text()).toBe('Not met')
+    expect(netGainTag.hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows no status when the backend returns no verdict', async () => {
+    // Unknown is not failed — a red "Not met" would claim the site was assessed.
+    const $ = await renderWith({
+      ...projectWithHabitats,
+      tradingRuleStatuses: { areaHabitats: { overall: null } }
+    })
+
+    expect(tileByHeading($, 'Trading Rules').find('.govuk-tag')).toHaveLength(0)
+  })
+
+  test('shows no status when the envelope carries no statuses at all', async () => {
+    const $ = await renderWith(projectWithHabitats)
+
+    expect(tileByHeading($, 'Trading Rules').find('.govuk-tag')).toHaveLength(0)
+  })
+
+  test('shows no status for a verdict it does not recognise', async () => {
+    const $ = await renderWith(projectWithStatus('Partially met'))
+
+    expect(tileByHeading($, 'Trading Rules').find('.govuk-tag')).toHaveLength(0)
+  })
+})

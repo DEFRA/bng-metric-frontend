@@ -116,3 +116,49 @@ describe('Unit type summary component', () => {
     expect(baselineTile.text()).not.toContain('View on-site baseline')
   })
 })
+
+describe('Unit type summary trading-rules status', () => {
+  test('renders the status as a tag inside the Trading Rules tile', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      status: null,
+      tradingRules: {
+        text: 'View trading rules',
+        status: { text: 'Not met', classes: 'govuk-tag--red' }
+      }
+    })
+
+    const tile = $('.app-unit-type-summary__tile').filter((_, el) =>
+      $(el).text().includes('Trading Rules')
+    )
+
+    expect(tile.find('.govuk-tag').text()).toBe('Not met')
+    expect(tile.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+    expect(tile.text()).toContain('View trading rules')
+  })
+
+  test('renders a green tag for Met', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      status: null,
+      tradingRules: {
+        text: 'View trading rules',
+        status: { text: 'Met', classes: 'govuk-tag--green' }
+      }
+    })
+
+    expect($('.govuk-tag').text()).toBe('Met')
+    expect($('.govuk-tag').hasClass('govuk-tag--green')).toBe(true)
+  })
+
+  test('renders no tag when there is no status, leaving the tile as it was', () => {
+    const $ = renderComponent('unit-type-summary', {
+      ...summary,
+      status: null,
+      tradingRules: { text: 'View trading rules', status: null }
+    })
+
+    expect($('.govuk-tag')).toHaveLength(0)
+    expect($('section').text()).toContain('View trading rules')
+  })
+})
