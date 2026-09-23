@@ -46,8 +46,7 @@ function buildTabPanel(tab, features, projectId, config) {
       readSize: config.readSize,
       formatSize: config.formatSize,
       formatSizeTotal: config.formatSizeTotal,
-      leadingExtraColumns: config.buildLeadingExtraColumns?.(tab.label) ?? [],
-      extraColumns: config.buildExtraColumns?.(tab.label) ?? []
+      leadingExtraColumns: config.buildLeadingExtraColumns?.(tab.label) ?? []
     })
   }
 }
