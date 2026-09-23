@@ -79,7 +79,7 @@
   "devDependencies": {
     "@babel/preset-env": "8.0.5",
     "@vitest/coverage-v8": "5.0.1",
-    "autoprefixer": "10.6.0",
+    "autoprefixer": "10.6.1",
     "babel-loader": "10.1.1",
     "cheerio": "1.2.0",
     "clean-webpack-plugin": "4.0.0",
