@@ -43,7 +43,13 @@ const projectWithPostIntervention = {
   }
 }
 
+/** What the backend derives for a project with no post-intervention file. */
+const NO_INTERVENTION_STATUSES = {
+  areaHabitats: { medium: null, low: null, overall: 'Not met' }
+}
+
 const baselineOnlyProject = {
+  tradingRuleStatuses: NO_INTERVENTION_STATUSES,
   project: {
     name: 'Baseline only project',
     baseline: {
@@ -54,6 +60,15 @@ const baselineOnlyProject = {
     }
   }
 }
+
+/** The tile whose heading contains this text — tiles carry no ids. */
+const tileContaining = ($, heading) =>
+  $('.app-unit-type-summary__tile').filter((_, tile) =>
+    $(tile).text().includes(heading)
+  )
+
+const NET_PERCENTAGE_TILE = 'Total on-site net percentage change'
+const TRADING_RULES_TILE = 'Trading Rules'
 
 describe('area summary', () => {
   let server
@@ -216,7 +231,14 @@ describe('area summary', () => {
     const targets = $('#targets-heading').closest('section')
 
     expect(areaSummary.text()).toContain('-100.00%')
-    expect($('.govuk-tag--red').text()).toBe('Not met')
+    expect(
+      tileContaining($, NET_PERCENTAGE_TILE).find('.govuk-tag--red').text()
+    ).toBe('Not met')
+    // A baseline with nothing delivered fails the trading rules too: there is
+    // nothing to trade against.
+    expect(
+      tileContaining($, TRADING_RULES_TILE).find('.govuk-tag--red').text()
+    ).toBe('Not met')
     expect(result).toContain('Upload on-site post intervention file')
     expect(targets.text()).toContain('1.67 units')
     expect(targets.text().match(/1\.67 units/g)).toHaveLength(2)
@@ -318,6 +340,7 @@ describe('area summary', () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
+        tradingRuleStatuses: NO_INTERVENTION_STATUSES,
         project: {
           baseline: {
             units: {
@@ -337,7 +360,17 @@ describe('area summary', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('>Project</span>')
-    expect(result).not.toContain('Not met')
+
+    // Nothing to judge on the percentage, so no verdict there. The trading
+    // rules are a different question and still have an answer: no
+    // post-intervention file was uploaded.
+    const $ = load(result)
+    expect(
+      tileContaining($, NET_PERCENTAGE_TILE).find('.govuk-tag')
+    ).toHaveLength(0)
+    expect(
+      tileContaining($, TRADING_RULES_TILE).find('.govuk-tag--red').text()
+    ).toBe('Not met')
   })
 
   test('shows N/A for the unit deficit, not a full deficit, when post-intervention data is present but incomplete', async () => {
@@ -475,5 +508,83 @@ describe('area summary', () => {
     expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/auth/forbidden')
     expect(wreck.get).not.toHaveBeenCalled()
+  })
+})
+
+describe('area summary trading rules status', () => {
+  let server
+
+  // The backend derives these per request and returns them on the envelope,
+  // beside `project` rather than inside it.
+  const projectWithStatus = (overall) => ({
+    ...projectWithPostIntervention,
+    tradingRuleStatuses: {
+      areaHabitats: { medium: 'Not met', low: 'Met', overall }
+    }
+  })
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-summary`,
+      auth
+    })
+    return load(result)
+  }
+
+  const tradingRulesTile = ($) =>
+    $('.app-unit-type-summary__tile').filter((_, el) =>
+      $(el).text().includes('Trading Rules')
+    )
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('shows Not met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Not met'))
+    const tile = tradingRulesTile($)
+
+    expect(tile.find('.govuk-tag').text()).toBe('Not met')
+    expect(tile.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows Met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Met'))
+    const tile = tradingRulesTile($)
+
+    expect(tile.find('.govuk-tag').text()).toBe('Met')
+    expect(tile.find('.govuk-tag').hasClass('govuk-tag--green')).toBe(true)
+  })
+
+  test('shows no status until the trading rules have been calculated', async () => {
+    const $ = await renderWith(projectWithPostIntervention)
+
+    expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
+    expect(tradingRulesTile($).text()).toContain('View trading rules')
+  })
+
+  test('shows Not met when only a baseline has been uploaded', async () => {
+    // Nothing has been delivered to trade against, so the rules cannot be met.
+    // The backend reaches that verdict; the page only draws it.
+    const $ = await renderWith(baselineOnlyProject)
+
+    expect(tradingRulesTile($).find('.govuk-tag').text()).toBe('Not met')
+    expect(
+      tradingRulesTile($).find('.govuk-tag').hasClass('govuk-tag--red')
+    ).toBe(true)
   })
 })

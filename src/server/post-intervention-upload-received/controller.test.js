@@ -1,5 +1,9 @@
 import { getUploadStatus } from '../common/services/uploader.js'
 import { validatePostIntervention } from '../common/services/baseline.js'
+import {
+  ERROR_FILENAME_TOO_LONG,
+  ERROR_INVALID_FILENAME
+} from '../common/helpers/file-validation-messages.js'
 
 vi.mock('../common/services/uploader.js')
 vi.mock('../common/services/baseline.js')
@@ -136,6 +140,54 @@ describe('post-intervention-upload-received controller', () => {
       )
     }
   )
+
+  test('redirects to the post-intervention upload page with the filename-error flash when validation fails with INVALID_FILENAME', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      errors: [{ code: 'INVALID_FILENAME', message: 'unsafe filename' }]
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionUploadError',
+      ERROR_INVALID_FILENAME
+    )
+    expect(request.yar.set).not.toHaveBeenCalledWith(
+      'postInterventionValidationErrors',
+      expect.anything()
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-post-intervention-file'
+    )
+  })
+
+  test('redirects to the post-intervention upload page with the too-long-filename flash when validation fails with FILENAME_TOO_LONG', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validatePostIntervention).mockResolvedValue({
+      valid: false,
+      errors: [{ code: 'FILENAME_TOO_LONG', message: 'filename too long' }]
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionUploadError',
+      ERROR_FILENAME_TOO_LONG
+    )
+    expect(request.yar.set).not.toHaveBeenCalledWith(
+      'postInterventionValidationErrors',
+      expect.anything()
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-post-intervention-file'
+    )
+  })
 
   test('defaults to an empty errors array when post-intervention validation fails without errors', async () => {
     const h = createMockH()

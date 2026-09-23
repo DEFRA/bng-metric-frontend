@@ -1,3 +1,5 @@
+import { load } from 'cheerio'
+
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
@@ -259,5 +261,82 @@ describe('#postInterventionHabitatListController - summary table', () => {
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).not.toContain('undefined')
     expect(result).not.toContain('null')
+  })
+})
+
+describe('#postInterventionHabitatListController - trading rules column', () => {
+  let server
+
+  const projectWithStatus = (overall) => ({
+    ...mockProject,
+    tradingRuleStatuses: {
+      areaHabitats: { medium: 'Not met', low: 'Met', overall }
+    }
+  })
+
+  const summaryRow = (result, label) => {
+    const $ = load(result)
+    return $('.app-habitat-summary-table tbody tr').filter(
+      (_, row) => $(row).find('td').first().text().trim() === label
+    )
+  }
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    return result
+  }
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('shows the status against the area habitats row', async () => {
+    const result = await renderWith(projectWithStatus('Not met'))
+    const row = summaryRow(result, 'Area habitats')
+
+    expect(row.find('.govuk-tag').text()).toBe('Not met')
+    expect(row.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows Met against the area habitats row', async () => {
+    const result = await renderWith(projectWithStatus('Met'))
+    const row = summaryRow(result, 'Area habitats')
+
+    expect(row.find('.govuk-tag').text()).toBe('Met')
+    expect(row.find('.govuk-tag').hasClass('govuk-tag--green')).toBe(true)
+  })
+
+  test('leaves the hedgerow and watercourse cells empty, as their rules are not calculated yet', async () => {
+    const result = await renderWith(projectWithStatus('Not met'))
+
+    expect(summaryRow(result, 'Hedgerows').find('.govuk-tag')).toHaveLength(0)
+    expect(summaryRow(result, 'Watercourses').find('.govuk-tag')).toHaveLength(
+      0
+    )
+  })
+
+  test('leaves the area habitats cell empty until the rules are calculated', async () => {
+    const result = await renderWith(mockProject)
+
+    expect(summaryRow(result, 'Area habitats').find('.govuk-tag')).toHaveLength(
+      0
+    )
   })
 })

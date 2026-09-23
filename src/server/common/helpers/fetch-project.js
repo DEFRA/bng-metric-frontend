@@ -9,6 +9,11 @@ const FETCH_PROJECT_ERROR = 'Failed to fetch project'
  * Fetch a project by id, translating backend/network failures into the
  * Boom errors the route's error handler expects.
  *
+ * `tradingRuleStatuses` is merged in from the response envelope. The backend
+ * derives it per request rather than storing it, so it arrives beside the
+ * document rather than inside it; merging it here keeps every caller reading
+ * one object.
+ *
  * @param {import('@hapi/hapi').Request} request
  * @param {string} id - Project UUID
  * @returns {Promise<object|null>} the project, or null if not present in the payload
@@ -29,7 +34,15 @@ async function fetchProjectOrThrow(request, id) {
     throw Boom.badGateway(FETCH_PROJECT_ERROR)
   }
 
-  return result.payload?.project
+  const project = result.payload?.project
+  if (!project) {
+    return project
+  }
+
+  return {
+    ...project,
+    tradingRuleStatuses: result.payload?.tradingRuleStatuses
+  }
 }
 
 export { fetchProjectOrThrow }

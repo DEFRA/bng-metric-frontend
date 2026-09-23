@@ -20,6 +20,8 @@ import { baselineHabitatList } from './baseline-habitat-list/index.js'
 import { postInterventionHabitatList } from './post-intervention-habitat-list/index.js'
 import { projectDetails } from './project-details/index.js'
 import { projectSummary } from './project-summary/index.js'
+import { projectReport } from './project-report/index.js'
+import { projectReports } from './project-reports/index.js'
 import { areaSummary } from './area-summary/index.js'
 import { areaBaseline } from './area-baseline/index.js'
 import { areaPostIntervention } from './area-post-intervention/index.js'
@@ -27,7 +29,11 @@ import { hedgerowsSummary } from './hedgerows-summary/index.js'
 import { hedgerowsBaseline } from './hedgerows-baseline/index.js'
 import { hedgerowsPostIntervention } from './hedgerows-post-intervention/index.js'
 import { watercoursesSummary } from './watercourses-summary/index.js'
-import { watercoursesBaseline } from './watercourses-baseline/index.js'
+import {
+  watercoursesBaseline,
+  watercoursesBaselineLegacy
+} from './watercourses-baseline/index.js'
+import { watercoursesPostIntervention } from './watercourses-post-intervention/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
 import { swagger } from './common/helpers/swagger.js'
@@ -62,6 +68,8 @@ export const router = {
         invalidFile,
         projectDetails,
         projectSummary,
+        projectReport,
+        projectReports,
         areaSummary,
         areaBaseline,
         areaPostIntervention,
@@ -69,7 +77,9 @@ export const router = {
         hedgerowsBaseline,
         hedgerowsPostIntervention,
         watercoursesSummary,
-        watercoursesBaseline
+        watercoursesBaseline,
+        watercoursesBaselineLegacy,
+        watercoursesPostIntervention
       ])
 
       // Static assets

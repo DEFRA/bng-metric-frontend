@@ -9,7 +9,9 @@ const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
 const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
-const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline`
+const REPORTS_HREF = `/projects/${PROJECT_ID}/reports`
+const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline-summary`
+const WATERCOURSES_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/watercourses-post-intervention`
 
 describe('buildUnitTypeNavigation', () => {
   test('always includes Summary and Area habitats', () => {
@@ -30,8 +32,17 @@ describe('buildUnitTypeNavigation', () => {
             href: AREA_POST_INTERVENTION_HREF
           }
         ]
-      }
+      },
+      { text: 'Reports', href: REPORTS_HREF }
     ])
+  })
+
+  test('always includes Reports, last, whatever the project holds', () => {
+    const items = buildUnitTypeNavigation({}, PROJECT_ID, AREA_SUMMARY_HREF)
+    expect(items.at(-1)).toEqual({ text: 'Reports', href: REPORTS_HREF })
+
+    const reportsPage = buildUnitTypeNavigation({}, PROJECT_ID, REPORTS_HREF)
+    expect(reportsPage.at(-1)).toEqual({ text: 'Reports', current: true })
   })
 
   test('includes Hedgerows as a collapsed link when the project has hedgerows', () => {
@@ -144,12 +155,29 @@ describe('buildUnitTypeNavigation', () => {
 
     expect(watercoursesItem.href).toBe(WATERCOURSES_SUMMARY_HREF)
     expect(watercoursesItem.children).toEqual([
-      { text: 'Baseline', current: true }
+      { text: 'Baseline', current: true },
+      {
+        text: 'Post-intervention',
+        href: WATERCOURSES_POST_INTERVENTION_HREF
+      }
     ])
     expect(areaHabitatsItem).toEqual({
       text: 'Area habitats',
       href: AREA_SUMMARY_HREF
     })
+  })
+
+  test('omits Baseline from Watercourses when it only exists post intervention', () => {
+    const items = buildUnitTypeNavigation(
+      { postIntervention: { watercourses: [{}] } },
+      PROJECT_ID,
+      WATERCOURSES_POST_INTERVENTION_HREF
+    )
+    const watercoursesItem = items.find((item) => item.text === 'Watercourses')
+
+    expect(watercoursesItem.children).toEqual([
+      { text: 'Post-intervention', current: true }
+    ])
   })
 
   test('expands Area habitats on both its summary and its baseline page', () => {
@@ -250,7 +278,8 @@ describe('buildUnitTypeNavigation', () => {
       { text: 'Summary', current: true },
       { text: 'Area habitats', href: AREA_SUMMARY_HREF },
       { text: 'Hedgerows', href: HEDGEROWS_SUMMARY_HREF },
-      { text: 'Watercourses', href: WATERCOURSES_SUMMARY_HREF }
+      { text: 'Watercourses', href: WATERCOURSES_SUMMARY_HREF },
+      { text: 'Reports', href: REPORTS_HREF }
     ])
   })
 })

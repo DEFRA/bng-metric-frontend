@@ -46,7 +46,8 @@ function buildTabPanel(tab, features, projectId, config) {
       readSize: config.readSize,
       formatSize: config.formatSize,
       formatSizeTotal: config.formatSizeTotal,
-      leadingExtraColumns: config.buildLeadingExtraColumns?.(tab.label) ?? []
+      leadingExtraColumns: config.buildLeadingExtraColumns?.(tab.label) ?? [],
+      extraColumns: config.buildExtraColumns?.(tab.label) ?? []
     })
   }
 }
@@ -85,7 +86,8 @@ function buildHabitatPostIntervention(project, projectId, config) {
       intervention,
       postInterventionOnly,
       baselineAction: config.baselineAction(projectId),
-      interventionAction: null
+      interventionAction: null,
+      tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null
     }),
     areaSize: config.buildAreaSize?.(project) ?? null,
     retainedTab: tabById(interventionTabPanels, 'retained'),

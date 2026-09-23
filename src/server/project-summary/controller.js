@@ -17,6 +17,7 @@ import {
   PROJECT_SUMMARY_PATH,
   SUMMARY_TEXT,
   WATERCOURSES_BASELINE_PATH,
+  WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
   WATERCOURSES_TEXT,
@@ -32,8 +33,10 @@ import {
   hedgerowsInterventionAction,
   hedgerowsInterventionSummary,
   watercoursesBaselineAction,
+  watercoursesInterventionAction,
   watercoursesInterventionSummary
 } from '../common/helpers/unit-summary.js'
+import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 import {
   DEFAULT_PROJECT_NAME,
   HEDGEROWS_TOTAL_KEY,
@@ -58,7 +61,10 @@ function buildUnitTypeSummary(
     headingHref: unitType.href,
     postInterventionOnly: unitType.postInterventionOnly,
     baselineAction: unitType.baselineAction,
-    interventionAction: unitType.interventionAction
+    interventionAction: unitType.interventionAction,
+    // Only area habitats have a trading-rules status so far; the hedgerow and
+    // watercourse rules are separate stories, and their tiles stay as they are.
+    tradingRulesStatus: unitType.tradingRulesStatus ?? null
   })
 }
 
@@ -72,7 +78,8 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         projectPageHref(projectId, AREA_BASELINE_PATH)
       ),
       baselineUnits: areaUnits(baselineUnits),
-      buildIntervention: areaInterventionSummary
+      buildIntervention: areaInterventionSummary,
+      tradingRulesStatus: areaTradingRulesStatus(project)
     },
     {
       visible: projectHasHabitatData(project, HEDGEROWS_HABITAT_KEY),
@@ -98,6 +105,9 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
       baselineUnits: baselineUnits?.[WATERCOURSES_TOTAL_KEY],
       baselineAction: watercoursesBaselineAction(
         projectPageHref(projectId, WATERCOURSES_BASELINE_PATH)
+      ),
+      interventionAction: watercoursesInterventionAction(
+        projectPageHref(projectId, WATERCOURSES_POST_INTERVENTION_PATH)
       ),
       postInterventionOnly: hasPostInterventionOnlyHabitat(
         project,

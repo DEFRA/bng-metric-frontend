@@ -186,8 +186,29 @@ describe('project summary', () => {
     expect(result).toContain('Watercourses')
     expect(result.match(/Total on-site net percentage change/g)).toHaveLength(3)
     expect(result.match(/-100.00%/g)).toHaveLength(3)
+    // One net-gain verdict per unit type. No trading-rules verdict: this
+    // payload carries no `tradingRuleStatuses`, which is what the backend
+    // returns when the figures have not been calculated.
     expect(result.match(/Not met/g)).toHaveLength(3)
     expect(result.match(/Trading Rules/g)).toHaveLength(3)
+  })
+
+  test('points at the Reports page from the navigation instead of inlining the download', async () => {
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    const $ = load(result)
+    // The download moved to its own Reports page (see project-reports/);
+    // the summary carries the navigation entry, not the link itself.
+    expect($('[data-testid="site-report-link"]')).toHaveLength(0)
+    const reportsNavLink = $('nav a').filter(
+      (_, el) => $(el).text().trim() === 'Reports'
+    )
+    expect(reportsNavLink.attr('href')).toBe(`/projects/${PROJECT_ID}/reports`)
   })
 
   test('formats baseline, zero post-intervention and negative net units', async () => {
@@ -230,7 +251,7 @@ describe('project summary', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation).toHaveLength(1)
-    expect(navigation.find('li')).toHaveLength(4)
+    expect(navigation.find('li')).toHaveLength(5)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
     expect(
       navigation
@@ -246,6 +267,10 @@ describe('project summary', () => {
       {
         text: 'Watercourses',
         href: `/projects/${PROJECT_ID}/watercourses-summary`
+      },
+      {
+        text: 'Reports',
+        href: `/projects/${PROJECT_ID}/reports`
       }
     ])
     expect(result).toContain('View trading rules')
@@ -323,7 +348,7 @@ describe('project summary', () => {
 
     expect(watercoursesBaselineLink).toHaveLength(1)
     expect(watercoursesBaselineLink.attr('href')).toBe(
-      `/projects/${PROJECT_ID}/watercourses-baseline`
+      `/projects/${PROJECT_ID}/watercourses-baseline-summary`
     )
   })
 
@@ -523,7 +548,7 @@ describe('project summary', () => {
       const navigation = $('nav[aria-label="Project summary"]')
 
       expect(statusCode).toBe(statusCodes.ok)
-      expect(navigation.find('li')).toHaveLength(2)
+      expect(navigation.find('li')).toHaveLength(3)
       expect(navigation.text()).toContain('Area habitats')
       expect(navigation.text()).not.toContain('Hedgerows')
       expect(navigation.text()).not.toContain('Watercourses')
@@ -656,21 +681,14 @@ describe('project summary', () => {
       expect(postInterventionTile.find('h3').text()).toBe(
         'On-site post-intervention'
       )
-      if (habitatType === 'hedgerows') {
-        const interventionLink = postInterventionTile.find('a')
+      const interventionLink = postInterventionTile.find('a')
 
-        expect(interventionLink.text().trim()).toBe(
-          'View on-site hedgerows post intervention'
-        )
-        expect(interventionLink.attr('href')).toBe(
-          `/projects/${PROJECT_ID}/hedgerows-post-intervention`
-        )
-      } else {
-        expect(postInterventionTile.text()).toContain(
-          'View on-site post intervention'
-        )
-        expect(postInterventionTile.find('a')).toHaveLength(0)
-      }
+      expect(interventionLink.text().trim()).toBe(
+        `View on-site ${habitatType} post intervention`
+      )
+      expect(interventionLink.attr('href')).toBe(
+        `/projects/${PROJECT_ID}/${habitatType}-post-intervention`
+      )
     }
   )
 
@@ -764,13 +782,21 @@ describe('project summary', () => {
     )
 
     expect(interventionHeadings).toHaveLength(3)
-    expect(result.match(/View on-site post intervention/g)).toHaveLength(2)
+    expect(result.match(/View on-site post intervention/g)).toHaveLength(1)
+    expect(result).toContain('View on-site watercourses post intervention')
+    expect($('a[href*="/upload-file?"]')).toHaveLength(1)
+    const watercoursesPostInterventionLink = $('a').filter((_, link) =>
+      $(link).text().includes('View on-site watercourses post intervention')
+    )
+    expect(watercoursesPostInterventionLink).toHaveLength(1)
+    expect(watercoursesPostInterventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
+    )
     expect(hedgerowsInterventionLink).toHaveLength(1)
     expect(hedgerowsInterventionLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/hedgerows-post-intervention`
     )
     expect(result).not.toContain('Upload on-site post intervention file')
-    expect($('a[href*="/upload-file?"]')).toHaveLength(1)
     expect(
       $('a').filter(
         (_, link) => $(link).text().trim() === 'View on-site post intervention'
@@ -866,5 +892,63 @@ describe('project summary', () => {
     expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/auth/forbidden')
     expect(wreck.get).not.toHaveBeenCalled()
+  })
+})
+
+describe('project summary trading rules status', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+    return load(result)
+  }
+
+  const tradingRulesTiles = ($) =>
+    $('.app-unit-type-summary__tile').filter((_, tile) =>
+      $(tile).text().includes('Trading Rules')
+    )
+
+  test('shows the backend verdict against area habitats only', async () => {
+    // Three unit types, three Trading Rules tiles, but only area habitats has
+    // a verdict so far — the hedgerow and watercourse rules are separate work.
+    const $ = await renderWith({
+      ...projectWithPostIntervention,
+      tradingRuleStatuses: {
+        areaHabitats: { medium: 'Not met', low: 'Met', overall: 'Not met' }
+      }
+    })
+
+    const tiles = tradingRulesTiles($)
+    expect(tiles).toHaveLength(3)
+    expect(tiles.find('.govuk-tag')).toHaveLength(1)
+    expect(tiles.find('.govuk-tag').text()).toBe('Not met')
+    expect(tiles.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows no verdict where the backend gave none', async () => {
+    const $ = await renderWith(projectWithPostIntervention)
+
+    expect(tradingRulesTiles($).find('.govuk-tag')).toHaveLength(0)
   })
 })
