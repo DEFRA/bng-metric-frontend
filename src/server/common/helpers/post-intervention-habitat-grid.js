@@ -101,7 +101,12 @@ function formatFinalTimeToTarget(proposed) {
   return formatLabelAndScore(years, proposed.timeMultiplier)
 }
 
-function sharedSizeColumns({ readSize, formatSize, formatSizeTotal }) {
+function sharedSizeColumns({
+  readSize,
+  formatSize,
+  formatSizeTotal,
+  returnUrl
+}) {
   return [
     {
       text: 'Ref',
@@ -109,7 +114,8 @@ function sharedSizeColumns({ readSize, formatSize, formatSizeTotal }) {
         buildRefCell(
           feature,
           projectId,
-          HABITAT_UPLOAD_TYPES.postIntervention.detailsRoute
+          HABITAT_UPLOAD_TYPES.postIntervention.detailsRoute,
+          returnUrl
         ),
       total: () => boldCell(textCell(TOTALS_LABEL))
     },
@@ -228,10 +234,11 @@ function buildColumns({
   formatSize,
   formatSizeTotal,
   leadingExtraColumns = [],
-  extraColumns = []
+  extraColumns = [],
+  returnUrl
 }) {
   return [
-    ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal }),
+    ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal, returnUrl }),
     ...leadingExtraColumns,
     ...habitatTypeAndDistinctivenessColumns(interventionType),
     ...(interventionType === INTERVENTION_WITH_CONDITION
@@ -268,6 +275,7 @@ function habitatTabHeading(tabLabel, habitatNoun) {
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
  * @param {object[]} [options.leadingExtraColumns]
  * @param {object[]} [options.extraColumns]
+ * @param {string} [options.returnUrl] Back link target for the details page.
  */
 function buildPostInterventionHabitatGrid({
   features,
@@ -277,7 +285,8 @@ function buildPostInterventionHabitatGrid({
   formatSize,
   formatSizeTotal,
   leadingExtraColumns = [],
-  extraColumns = []
+  extraColumns = [],
+  returnUrl
 }) {
   return buildHabitatGrid({
     columns: buildColumns({
@@ -286,7 +295,8 @@ function buildPostInterventionHabitatGrid({
       formatSize,
       formatSizeTotal,
       leadingExtraColumns,
-      extraColumns
+      extraColumns,
+      returnUrl
     }),
     features,
     projectId,

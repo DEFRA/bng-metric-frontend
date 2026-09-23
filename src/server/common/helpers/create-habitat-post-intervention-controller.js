@@ -28,7 +28,7 @@ function resolveCollectFeatures(config) {
   )
 }
 
-function buildTabPanel(tab, features, projectId, config) {
+function buildTabPanel(tab, features, projectId, config, pageHref) {
   const heading = habitatTabHeading(tab.label, config.habitatNoun)
   const tabFeatures = sortHabitatFeatures(
     features.filter((feature) => featureMatchesCategory(feature, tab.label))
@@ -47,7 +47,8 @@ function buildTabPanel(tab, features, projectId, config) {
       formatSize: config.formatSize,
       formatSizeTotal: config.formatSizeTotal,
       leadingExtraColumns: config.buildLeadingExtraColumns?.(tab.label) ?? [],
-      extraColumns: config.buildExtraColumns?.(tab.label) ?? []
+      extraColumns: config.buildExtraColumns?.(tab.label) ?? [],
+      returnUrl: pageHref
     })
   }
 }
@@ -68,7 +69,7 @@ function buildHabitatPostIntervention(project, projectId, config) {
     : null
   const features = collectFeatures(project, POST_INTERVENTION_PHASE)
   const interventionTabPanels = visibleInterventionTabs(features).map((tab) =>
-    buildTabPanel(tab, features, projectId, config)
+    buildTabPanel(tab, features, projectId, config, pageHref)
   )
 
   return {

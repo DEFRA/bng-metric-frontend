@@ -267,11 +267,12 @@ describe('area post intervention', () => {
     })
 
     const $ = load(result)
-    const retainedHeaders = $('#retained thead th')
-      .map((_, heading) => $(heading).text())
-      .get()
+    const headings = (selector) =>
+      $(selector)
+        .map((_, heading) => $(heading).text())
+        .get()
 
-    expect(retainedHeaders).toEqual([
+    expect(headings('#retained thead th')).toEqual([
       'Ref',
       'Units',
       'Size',
@@ -281,8 +282,50 @@ describe('area post intervention', () => {
       'Condition',
       'Strategic significance'
     ])
+    const targetAndTimeHeaders = [
+      'Strategic significance',
+      'Target condition',
+      'Standard time to target',
+      'Advance',
+      'Delay',
+      'Final time to target',
+      'Standard difficulty'
+    ]
+    expect(headings('#enhanced thead th')).toEqual([
+      'Ref',
+      'Units',
+      'Size',
+      'Broad habitat',
+      'Habitat type',
+      'Distinctiveness',
+      ...targetAndTimeHeaders
+    ])
+    expect(headings('#created thead th')).toEqual([
+      'Ref',
+      'Units',
+      'Size',
+      'Broad habitat',
+      'Habitat type',
+      'Distinctiveness',
+      ...targetAndTimeHeaders
+    ])
     expect($('#retained tbody').text()).toContain('Grassland')
     expect($('#created tbody').text()).toContain('Individual trees')
+  })
+
+  test('shows the area habitat totals row in hectares', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const retainedFooter = $('#retained tfoot').text()
+
+    expect(retainedFooter).toContain('Total')
+    expect(retainedFooter).toContain('24.00')
+    expect(retainedFooter).toContain('1ha')
   })
 
   test('redirects a project without baseline data to the existing task list', async () => {

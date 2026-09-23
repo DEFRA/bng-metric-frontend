@@ -394,7 +394,7 @@ describe('hedgerows post intervention', () => {
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)
     expect(refs).toEqual(['P-A2'])
     expect(panel.find('tbody a').attr('href')).toBe(
-      `/post-intervention-habitat-details?featureId=${retainedHedgerow.featureId}&projectId=${PROJECT_ID}`
+      `/post-intervention-habitat-details?featureId=${retainedHedgerow.featureId}&projectId=${PROJECT_ID}&returnUrl=${encodeURIComponent(PAGE_PATH)}`
     )
     expect(panel.find('tbody').text()).toContain('0.50')
     expect(panel.find('tbody').text()).toContain('1km')
