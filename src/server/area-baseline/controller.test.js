@@ -428,6 +428,17 @@ describe('area baseline', () => {
     expect(summary.text()).toContain('12.00 units')
     expect(summary.text()).toContain('2.00 units')
     expect($('.govuk-tag--green').text()).toBe('Met')
+    expect(
+      $('nav[aria-label="Project summary"] a')
+        .filter((_, link) => $(link).text() === 'Trading Rules')
+        .attr('href')
+    ).toBe(`/projects/${PROJECT_ID}/area-trading-summary`)
+    expect(
+      summary
+        .find('a')
+        .filter((_, link) => $(link).text() === 'View area trading rules')
+        .attr('href')
+    ).toBe(`/projects/${PROJECT_ID}/area-trading-summary`)
   })
 
   test('loads every column as unsorted so the Ref heading is not highlighted', async () => {
@@ -471,6 +482,13 @@ describe('area baseline', () => {
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(0)
     expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
+    expect(navigation.text()).not.toContain('Trading Rules')
+    expect(navigation.text()).not.toContain('Post-intervention')
+    expect(
+      $('.app-unit-type-summary a').filter(
+        (_, link) => $(link).text() === 'View area trading rules'
+      )
+    ).toHaveLength(0)
   })
 
   test('redirects a project without baseline data to the existing task list', async () => {
