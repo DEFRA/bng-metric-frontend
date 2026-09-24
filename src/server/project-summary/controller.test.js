@@ -929,21 +929,26 @@ describe('project summary trading rules status', () => {
       $(tile).text().includes('Trading Rules')
     )
 
-  test('shows the backend verdict against area habitats only', async () => {
-    // Three unit types, three Trading Rules tiles, but only area habitats has
-    // a verdict so far — the hedgerow and watercourse rules are separate work.
+  test('shows the backend verdict against area habitats and watercourses', async () => {
+    // Three unit types, three Trading Rules tiles. Hedgerow rules are a later
+    // story, so that tile stays without a tag.
     const $ = await renderWith({
       ...projectWithPostIntervention,
       tradingRuleStatuses: {
-        areaHabitats: { medium: 'Not met', low: 'Met', overall: 'Not met' }
+        areaHabitats: { medium: 'Not met', low: 'Met', overall: 'Not met' },
+        watercourses: { medium: 'Met', low: 'Met', overall: 'Met' }
       }
     })
 
     const tiles = tradingRulesTiles($)
     expect(tiles).toHaveLength(3)
-    expect(tiles.find('.govuk-tag')).toHaveLength(1)
-    expect(tiles.find('.govuk-tag').text()).toBe('Not met')
-    expect(tiles.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+    expect(tiles.eq(0).find('.govuk-tag').text()).toBe('Not met')
+    expect(tiles.eq(0).find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+    expect(tiles.eq(1).find('.govuk-tag')).toHaveLength(0)
+    expect(tiles.eq(2).find('.govuk-tag').text()).toBe('Met')
+    expect(tiles.eq(2).find('.govuk-tag').hasClass('govuk-tag--green')).toBe(
+      true
+    )
   })
 
   test('shows no verdict where the backend gave none', async () => {

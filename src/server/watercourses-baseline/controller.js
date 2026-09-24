@@ -6,6 +6,7 @@ import {
 import { watercoursesInterventionSummary } from '../common/helpers/unit-summary.js'
 import { createLinearHabitatBaselineController } from '../common/helpers/create-linear-habitat-baseline-controller.js'
 import { WATERCOURSES_TOTAL_KEY } from '../common/constants.js'
+import { watercourseTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 
 const PAGE_HEADING = 'Baseline for watercourses'
 const RESULTS_HEADING = 'Watercourses results'
@@ -19,5 +20,6 @@ export const getController = createLinearHabitatBaselineController({
   label: WATERCOURSES_TEXT,
   habitatKey: WATERCOURSES_HABITAT_KEY,
   unitsKey: WATERCOURSES_TOTAL_KEY,
-  buildIntervention: watercoursesInterventionSummary
+  buildIntervention: watercoursesInterventionSummary,
+  tradingRulesStatus: watercourseTradingRulesStatus
 })
