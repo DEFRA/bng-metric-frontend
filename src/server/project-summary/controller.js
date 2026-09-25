@@ -37,7 +37,10 @@ import {
   watercoursesInterventionAction,
   watercoursesInterventionSummary
 } from '../common/helpers/unit-summary.js'
-import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
+import {
+  areaTradingRulesStatus,
+  watercourseTradingRulesStatus
+} from '../common/helpers/trading-rules-status.js'
 import {
   DEFAULT_PROJECT_NAME,
   HEDGEROWS_TOTAL_KEY,
@@ -63,8 +66,7 @@ function buildUnitTypeSummary(
     postInterventionOnly: unitType.postInterventionOnly,
     baselineAction: unitType.baselineAction,
     interventionAction: unitType.interventionAction,
-    // Only area habitats have a trading-rules status so far; the hedgerow and
-    // watercourse rules are separate stories, and their tiles stay as they are.
+    // Hedgerow trading rules are a later story; that tile stays without a tag.
     tradingRulesStatus: unitType.tradingRulesStatus ?? null,
     tradingRulesHref: unitType.tradingRulesHref
   })
@@ -118,7 +120,8 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         project,
         WATERCOURSES_HABITAT_KEY
       ),
-      buildIntervention: watercoursesInterventionSummary
+      buildIntervention: watercoursesInterventionSummary,
+      tradingRulesStatus: watercourseTradingRulesStatus(project)
     }
   ]
 }
