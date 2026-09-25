@@ -67,8 +67,10 @@ function sectionHrefs(projectId, itemHref, unitType) {
   }
 
   if (unitType.tradingSummaryPath) {
-    hrefs.push(projectPageHref(projectId, AREA_POST_INTERVENTION_PATH))
-    hrefs.push(projectPageHref(projectId, unitType.tradingSummaryPath))
+    hrefs.push(
+      projectPageHref(projectId, AREA_POST_INTERVENTION_PATH),
+      projectPageHref(projectId, unitType.tradingSummaryPath)
+    )
   }
 
   return hrefs
