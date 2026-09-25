@@ -36,8 +36,16 @@ const TAG_CLASSES = {
  * @returns {{ text: string, classes: string }|null}
  */
 function tradingRulesStatusFor(statuses) {
-  const status = statuses?.overall
+  return tradingRulesStatusTag(statuses?.overall)
+}
 
+/**
+ * A single Met / Not met status, as served by the backend, as a GOV.UK tag.
+ *
+ * @param {string|null|undefined} status
+ * @returns {{ text: string, classes: string }|null} null for anything else
+ */
+export function tradingRulesStatusTag(status) {
   if (status !== MET && status !== NOT_MET) {
     return null
   }

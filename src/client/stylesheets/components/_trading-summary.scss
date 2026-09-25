@@ -1,0 +1,25 @@
+@use 'govuk-frontend' as *;
+
+.app-trading-summary__section {
+  padding-bottom: govuk-spacing(7);
+  margin-bottom: govuk-spacing(7);
+  border-bottom: 1px solid $govuk-border-colour;
+}
+
+.app-trading-summary__tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: govuk-spacing(3);
+  margin-bottom: govuk-spacing(6);
+}
+
+.app-trading-summary__tiles--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@include govuk-media-query($until: tablet) {
+  .app-trading-summary__tiles,
+  .app-trading-summary__tiles--three {
+    grid-template-columns: 1fr;
+  }
+}
