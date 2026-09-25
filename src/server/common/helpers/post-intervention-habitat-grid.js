@@ -101,7 +101,12 @@ function formatFinalTimeToTarget(proposed) {
   return formatLabelAndScore(years, proposed.timeMultiplier)
 }
 
-function sharedSizeColumns({ readSize, formatSize, formatSizeTotal }) {
+function sharedSizeColumns({
+  readSize,
+  formatSize,
+  formatSizeTotal,
+  returnUrl
+}) {
   return [
     {
       text: 'Ref',
@@ -109,7 +114,8 @@ function sharedSizeColumns({ readSize, formatSize, formatSizeTotal }) {
         buildRefCell(
           feature,
           projectId,
-          HABITAT_UPLOAD_TYPES.postIntervention.detailsRoute
+          HABITAT_UPLOAD_TYPES.postIntervention.detailsRoute,
+          returnUrl
         ),
       total: () => boldCell(textCell(TOTALS_LABEL))
     },
@@ -227,10 +233,13 @@ function buildColumns({
   readSize,
   formatSize,
   formatSizeTotal,
-  extraColumns
+  leadingExtraColumns = [],
+  extraColumns = [],
+  returnUrl
 }) {
   return [
-    ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal }),
+    ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal, returnUrl }),
+    ...leadingExtraColumns,
     ...habitatTypeAndDistinctivenessColumns(interventionType),
     ...(interventionType === INTERVENTION_WITH_CONDITION
       ? [conditionColumn(interventionType)]
@@ -264,7 +273,9 @@ function habitatTabHeading(tabLabel, habitatNoun) {
  * @param {(feature: object) => number|null|undefined} options.readSize
  * @param {(value: number|null|undefined) => string} options.formatSize
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
+ * @param {object[]} [options.leadingExtraColumns]
  * @param {object[]} [options.extraColumns]
+ * @param {string} [options.returnUrl] Back link target for the details page.
  */
 function buildPostInterventionHabitatGrid({
   features,
@@ -273,7 +284,9 @@ function buildPostInterventionHabitatGrid({
   readSize,
   formatSize,
   formatSizeTotal,
-  extraColumns = []
+  leadingExtraColumns = [],
+  extraColumns = [],
+  returnUrl
 }) {
   return buildHabitatGrid({
     columns: buildColumns({
@@ -281,7 +294,9 @@ function buildPostInterventionHabitatGrid({
       readSize,
       formatSize,
       formatSizeTotal,
-      extraColumns
+      leadingExtraColumns,
+      extraColumns,
+      returnUrl
     }),
     features,
     projectId,
@@ -294,5 +309,6 @@ export {
   descriptiveSource,
   formatYears,
   habitatTabHeading,
+  proposedValue,
   sourceValue
 }

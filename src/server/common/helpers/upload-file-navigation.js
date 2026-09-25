@@ -1,18 +1,20 @@
+function isSafeRelativePath(path) {
+  return (
+    typeof path === 'string' &&
+    path.startsWith('/') &&
+    !path.startsWith('//') &&
+    !path.includes('\\')
+  )
+}
+
 function defaultUploadReturnUrl(projectId) {
   return `/add-project-details/${projectId}`
 }
 
 function safeUploadReturnUrl(returnUrl, projectId) {
-  if (
-    typeof returnUrl !== 'string' ||
-    !returnUrl.startsWith('/') ||
-    returnUrl.startsWith('//') ||
-    returnUrl.includes('\\')
-  ) {
-    return defaultUploadReturnUrl(projectId)
-  }
-
-  return returnUrl
+  return isSafeRelativePath(returnUrl)
+    ? returnUrl
+    : defaultUploadReturnUrl(projectId)
 }
 
 function uploadFileHref(projectId, returnUrl) {
@@ -30,6 +32,7 @@ function selectedUploadHref(projectId, uploadRoute, returnUrl) {
 
 export {
   defaultUploadReturnUrl,
+  isSafeRelativePath,
   safeUploadReturnUrl,
   selectedUploadHref,
   uploadFileHref

@@ -64,15 +64,18 @@ function numericCell(text, sortValue) {
   return cell
 }
 
-function detailsHref(detailsRoute, featureId, projectId) {
+function detailsHref(detailsRoute, featureId, projectId, returnUrl) {
   const params = new URLSearchParams({
     featureId,
     projectId
   })
+  if (returnUrl) {
+    params.set('returnUrl', returnUrl)
+  }
   return `/${detailsRoute}?${params.toString()}`
 }
 
-function buildRefCell(feature, projectId, detailsRoute) {
+function buildRefCell(feature, projectId, detailsRoute, returnUrl) {
   const reference = featureRef(feature)
   const cell = {
     text: reference,
@@ -80,7 +83,12 @@ function buildRefCell(feature, projectId, detailsRoute) {
   }
 
   if (feature.featureId) {
-    cell.href = detailsHref(detailsRoute, feature.featureId, projectId)
+    cell.href = detailsHref(
+      detailsRoute,
+      feature.featureId,
+      projectId,
+      returnUrl
+    )
   }
 
   return cell

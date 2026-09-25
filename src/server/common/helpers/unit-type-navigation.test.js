@@ -4,6 +4,7 @@ const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
 const PROJECT_SUMMARY_HREF = `/projects/${PROJECT_ID}/project-summary`
 const AREA_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-summary`
 const AREA_BASELINE_HREF = `/projects/${PROJECT_ID}/area-baseline`
+const AREA_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/area-post-intervention`
 const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
@@ -25,6 +26,10 @@ describe('buildUnitTypeNavigation', () => {
           {
             text: 'Baseline',
             href: AREA_BASELINE_HREF
+          },
+          {
+            text: 'Post-intervention',
+            href: AREA_POST_INTERVENTION_HREF
           }
         ]
       },
@@ -182,9 +187,25 @@ describe('buildUnitTypeNavigation', () => {
         (item) => item.text === 'Area habitats'
       )
 
-      expect(areaHabitatsItem.children).toHaveLength(1)
+      expect(areaHabitatsItem.children).toHaveLength(2)
       expect(areaHabitatsItem.children[0].text).toBe('Baseline')
+      expect(areaHabitatsItem.children[1].text).toBe('Post-intervention')
     }
+  })
+
+  test('marks the Area habitats Post-intervention child as current', () => {
+    const items = buildUnitTypeNavigation(
+      {},
+      PROJECT_ID,
+      AREA_POST_INTERVENTION_HREF
+    )
+    const areaHabitatsItem = items.find((item) => item.text === 'Area habitats')
+
+    expect(areaHabitatsItem.href).toBe(AREA_SUMMARY_HREF)
+    expect(areaHabitatsItem.children).toEqual([
+      { text: 'Baseline', href: AREA_BASELINE_HREF },
+      { text: 'Post-intervention', current: true }
+    ])
   })
 
   test('collapses Area habitats when viewing another section', () => {
