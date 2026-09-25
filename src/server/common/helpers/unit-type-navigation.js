@@ -4,6 +4,7 @@ const SUMMARY_TEXT = 'Summary'
 const AREA_HABITATS_TEXT = 'Area habitats'
 const BASELINE_TEXT = 'Baseline'
 const POST_INTERVENTION_TEXT = 'Post-intervention'
+const TRADING_RULES_TEXT = 'Trading Rules'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
 const REPORTS_TEXT = 'Reports'
@@ -13,6 +14,8 @@ const WATERCOURSES_HABITAT_KEY = 'watercourses'
 const PROJECT_SUMMARY_PATH = 'project-summary'
 const AREA_SUMMARY_PATH = 'area-summary'
 const AREA_BASELINE_PATH = 'area-baseline'
+const AREA_POST_INTERVENTION_PATH = 'area-post-intervention'
+const AREA_TRADING_SUMMARY_PATH = 'area-trading-summary'
 const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
 const HEDGEROWS_BASELINE_PATH = 'hedgerows-baseline'
 const HEDGEROWS_POST_INTERVENTION_PATH = 'hedgerows-post-intervention'
@@ -63,6 +66,13 @@ function sectionHrefs(projectId, itemHref, unitType) {
     hrefs.push(projectPageHref(projectId, unitType.postInterventionPath))
   }
 
+  if (unitType.tradingSummaryPath) {
+    hrefs.push(
+      projectPageHref(projectId, AREA_POST_INTERVENTION_PATH),
+      projectPageHref(projectId, unitType.tradingSummaryPath)
+    )
+  }
+
   return hrefs
 }
 
@@ -79,10 +89,21 @@ function buildSectionChildren(project, projectId, unitType) {
     })
   }
 
-  if (unitType.postInterventionPath) {
+  if (
+    unitType.postInterventionPath &&
+    (unitType.postInterventionPath !== AREA_POST_INTERVENTION_PATH ||
+      project?.postIntervention)
+  ) {
     children.push({
       text: POST_INTERVENTION_TEXT,
       href: projectPageHref(projectId, unitType.postInterventionPath)
+    })
+  }
+
+  if (unitType.tradingSummaryPath && project?.postIntervention) {
+    children.push({
+      text: TRADING_RULES_TEXT,
+      href: projectPageHref(projectId, unitType.tradingSummaryPath)
     })
   }
 
@@ -113,7 +134,10 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
       },
       project,
       projectId,
-      { baselinePath: AREA_BASELINE_PATH },
+      {
+        baselinePath: AREA_BASELINE_PATH,
+        tradingSummaryPath: AREA_TRADING_SUMMARY_PATH
+      },
       currentHref
     )
   ]
@@ -153,7 +177,9 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
 export {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
+  AREA_POST_INTERVENTION_PATH,
   AREA_SUMMARY_PATH,
+  AREA_TRADING_SUMMARY_PATH,
   BASELINE_TEXT,
   HEDGEROWS_BASELINE_PATH,
   HEDGEROWS_HABITAT_KEY,

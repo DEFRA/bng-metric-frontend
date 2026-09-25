@@ -3,6 +3,7 @@ import { hasBaselineData } from '../common/helpers/project-state.js'
 import {
   AREA_HABITATS_TEXT,
   AREA_SUMMARY_PATH,
+  AREA_TRADING_SUMMARY_PATH,
   buildUnitTypeNavigation,
   projectPageHref
 } from '../common/helpers/unit-type-navigation.js'
@@ -50,7 +51,10 @@ function buildAreaSummary(project, projectId) {
       baselineAction: areaBaselineAction(
         `/projects/${projectId}/area-baseline`
       ),
-      tradingRulesStatus: areaTradingRulesStatus(project)
+      tradingRulesStatus: areaTradingRulesStatus(project),
+      tradingRulesHref: project?.postIntervention
+        ? projectPageHref(projectId, AREA_TRADING_SUMMARY_PATH)
+        : null
     }),
     targetsSummary: buildTargetsSummary({
       baselineUnits: baselineAreaUnits,

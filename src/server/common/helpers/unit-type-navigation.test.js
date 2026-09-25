@@ -4,6 +4,8 @@ const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
 const PROJECT_SUMMARY_HREF = `/projects/${PROJECT_ID}/project-summary`
 const AREA_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-summary`
 const AREA_BASELINE_HREF = `/projects/${PROJECT_ID}/area-baseline`
+const AREA_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/area-post-intervention`
+const AREA_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-trading-summary`
 const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
@@ -30,6 +32,41 @@ describe('buildUnitTypeNavigation', () => {
       },
       { text: 'Reports', href: REPORTS_HREF }
     ])
+  })
+
+  test('links area Trading Rules on every area page only after PI upload', () => {
+    for (const currentHref of [
+      AREA_SUMMARY_HREF,
+      AREA_BASELINE_HREF,
+      AREA_POST_INTERVENTION_HREF
+    ]) {
+      const items = buildUnitTypeNavigation(
+        { baseline: {}, postIntervention: {} },
+        PROJECT_ID,
+        currentHref
+      )
+      const area = items.find((item) => item.text === 'Area habitats')
+
+      expect(area.children).toContainEqual({
+        text: 'Trading Rules',
+        href: AREA_TRADING_SUMMARY_HREF
+      })
+    }
+
+    for (const currentHref of [AREA_SUMMARY_HREF, AREA_BASELINE_HREF]) {
+      const items = buildUnitTypeNavigation(
+        { baseline: {} },
+        PROJECT_ID,
+        currentHref
+      )
+      const area = items.find((item) => item.text === 'Area habitats')
+
+      expect(area.children).toEqual([
+        currentHref === AREA_BASELINE_HREF
+          ? { text: 'Baseline', current: true }
+          : { text: 'Baseline', href: AREA_BASELINE_HREF }
+      ])
+    }
   })
 
   test('always includes Reports, last, whatever the project holds', () => {

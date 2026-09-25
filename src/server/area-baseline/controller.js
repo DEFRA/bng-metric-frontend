@@ -1,6 +1,7 @@
 import {
   AREA_BASELINE_PATH,
-  AREA_HABITATS_TEXT
+  AREA_HABITATS_TEXT,
+  AREA_TRADING_SUMMARY_PATH
 } from '../common/helpers/unit-type-navigation.js'
 import {
   areaInterventionSummary,
@@ -23,6 +24,7 @@ function collectAreaFeatures(project) {
 
 export const getController = createHabitatBaselineController({
   path: AREA_BASELINE_PATH,
+  tradingSummaryPath: AREA_TRADING_SUMMARY_PATH,
   pageHeading: PAGE_HEADING,
   resultsHeading: RESULTS_HEADING,
   detailsHeading: DETAILS_HEADING,
