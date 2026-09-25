@@ -277,7 +277,11 @@ export const projectDetailsPostController = {
   },
   async handler(request, h) {
     const { projectId } = request.params
-    const result = await patchProjectDetails(request, projectId, request.payload)
+    const result = await patchProjectDetails(
+      request,
+      projectId,
+      request.payload
+    )
     if (!result) {
       throw Boom.badGateway('Failed to save project details')
     }
