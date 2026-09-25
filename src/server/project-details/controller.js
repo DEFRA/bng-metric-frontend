@@ -277,16 +277,23 @@ export const projectDetailsPostController = {
   },
   async handler(request, h) {
     const { projectId } = request.params
-    const authorities = await fetchLocalPlanningAuthorities()
-    const reference = request.payload.localPlanningAuthorityReference
-    const authority = authorities.find((entry) => entry.reference === reference)
-    if (reference && !authority) {
+    const result = await patchProjectDetails(request, projectId, request.payload)
+    if (!result) {
+      throw Boom.badGateway('Failed to save project details')
+    }
+    if (result.statusCode === statusCodes.notFound) {
+      throw Boom.notFound('Project not found')
+    }
+    if (
+      result.statusCode === statusCodes.badRequest &&
+      request.payload.localPlanningAuthorityReference
+    ) {
       const project = await fetchProject(request, projectId)
       return renderForm(h, {
         projectId,
         projectName: project?.payload?.project?.name,
         details: request.payload,
-        authorities,
+        authorities: await fetchLocalPlanningAuthorities(),
         errors: [
           {
             name: 'localPlanningAuthorityReference',
@@ -295,16 +302,6 @@ export const projectDetailsPostController = {
           }
         ]
       })
-    }
-    const result = await patchProjectDetails(request, projectId, {
-      ...request.payload,
-      localPlanningAuthority: authority?.name ?? null
-    })
-    if (!result) {
-      throw Boom.badGateway('Failed to save project details')
-    }
-    if (result.statusCode === statusCodes.notFound) {
-      throw Boom.notFound('Project not found')
     }
     if (
       result.statusCode < statusCodes.ok ||

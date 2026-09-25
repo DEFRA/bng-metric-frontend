@@ -1,7 +1,16 @@
-import { wreck } from '../helpers/wreck-client.js'
-import { fetchLocalPlanningAuthorities } from './local-planning-authorities.js'
-
 vi.mock('../helpers/wreck-client.js', () => ({ wreck: { get: vi.fn() } }))
+
+let wreck
+let fetchLocalPlanningAuthorities
+
+beforeEach(async () => {
+  vi.resetModules()
+  const wreckModule = await import('../helpers/wreck-client.js')
+  const authoritiesModule = await import('./local-planning-authorities.js')
+  wreck = wreckModule.wreck
+  fetchLocalPlanningAuthorities =
+    authoritiesModule.fetchLocalPlanningAuthorities
+})
 
 test('fetches the local backend lookup', async () => {
   const payload = [{ name: 'Adur LPA', reference: 'E60000296' }]

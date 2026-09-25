@@ -5,7 +5,10 @@ import { wreck } from '../helpers/wreck-client.js'
 
 const url = `${config.get('backend').url.replace(/\/$/, '')}/reference/local-planning-authorities`
 
-export async function fetchLocalPlanningAuthorities() {
+// The reference table is seeded once and does not change while the app runs.
+let authoritiesPromise = null
+
+async function loadLocalPlanningAuthorities() {
   try {
     const { res, payload } = await wreck.get(url)
     if (
@@ -27,4 +30,12 @@ export async function fetchLocalPlanningAuthorities() {
   } catch {
     throw Boom.badGateway('Failed to fetch Local Planning Authorities')
   }
+}
+
+export function fetchLocalPlanningAuthorities() {
+  authoritiesPromise ??= loadLocalPlanningAuthorities().catch((error) => {
+    authoritiesPromise = null
+    throw error
+  })
+  return authoritiesPromise
 }

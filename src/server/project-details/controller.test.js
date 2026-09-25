@@ -69,6 +69,10 @@ const savedDetailsFormPayload = {
   ...savedDetailsWithoutDate,
   ...savedDateFormFields
 }
+const savedDetailsForPatch = {
+  ...savedDetailsWithoutDate,
+  surveyCompletionDate: savedDetails.surveyCompletionDate
+}
 
 // Mirrors what @hapi/wreck's get/post/patch/... shortcuts actually throw for
 // a non-2xx response (see `_shortcut` in @hapi/wreck/lib/index.js) — a real
@@ -352,12 +356,15 @@ describe('#projectDetailsPostController', () => {
 
     expect(patchUrl).toContain(`/projects/${projectId}/details`)
     expect(options.headers['Content-Type']).toBe('application/json')
-    expect(body).toEqual(savedDetails)
+    expect(body).toEqual(savedDetailsForPatch)
   })
 
   test.each(['E60099999', 'not-a-reference'])(
     'rejects unknown or malformed reference %s and retains the rest of the form',
     async (reference) => {
+      if (reference === 'E60099999') {
+        vi.mocked(wreck.patch).mockRejectedValueOnce(responseError(400))
+      }
       const res = await server.inject({
         method: 'POST',
         url,
@@ -375,7 +382,9 @@ describe('#projectDetailsPostController', () => {
       )
       expect(res.result).toContain('href="#localPlanningAuthorityReference"')
       expect(res.result).toContain('value="Jane Smith"')
-      expect(wreck.patch).not.toHaveBeenCalled()
+      expect(wreck.patch).toHaveBeenCalledTimes(
+        reference === 'E60099999' ? 1 : 0
+      )
     }
   )
 
@@ -393,13 +402,13 @@ describe('#projectDetailsPostController', () => {
     })
     const body = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
     expect(body).toMatchObject({
-      localPlanningAuthority: null,
       localPlanningAuthorityReference: null
     })
   })
 
-  test('does not save when the lookup is unavailable', async () => {
-    vi.mocked(fetchLocalPlanningAuthorities).mockRejectedValueOnce(
+  test('saves without fetching the LPA lookup', async () => {
+    vi.mocked(fetchLocalPlanningAuthorities).mockClear()
+    vi.mocked(fetchLocalPlanningAuthorities).mockRejectedValue(
       Boom.badGateway('Lookup unavailable')
     )
     const res = await server.inject({
@@ -409,8 +418,9 @@ describe('#projectDetailsPostController', () => {
       headers: { cookie: crumb.cookie },
       payload: { ...savedDetailsFormPayload, crumb: crumb.token }
     })
-    expect(res.statusCode).toBe(statusCodes.badGateway)
-    expect(wreck.patch).not.toHaveBeenCalled()
+    expect(res.statusCode).toBe(statusCodes.redirect)
+    expect(wreck.patch).toHaveBeenCalledOnce()
+    expect(fetchLocalPlanningAuthorities).not.toHaveBeenCalled()
   })
 
   test('sends explicit null for fields left blank, so the backend clears them', async () => {
@@ -429,7 +439,6 @@ describe('#projectDetailsPostController', () => {
     const body = JSON.parse(options.payload)
 
     expect(body).toEqual({
-      localPlanningAuthority: 'Anytown Borough Council',
       localPlanningAuthorityReference: 'E60000001',
       surveyCompleters: null,
       surveyCompletionDate: null,
@@ -614,7 +623,6 @@ describe('#projectDetailsPostController', () => {
     expect(statusCode).toBe(statusCodes.redirect)
     const [, options] = vi.mocked(wreck.patch).mock.calls[0]
     expect(JSON.parse(options.payload)).toEqual({
-      localPlanningAuthority: null,
       localPlanningAuthorityReference: null,
       surveyCompleters: null,
       surveyCompletionDate: null,
