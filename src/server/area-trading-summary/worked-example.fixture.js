@@ -2,6 +2,12 @@
 // ("Area Habitat Trading Rules - Worked example"), exactly as the backend saves
 // them: bng-library's calculator run over the example's baseline and delivered
 // units. The page is validated against the figures the example publishes.
+
+const HEATHLAND_AND_SHRUB = 'Heathland and shrub'
+const INTERTIDAL_SEDIMENT_AND_HARD_STRUCTURES =
+  'Intertidal sediment and hard structures'
+const WOODLAND_AND_FOREST = 'Woodland and forest'
+
 export const WORKED_EXAMPLE_TRADING_RULES = {
   habitatTypes: [
     {
@@ -27,29 +33,29 @@ export const WORKED_EXAMPLE_TRADING_RULES = {
     },
     {
       habitatType: 'Heathland and shrub - Blackthorn scrub',
-      broadHabitat: 'Heathland and shrub',
-      tradingBroadHabitat: 'Heathland and shrub',
+      broadHabitat: HEATHLAND_AND_SHRUB,
+      tradingBroadHabitat: HEATHLAND_AND_SHRUB,
       distinctiveness: 'Medium',
       netUnitChange: 0.18054489048
     },
     {
       habitatType: 'Heathland and shrub - Gorse scrub',
-      broadHabitat: 'Heathland and shrub',
-      tradingBroadHabitat: 'Heathland and shrub',
+      broadHabitat: HEATHLAND_AND_SHRUB,
+      tradingBroadHabitat: HEATHLAND_AND_SHRUB,
       distinctiveness: 'Medium',
       netUnitChange: -2
     },
     {
       habitatType: 'Heathland and shrub - Mixed scrub',
-      broadHabitat: 'Heathland and shrub',
-      tradingBroadHabitat: 'Heathland and shrub',
+      broadHabitat: HEATHLAND_AND_SHRUB,
+      tradingBroadHabitat: HEATHLAND_AND_SHRUB,
       distinctiveness: 'Medium',
       netUnitChange: 0
     },
     {
       habitatType: 'Heathland and shrub - Willow scrub',
-      broadHabitat: 'Heathland and shrub',
-      tradingBroadHabitat: 'Heathland and shrub',
+      broadHabitat: HEATHLAND_AND_SHRUB,
+      tradingBroadHabitat: HEATHLAND_AND_SHRUB,
       distinctiveness: 'Medium',
       netUnitChange: 0.39843540385616
     },
@@ -57,21 +63,21 @@ export const WORKED_EXAMPLE_TRADING_RULES = {
       habitatType:
         'Intertidal hard structures - Artificial hard structures with integrated greening of grey infrastructure (IGGI)',
       broadHabitat: 'Intertidal hard structures',
-      tradingBroadHabitat: 'Intertidal sediment and hard structures',
+      tradingBroadHabitat: INTERTIDAL_SEDIMENT_AND_HARD_STRUCTURES,
       distinctiveness: 'Medium',
       netUnitChange: -4
     },
     {
       habitatType: 'Intertidal sediment - Littoral coarse sediment',
       broadHabitat: 'Intertidal sediment',
-      tradingBroadHabitat: 'Intertidal sediment and hard structures',
+      tradingBroadHabitat: INTERTIDAL_SEDIMENT_AND_HARD_STRUCTURES,
       distinctiveness: 'Medium',
       netUnitChange: -4
     },
     {
       habitatType: 'Intertidal sediment - Littoral sand',
       broadHabitat: 'Intertidal sediment',
-      tradingBroadHabitat: 'Intertidal sediment and hard structures',
+      tradingBroadHabitat: INTERTIDAL_SEDIMENT_AND_HARD_STRUCTURES,
       distinctiveness: 'Medium',
       netUnitChange: 0
     },
@@ -98,8 +104,8 @@ export const WORKED_EXAMPLE_TRADING_RULES = {
     },
     {
       habitatType: "Woodland and forest - Other Scot's pine woodland",
-      broadHabitat: 'Woodland and forest',
-      tradingBroadHabitat: 'Woodland and forest',
+      broadHabitat: WOODLAND_AND_FOREST,
+      tradingBroadHabitat: WOODLAND_AND_FOREST,
       distinctiveness: 'Medium',
       netUnitChange: 0
     }
@@ -111,11 +117,11 @@ export const WORKED_EXAMPLE_TRADING_RULES = {
         netUnitChange: 119.56850290802
       },
       {
-        broadHabitat: 'Heathland and shrub',
+        broadHabitat: HEATHLAND_AND_SHRUB,
         netUnitChange: -1.42101970566384
       },
       {
-        broadHabitat: 'Intertidal sediment and hard structures',
+        broadHabitat: INTERTIDAL_SEDIMENT_AND_HARD_STRUCTURES,
         netUnitChange: -8
       },
       {
@@ -123,7 +129,7 @@ export const WORKED_EXAMPLE_TRADING_RULES = {
         netUnitChange: 2.953733156276
       },
       {
-        broadHabitat: 'Woodland and forest',
+        broadHabitat: WOODLAND_AND_FOREST,
         netUnitChange: 0
       }
     ],
