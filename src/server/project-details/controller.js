@@ -6,6 +6,7 @@ import {
   patchProjectDetails
 } from '../common/services/projects.js'
 import { statusCodes, HTTP_SUCCESS_MAX } from '../common/constants.js'
+import { fetchLocalPlanningAuthorities } from '../common/services/local-planning-authorities.js'
 
 const DEVELOPMENT_TYPE_OPTIONS = ['Small site', 'Large site']
 const NSIPS_OPTIONS = ['Yes', 'No']
@@ -98,12 +99,15 @@ function validateSurveyCompletionDate(value, helpers) {
 // merges the PATCH payload into the stored details with a jsonb `||`, which
 // leaves omitted keys untouched but overwrites keys sent as `null`.
 export const projectDetailsFormSchema = Joi.object({
-  localPlanningAuthority: Joi.string()
+  localPlanningAuthorityReference: Joi.string()
     .trim()
     .empty('')
     .allow(null)
     .default(null)
-    .max(MAX_TEXT_FIELD_LENGTH),
+    .pattern(/^E600\d{5}$/)
+    .messages({
+      'string.pattern.base': 'Select a Local Planning Authority from the list'
+    }),
   surveyCompleters: Joi.string()
     .trim()
     .empty('')
@@ -160,7 +164,7 @@ function radioItems(options, selected) {
 
 function renderForm(
   h,
-  { projectId, projectName, details = {}, errors = [], dateParts }
+  { projectId, projectName, details = {}, errors = [], dateParts, authorities }
 ) {
   const fieldErrors = Object.fromEntries(
     errors.map((error) => [error.name, error.text])
@@ -173,6 +177,18 @@ function renderForm(
     errors,
     fieldErrors,
     details,
+    localPlanningAuthorityItems: [
+      {
+        value: '',
+        text: 'Select a Local Planning Authority',
+        selected: !details.localPlanningAuthorityReference
+      },
+      ...authorities.map(({ name, reference }) => ({
+        value: reference,
+        text: name,
+        selected: reference === details.localPlanningAuthorityReference
+      }))
+    ],
     surveyCompletionDate: dateParts ?? splitDate(details.surveyCompletionDate),
     surveyCompletionDateErrorParts: dateError?.parts ?? [],
     developmentTypeItems: radioItems(
@@ -211,6 +227,7 @@ async function handleValidationFailure(request, h, err) {
     projectId,
     projectName: result?.payload?.project?.name,
     details: request.payload,
+    authorities: await fetchLocalPlanningAuthorities(),
     dateParts: datePartsOf(request.payload),
     errors
   }).takeover()
@@ -242,7 +259,8 @@ export const projectDetailsController = {
     return renderForm(h, {
       projectId,
       projectName: result.payload?.project?.name,
-      details: result.payload?.project?.details ?? {}
+      details: result.payload?.project?.details ?? {},
+      authorities: await fetchLocalPlanningAuthorities()
     })
   }
 }
@@ -269,6 +287,25 @@ export const projectDetailsPostController = {
     }
     if (result.statusCode === statusCodes.notFound) {
       throw Boom.notFound('Project not found')
+    }
+    if (
+      result.statusCode === statusCodes.badRequest &&
+      request.payload.localPlanningAuthorityReference
+    ) {
+      const project = await fetchProject(request, projectId)
+      return renderForm(h, {
+        projectId,
+        projectName: project?.payload?.project?.name,
+        details: request.payload,
+        authorities: await fetchLocalPlanningAuthorities(),
+        errors: [
+          {
+            name: 'localPlanningAuthorityReference',
+            href: '#localPlanningAuthorityReference',
+            text: 'Select a Local Planning Authority from the list'
+          }
+        ]
+      })
     }
     if (
       result.statusCode < statusCodes.ok ||

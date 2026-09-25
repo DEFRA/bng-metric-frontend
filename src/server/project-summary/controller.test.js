@@ -284,6 +284,42 @@ describe('project summary', () => {
     )
   })
 
+  test('links only the area Trading Rules tile when PI is uploaded', async () => {
+    const url = `/projects/${PROJECT_ID}/project-summary`
+    const baselineResponse = await server.inject({ method: 'GET', url, auth })
+    const baselinePage = load(baselineResponse.result)
+    const baselineArea = baselinePage('#area-habitats-heading').closest(
+      'section'
+    )
+
+    expect(
+      baselineArea
+        .find('a')
+        .filter(
+          (_, link) => baselinePage(link).text() === 'View area trading rules'
+        )
+    ).toHaveLength(0)
+
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: projectWithPostIntervention
+    })
+    const piResponse = await server.inject({ method: 'GET', url, auth })
+    const $ = load(piResponse.result)
+    const area = $('#area-habitats-heading').closest('section')
+    const tradingLink = area
+      .find('a')
+      .filter((_, link) => $(link).text() === 'View area trading rules')
+
+    expect(tradingLink).toHaveLength(1)
+    expect(tradingLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-trading-summary`
+    )
+    expect($('#hedgerows-heading').closest('section').text()).not.toContain(
+      'View area trading rules'
+    )
+  })
+
   test('links each unit-type tile title to its summary page', async () => {
     const { result } = await server.inject({
       method: 'GET',
