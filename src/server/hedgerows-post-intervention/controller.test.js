@@ -295,9 +295,9 @@ describe('hedgerows post intervention', () => {
     expect(hedgerowsSummary.text()).toContain('Not applicable')
     expect(hedgerowsSummary.find('.govuk-tag')).toHaveLength(0)
     expect(hedgerowsSummary.text()).not.toContain('View on-site baseline')
-    expect(hedgerowsSummary.find('a').text().trim()).toBe(
-      'Upload on-site post intervention file'
-    )
+    expect(
+      hedgerowsSummary.find('.app-unit-type-summary__secondary a').text().trim()
+    ).toBe('Upload on-site post intervention file')
   })
 
   test('shows Retained, Enhanced and Created GOV.UK tabs with in-page hash links', async () => {

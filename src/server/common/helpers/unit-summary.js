@@ -207,7 +207,8 @@ function buildUnitSummary({
   baselineAction,
   interventionAction,
   tradingRulesStatus = null,
-  tradingRulesHref
+  tradingRulesHref,
+  tradingRulesLinkText = 'View area trading rules'
 }) {
   const normalisedBaseline = normaliseUnits(baselineUnits)
   const hasIntervention = Boolean(intervention)
@@ -231,7 +232,7 @@ function buildUnitSummary({
     ...percentageSummaryDisplay,
     tradingRules: tradingRulesHref
       ? {
-          text: 'View area trading rules',
+          text: tradingRulesLinkText,
           href: tradingRulesHref,
           status: tradingRulesStatus
         }

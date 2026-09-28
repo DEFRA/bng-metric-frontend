@@ -65,6 +65,11 @@ function buildHabitatPostIntervention(project, projectId, config) {
   const interventionTabPanels = visibleInterventionTabs(features).map((tab) =>
     buildTabPanel(tab, features, projectId, config)
   )
+  const tradingSummaryPath =
+    config.tradingSummaryPath ??
+    (config.path === AREA_POST_INTERVENTION_PATH
+      ? AREA_TRADING_SUMMARY_PATH
+      : null)
 
   return {
     projectName: project?.name ?? DEFAULT_PROJECT_NAME,
@@ -83,9 +88,10 @@ function buildHabitatPostIntervention(project, projectId, config) {
       baselineAction: config.baselineAction(projectId),
       interventionAction: null,
       tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null,
+      tradingRulesLinkText: config.tradingRulesLinkText,
       tradingRulesHref:
-        config.path === AREA_POST_INTERVENTION_PATH && project?.postIntervention
-          ? projectPageHref(projectId, AREA_TRADING_SUMMARY_PATH)
+        tradingSummaryPath && project?.postIntervention
+          ? projectPageHref(projectId, tradingSummaryPath)
           : null
     }),
     retainedTab: tabById(interventionTabPanels, 'retained'),

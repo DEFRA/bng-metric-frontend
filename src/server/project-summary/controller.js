@@ -14,6 +14,7 @@ import {
   HEDGEROWS_HABITAT_KEY,
   HEDGEROWS_POST_INTERVENTION_PATH,
   HEDGEROWS_SUMMARY_PATH,
+  HEDGEROWS_TRADING_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   PROJECT_SUMMARY_PATH,
   SUMMARY_TEXT,
@@ -66,9 +67,9 @@ function buildUnitTypeSummary(
     postInterventionOnly: unitType.postInterventionOnly,
     baselineAction: unitType.baselineAction,
     interventionAction: unitType.interventionAction,
-    // Hedgerow trading rules are a later story; that tile stays without a tag.
     tradingRulesStatus: unitType.tradingRulesStatus ?? null,
-    tradingRulesHref: unitType.tradingRulesHref
+    tradingRulesHref: unitType.tradingRulesHref,
+    tradingRulesLinkText: unitType.tradingRulesLinkText
   })
 }
 
@@ -103,7 +104,11 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         project,
         HEDGEROWS_HABITAT_KEY
       ),
-      buildIntervention: hedgerowsInterventionSummary
+      buildIntervention: hedgerowsInterventionSummary,
+      tradingRulesHref: project?.postIntervention
+        ? projectPageHref(projectId, HEDGEROWS_TRADING_SUMMARY_PATH)
+        : null,
+      tradingRulesLinkText: 'View hedgerows trading rules'
     },
     {
       visible: projectHasHabitatData(project, WATERCOURSES_HABITAT_KEY),

@@ -649,8 +649,14 @@ describe('project summary', () => {
       expect(unitSummary.find('.govuk-tag')).toHaveLength(0)
 
       expect(tradingRulesTile.find('h3').text()).toBe('Trading Rules')
-      expect(tradingRulesTile.text()).toContain('View trading rules')
-      expect(tradingRulesTile.find('a')).toHaveLength(0)
+      if (habitatType === 'hedgerows') {
+        expect(tradingRulesTile.find('a').attr('href')).toBe(
+          `/projects/${PROJECT_ID}/hedgerows-trading-summary`
+        )
+      } else {
+        expect(tradingRulesTile.text()).toContain('View trading rules')
+        expect(tradingRulesTile.find('a')).toHaveLength(0)
+      }
 
       expect(baselineTile.find('h3').text()).toBe('On-site baseline')
       expect(baselineTile.find('p').text()).toBe('0.00 units')
