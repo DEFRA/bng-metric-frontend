@@ -37,7 +37,11 @@ function buildHabitatBaseline(project, projectId, config) {
       intervention,
       baselineAction: null,
       interventionAction: config.interventionAction?.(projectId),
-      tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null
+      tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null,
+      tradingRulesHref:
+        config.tradingSummaryPath && project?.postIntervention
+          ? projectPageHref(projectId, config.tradingSummaryPath)
+          : null
     }),
     ...buildBaselineHabitatGrid({
       features,

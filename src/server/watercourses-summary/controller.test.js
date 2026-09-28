@@ -524,3 +524,94 @@ describe('watercourses summary', () => {
     expect(wreck.get).not.toHaveBeenCalled()
   })
 })
+
+describe('watercourses summary trading rules status', () => {
+  let server
+
+  const projectWithStatus = (overall) => ({
+    ...projectWithPostIntervention,
+    tradingRuleStatuses: {
+      watercourses: { medium: 'Not met', low: 'Met', overall }
+    }
+  })
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/watercourses-summary`,
+      auth
+    })
+    return load(result)
+  }
+
+  const tradingRulesTile = ($) =>
+    $('.app-unit-type-summary__tile').filter((_, el) =>
+      $(el).text().includes('Trading Rules')
+    )
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('shows Not met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Not met'))
+    const tile = tradingRulesTile($)
+
+    expect(tile.find('.govuk-tag').text()).toBe('Not met')
+    expect(tile.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows Met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Met'))
+    const tile = tradingRulesTile($)
+
+    expect(tile.find('.govuk-tag').text()).toBe('Met')
+    expect(tile.find('.govuk-tag').hasClass('govuk-tag--green')).toBe(true)
+  })
+
+  test('shows no status until the trading rules have been calculated', async () => {
+    const $ = await renderWith(projectWithPostIntervention)
+
+    expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
+    expect(tradingRulesTile($).text()).toContain('View trading rules')
+  })
+
+  test('shows no status when trading rules do not apply', async () => {
+    // PI-only watercourses: the backend returns nulls. Unknown is not failed.
+    const $ = await renderWith({
+      ...postInterventionOnlyProject,
+      tradingRuleStatuses: {
+        watercourses: { medium: null, low: null, overall: null }
+      }
+    })
+
+    expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
+  })
+
+  test('shows Not met when only a baseline has been uploaded', async () => {
+    const $ = await renderWith({
+      ...baselineOnlyProject,
+      tradingRuleStatuses: {
+        watercourses: { medium: 'Not met', low: null, overall: 'Not met' }
+      }
+    })
+
+    expect(tradingRulesTile($).find('.govuk-tag').text()).toBe('Not met')
+    expect(
+      tradingRulesTile($).find('.govuk-tag').hasClass('govuk-tag--red')
+    ).toBe(true)
+  })
+})

@@ -5,6 +5,7 @@ const PROJECT_SUMMARY_HREF = `/projects/${PROJECT_ID}/project-summary`
 const AREA_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-summary`
 const AREA_BASELINE_HREF = `/projects/${PROJECT_ID}/area-baseline`
 const AREA_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/area-post-intervention`
+const AREA_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-trading-summary`
 const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
@@ -26,15 +27,46 @@ describe('buildUnitTypeNavigation', () => {
           {
             text: 'Baseline',
             href: AREA_BASELINE_HREF
-          },
-          {
-            text: 'Post-intervention',
-            href: AREA_POST_INTERVENTION_HREF
           }
         ]
       },
       { text: 'Reports', href: REPORTS_HREF }
     ])
+  })
+
+  test('links area Trading Rules on every area page only after PI upload', () => {
+    for (const currentHref of [
+      AREA_SUMMARY_HREF,
+      AREA_BASELINE_HREF,
+      AREA_POST_INTERVENTION_HREF
+    ]) {
+      const items = buildUnitTypeNavigation(
+        { baseline: {}, postIntervention: {} },
+        PROJECT_ID,
+        currentHref
+      )
+      const area = items.find((item) => item.text === 'Area habitats')
+
+      expect(area.children).toContainEqual({
+        text: 'Trading Rules',
+        href: AREA_TRADING_SUMMARY_HREF
+      })
+    }
+
+    for (const currentHref of [AREA_SUMMARY_HREF, AREA_BASELINE_HREF]) {
+      const items = buildUnitTypeNavigation(
+        { baseline: {} },
+        PROJECT_ID,
+        currentHref
+      )
+      const area = items.find((item) => item.text === 'Area habitats')
+
+      expect(area.children).toEqual([
+        currentHref === AREA_BASELINE_HREF
+          ? { text: 'Baseline', current: true }
+          : { text: 'Baseline', href: AREA_BASELINE_HREF }
+      ])
+    }
   })
 
   test('always includes Reports, last, whatever the project holds', () => {
@@ -180,22 +212,28 @@ describe('buildUnitTypeNavigation', () => {
     ])
   })
 
-  test('expands Area habitats on both its summary and its baseline page', () => {
+  test('expands Area habitats with a Post-intervention child once PI is uploaded', () => {
     for (const currentHref of [AREA_SUMMARY_HREF, AREA_BASELINE_HREF]) {
-      const items = buildUnitTypeNavigation({}, PROJECT_ID, currentHref)
+      const items = buildUnitTypeNavigation(
+        { baseline: {}, postIntervention: {} },
+        PROJECT_ID,
+        currentHref
+      )
       const areaHabitatsItem = items.find(
         (item) => item.text === 'Area habitats'
       )
 
-      expect(areaHabitatsItem.children).toHaveLength(2)
-      expect(areaHabitatsItem.children[0].text).toBe('Baseline')
-      expect(areaHabitatsItem.children[1].text).toBe('Post-intervention')
+      expect(areaHabitatsItem.children.map((child) => child.text)).toEqual([
+        'Baseline',
+        'Post-intervention',
+        'Trading Rules'
+      ])
     }
   })
 
   test('marks the Area habitats Post-intervention child as current', () => {
     const items = buildUnitTypeNavigation(
-      {},
+      { baseline: {}, postIntervention: {} },
       PROJECT_ID,
       AREA_POST_INTERVENTION_HREF
     )
@@ -204,7 +242,8 @@ describe('buildUnitTypeNavigation', () => {
     expect(areaHabitatsItem.href).toBe(AREA_SUMMARY_HREF)
     expect(areaHabitatsItem.children).toEqual([
       { text: 'Baseline', href: AREA_BASELINE_HREF },
-      { text: 'Post-intervention', current: true }
+      { text: 'Post-intervention', current: true },
+      { text: 'Trading Rules', href: AREA_TRADING_SUMMARY_HREF }
     ])
   })
 

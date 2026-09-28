@@ -272,6 +272,45 @@ describe('area summary', () => {
     ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
   })
 
+  test('shows area trading links in navigation and results only with PI', async () => {
+    const url = `/projects/${PROJECT_ID}/area-summary`
+    const piResponse = await server.inject({ method: 'GET', url, auth })
+    const piPage = load(piResponse.result)
+    const navLink = piPage('nav[aria-label="Project summary"] a').filter(
+      (_, link) => piPage(link).text() === 'Trading Rules'
+    )
+    const tileLink = piPage('.app-unit-type-summary a').filter(
+      (_, link) => piPage(link).text() === 'View area trading rules'
+    )
+
+    expect(navLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-trading-summary`
+    )
+    expect(tileLink.attr('href')).toBe(navLink.attr('href'))
+
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: baselineOnlyProject
+    })
+    const baselineResponse = await server.inject({ method: 'GET', url, auth })
+    const baselinePage = load(baselineResponse.result)
+    const baselineNav = baselinePage('nav[aria-label="Project summary"]')
+
+    expect(
+      baselineNav
+        .find('a')
+        .filter((_, link) => baselinePage(link).text() === 'Baseline')
+        .attr('href')
+    ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
+    expect(baselineNav.text()).not.toContain('Trading Rules')
+    expect(baselineNav.text()).not.toContain('Post-intervention')
+    expect(
+      baselinePage('.app-unit-type-summary a').filter(
+        (_, link) => baselinePage(link).text() === 'View area trading rules'
+      )
+    ).toHaveLength(0)
+  })
+
   test('shows Hedgerows and Watercourses nav links only when those habitats are present', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
@@ -304,12 +343,8 @@ describe('area summary', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(1)
-    expect(
-      navigation
-        .find('a')
-        .filter((_, link) => $(link).text() === 'Post-intervention')
-    ).toHaveLength(1)
-    expect($('.app-project-navigation__child')).toHaveLength(2)
+    expect(navigation.text()).not.toContain('Post-intervention')
+    expect($('.app-project-navigation__child')).toHaveLength(1)
   })
 
   test('does not render the out-of-scope map or actions sections', async () => {
@@ -574,7 +609,10 @@ describe('area summary trading rules status', () => {
     const $ = await renderWith(projectWithPostIntervention)
 
     expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
-    expect(tradingRulesTile($).text()).toContain('View trading rules')
+    expect(tradingRulesTile($).find('a').text()).toBe('View area trading rules')
+    expect(tradingRulesTile($).find('a').attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-trading-summary`
+    )
   })
 
   test('shows Not met when only a baseline has been uploaded', async () => {

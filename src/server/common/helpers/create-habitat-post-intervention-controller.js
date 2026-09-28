@@ -1,6 +1,8 @@
 import { uploadFileHref } from './upload-file-navigation.js'
 import { hasBaselineData } from './project-state.js'
 import {
+  AREA_POST_INTERVENTION_PATH,
+  AREA_TRADING_SUMMARY_PATH,
   buildUnitTypeNavigation,
   projectPageHref
 } from './unit-type-navigation.js'
@@ -88,7 +90,11 @@ function buildHabitatPostIntervention(project, projectId, config) {
       postInterventionOnly,
       baselineAction: config.baselineAction(projectId),
       interventionAction: null,
-      tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null
+      tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null,
+      tradingRulesHref:
+        config.path === AREA_POST_INTERVENTION_PATH && project?.postIntervention
+          ? projectPageHref(projectId, AREA_TRADING_SUMMARY_PATH)
+          : null
     }),
     areaSize: config.buildAreaSize?.(project) ?? null,
     retainedTab: tabById(interventionTabPanels, 'retained'),

@@ -9,6 +9,7 @@ import {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
   AREA_SUMMARY_PATH,
+  AREA_TRADING_SUMMARY_PATH,
   HEDGEROWS_BASELINE_PATH,
   HEDGEROWS_HABITAT_KEY,
   HEDGEROWS_POST_INTERVENTION_PATH,
@@ -36,7 +37,10 @@ import {
   watercoursesInterventionAction,
   watercoursesInterventionSummary
 } from '../common/helpers/unit-summary.js'
-import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
+import {
+  areaTradingRulesStatus,
+  watercourseTradingRulesStatus
+} from '../common/helpers/trading-rules-status.js'
 import {
   DEFAULT_PROJECT_NAME,
   HEDGEROWS_TOTAL_KEY,
@@ -62,9 +66,9 @@ function buildUnitTypeSummary(
     postInterventionOnly: unitType.postInterventionOnly,
     baselineAction: unitType.baselineAction,
     interventionAction: unitType.interventionAction,
-    // Only area habitats have a trading-rules status so far; the hedgerow and
-    // watercourse rules are separate stories, and their tiles stay as they are.
-    tradingRulesStatus: unitType.tradingRulesStatus ?? null
+    // Hedgerow trading rules are a later story; that tile stays without a tag.
+    tradingRulesStatus: unitType.tradingRulesStatus ?? null,
+    tradingRulesHref: unitType.tradingRulesHref
   })
 }
 
@@ -79,7 +83,10 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
       ),
       baselineUnits: areaUnits(baselineUnits),
       buildIntervention: areaInterventionSummary,
-      tradingRulesStatus: areaTradingRulesStatus(project)
+      tradingRulesStatus: areaTradingRulesStatus(project),
+      tradingRulesHref: project?.postIntervention
+        ? projectPageHref(projectId, AREA_TRADING_SUMMARY_PATH)
+        : null
     },
     {
       visible: projectHasHabitatData(project, HEDGEROWS_HABITAT_KEY),
@@ -113,7 +120,8 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         project,
         WATERCOURSES_HABITAT_KEY
       ),
-      buildIntervention: watercoursesInterventionSummary
+      buildIntervention: watercoursesInterventionSummary,
+      tradingRulesStatus: watercourseTradingRulesStatus(project)
     }
   ]
 }

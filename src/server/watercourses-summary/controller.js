@@ -20,6 +20,7 @@ import {
   isFiniteNumber,
   normaliseUnits
 } from '../common/helpers/unit-summary.js'
+import { watercourseTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const NO_POST_INTERVENTION_UNITS = 0
@@ -72,7 +73,8 @@ function buildWatercoursesSummary(project, projectId) {
       ),
       interventionAction: watercoursesInterventionAction(
         projectPageHref(projectId, WATERCOURSES_POST_INTERVENTION_PATH)
-      )
+      ),
+      tradingRulesStatus: watercourseTradingRulesStatus(project)
     }),
     targetsSummary: buildTargetsSummary({
       baselineUnits: baselineWatercoursesUnits,

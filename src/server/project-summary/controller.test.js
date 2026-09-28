@@ -284,6 +284,42 @@ describe('project summary', () => {
     )
   })
 
+  test('links only the area Trading Rules tile when PI is uploaded', async () => {
+    const url = `/projects/${PROJECT_ID}/project-summary`
+    const baselineResponse = await server.inject({ method: 'GET', url, auth })
+    const baselinePage = load(baselineResponse.result)
+    const baselineArea = baselinePage('#area-habitats-heading').closest(
+      'section'
+    )
+
+    expect(
+      baselineArea
+        .find('a')
+        .filter(
+          (_, link) => baselinePage(link).text() === 'View area trading rules'
+        )
+    ).toHaveLength(0)
+
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: projectWithPostIntervention
+    })
+    const piResponse = await server.inject({ method: 'GET', url, auth })
+    const $ = load(piResponse.result)
+    const area = $('#area-habitats-heading').closest('section')
+    const tradingLink = area
+      .find('a')
+      .filter((_, link) => $(link).text() === 'View area trading rules')
+
+    expect(tradingLink).toHaveLength(1)
+    expect(tradingLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-trading-summary`
+    )
+    expect($('#hedgerows-heading').closest('section').text()).not.toContain(
+      'View area trading rules'
+    )
+  })
+
   test('links each unit-type tile title to its summary page', async () => {
     const { result } = await server.inject({
       method: 'GET',
@@ -929,21 +965,26 @@ describe('project summary trading rules status', () => {
       $(tile).text().includes('Trading Rules')
     )
 
-  test('shows the backend verdict against area habitats only', async () => {
-    // Three unit types, three Trading Rules tiles, but only area habitats has
-    // a verdict so far — the hedgerow and watercourse rules are separate work.
+  test('shows the backend verdict against area habitats and watercourses', async () => {
+    // Three unit types, three Trading Rules tiles. Hedgerow rules are a later
+    // story, so that tile stays without a tag.
     const $ = await renderWith({
       ...projectWithPostIntervention,
       tradingRuleStatuses: {
-        areaHabitats: { medium: 'Not met', low: 'Met', overall: 'Not met' }
+        areaHabitats: { medium: 'Not met', low: 'Met', overall: 'Not met' },
+        watercourses: { medium: 'Met', low: 'Met', overall: 'Met' }
       }
     })
 
     const tiles = tradingRulesTiles($)
     expect(tiles).toHaveLength(3)
-    expect(tiles.find('.govuk-tag')).toHaveLength(1)
-    expect(tiles.find('.govuk-tag').text()).toBe('Not met')
-    expect(tiles.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+    expect(tiles.eq(0).find('.govuk-tag').text()).toBe('Not met')
+    expect(tiles.eq(0).find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+    expect(tiles.eq(1).find('.govuk-tag')).toHaveLength(0)
+    expect(tiles.eq(2).find('.govuk-tag').text()).toBe('Met')
+    expect(tiles.eq(2).find('.govuk-tag').hasClass('govuk-tag--green')).toBe(
+      true
+    )
   })
 
   test('shows no verdict where the backend gave none', async () => {

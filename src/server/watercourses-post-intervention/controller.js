@@ -16,6 +16,7 @@ import {
   formatTotalLengthSize
 } from '../common/helpers/format-habitat-values.js'
 import { buildWatercourseExtraColumns } from '../common/helpers/watercourse-post-intervention-grid.js'
+import { watercourseTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 
 const PAGE_HEADING = 'Post intervention for watercourses'
 const RESULTS_HEADING = 'Watercourses results'
@@ -39,5 +40,6 @@ export const getController = createHabitatPostInterventionController({
   baselineAction: (projectId) =>
     watercoursesBaselineAction(
       projectPageHref(projectId, WATERCOURSES_BASELINE_PATH)
-    )
+    ),
+  tradingRulesStatus: watercourseTradingRulesStatus
 })

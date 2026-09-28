@@ -6,6 +6,7 @@
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 {% from "govuk/components/input/macro.njk" import govukInput %}
 {% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
 
 {% block beforeContent %}
   {{ super() }}
@@ -31,12 +32,15 @@
       {% endif %}
 
       {% call appForm({ action: "/project-details/" + projectId }) %}
-        {{ govukInput({
-          id: "localPlanningAuthority",
-          name: "localPlanningAuthority",
+        {% if details.localPlanningAuthority and not details.localPlanningAuthorityReference %}
+          <p class="govuk-body">Previously saved Local Planning Authority: {{ details.localPlanningAuthority }}. Select an authority from the list to update it.</p>
+        {% endif %}
+        {{ govukSelect({
+          id: "localPlanningAuthorityReference",
+          name: "localPlanningAuthorityReference",
           label: { text: "Local Planning Authority" },
-          value: details.localPlanningAuthority,
-          errorMessage: { text: fieldErrors.localPlanningAuthority } if fieldErrors.localPlanningAuthority else undefined
+          items: localPlanningAuthorityItems,
+          errorMessage: { text: fieldErrors.localPlanningAuthorityReference } if fieldErrors.localPlanningAuthorityReference else undefined
         }) }}
 
         {{ govukInput({
