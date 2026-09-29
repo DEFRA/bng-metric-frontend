@@ -21,12 +21,13 @@ import {
   STANDARD_TIME_TO_TARGET_SUFFIX,
   TIME_DIFFICULTY_SECTION_HEADING
 } from './constants.js'
-import { interventionDisplay } from './retention.js'
+import { interventionDisplay, RETENTION_RETAINED } from './retention.js'
 
-// Strategic significance is fixed at Low (1) in MVS across every habitat type,
-// matching the baseline details pages. The variable significance multipliers
-// come later.
-export const FIXED_STRATEGIC_SIGNIFICANCE = 'Low (1)'
+// Retained features carry their baseline strategic significance, which the
+// service fixes at Low (1) — matching the baseline details pages. Created and
+// enhanced features are priced at their Proposed Strategic Significance, which
+// the backend resolves to a category and multiplier (BMD-1038).
+export const LOW_STRATEGIC_SIGNIFICANCE = 'Low (1)'
 
 export const EMPTY_PLACEHOLDER = ''
 
@@ -48,6 +49,38 @@ export function withMultiplier(value, score) {
   } else {
     return ''
   }
+}
+
+/**
+ * The strategic significance a created or enhanced feature was priced at, with
+ * its multiplier ("High (1.15)"). A feature calculated before the proposed
+ * value was applied has no category and was priced at ×1, so shows Low (1).
+ *
+ * @param {object} proposed the feature's `proposed` sub-object
+ * @returns {string}
+ */
+export function proposedStrategicSignificanceDisplay(proposed) {
+  if (!proposed?.strategicSignificanceCategory) {
+    return LOW_STRATEGIC_SIGNIFICANCE
+  }
+  return withMultiplier(
+    proposed.strategicSignificanceCategory,
+    proposed.strategicSignificanceScore
+  )
+}
+
+/**
+ * The strategic significance a feature was priced at: Low (1) for a retained
+ * feature, otherwise its proposed value.
+ *
+ * @param {object} feature
+ * @returns {string}
+ */
+export function strategicSignificanceDisplay(feature) {
+  if (interventionDisplay(feature?.retentionCategory) === RETENTION_RETAINED) {
+    return LOW_STRATEGIC_SIGNIFICANCE
+  }
+  return proposedStrategicSignificanceDisplay(feature?.proposed)
 }
 
 /**
@@ -238,7 +271,7 @@ export function buildSharedPiViewOnlyFields(
       stripConditionPrefix(proposed.condition),
       proposed.conditionScore
     ),
-    strategicSignificanceDisplay: FIXED_STRATEGIC_SIGNIFICANCE,
+    strategicSignificanceDisplay: strategicSignificanceDisplay(feature),
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
     viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
     backHref: `/projects/${projectId}/post-intervention-habitat-list${listTabAnchor}`
@@ -291,7 +324,7 @@ export function buildViewOnlyViewModel(
       stripConditionPrefix(retained('condition')),
       proposed.conditionScore
     ),
-    strategicSignificanceDisplay: FIXED_STRATEGIC_SIGNIFICANCE,
+    strategicSignificanceDisplay: strategicSignificanceDisplay(feature),
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
     viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
     backHref: `/projects/${projectId}/post-intervention-habitat-list${spec.tabAnchor}`

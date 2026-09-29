@@ -3,11 +3,14 @@ import {
   RETENTION_ENHANCED,
   RETENTION_RETAINED
 } from '../../post-intervention-habitat-details/retention.js'
+import {
+  LOW_STRATEGIC_SIGNIFICANCE,
+  proposedStrategicSignificanceDisplay
+} from '../../post-intervention-habitat-details/view-only-shared.js'
 import { formatHabitatUnits } from './format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
 import {
   EMPTY_DISPLAY,
-  FIXED_STRATEGIC_SIGNIFICANCE,
   TOTALS_LABEL,
   boldCell,
   buildHabitatGrid,
@@ -169,10 +172,17 @@ function conditionColumn(interventionType) {
   }
 }
 
-function strategicSignificanceColumn() {
+// Retained features carry their baseline strategic significance, always Low (1);
+// created and enhanced features show the proposed value they were priced at.
+function strategicSignificanceColumn(interventionType) {
   return {
     text: 'Strategic significance',
-    cell: () => textCell(FIXED_STRATEGIC_SIGNIFICANCE)
+    cell: (feature) =>
+      textCell(
+        interventionType === RETENTION_RETAINED
+          ? LOW_STRATEGIC_SIGNIFICANCE
+          : proposedStrategicSignificanceDisplay(proposedOf(feature))
+      )
   }
 }
 
@@ -236,7 +246,7 @@ function buildColumns({
       ? [conditionColumn(interventionType)]
       : []),
     ...extraColumns,
-    strategicSignificanceColumn(),
+    strategicSignificanceColumn(interventionType),
     ...(INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)
       ? targetAndTimeColumns()
       : [])
