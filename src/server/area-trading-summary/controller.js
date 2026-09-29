@@ -7,14 +7,19 @@ import {
   projectPageHref
 } from '../common/helpers/unit-type-navigation.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
-import { formatUnits } from '../common/helpers/unit-summary.js'
-import { tradingRulesStatusTag } from '../common/helpers/trading-rules-status.js'
+import {
+  LOW,
+  MEDIUM,
+  buildBandStatusRows,
+  buildLowSection,
+  buildMediumSection,
+  buildUnitChangeGrid,
+  habitatsIn,
+  unitChangeCell
+} from '../common/helpers/trading-summary.js'
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const PAGE_HEADING = 'Area habitats trading summary'
-
-const MEDIUM = 'Medium'
-const LOW = 'Low'
 
 // The backend cumulates the Medium habitats of both intertidal broad habitats
 // under this one key, because the trading rules treat them as one broad
@@ -25,10 +30,6 @@ const MERGED_INTERTIDAL_BROAD_HABITAT =
 const INTERTIDAL_HEADING = 'Intertidal sediment and Intertidal hard structures'
 
 const HABITAT_TYPE_SEPARATOR = ' - '
-
-function unitsText(value) {
-  return `${formatUnits(value)} units`
-}
 
 /**
  * The habitat type without its broad habitat. The engine keys habitats as
@@ -42,39 +43,18 @@ function habitatTypeText({ habitatType, broadHabitat }) {
     : habitatType
 }
 
-function unitChangeCell(value, { bold = false } = {}) {
-  return {
-    text: formatUnits(value),
-    numeric: true,
-    classes: bold ? 'govuk-!-font-weight-bold' : undefined
+function habitatRow(habitat, { includeBroadHabitat = false } = {}) {
+  const cells = []
+
+  if (includeBroadHabitat) {
+    cells.push({ text: habitat.broadHabitat })
   }
-}
 
-function totalLabelCell(text) {
-  return { text, classes: 'govuk-!-font-weight-bold' }
-}
-
-function habitatsIn(habitatTypes, distinctiveness) {
-  return habitatTypes.filter(
-    (habitat) => habitat.distinctiveness === distinctiveness
+  cells.push(
+    { text: habitatTypeText(habitat) },
+    unitChangeCell(habitat.netUnitChange)
   )
-}
-
-function statusRow(text, status) {
-  return { text, status: tradingRulesStatusTag(status) }
-}
-
-function buildStatusRows(hasMedium, hasLow, statuses) {
-  const rows = []
-
-  if (hasMedium) {
-    rows.push(statusRow(MEDIUM, statuses?.medium))
-  }
-  if (hasLow) {
-    rows.push(statusRow(LOW, statuses?.low))
-  }
-
-  return rows
+  return cells
 }
 
 function habitatsCumulatedUnder(broadHabitat, mediumHabitats) {
@@ -83,76 +63,52 @@ function habitatsCumulatedUnder(broadHabitat, mediumHabitats) {
   )
 }
 
+const BROAD_HABITAT_COLUMNS = ['Habitat type', 'Unit change']
+const BROAD_AND_TYPE_COLUMNS = [
+  'Broad habitat',
+  'Habitat type',
+  'On-site unit change'
+]
+const TOTAL_BROAD_HABITAT_CHANGE = 'Total broad habitat change'
+
 function buildBroadHabitatGrid(broadHabitat, mediumHabitats) {
-  return {
+  return buildUnitChangeGrid({
     heading: broadHabitat.broadHabitat,
-    rows: habitatsCumulatedUnder(broadHabitat, mediumHabitats).map(
-      (habitat) => [
-        { text: habitatTypeText(habitat) },
-        unitChangeCell(habitat.netUnitChange)
-      ]
+    columns: BROAD_HABITAT_COLUMNS,
+    rows: habitatsCumulatedUnder(broadHabitat, mediumHabitats).map((habitat) =>
+      habitatRow(habitat)
     ),
-    totalsRow: [
-      totalLabelCell('Total broad habitat change'),
-      unitChangeCell(broadHabitat.netUnitChange, { bold: true })
-    ]
-  }
+    totalsLabel: TOTAL_BROAD_HABITAT_CHANGE,
+    totalsValue: broadHabitat.netUnitChange
+  })
 }
 
 function buildIntertidalGrid(broadHabitat, mediumHabitats) {
-  return {
+  return buildUnitChangeGrid({
     heading: INTERTIDAL_HEADING,
-    rows: habitatsCumulatedUnder(broadHabitat, mediumHabitats).map(
-      (habitat) => [
-        { text: habitat.broadHabitat },
-        { text: habitatTypeText(habitat) },
-        unitChangeCell(habitat.netUnitChange)
-      ]
+    columns: BROAD_AND_TYPE_COLUMNS,
+    rows: habitatsCumulatedUnder(broadHabitat, mediumHabitats).map((habitat) =>
+      habitatRow(habitat, { includeBroadHabitat: true })
     ),
-    totalsRow: [
-      totalLabelCell('Total broad habitat change'),
-      { text: '' },
-      unitChangeCell(broadHabitat.netUnitChange, { bold: true })
-    ]
-  }
+    totalsLabel: TOTAL_BROAD_HABITAT_CHANGE,
+    totalsValue: broadHabitat.netUnitChange
+  })
 }
 
-function buildMediumSection(figures, mediumHabitats, status) {
+function mediumGrids(figures, mediumHabitats) {
   const broadHabitats = figures.medium?.broadHabitats ?? []
   const intertidal = broadHabitats.find(
     (entry) => entry.broadHabitat === MERGED_INTERTIDAL_BROAD_HABITAT
   )
+  const grids = broadHabitats
+    .filter((entry) => entry !== intertidal)
+    .map((entry) => buildBroadHabitatGrid(entry, mediumHabitats))
 
-  return {
-    deficit: unitsText(figures.medium?.deficit),
-    status: tradingRulesStatusTag(status),
-    broadHabitatGrids: broadHabitats
-      .filter((entry) => entry !== intertidal)
-      .map((entry) => buildBroadHabitatGrid(entry, mediumHabitats)),
-    intertidalGrid: intertidal
-      ? buildIntertidalGrid(intertidal, mediumHabitats)
-      : null
+  if (intertidal) {
+    grids.push(buildIntertidalGrid(intertidal, mediumHabitats))
   }
-}
 
-function buildLowSection(figures, lowHabitats) {
-  return {
-    netUnitChange: unitsText(figures.low?.netUnitChange),
-    mediumSurplus: unitsText(figures.medium?.surplus),
-    cumulativeSurplus: unitsText(figures.low?.cumulativeAvailability),
-    grid: {
-      rows: lowHabitats.map((habitat) => [
-        { text: habitat.broadHabitat },
-        { text: habitatTypeText(habitat) },
-        unitChangeCell(habitat.netUnitChange)
-      ]),
-      totalsRow: [
-        totalLabelCell('Total on-site unit change'),
-        { text: '' },
-        unitChangeCell(figures.low?.netUnitChange, { bold: true })
-      ]
-    }
-  }
+  return grids
 }
 
 /**
@@ -174,11 +130,31 @@ function buildTradingSections(project) {
   const hasLow = lowHabitats.length > 0
 
   return {
-    statusRows: buildStatusRows(hasMedium, hasLow, statuses),
+    statusRows: buildBandStatusRows(
+      [
+        { label: MEDIUM, key: 'medium', present: hasMedium },
+        { label: LOW, key: 'low', present: hasLow }
+      ],
+      statuses
+    ),
     medium: hasMedium
-      ? buildMediumSection(figures, mediumHabitats, statuses?.medium)
+      ? buildMediumSection({
+          deficit: figures.medium?.deficit,
+          status: statuses?.medium,
+          grids: mediumGrids(figures, mediumHabitats)
+        })
       : null,
-    low: hasLow ? buildLowSection(figures, lowHabitats) : null
+    low: hasLow
+      ? buildLowSection({
+          netUnitChange: figures.low?.netUnitChange,
+          mediumSurplus: figures.medium?.surplus,
+          cumulativeAvailability: figures.low?.cumulativeAvailability,
+          columns: BROAD_AND_TYPE_COLUMNS,
+          rows: lowHabitats.map((habitat) =>
+            habitatRow(habitat, { includeBroadHabitat: true })
+          )
+        })
+      : null
   }
 }
 

@@ -1,0 +1,107 @@
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+
+{% macro statusTag(status) -%}
+  {%- if status -%}<strong class="govuk-tag {{ status.classes }}">{{ status.text }}</strong>{%- endif -%}
+{%- endmacro %}
+
+{% macro unitChangeCell(cell) -%}
+  <td class="govuk-table__cell{% if cell.numeric %} govuk-table__cell--numeric{% endif %}{% if cell.classes %} {{ cell.classes }}{% endif %}">{{ cell.text }}</td>
+{%- endmacro %}
+
+{% macro unitChangeGrid(grid) %}
+  <table class="govuk-table app-trading-summary__grid">
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        {% for column in grid.columns %}
+          <th class="govuk-table__header{% if loop.last %} govuk-table__header--numeric{% endif %}" scope="col">{{ column }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for row in grid.rows %}
+        <tr class="govuk-table__row">
+          {% for cell in row %}{{ unitChangeCell(cell) }}{% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+    {% if grid.totalsRow %}
+      <tfoot class="govuk-table__foot">
+        <tr class="govuk-table__row">
+          {% for cell in grid.totalsRow %}{{ unitChangeCell(cell) }}{% endfor %}
+        </tr>
+      </tfoot>
+    {% endif %}
+  </table>
+{% endmacro %}
+
+{% macro tradingSummary(trading) %}
+  {% if not trading %}
+    {{ govukInsetText({
+      text: "Trading rules have not been calculated for this project. Upload the post-intervention file again to calculate them."
+    }) }}
+  {% else %}
+    <section class="app-trading-summary__section" aria-labelledby="trading-summary-heading">
+      <h2 id="trading-summary-heading" class="govuk-heading-m">Trading summary</h2>
+      <table class="govuk-table app-trading-summary__status">
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th class="govuk-table__header" scope="col">Distinctiveness group</th>
+            <th class="govuk-table__header" scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for row in trading.statusRows %}
+            <tr class="govuk-table__row">
+              <td class="govuk-table__cell">{{ row.text }}</td>
+              <td class="govuk-table__cell">{{ statusTag(row.status) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    {% if trading.medium %}
+      <section class="app-trading-summary__section" aria-labelledby="medium-distinctiveness-heading">
+        <h2 id="medium-distinctiveness-heading" class="govuk-heading-l">Medium distinctiveness</h2>
+
+        <div class="app-trading-summary__tiles">
+          <div class="app-unit-type-summary__tile">
+            <h3 class="govuk-heading-s">Medium distinctiveness unit deficit required to meet trading rules</h3>
+            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ trading.medium.deficit }}</p>
+            {{ statusTag(trading.medium.status) }}
+          </div>
+        </div>
+
+        {% for grid in trading.medium.grids %}
+          {% if grid.heading %}
+            <h3 class="govuk-heading-m">{{ grid.heading }}</h3>
+          {% endif %}
+          {{ unitChangeGrid(grid) }}
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    {% if trading.low %}
+      <section class="app-trading-summary__section" aria-labelledby="low-distinctiveness-heading">
+        <h2 id="low-distinctiveness-heading" class="govuk-heading-l">Low distinctiveness</h2>
+
+        <div class="app-trading-summary__tiles app-trading-summary__tiles--three">
+          <div class="app-unit-type-summary__tile">
+            <h3 class="govuk-heading-s">Low distinctiveness net change in units</h3>
+            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ trading.low.netUnitChange }}</p>
+          </div>
+          <div class="app-unit-type-summary__tile">
+            <h3 class="govuk-heading-s">Medium units available to offset low distinctiveness deficit</h3>
+            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ trading.low.mediumSurplus }}</p>
+          </div>
+          <div class="app-unit-type-summary__tile">
+            <h3 class="govuk-heading-s">Cumulative surplus of units</h3>
+            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ trading.low.cumulativeSurplus }}</p>
+          </div>
+        </div>
+
+        {{ unitChangeGrid(trading.low.grid) }}
+      </section>
+    {% endif %}
+  {% endif %}
+{% endmacro %}
