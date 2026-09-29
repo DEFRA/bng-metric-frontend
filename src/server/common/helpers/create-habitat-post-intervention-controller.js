@@ -1,7 +1,8 @@
 import { uploadFileHref } from './upload-file-navigation.js'
 import {
   hasBaselineData,
-  hasPostInterventionOnlyHabitat
+  hasPostInterventionOnlyHabitat,
+  projectHasHabitatData
 } from './project-state.js'
 import {
   AREA_POST_INTERVENTION_PATH,
@@ -84,9 +85,17 @@ function buildHabitatPostIntervention(project, projectId, config) {
       interventionAction: null,
       tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null,
       tradingRulesHref:
-        config.path === AREA_POST_INTERVENTION_PATH && project?.postIntervention
-          ? projectPageHref(projectId, AREA_TRADING_SUMMARY_PATH)
-          : null
+        project?.postIntervention &&
+        (!config.tradingSummaryHabitatKey ||
+          projectHasHabitatData(project, config.tradingSummaryHabitatKey)) &&
+        (config.tradingSummaryPath ||
+          config.path === AREA_POST_INTERVENTION_PATH)
+          ? projectPageHref(
+              projectId,
+              config.tradingSummaryPath ?? AREA_TRADING_SUMMARY_PATH
+            )
+          : null,
+      tradingRulesLinkText: config.tradingRulesLinkText
     }),
     retainedTab: tabById(interventionTabPanels, 'retained'),
     enhancedTab: tabById(interventionTabPanels, 'enhanced'),

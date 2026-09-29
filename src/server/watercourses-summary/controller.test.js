@@ -270,7 +270,11 @@ describe('watercourses summary', () => {
     const $ = load(result)
     const watercoursesSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
-    const uploadLink = watercoursesSummary.find('a')
+    const uploadLink = watercoursesSummary
+      .find('a')
+      .filter(
+        (_, link) => $(link).text() === 'Upload on-site post intervention file'
+      )
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(watercoursesSummary.text()).toContain('Not applicable')
@@ -586,7 +590,9 @@ describe('watercourses summary trading rules status', () => {
     const $ = await renderWith(projectWithPostIntervention)
 
     expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
-    expect(tradingRulesTile($).text()).toContain('View trading rules')
+    expect(tradingRulesTile($).text()).toContain(
+      'View watercourses trading rules'
+    )
   })
 
   test('shows no status when trading rules do not apply', async () => {

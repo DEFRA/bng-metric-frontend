@@ -13,6 +13,7 @@ const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
 const REPORTS_HREF = `/projects/${PROJECT_ID}/reports`
 const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline-summary`
 const WATERCOURSES_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/watercourses-post-intervention`
+const WATERCOURSES_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-trading-summary`
 
 describe('buildUnitTypeNavigation', () => {
   test('always includes Summary and Area habitats', () => {
@@ -187,11 +188,7 @@ describe('buildUnitTypeNavigation', () => {
 
     expect(watercoursesItem.href).toBe(WATERCOURSES_SUMMARY_HREF)
     expect(watercoursesItem.children).toEqual([
-      { text: 'Baseline', current: true },
-      {
-        text: 'Post-intervention',
-        href: WATERCOURSES_POST_INTERVENTION_HREF
-      }
+      { text: 'Baseline', current: true }
     ])
     expect(areaHabitatsItem).toEqual({
       text: 'Area habitats',
@@ -208,8 +205,33 @@ describe('buildUnitTypeNavigation', () => {
     const watercoursesItem = items.find((item) => item.text === 'Watercourses')
 
     expect(watercoursesItem.children).toEqual([
-      { text: 'Post-intervention', current: true }
+      { text: 'Post-intervention', current: true },
+      { text: 'Trading rules', href: WATERCOURSES_TRADING_SUMMARY_HREF }
     ])
+  })
+
+  test('shows watercourses trading navigation on each watercourse page after PI upload', () => {
+    for (const currentHref of [
+      WATERCOURSES_SUMMARY_HREF,
+      WATERCOURSES_BASELINE_HREF,
+      WATERCOURSES_POST_INTERVENTION_HREF,
+      WATERCOURSES_TRADING_SUMMARY_HREF
+    ]) {
+      const items = buildUnitTypeNavigation(
+        {
+          baseline: { watercourses: [{}] },
+          postIntervention: { watercourses: [{}] }
+        },
+        PROJECT_ID,
+        currentHref
+      )
+      const watercourses = items.find((item) => item.text === 'Watercourses')
+      expect(watercourses.children).toContainEqual(
+        currentHref === WATERCOURSES_TRADING_SUMMARY_HREF
+          ? { text: 'Trading rules', current: true }
+          : { text: 'Trading rules', href: WATERCOURSES_TRADING_SUMMARY_HREF }
+      )
+    }
   })
 
   test('expands Area habitats on both its summary and its baseline page', () => {

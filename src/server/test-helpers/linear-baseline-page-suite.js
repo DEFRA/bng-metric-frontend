@@ -191,9 +191,11 @@ function registerNavigationTests(ctx) {
     ).toBe(`/projects/${PROJECT_ID}/area-summary`)
     expect(baselineLinks).toHaveLength(0)
     const children = navigation.find('.app-project-navigation__child')
-    expect(children).toHaveLength(ctx.postInterventionPath ? 2 : 1)
+    const showPostIntervention =
+      ctx.postInterventionPath && !ctx.postInterventionRequiresUpload
+    expect(children).toHaveLength(showPostIntervention ? 2 : 1)
     expect(children.eq(0).text().trim()).toBe(BASELINE_LABEL)
-    if (ctx.postInterventionPath) {
+    if (showPostIntervention) {
       const postInterventionLink = children.eq(1).find('a')
       expect(postInterventionLink.text().trim()).toBe('Post-intervention')
       expect(postInterventionLink.attr('href')).toBe(

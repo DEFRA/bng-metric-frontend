@@ -23,6 +23,7 @@ const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
 const REPORTS_PATH = 'reports'
 const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline-summary'
 const WATERCOURSES_POST_INTERVENTION_PATH = 'watercourses-post-intervention'
+const WATERCOURSES_TRADING_SUMMARY_PATH = 'watercourses-trading-summary'
 
 const OPTIONAL_UNIT_TYPES = [
   {
@@ -37,7 +38,10 @@ const OPTIONAL_UNIT_TYPES = [
     text: WATERCOURSES_TEXT,
     summaryPath: WATERCOURSES_SUMMARY_PATH,
     baselinePath: WATERCOURSES_BASELINE_PATH,
-    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH
+    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH,
+    postInterventionRequiresUpload: true,
+    tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH,
+    tradingRulesText: 'Trading rules'
   }
 ]
 
@@ -67,10 +71,11 @@ function sectionHrefs(projectId, itemHref, unitType) {
   }
 
   if (unitType.tradingSummaryPath) {
-    hrefs.push(
-      projectPageHref(projectId, AREA_POST_INTERVENTION_PATH),
-      projectPageHref(projectId, unitType.tradingSummaryPath)
-    )
+    hrefs.push(projectPageHref(projectId, unitType.tradingSummaryPath))
+  }
+
+  if (unitType.tradingSummaryPath === AREA_TRADING_SUMMARY_PATH) {
+    hrefs.push(projectPageHref(projectId, AREA_POST_INTERVENTION_PATH))
   }
 
   return hrefs
@@ -91,8 +96,7 @@ function buildSectionChildren(project, projectId, unitType) {
 
   if (
     unitType.postInterventionPath &&
-    (unitType.postInterventionPath !== AREA_POST_INTERVENTION_PATH ||
-      project?.postIntervention)
+    (!unitType.postInterventionRequiresUpload || project?.postIntervention)
   ) {
     children.push({
       text: POST_INTERVENTION_TEXT,
@@ -102,7 +106,7 @@ function buildSectionChildren(project, projectId, unitType) {
 
   if (unitType.tradingSummaryPath && project?.postIntervention) {
     children.push({
-      text: TRADING_RULES_TEXT,
+      text: unitType.tradingRulesText ?? TRADING_RULES_TEXT,
       href: projectPageHref(projectId, unitType.tradingSummaryPath)
     })
   }
@@ -195,6 +199,7 @@ export {
   WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
+  WATERCOURSES_TRADING_SUMMARY_PATH,
   WATERCOURSES_TEXT,
   buildUnitTypeNavigation,
   projectPageHref

@@ -2,6 +2,7 @@ import {
   WATERCOURSES_BASELINE_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_POST_INTERVENTION_PATH,
+  WATERCOURSES_TRADING_SUMMARY_PATH,
   WATERCOURSES_TEXT,
   projectPageHref
 } from '../common/helpers/unit-type-navigation.js'
@@ -41,5 +42,8 @@ export const getController = createHabitatPostInterventionController({
     watercoursesBaselineAction(
       projectPageHref(projectId, WATERCOURSES_BASELINE_PATH)
     ),
-  tradingRulesStatus: watercourseTradingRulesStatus
+  tradingRulesStatus: watercourseTradingRulesStatus,
+  tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH,
+  tradingSummaryHabitatKey: WATERCOURSES_HABITAT_KEY,
+  tradingRulesLinkText: 'View watercourses trading rules'
 })
