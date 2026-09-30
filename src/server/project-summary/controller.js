@@ -21,6 +21,7 @@ import {
   WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
+  WATERCOURSES_TRADING_SUMMARY_PATH,
   WATERCOURSES_TEXT,
   buildUnitTypeNavigation,
   projectPageHref
@@ -68,7 +69,8 @@ function buildUnitTypeSummary(
     interventionAction: unitType.interventionAction,
     // Hedgerow trading rules are a later story; that tile stays without a tag.
     tradingRulesStatus: unitType.tradingRulesStatus ?? null,
-    tradingRulesHref: unitType.tradingRulesHref
+    tradingRulesHref: unitType.tradingRulesHref,
+    tradingRulesLinkText: unitType.tradingRulesLinkText
   })
 }
 
@@ -121,7 +123,11 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         WATERCOURSES_HABITAT_KEY
       ),
       buildIntervention: watercoursesInterventionSummary,
-      tradingRulesStatus: watercourseTradingRulesStatus(project)
+      tradingRulesStatus: watercourseTradingRulesStatus(project),
+      tradingRulesHref: project?.postIntervention
+        ? projectPageHref(projectId, WATERCOURSES_TRADING_SUMMARY_PATH)
+        : null,
+      tradingRulesLinkText: 'View watercourses trading rules'
     }
   ]
 }

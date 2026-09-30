@@ -1,12 +1,15 @@
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
-  hasPostInterventionOnlyHabitat
+  hasPostInterventionOnlyHabitat,
+  projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import {
   WATERCOURSES_BASELINE_PATH,
+  WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_SUMMARY_PATH,
+  WATERCOURSES_TRADING_SUMMARY_PATH,
   WATERCOURSES_TEXT,
   buildUnitTypeNavigation,
   projectPageHref
@@ -33,7 +36,7 @@ function buildWatercoursesSummary(project, projectId) {
   const uploadHref = uploadFileHref(projectId, returnUrl)
   const postInterventionOnly = hasPostInterventionOnlyHabitat(
     project,
-    'watercourses'
+    WATERCOURSES_HABITAT_KEY
   )
 
   const interventionSummary = project?.postIntervention
@@ -74,7 +77,13 @@ function buildWatercoursesSummary(project, projectId) {
       interventionAction: watercoursesInterventionAction(
         projectPageHref(projectId, WATERCOURSES_POST_INTERVENTION_PATH)
       ),
-      tradingRulesStatus: watercourseTradingRulesStatus(project)
+      tradingRulesStatus: watercourseTradingRulesStatus(project),
+      tradingRulesHref:
+        project?.postIntervention &&
+        projectHasHabitatData(project, WATERCOURSES_HABITAT_KEY)
+          ? projectPageHref(projectId, WATERCOURSES_TRADING_SUMMARY_PATH)
+          : null,
+      tradingRulesLinkText: 'View watercourses trading rules'
     }),
     targetsSummary: buildTargetsSummary({
       baselineUnits: baselineWatercoursesUnits,

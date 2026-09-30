@@ -1,5 +1,5 @@
 import { uploadFileHref } from './upload-file-navigation.js'
-import { hasBaselineData } from './project-state.js'
+import { hasBaselineData, projectHasHabitatData } from './project-state.js'
 import {
   AREA_POST_INTERVENTION_PATH,
   AREA_TRADING_SUMMARY_PATH,
@@ -59,6 +59,27 @@ function tabById(panels, id) {
   return panels.find((panel) => panel.id === id) ?? null
 }
 
+function tradingRulesHref(project, projectId, config) {
+  const tradingSummaryPath =
+    config.tradingSummaryPath ??
+    (config.path === AREA_POST_INTERVENTION_PATH
+      ? AREA_TRADING_SUMMARY_PATH
+      : null)
+
+  if (!project?.postIntervention || !tradingSummaryPath) {
+    return null
+  }
+
+  if (
+    config.tradingSummaryHabitatKey &&
+    !projectHasHabitatData(project, config.tradingSummaryHabitatKey)
+  ) {
+    return null
+  }
+
+  return projectPageHref(projectId, tradingSummaryPath)
+}
+
 function buildHabitatPostIntervention(project, projectId, config) {
   const pageHref = projectPageHref(projectId, config.path)
   const uploadHref = uploadFileHref(projectId, pageHref)
@@ -91,10 +112,8 @@ function buildHabitatPostIntervention(project, projectId, config) {
       baselineAction: config.baselineAction(projectId),
       interventionAction: null,
       tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null,
-      tradingRulesHref:
-        config.path === AREA_POST_INTERVENTION_PATH && project?.postIntervention
-          ? projectPageHref(projectId, AREA_TRADING_SUMMARY_PATH)
-          : null
+      tradingRulesHref: tradingRulesHref(project, projectId, config),
+      tradingRulesLinkText: config.tradingRulesLinkText
     }),
     areaSize: config.buildAreaSize?.(project) ?? null,
     retainedTab: tabById(interventionTabPanels, 'retained'),

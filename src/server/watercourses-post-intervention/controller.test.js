@@ -444,9 +444,14 @@ describe('watercourses post intervention', () => {
     expect(watercoursesSummary.text()).toContain('Not applicable')
     expect(watercoursesSummary.find('.govuk-tag')).toHaveLength(0)
     expect(watercoursesSummary.text()).not.toContain('View on-site baseline')
-    expect(watercoursesSummary.find('a').text().trim()).toBe(
-      'Upload on-site post intervention file'
-    )
+    expect(
+      watercoursesSummary
+        .find('a')
+        .filter(
+          (_, link) =>
+            $(link).text() === 'Upload on-site post intervention file'
+        )
+    ).toHaveLength(1)
   })
 
   test('redirects a project without baseline data to the existing task list', async () => {

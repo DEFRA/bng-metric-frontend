@@ -12,12 +12,16 @@ describe('#contentSecurityPolicy', () => {
     await server.stop({ timeout: 0 })
   })
 
-  test('Should set the CSP policy header', async () => {
+  test('sets the expected CSP policy header', async () => {
     const resp = await server.inject({
       method: 'GET',
       url: '/'
     })
 
-    expect(resp.headers['content-security-policy']).toBeDefined()
+    const policy = resp.headers['content-security-policy']
+    expect(policy).toContain("default-src 'self'")
+    expect(policy).toContain("script-src 'self'")
+    expect(policy).toContain("frame-ancestors 'none'")
+    expect(policy).not.toContain('unsafe-inline')
   })
 })

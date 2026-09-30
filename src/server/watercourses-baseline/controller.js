@@ -1,6 +1,7 @@
 import {
   WATERCOURSES_BASELINE_PATH,
   WATERCOURSES_HABITAT_KEY,
+  WATERCOURSES_TRADING_SUMMARY_PATH,
   WATERCOURSES_TEXT
 } from '../common/helpers/unit-type-navigation.js'
 import { watercoursesInterventionSummary } from '../common/helpers/unit-summary.js'
@@ -21,5 +22,8 @@ export const getController = createLinearHabitatBaselineController({
   habitatKey: WATERCOURSES_HABITAT_KEY,
   unitsKey: WATERCOURSES_TOTAL_KEY,
   buildIntervention: watercoursesInterventionSummary,
-  tradingRulesStatus: watercourseTradingRulesStatus
+  tradingRulesStatus: watercourseTradingRulesStatus,
+  tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH,
+  tradingSummaryHabitatKey: WATERCOURSES_HABITAT_KEY,
+  tradingRulesLinkText: 'View watercourses trading rules'
 })

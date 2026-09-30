@@ -481,9 +481,9 @@ describe('area baseline', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(0)
-    expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
+    expect(navigation.find('.app-project-navigation__child')).toHaveLength(2)
     expect(navigation.text()).not.toContain('Trading Rules')
-    expect(navigation.text()).not.toContain('Post-intervention')
+    expect(navigation.text()).toContain('Post-intervention')
     expect(
       $('.app-unit-type-summary a').filter(
         (_, link) => $(link).text() === 'View area trading rules'
