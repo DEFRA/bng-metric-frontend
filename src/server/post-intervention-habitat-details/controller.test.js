@@ -185,6 +185,59 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
+  test('GET sends an unsupported tree back to the return URL it was linked from', async () => {
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: { type: 'tree', feature: { featureId, ref: 'T-1' } }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve(projectPayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const returnUrl = `/projects/${projectId}/area-post-intervention`
+    const h = createMockH()
+    await getController.handler(
+      { query: { projectId, featureId, returnUrl } },
+      h
+    )
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-feature-unsupported',
+      expect.objectContaining({ backHref: returnUrl })
+    )
+  })
+
+  test('GET ignores an unsafe returnUrl and falls back to the old-design list', async () => {
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: { type: 'tree', feature: { featureId, ref: 'T-1' } }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve(projectPayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+    await getController.handler(
+      { query: { projectId, featureId, returnUrl: '//evil.example.com' } },
+      h
+    )
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-feature-unsupported',
+      expect.objectContaining({
+        backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
+      })
+    )
+  })
+
   test('GET renders the read-only hedgerow details page for a retained hedgerow', async () => {
     const hedgerowBaselinePayload = {
       payload: {

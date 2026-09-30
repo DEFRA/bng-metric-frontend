@@ -6,6 +6,7 @@ import {
   fetchProject
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
+import { isSafeRelativePath } from '../common/helpers/upload-file-navigation.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
@@ -161,13 +162,19 @@ function resolveViewOnlyPage(type, retentionCategory) {
   return retentionPage ?? VIEW_ONLY_PAGES.get(type)
 }
 
-function renderUnsupportedFeature(h, { projectId, projectName }) {
+function unsupportedFeatureBackHref(projectId, returnUrl) {
+  return isSafeRelativePath(returnUrl)
+    ? returnUrl
+    : `/projects/${projectId}/post-intervention-habitat-list${AREAS_TAB_ANCHOR}`
+}
+
+function renderUnsupportedFeature(h, { projectId, projectName, returnUrl }) {
   return h.view('habitat-details/pi-feature-unsupported', {
     pageTitle: PI_DETAILS_HEADING,
     heading: PI_DETAILS_HEADING,
     caption: projectName,
     message: UNSUPPORTED_MESSAGE,
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${AREAS_TAB_ANCHOR}`
+    backHref: unsupportedFeatureBackHref(projectId, returnUrl)
   })
 }
 
@@ -176,12 +183,13 @@ const getController = {
     validate: {
       query: Joi.object({
         featureId: Joi.string().uuid().required(),
-        projectId: Joi.string().uuid().required()
+        projectId: Joi.string().uuid().required(),
+        returnUrl: Joi.string().allow('').optional()
       })
     }
   },
   async handler(request, h) {
-    const { featureId, projectId } = request.query
+    const { featureId, projectId, returnUrl } = request.query
     const [{ type, feature }, project] = await Promise.all([
       fetchFeature(request, uploadType, projectId, featureId),
       fetchProject(request, projectId)
@@ -209,7 +217,7 @@ const getController = {
       )
     } else {
       // Trees, IGGIs and any new feature type without a view-only page.
-      return renderUnsupportedFeature(h, { projectId, projectName })
+      return renderUnsupportedFeature(h, { projectId, projectName, returnUrl })
     }
   }
 }

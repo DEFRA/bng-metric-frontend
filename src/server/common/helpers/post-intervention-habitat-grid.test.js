@@ -185,4 +185,33 @@ describe('buildPostInterventionHabitatGrid', () => {
     expect(grid.totalsRow[1].text).toBe('0.12')
     expect(grid.totalsRow[2].text).toBe('1.5km')
   })
+
+  test('inserts leadingExtraColumns after Size and before Habitat type', () => {
+    const grid = buildPostInterventionHabitatGrid({
+      features: [{ broadType: 'Grassland', proposed: {} }],
+      projectId: PROJECT_ID,
+      interventionType: 'Retained',
+      readSize: (feature) => feature.sizeMetres,
+      formatSize: formatLengthKmDisplay,
+      formatSizeTotal: formatTotalLengthSize,
+      leadingExtraColumns: [
+        {
+          text: 'Broad habitat',
+          cell: (feature) => ({ text: feature.broadType })
+        }
+      ]
+    })
+
+    expect(grid.columns.map((column) => column.text)).toEqual([
+      'Ref',
+      'Units',
+      'Size',
+      'Broad habitat',
+      'Habitat type',
+      'Distinctiveness',
+      'Condition',
+      'Strategic significance'
+    ])
+    expect(grid.habitatRows[0][3].text).toBe('Grassland')
+  })
 })

@@ -74,10 +74,6 @@ function sectionHrefs(projectId, itemHref, unitType) {
     hrefs.push(projectPageHref(projectId, unitType.tradingSummaryPath))
   }
 
-  if (unitType.tradingSummaryPath === AREA_TRADING_SUMMARY_PATH) {
-    hrefs.push(projectPageHref(projectId, AREA_POST_INTERVENTION_PATH))
-  }
-
   return hrefs
 }
 
@@ -140,6 +136,7 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
       projectId,
       {
         baselinePath: AREA_BASELINE_PATH,
+        postInterventionPath: AREA_POST_INTERVENTION_PATH,
         tradingSummaryPath: AREA_TRADING_SUMMARY_PATH
       },
       currentHref

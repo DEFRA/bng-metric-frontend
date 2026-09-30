@@ -303,7 +303,7 @@ describe('area summary', () => {
         .attr('href')
     ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
     expect(baselineNav.text()).not.toContain('Trading Rules')
-    expect(baselineNav.text()).not.toContain('Post-intervention')
+    expect(baselineNav.text()).toContain('Post-intervention')
     expect(
       baselinePage('.app-unit-type-summary a').filter(
         (_, link) => baselinePage(link).text() === 'View area trading rules'
@@ -343,7 +343,8 @@ describe('area summary', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(1)
-    expect($('.app-project-navigation__child')).toHaveLength(1)
+    expect(navigation.text()).toContain('Post-intervention')
+    expect($('.app-project-navigation__child')).toHaveLength(2)
   })
 
   test('does not render the out-of-scope map or actions sections', async () => {
