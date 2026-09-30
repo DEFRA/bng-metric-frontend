@@ -304,7 +304,7 @@ describe('watercourses post intervention', () => {
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)
     expect(panel.find('tbody a').text()).toBe('W-A2')
     expect(panel.find('tbody a').attr('href')).toBe(
-      `/post-intervention-habitat-details?featureId=${retainedWatercourse.featureId}&projectId=${projectId}`
+      `/post-intervention-habitat-details?featureId=${retainedWatercourse.featureId}&projectId=${projectId}&returnUrl=${encodeURIComponent(pagePath)}`
     )
     expect(row).toContain('0.50')
     expect(row).toContain('1km')

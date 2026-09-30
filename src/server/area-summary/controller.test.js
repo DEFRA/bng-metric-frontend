@@ -343,6 +343,7 @@ describe('area summary', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(1)
+    expect(navigation.text()).not.toContain('Post-intervention')
     expect($('.app-project-navigation__child')).toHaveLength(1)
   })
 
