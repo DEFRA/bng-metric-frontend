@@ -14,6 +14,8 @@ import {
   formatFiniteNumber,
   formatLengthDisplay,
   formatStandardTimeToTarget,
+  proposedStrategicSignificanceDisplay,
+  strategicSignificanceDisplay,
   withMultiplier
 } from './view-only-shared.js'
 import { DEFAULT_INTERVENTION } from './retention.js'
@@ -158,6 +160,48 @@ describe('baselineDetailsHref', () => {
   })
 })
 
+describe('proposedStrategicSignificanceDisplay', () => {
+  it.each([
+    ['High', 1.15, 'High (1.15)'],
+    ['Medium', 1.1, 'Medium (1.1)'],
+    ['Low', 1, 'Low (1)']
+  ])('shows %s with its multiplier', (category, score, expected) => {
+    expect(
+      proposedStrategicSignificanceDisplay({
+        strategicSignificanceCategory: category,
+        strategicSignificanceScore: score
+      })
+    ).toBe(expected)
+  })
+
+  it('shows Low (1) for a feature calculated before the proposed value was applied', () => {
+    expect(proposedStrategicSignificanceDisplay({})).toBe('Low (1)')
+    expect(proposedStrategicSignificanceDisplay(undefined)).toBe('Low (1)')
+  })
+})
+
+describe('strategicSignificanceDisplay', () => {
+  const proposed = {
+    strategicSignificanceCategory: 'High',
+    strategicSignificanceScore: 1.15
+  }
+
+  it.each(['Created', '3. Enhanced'])(
+    'shows the proposed value for a %s feature',
+    (retentionCategory) => {
+      expect(
+        strategicSignificanceDisplay({ retentionCategory, proposed })
+      ).toBe('High (1.15)')
+    }
+  )
+
+  it('shows Low (1) for a retained feature, which carries its baseline value', () => {
+    expect(
+      strategicSignificanceDisplay({ retentionCategory: 'Retained', proposed })
+    ).toBe('Low (1)')
+  })
+})
+
 describe('buildSharedPiViewOnlyFields', () => {
   it('maps shared display fields from a populated feature', () => {
     const feature = {
@@ -192,6 +236,26 @@ describe('buildSharedPiViewOnlyFields', () => {
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
       backHref: `/projects/${projectId}/post-intervention-habitat-list${listTabAnchor}`
     })
+  })
+
+  it('shows the strategic significance a created feature was priced at', () => {
+    const fields = buildSharedPiViewOnlyFields(
+      {
+        retentionCategory: 'Created',
+        proposed: {
+          strategicSignificanceCategory: 'Medium',
+          strategicSignificanceScore: 1.1
+        }
+      },
+      {
+        projectId,
+        projectName: 'Test Project',
+        baselineFeatureId,
+        listTabAnchor
+      }
+    )
+
+    expect(fields.strategicSignificanceDisplay).toBe('Medium (1.1)')
   })
 
   it('falls back to defaults when the feature is sparse', () => {

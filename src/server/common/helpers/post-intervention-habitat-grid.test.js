@@ -176,6 +176,29 @@ describe('buildPostInterventionHabitatGrid', () => {
     expect(enhanced.habitatRows[0][11].text).toBe('Low (1)')
   })
 
+  test('shows the proposed strategic significance for created and enhanced features only', () => {
+    const feature = {
+      featureId: 'hedge-3',
+      ref: 'P-A3',
+      units: 1.15,
+      sizeMetres: 1000,
+      proposed: {
+        type: 'Native hedgerow',
+        strategicSignificanceCategory: 'High',
+        strategicSignificanceScore: 1.15
+      }
+    }
+    const column = (grid) =>
+      grid.columns.findIndex((c) => c.text === 'Strategic significance')
+
+    for (const interventionType of ['Created', 'Enhanced']) {
+      const grid = buildGrid(interventionType, [feature])
+      expect(grid.habitatRows[0][column(grid)].text).toBe('High (1.15)')
+    }
+    const retained = buildGrid('Retained', [feature])
+    expect(retained.habitatRows[0][column(retained)].text).toBe('Low (1)')
+  })
+
   test('sums units and size for the current intervention type', () => {
     const grid = buildGrid('Created', [
       { units: 0.1, sizeMetres: 1000, proposed: {} },
