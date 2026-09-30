@@ -18,7 +18,10 @@ export function getOidcConfig() {
     // exchange and refresh grants go through the proxy too.
     const options = { [customFetch]: proxyFetch }
     if (discoveryUrl.protocol === 'http:') {
-      options.execute = [allowInsecureRequests]
+      // Only the local Defra ID stub is served over plain HTTP. openid-client
+      // marks allowInsecureRequests @deprecated purely as a warning flag; it has
+      // no replacement.
+      options.execute = [allowInsecureRequests] // NOSONAR
     }
 
     logger.info(
