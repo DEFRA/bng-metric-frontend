@@ -214,6 +214,24 @@ describe('watercourses trading summary', () => {
       expect(table.find('.govuk-tag--green').text()).toBe('Met')
       expect(sectionHeaded($, 'Low distinctiveness')).toHaveLength(0)
     })
+
+    test('renders the figures without tags when no statuses were derived', async () => {
+      const payload = projectPayload({ statuses: undefined })
+      delete payload.tradingRuleStatuses
+      mockProject(payload)
+
+      const $ = await renderPage()
+      const table = sectionHeaded($, 'Trading summary').find('table')
+
+      expect(tableRows($, table)).toEqual([
+        ['Medium', ''],
+        ['Low', '']
+      ])
+      expect($('.app-watercourses-trading-summary .govuk-tag')).toHaveLength(0)
+      expect(sectionHeaded($, 'Medium distinctiveness').find('p').text()).toBe(
+        '-6.18 units'
+      )
+    })
   })
 
   describe('medium distinctiveness', () => {
@@ -224,7 +242,7 @@ describe('watercourses trading summary', () => {
       const grid = section.find('table')
 
       expect(tile.find('h3').text()).toBe(
-        'Medium distinctiveness unit deficit required to meet trading rules'
+        'Remaining losses; like for like not satisfied'
       )
       expect(tile.find('p').text()).toBe('-6.18 units')
       expect(tile.find('.govuk-tag--red').text()).toBe('Not met')
@@ -317,11 +335,9 @@ describe('watercourses trading summary', () => {
           .find('th')
           .map((_, th) => $(th).text())
           .get()
-      ).toEqual(['Habitat type', 'On-site unit change'])
-      expect(tableRows($, grid)).toEqual([
-        ['Culvert', '-21.49'],
-        ['Total on-site unit change', '-21.49']
-      ])
+      ).toEqual(['Habitat type', 'Unit change'])
+      expect(tableRows($, grid)).toEqual([['Culvert', '-21.49']])
+      expect(grid.find('tfoot')).toHaveLength(0)
     })
   })
 

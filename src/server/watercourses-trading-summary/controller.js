@@ -20,8 +20,9 @@ import {
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const PAGE_HEADING = 'Watercourses trading summary'
+const MEDIUM_DEFICIT_LABEL = 'Remaining losses; like for like not satisfied'
 const MEDIUM_COLUMNS = ['Habitat type', 'Unit change']
-const LOW_COLUMNS = ['Habitat type', 'On-site unit change']
+const LOW_COLUMNS = ['Habitat type', 'Unit change']
 
 function habitatRow(habitat) {
   return [{ text: habitat.habitatType }, unitChangeCell(habitat.netUnitChange)]
@@ -59,6 +60,7 @@ function buildTradingSections(project) {
     medium: hasMedium
       ? buildMediumSection({
           deficit: figures.medium?.deficit,
+          deficitLabel: MEDIUM_DEFICIT_LABEL,
           status: statuses?.medium,
           grids: [
             buildUnitChangeGrid({
@@ -74,7 +76,8 @@ function buildTradingSections(project) {
           mediumSurplus: figures.medium?.surplus,
           cumulativeAvailability: figures.low?.cumulativeAvailability,
           columns: LOW_COLUMNS,
-          rows: lowHabitats.map(habitatRow)
+          rows: lowHabitats.map(habitatRow),
+          showTotals: false
         })
       : null
   }

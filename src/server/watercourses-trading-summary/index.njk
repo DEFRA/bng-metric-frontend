@@ -3,5 +3,7 @@
 {% from "trading-summary/macro.njk" import tradingSummary %}
 
 {% block unitTypeBody %}
-  {{ tradingSummary(trading) }}
+  <div class="app-watercourses-trading-summary">
+    {{ tradingSummary(trading) }}
+  </div>
 {% endblock %}

@@ -73,9 +73,10 @@ function buildUnitChangeGrid({
   return grid
 }
 
-function buildMediumSection({ deficit, status, grids }) {
+function buildMediumSection({ deficit, status, grids, deficitLabel }) {
   return {
     deficit: unitsText(deficit),
+    deficitLabel,
     status: tradingRulesStatusTag(status),
     grids
   }
@@ -86,7 +87,8 @@ function buildLowSection({
   mediumSurplus,
   cumulativeAvailability,
   columns,
-  rows
+  rows,
+  showTotals = true
 }) {
   return {
     netUnitChange: unitsText(netUnitChange),
@@ -95,8 +97,12 @@ function buildLowSection({
     grid: buildUnitChangeGrid({
       columns,
       rows,
-      totalsLabel: TOTAL_ON_SITE_UNIT_CHANGE,
-      totalsValue: netUnitChange
+      ...(showTotals
+        ? {
+            totalsLabel: TOTAL_ON_SITE_UNIT_CHANGE,
+            totalsValue: netUnitChange
+          }
+        : {})
     })
   }
 }

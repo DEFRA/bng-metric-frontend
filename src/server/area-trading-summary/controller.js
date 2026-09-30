@@ -20,6 +20,8 @@ import {
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const PAGE_HEADING = 'Area habitats trading summary'
+const MEDIUM_DEFICIT_LABEL =
+  'Medium distinctiveness unit deficit required to meet trading rules'
 
 // The backend cumulates the Medium habitats of both intertidal broad habitats
 // under this one key, because the trading rules treat them as one broad
@@ -140,6 +142,7 @@ function buildTradingSections(project) {
     medium: hasMedium
       ? buildMediumSection({
           deficit: figures.medium?.deficit,
+          deficitLabel: MEDIUM_DEFICIT_LABEL,
           status: statuses?.medium,
           grids: mediumGrids(figures, mediumHabitats)
         })
