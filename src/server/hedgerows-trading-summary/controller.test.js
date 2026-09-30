@@ -1,0 +1,127 @@
+import { createServer } from '../server.js'
+import { load } from 'cheerio'
+import { statusCodes } from '../common/constants.js'
+import { wreck } from '../common/helpers/wreck-client.js'
+
+vi.mock('../common/helpers/wreck-client.js', () => ({
+  wreck: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}))
+
+const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
+const TRADING_HREF = `/projects/${PROJECT_ID}/hedgerows-trading-summary`
+const auth = {
+  strategy: 'session',
+  credentials: {
+    sub: 'test-user',
+    email: 'test@example.com',
+    roles: ['aaa-bbb:bng completer:3']
+  }
+}
+
+const baseline = {
+  hedgerows: [{ ref: 'H-1', sizeMetres: 100 }],
+  units: { hedgerowsTotal: 1 }
+}
+const postIntervention = {
+  hedgerows: [{ ref: 'H-1', sizeMetres: 100 }],
+  units: { hedgerowsTotal: 2 }
+}
+
+describe('hedgerows trading summary links', () => {
+  let server
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function mockProject(project) {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: { project }
+    })
+  }
+
+  test.each([
+    'project-summary',
+    'hedgerows-summary',
+    'hedgerows-baseline',
+    'hedgerows-post-intervention'
+  ])('links the hedgerow results tile from %s when PI exists', async (path) => {
+    mockProject({ name: 'Test project', baseline, postIntervention })
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/${path}`,
+      auth
+    })
+    const $ = load(result)
+    const hedgerows = $('.app-unit-type-summary').filter((_, section) =>
+      $(section).text().includes('View hedgerows trading rules')
+    )
+    const link = hedgerows
+      .find('a')
+      .filter((_, item) =>
+        $(item).text().includes('View hedgerows trading rules')
+      )
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(link.attr('href')).toBe(TRADING_HREF)
+
+    if (path !== 'project-summary') {
+      expect(
+        $('nav[aria-label="Project summary"] a')
+          .filter((_, item) => $(item).text() === 'Trading Rules')
+          .attr('href')
+      ).toBe(TRADING_HREF)
+    }
+  })
+
+  test.each(['project-summary', 'hedgerows-summary', 'hedgerows-baseline'])(
+    'keeps the hedgerow trading tile as text on %s before PI upload',
+    async (path) => {
+      mockProject({ name: 'Test project', baseline })
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/${path}`,
+        auth
+      })
+      const $ = load(result)
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($(`a[href="${TRADING_HREF}"]`)).toHaveLength(0)
+      expect($('nav[aria-label="Project summary"]').text()).not.toContain(
+        'Trading Rules'
+      )
+    }
+  )
+
+  test('opens the placeholder and marks Trading Rules current', async () => {
+    mockProject({ name: 'Test project', baseline, postIntervention })
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: TRADING_HREF,
+      auth
+    })
+    const $ = load(result)
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect($('h1').text()).toBe('Hedgerows trading rules')
+    expect(
+      $('nav[aria-label="Project summary"] [aria-current="page"]').text()
+    ).toBe('Trading Rules')
+  })
+})

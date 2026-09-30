@@ -7,6 +7,7 @@ import {
   HEDGEROWS_BASELINE_PATH,
   HEDGEROWS_POST_INTERVENTION_PATH,
   HEDGEROWS_SUMMARY_PATH,
+  HEDGEROWS_TRADING_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   buildUnitTypeNavigation,
   projectPageHref
@@ -69,7 +70,11 @@ function buildHedgerowsSummary(project, projectId) {
       ),
       interventionAction: hedgerowsInterventionAction(
         projectPageHref(projectId, HEDGEROWS_POST_INTERVENTION_PATH)
-      )
+      ),
+      tradingRulesHref: project?.postIntervention
+        ? projectPageHref(projectId, HEDGEROWS_TRADING_SUMMARY_PATH)
+        : null,
+      tradingRulesLinkText: 'View hedgerows trading rules'
     }),
     targetsSummary: buildTargetsSummary({
       baselineUnits: baselineHedgerowsUnits,

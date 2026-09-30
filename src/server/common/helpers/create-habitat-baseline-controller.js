@@ -38,6 +38,7 @@ function buildHabitatBaseline(project, projectId, config) {
       baselineAction: null,
       interventionAction: config.interventionAction?.(projectId),
       tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null,
+      tradingRulesLinkText: config.tradingRulesLinkText,
       tradingRulesHref:
         config.tradingSummaryPath && project?.postIntervention
           ? projectPageHref(projectId, config.tradingSummaryPath)
