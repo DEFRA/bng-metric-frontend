@@ -1,23 +1,13 @@
-import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
-import { hasBaselineData } from '../common/helpers/project-state.js'
 import {
   AREA_SUMMARY_PATH,
-  AREA_TRADING_SUMMARY_PATH,
-  buildUnitTypeNavigation,
-  projectPageHref
+  AREA_TRADING_SUMMARY_PATH
 } from '../common/helpers/unit-type-navigation.js'
-import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
-  LOW,
-  MEDIUM,
-  buildBandStatusRows,
-  buildLowSection,
-  buildMediumSection,
+  buildDistinctivenessSections,
   buildUnitChangeGrid,
-  habitatsIn,
+  createTradingSummaryController,
   unitChangeCell
 } from '../common/helpers/trading-summary.js'
-import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const PAGE_HEADING = 'Area habitats trading summary'
 const MEDIUM_DEFICIT_LABEL =
@@ -113,86 +103,27 @@ function mediumGrids(figures, mediumHabitats) {
   return grids
 }
 
-/**
- * The page's view of the trading-rules figures saved with the post-intervention
- * upload. Null when there are none to show — a file uploaded before the figures
- * were calculated, or one whose calculation failed.
- */
 function buildTradingSections(project) {
   const figures = project?.postIntervention?.tradingRules?.areaHabitats
-  if (!figures) {
-    return null
-  }
 
-  const statuses = project?.tradingRuleStatuses?.areaHabitats
-  const habitatTypes = figures.habitatTypes ?? []
-  const mediumHabitats = habitatsIn(habitatTypes, MEDIUM)
-  const lowHabitats = habitatsIn(habitatTypes, LOW)
-  const hasMedium = mediumHabitats.length > 0
-  const hasLow = lowHabitats.length > 0
-
-  return {
-    statusRows: buildBandStatusRows(
-      [
-        { label: MEDIUM, key: 'medium', present: hasMedium },
-        { label: LOW, key: 'low', present: hasLow }
-      ],
-      statuses
-    ),
-    medium: hasMedium
-      ? buildMediumSection({
-          deficit: figures.medium?.deficit,
-          deficitLabel: MEDIUM_DEFICIT_LABEL,
-          status: statuses?.medium,
-          grids: mediumGrids(figures, mediumHabitats)
-        })
-      : null,
-    low: hasLow
-      ? buildLowSection({
-          netUnitChange: figures.low?.netUnitChange,
-          mediumSurplus: figures.medium?.surplus,
-          cumulativeAvailability: figures.low?.cumulativeAvailability,
-          columns: BROAD_AND_TYPE_COLUMNS,
-          rows: lowHabitats.map((habitat) =>
-            habitatRow(habitat, { includeBroadHabitat: true })
-          )
-        })
-      : null
-  }
+  return buildDistinctivenessSections({
+    figures,
+    statuses: project?.tradingRuleStatuses?.areaHabitats,
+    habitats: figures?.habitatTypes ?? [],
+    deficitLabel: MEDIUM_DEFICIT_LABEL,
+    gridsForMedium: (mediumHabitats) => mediumGrids(figures, mediumHabitats),
+    lowColumns: BROAD_AND_TYPE_COLUMNS,
+    rowsForLow: (lowHabitats) =>
+      lowHabitats.map((habitat) =>
+        habitatRow(habitat, { includeBroadHabitat: true })
+      )
+  })
 }
 
-function buildAreaTradingSummary(project, projectId) {
-  const pageHref = projectPageHref(projectId, AREA_TRADING_SUMMARY_PATH)
-
-  return {
-    projectName: project?.name ?? DEFAULT_PROJECT_NAME,
-    heading: PAGE_HEADING,
-    uploadHref: uploadFileHref(projectId, pageHref),
-    navigationItems: buildUnitTypeNavigation(project, projectId, pageHref),
-    trading: buildTradingSections(project)
-  }
-}
-
-export const getController = {
-  async handler(request, h) {
-    const { id } = request.params
-    const project = await fetchProjectOrThrow(request, id)
-
-    if (!hasBaselineData(project)) {
-      return h.redirect(`/add-project-details/${id}`)
-    }
-
-    // Nothing has been delivered to trade against until a post-intervention
-    // file is uploaded, and the page is not linked to before then.
-    if (!project.postIntervention) {
-      return h.redirect(projectPageHref(id, AREA_SUMMARY_PATH))
-    }
-
-    return h.view('area-trading-summary/index', {
-      pageTitle: PAGE_HEADING,
-      ...buildAreaTradingSummary(project, id)
-    })
-  }
-}
-
-export { buildAreaTradingSummary }
+export const getController = createTradingSummaryController({
+  view: 'area-trading-summary/index',
+  summaryPath: AREA_SUMMARY_PATH,
+  pagePath: AREA_TRADING_SUMMARY_PATH,
+  pageHeading: PAGE_HEADING,
+  buildTrading: buildTradingSections
+})
