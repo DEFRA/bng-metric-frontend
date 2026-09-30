@@ -1,7 +1,8 @@
-import { allowInsecureRequests, discovery } from 'openid-client'
+import { allowInsecureRequests, customFetch, discovery } from 'openid-client'
 
 import { config } from '../../../../config/config.js'
 import { createLogger } from '../logging/logger.js'
+import { proxyFetch } from '../proxy/proxy-fetch.js'
 
 const logger = createLogger()
 
@@ -13,16 +14,18 @@ export function getOidcConfig() {
     const clientId = config.get('oidc.clientId')
     const clientSecret = config.get('oidc.clientSecret')
 
-    const options =
-      discoveryUrl.protocol === 'http:'
-        ? { execute: [allowInsecureRequests] }
-        : undefined
+    // customFetch is carried onto the returned Configuration, so the token
+    // exchange and refresh grants go through the proxy too.
+    const options = { [customFetch]: proxyFetch }
+    if (discoveryUrl.protocol === 'http:') {
+      options.execute = [allowInsecureRequests]
+    }
 
     logger.info(
       {
         discoveryUrl: discoveryUrl.href,
         clientId,
-        allowInsecure: Boolean(options)
+        allowInsecure: Boolean(options.execute)
       },
       'OIDC discovery: fetching provider configuration'
     )
