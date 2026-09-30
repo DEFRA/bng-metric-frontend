@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 vi.mock('openid-client', () => ({
   allowInsecureRequests: 'ALLOW_INSECURE',
+  customFetch: 'CUSTOM_FETCH',
   discovery: vi.fn()
 }))
+
+const proxyFetch = vi.fn()
 
 vi.mock('../../../../config/config.js', () => ({
   config: { get: vi.fn() }
@@ -33,8 +36,11 @@ beforeEach(async () => {
 
   vi.doMock('openid-client', () => ({
     allowInsecureRequests: 'ALLOW_INSECURE',
+    customFetch: 'CUSTOM_FETCH',
     discovery
   }))
+
+  vi.doMock('../proxy/proxy-fetch.js', () => ({ proxyFetch }))
 
   vi.doMock('../../../../config/config.js', () => ({
     config: { get: config.get }
@@ -74,11 +80,11 @@ describe('#getOidcConfig', () => {
       'test-client',
       'test-secret',
       undefined,
-      { execute: ['ALLOW_INSECURE'] }
+      { CUSTOM_FETCH: proxyFetch, execute: ['ALLOW_INSECURE'] }
     )
   })
 
-  test('omits allowInsecureRequests for HTTPS URLs', async () => {
+  test('omits allowInsecureRequests for HTTPS URLs and fetches via the proxy helper', async () => {
     stubConfig({
       'oidc.discoveryUrl':
         'https://login.example.com/.well-known/openid-configuration'
@@ -92,7 +98,7 @@ describe('#getOidcConfig', () => {
       'test-client',
       'test-secret',
       undefined,
-      undefined
+      { CUSTOM_FETCH: proxyFetch }
     )
   })
 

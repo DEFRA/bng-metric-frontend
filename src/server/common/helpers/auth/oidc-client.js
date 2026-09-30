@@ -1,7 +1,8 @@
-import { allowInsecureRequests, discovery } from 'openid-client'
+import { allowInsecureRequests, customFetch, discovery } from 'openid-client'
 
 import { config } from '../../../../config/config.js'
 import { createLogger } from '../logging/logger.js'
+import { proxyFetch } from '../proxy/proxy-fetch.js'
 
 const logger = createLogger()
 
@@ -13,16 +14,21 @@ export function getOidcConfig() {
     const clientId = config.get('oidc.clientId')
     const clientSecret = config.get('oidc.clientSecret')
 
-    const options =
-      discoveryUrl.protocol === 'http:'
-        ? { execute: [allowInsecureRequests] }
-        : undefined
+    // customFetch is carried onto the returned Configuration, so the token
+    // exchange and refresh grants go through the proxy too.
+    const options = { [customFetch]: proxyFetch }
+    if (discoveryUrl.protocol === 'http:') {
+      // Only the local Defra ID stub is served over plain HTTP. openid-client
+      // marks allowInsecureRequests @deprecated purely as a warning flag; it has
+      // no replacement.
+      options.execute = [allowInsecureRequests] // NOSONAR
+    }
 
     logger.info(
       {
         discoveryUrl: discoveryUrl.href,
         clientId,
-        allowInsecure: Boolean(options)
+        allowInsecure: Boolean(options.execute)
       },
       'OIDC discovery: fetching provider configuration'
     )
