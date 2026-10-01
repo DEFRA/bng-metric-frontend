@@ -1,8 +1,6 @@
 import { uploadFileHref } from './upload-file-navigation.js'
 import { hasBaselineData, projectHasHabitatData } from './project-state.js'
 import {
-  AREA_POST_INTERVENTION_PATH,
-  AREA_TRADING_SUMMARY_PATH,
   buildUnitTypeNavigation,
   projectPageHref
 } from './unit-type-navigation.js'
@@ -60,13 +58,7 @@ function tabById(panels, id) {
 }
 
 function tradingRulesHref(project, projectId, config) {
-  const tradingSummaryPath =
-    config.tradingSummaryPath ??
-    (config.path === AREA_POST_INTERVENTION_PATH
-      ? AREA_TRADING_SUMMARY_PATH
-      : null)
-
-  if (!project?.postIntervention || !tradingSummaryPath) {
+  if (!project?.postIntervention || !config.tradingSummaryPath) {
     return null
   }
 
@@ -77,7 +69,7 @@ function tradingRulesHref(project, projectId, config) {
     return null
   }
 
-  return projectPageHref(projectId, tradingSummaryPath)
+  return projectPageHref(projectId, config.tradingSummaryPath)
 }
 
 function buildHabitatPostIntervention(project, projectId, config) {

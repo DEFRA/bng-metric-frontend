@@ -236,6 +236,56 @@ describe('area post intervention', () => {
     ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
   })
 
+  test('links to the area trading summary from navigation and results after PI upload', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+    const $ = load(result)
+    const tradingHref = `/projects/${PROJECT_ID}/area-trading-summary`
+    const navigationLink = $('nav[aria-label="Project summary"] a').filter(
+      (_, link) => $(link).text() === 'Trading Rules'
+    )
+    const resultsLink = $('.app-unit-type-summary a').filter(
+      (_, link) => $(link).text() === 'View area trading rules'
+    )
+
+    expect(navigationLink.attr('href')).toBe(tradingHref)
+    expect(resultsLink.attr('href')).toBe(tradingHref)
+
+    const destination = await server.inject({
+      method: 'GET',
+      url: resultsLink.attr('href'),
+      auth
+    })
+    expect(destination.statusCode).toBe(statusCodes.ok)
+    expect(destination.result).toContain('Area habitats trading summary')
+  })
+
+  test('omits area trading summary links before PI upload', async () => {
+    const baselineOnly = structuredClone(populatedProject)
+    delete baselineOnly.project.postIntervention
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: baselineOnly
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+    const $ = load(result)
+
+    expect($('nav[aria-label="Project summary"]').text()).not.toContain(
+      'Trading Rules'
+    )
+    expect($('.app-unit-type-summary a').text()).not.toContain(
+      'View area trading rules'
+    )
+  })
+
   test('shows Retained, Enhanced and Created GOV.UK tabs with habitats and trees split across them', async () => {
     const { result } = await server.inject({
       method: 'GET',
