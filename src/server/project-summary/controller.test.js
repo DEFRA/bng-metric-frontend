@@ -824,7 +824,15 @@ describe('project summary', () => {
     )
 
     expect(interventionHeadings).toHaveLength(3)
-    expect(result.match(/View on-site post intervention/g)).toHaveLength(1)
+    const areaInterventionLink = $('a').filter(
+      (_, link) =>
+        $(link).text().trim() === 'View on-site area post intervention'
+    )
+    expect(areaInterventionLink).toHaveLength(1)
+    expect(areaInterventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-post-intervention`
+    )
+    expect(result).not.toContain('View on-site post intervention')
     expect(result).toContain('View on-site watercourses post intervention')
     expect($('a[href*="/upload-file?"]')).toHaveLength(1)
     const watercoursesPostInterventionLink = $('a').filter((_, link) =>

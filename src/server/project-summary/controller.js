@@ -8,6 +8,7 @@ import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
+  AREA_POST_INTERVENTION_PATH,
   AREA_SUMMARY_PATH,
   AREA_TRADING_SUMMARY_PATH,
   HEDGEROWS_BASELINE_PATH,
@@ -28,6 +29,7 @@ import {
 } from '../common/helpers/unit-type-navigation.js'
 import {
   areaBaselineAction,
+  areaInterventionAction,
   areaInterventionSummary,
   areaUnits,
   buildUnitSummary,
@@ -82,6 +84,9 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
       href: projectPageHref(projectId, AREA_SUMMARY_PATH),
       baselineAction: areaBaselineAction(
         projectPageHref(projectId, AREA_BASELINE_PATH)
+      ),
+      interventionAction: areaInterventionAction(
+        projectPageHref(projectId, AREA_POST_INTERVENTION_PATH)
       ),
       baselineUnits: areaUnits(baselineUnits),
       buildIntervention: areaInterventionSummary,

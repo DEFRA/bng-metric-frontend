@@ -15,6 +15,7 @@ const WATERCOURSES_BASELINE_ACTION_TEXT = 'View on-site watercourses baseline'
 const WATERCOURSES_INTERVENTION_ACTION_TEXT =
   'View on-site watercourses post intervention'
 const DEFAULT_INTERVENTION_ACTION_TEXT = 'View on-site post intervention'
+const AREA_INTERVENTION_ACTION_TEXT = 'View on-site area post intervention'
 const HEDGEROWS_INTERVENTION_ACTION_TEXT =
   'View on-site hedgerows post intervention'
 const PERCENTAGE_DIVISOR = 100
@@ -32,6 +33,10 @@ function createBaselineAction(text, href) {
 
 function areaBaselineAction(href) {
   return createBaselineAction(AREA_BASELINE_ACTION_TEXT, href)
+}
+
+function areaInterventionAction(href) {
+  return createBaselineAction(AREA_INTERVENTION_ACTION_TEXT, href)
 }
 
 function hedgerowsBaselineAction(href) {
@@ -257,6 +262,7 @@ export {
   NET_GAIN_TARGET_PERCENTAGE,
   NO_POST_INTERVENTION_PERCENTAGE,
   areaBaselineAction,
+  areaInterventionAction,
   areaInterventionSummary,
   areaUnits,
   buildTargetsSummary,

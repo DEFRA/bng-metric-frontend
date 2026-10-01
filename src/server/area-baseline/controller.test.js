@@ -429,6 +429,15 @@ describe('area baseline', () => {
     expect(summary.text()).toContain('2.00 units')
     expect($('.govuk-tag--green').text()).toBe('Met')
     expect(
+      summary
+        .find('a')
+        .filter(
+          (_, link) =>
+            $(link).text().trim() === 'View on-site area post intervention'
+        )
+        .attr('href')
+    ).toBe(`/projects/${PROJECT_ID}/area-post-intervention`)
+    expect(
       $('nav[aria-label="Project summary"] a')
         .filter((_, link) => $(link).text() === 'Trading Rules')
         .attr('href')

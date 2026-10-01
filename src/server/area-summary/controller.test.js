@@ -206,10 +206,18 @@ describe('area summary', () => {
 
     const $ = load(result)
     const targets = $('#targets-heading').closest('section')
+    const interventionLink = $('.app-unit-type-summary a').filter(
+      (_, link) =>
+        $(link).text().trim() === 'View on-site area post intervention'
+    )
 
     expect(targets.text()).toContain('1.10 units')
     expect(targets.text()).toContain('0.00 units')
     expect($('.govuk-tag--red').text()).toBe('Not met')
+    expect(interventionLink).toHaveLength(1)
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-post-intervention`
+    )
   })
 
   test('renders a baseline-only project instead of redirecting, with deficit equal to units required', async () => {

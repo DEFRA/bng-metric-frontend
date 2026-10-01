@@ -7,6 +7,7 @@ import {
   formatHabitatUnits,
   formatLengthKm,
   formatLengthKmDisplay,
+  formatSummaryAreaSize,
   formatTotalAreaSize,
   formatTotalLengthSize
 } from './format-habitat-values.js'
@@ -116,6 +117,21 @@ describe('formatLengthKmDisplay', () => {
     expect(formatLengthKmDisplay(null)).toBe('')
     expect(formatLengthKmDisplay(undefined)).toBe('')
     expect(formatLengthKmDisplay(Number.NaN)).toBe('')
+  })
+})
+
+describe('formatSummaryAreaSize', () => {
+  test('Converts square metres to hectares at 2 decimal places with "ha"', () => {
+    expect(formatSummaryAreaSize(10000)).toBe('1.00ha')
+    expect(formatSummaryAreaSize(517338.6207)).toBe('51.73ha')
+    expect(formatSummaryAreaSize(531373.6207)).toBe('53.14ha')
+  })
+
+  test('Returns empty string for null, undefined or non-finite input', () => {
+    expect(formatSummaryAreaSize(null)).toBe('')
+    expect(formatSummaryAreaSize(undefined)).toBe('')
+    expect(formatSummaryAreaSize(Number.NaN)).toBe('')
+    expect(formatSummaryAreaSize('100')).toBe('')
   })
 })
 
