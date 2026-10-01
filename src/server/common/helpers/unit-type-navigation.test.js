@@ -30,7 +30,7 @@ describe('buildUnitTypeNavigation', () => {
             href: AREA_BASELINE_HREF
           },
           {
-            text: 'Post-intervention',
+            text: 'Post intervention',
             href: AREA_POST_INTERVENTION_HREF
           }
         ]
@@ -39,7 +39,7 @@ describe('buildUnitTypeNavigation', () => {
     ])
   })
 
-  test('links area Trading Rules on every area page only after PI upload', () => {
+  test('links area Trading rules on every area page only after PI upload', () => {
     for (const currentHref of [
       AREA_SUMMARY_HREF,
       AREA_BASELINE_HREF,
@@ -53,7 +53,7 @@ describe('buildUnitTypeNavigation', () => {
       const area = items.find((item) => item.text === 'Area habitats')
 
       expect(area.children).toContainEqual({
-        text: 'Trading Rules',
+        text: 'Trading rules',
         href: AREA_TRADING_SUMMARY_HREF
       })
     }
@@ -70,7 +70,7 @@ describe('buildUnitTypeNavigation', () => {
         currentHref === AREA_BASELINE_HREF
           ? { text: 'Baseline', current: true }
           : { text: 'Baseline', href: AREA_BASELINE_HREF },
-        { text: 'Post-intervention', href: AREA_POST_INTERVENTION_HREF }
+        { text: 'Post intervention', href: AREA_POST_INTERVENTION_HREF }
       ])
     }
   })
@@ -144,7 +144,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.children).toEqual([
       { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
       {
-        text: 'Post-intervention',
+        text: 'Post intervention',
         href: HEDGEROWS_POST_INTERVENTION_HREF
       }
     ])
@@ -172,7 +172,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.children).toEqual([
       { text: 'Baseline', current: true },
       {
-        text: 'Post-intervention',
+        text: 'Post intervention',
         href: HEDGEROWS_POST_INTERVENTION_HREF
       }
     ])
@@ -210,7 +210,7 @@ describe('buildUnitTypeNavigation', () => {
     const watercoursesItem = items.find((item) => item.text === 'Watercourses')
 
     expect(watercoursesItem.children).toEqual([
-      { text: 'Post-intervention', current: true },
+      { text: 'Post intervention', current: true },
       { text: 'Trading rules', href: WATERCOURSES_TRADING_SUMMARY_HREF }
     ])
   })
@@ -279,8 +279,8 @@ describe('buildUnitTypeNavigation', () => {
 
       expect(areaHabitatsItem.children.map((child) => child.text)).toEqual([
         'Baseline',
-        'Post-intervention',
-        'Trading Rules'
+        'Post intervention',
+        'Trading rules'
       ])
     }
   })
@@ -296,8 +296,8 @@ describe('buildUnitTypeNavigation', () => {
     expect(areaHabitatsItem.href).toBe(AREA_SUMMARY_HREF)
     expect(areaHabitatsItem.children).toEqual([
       { text: 'Baseline', href: AREA_BASELINE_HREF },
-      { text: 'Post-intervention', current: true },
-      { text: 'Trading Rules', href: AREA_TRADING_SUMMARY_HREF }
+      { text: 'Post intervention', current: true },
+      { text: 'Trading rules', href: AREA_TRADING_SUMMARY_HREF }
     ])
   })
 
@@ -326,7 +326,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.children).toEqual([
       { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
       {
-        text: 'Post-intervention',
+        text: 'Post intervention',
         href: HEDGEROWS_POST_INTERVENTION_HREF
       }
     ])
@@ -343,7 +343,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.href).toBe(HEDGEROWS_SUMMARY_HREF)
     expect(hedgerowsItem.children).toEqual([
       { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
-      { text: 'Post-intervention', current: true }
+      { text: 'Post intervention', current: true }
     ])
   })
 
@@ -356,7 +356,7 @@ describe('buildUnitTypeNavigation', () => {
     const hedgerowsItem = items.find((item) => item.text === 'Hedgerows')
 
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Post-intervention', current: true }
+      { text: 'Post intervention', current: true }
     ])
   })
 

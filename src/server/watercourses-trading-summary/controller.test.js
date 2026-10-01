@@ -119,7 +119,7 @@ describe('watercourses trading summary', () => {
         'Area habitats': `/projects/${PROJECT_ID}/area-summary`,
         Watercourses: `/projects/${PROJECT_ID}/watercourses-summary`,
         Baseline: `/projects/${PROJECT_ID}/watercourses-baseline-summary`,
-        'Post-intervention': `/projects/${PROJECT_ID}/watercourses-post-intervention`
+        'Post intervention': `/projects/${PROJECT_ID}/watercourses-post-intervention`
       })
       expect(links).not.toHaveProperty('Hedgerows')
     })
