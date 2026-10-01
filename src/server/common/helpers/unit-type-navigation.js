@@ -3,8 +3,8 @@ import { hasHabitatData, projectHasHabitatData } from './project-state.js'
 const SUMMARY_TEXT = 'Summary'
 const AREA_HABITATS_TEXT = 'Area habitats'
 const BASELINE_TEXT = 'Baseline'
-const POST_INTERVENTION_TEXT = 'Post-intervention'
-const TRADING_RULES_TEXT = 'Trading Rules'
+const POST_INTERVENTION_TEXT = 'Post intervention'
+const TRADING_RULES_TEXT = 'Trading rules'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
 const REPORTS_TEXT = 'Reports'
@@ -40,8 +40,7 @@ const OPTIONAL_UNIT_TYPES = [
     baselinePath: WATERCOURSES_BASELINE_PATH,
     postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH,
     postInterventionRequiresUpload: true,
-    tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH,
-    tradingRulesText: 'Trading rules'
+    tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH
   }
 ]
 
@@ -102,7 +101,7 @@ function buildSectionChildren(project, projectId, unitType) {
 
   if (unitType.tradingSummaryPath && project?.postIntervention) {
     children.push({
-      text: unitType.tradingRulesText ?? TRADING_RULES_TEXT,
+      text: TRADING_RULES_TEXT,
       href: projectPageHref(projectId, unitType.tradingSummaryPath)
     })
   }

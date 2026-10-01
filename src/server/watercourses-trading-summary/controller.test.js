@@ -127,7 +127,7 @@ describe('watercourses trading summary links', () => {
     }
   )
 
-  test('the target route loads a placeholder and marks Trading Rules current', async () => {
+  test('the target route loads a placeholder and marks Trading rules current', async () => {
     const $ = await page('watercourses-trading-summary', withPi)
     expect($('h1').text()).toBe('Watercourses trading rules')
     expect($('.govuk-body').text()).toContain(

@@ -142,7 +142,7 @@ describe('hedgerows summary', () => {
     const navigation = $('nav[aria-label="Project summary"]')
     const postInterventionNav = navigation
       .find('a')
-      .filter((_, link) => $(link).text() === 'Post-intervention')
+      .filter((_, link) => $(link).text() === 'Post intervention')
 
     expect(interventionLink).toHaveLength(1)
     expect(interventionLink.attr('href')).toBe(

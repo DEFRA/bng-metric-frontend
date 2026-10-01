@@ -112,7 +112,7 @@ describe('area trading summary', () => {
       const nav = $('nav[aria-label="Project summary"]')
       const current = nav.find('[aria-current="page"]')
 
-      expect(current.text()).toBe('Trading Rules')
+      expect(current.text()).toBe('Trading rules')
       expect(current.is('strong')).toBe(true)
 
       const links = Object.fromEntries(
