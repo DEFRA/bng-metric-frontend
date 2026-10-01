@@ -23,3 +23,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+// The watercourses trading summary omits the section dividers used on the
+// area trading summary, so drop the border and the padding it sat inside.
+.app-watercourses-trading-summary .app-trading-summary__section {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
