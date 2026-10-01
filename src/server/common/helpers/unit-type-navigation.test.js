@@ -239,6 +239,33 @@ describe('buildUnitTypeNavigation', () => {
     }
   })
 
+  test('omits watercourse trading rules before a post-intervention upload', () => {
+    const items = buildUnitTypeNavigation(
+      { baseline: { watercourses: [{}] } },
+      PROJECT_ID,
+      WATERCOURSES_SUMMARY_HREF
+    )
+
+    expect(
+      items
+        .find((item) => item.text === 'Watercourses')
+        .children.some((child) => child.text === 'Trading rules')
+    ).toBe(false)
+  })
+
+  test('keeps Watercourses collapsed on the area post-intervention page', () => {
+    const items = buildUnitTypeNavigation(
+      { baseline: { watercourses: [{}] }, postIntervention: {} },
+      PROJECT_ID,
+      AREA_POST_INTERVENTION_HREF
+    )
+
+    expect(items.find((item) => item.text === 'Watercourses')).toEqual({
+      text: 'Watercourses',
+      href: WATERCOURSES_SUMMARY_HREF
+    })
+  })
+
   test('expands Area habitats with a Post-intervention child once PI is uploaded', () => {
     for (const currentHref of [AREA_SUMMARY_HREF, AREA_BASELINE_HREF]) {
       const items = buildUnitTypeNavigation(
