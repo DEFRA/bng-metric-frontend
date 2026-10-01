@@ -307,7 +307,7 @@ function createHabitatListController(uploadType) {
         heading: uploadType.pageHeading,
         caption: projectName,
         projectId: id,
-        backHref: `/add-project-details/${id}`,
+        backHref: `/projects/${id}/project-summary`,
         uploadDifferentHref: uploadFileHref(
           id,
           `/projects/${id}/${uploadType.listRoute}`

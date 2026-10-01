@@ -40,6 +40,7 @@ const HABITAT_UPLOAD_TYPES = {
     uploadRoute: 'upload-post-intervention-file',
     uploadReceivedRoute: 'post-intervention-upload-received',
     listRoute: 'post-intervention-habitat-list',
+    successRoute: 'project-summary',
     listView: 'habitat-list/habitat-list',
     detailsRoute: 'post-intervention-habitat-details',
     backendValidatePath: 'post-intervention',

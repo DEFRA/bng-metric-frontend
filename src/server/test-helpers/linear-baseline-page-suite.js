@@ -191,17 +191,9 @@ function registerNavigationTests(ctx) {
     ).toBe(`/projects/${PROJECT_ID}/area-summary`)
     expect(baselineLinks).toHaveLength(0)
     const children = navigation.find('.app-project-navigation__child')
-    const showPostIntervention =
-      ctx.postInterventionPath && !ctx.postInterventionRequiresUpload
-    expect(children).toHaveLength(showPostIntervention ? 2 : 1)
+    expect(children).toHaveLength(1)
     expect(children.eq(0).text().trim()).toBe(BASELINE_LABEL)
-    if (showPostIntervention) {
-      const postInterventionLink = children.eq(1).find('a')
-      expect(postInterventionLink.text().trim()).toBe('Post-intervention')
-      expect(postInterventionLink.attr('href')).toBe(
-        `/projects/${PROJECT_ID}${ctx.postInterventionPath}`
-      )
-    }
+    expect(navigation.text()).not.toContain('Post-intervention')
     expect(navigation.text()).toContain(ctx.otherLabel)
   })
 }
@@ -254,7 +246,7 @@ function registerAccessControlTests(ctx) {
     expect(wreck.get).not.toHaveBeenCalled()
   })
 
-  test('redirects a project without baseline data to the existing task list', async () => {
+  test('redirects a project without baseline data to the project summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: { project: { name: 'No baseline' } }
@@ -267,7 +259,7 @@ function registerAccessControlTests(ctx) {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${PROJECT_ID}`)
+    expect(headers.location).toBe(`/projects/${PROJECT_ID}/project-summary`)
   })
 
   test('rejects an invalid project id', async () => {

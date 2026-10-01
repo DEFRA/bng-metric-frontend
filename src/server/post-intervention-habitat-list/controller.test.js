@@ -153,7 +153,7 @@ describe('#postInterventionHabitatListController - GET', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain(`href="/add-project-details/${projectId}"`)
+    expect(result).toContain(`href="/projects/${projectId}/project-summary"`)
   })
 })
 

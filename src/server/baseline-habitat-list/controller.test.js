@@ -441,7 +441,7 @@ describe('#habitatListController - GET', () => {
     })
 
     expect(result).toContain('govuk-back-link')
-    expect(result).toContain(`/add-project-details/${projectId}`)
+    expect(result).toContain(`/projects/${projectId}/project-summary`)
   })
 
   test('AC1 routes the upload action through the file type selection page', async () => {
@@ -466,7 +466,7 @@ describe('#habitatListController - GET', () => {
       auth: authedAuth
     })
 
-    expect(result).toContain(`href="/add-project-details/${projectId}"`)
+    expect(result).toContain(`href="/projects/${projectId}/project-summary"`)
   })
 })
 

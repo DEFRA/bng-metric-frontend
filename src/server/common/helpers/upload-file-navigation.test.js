@@ -8,12 +8,12 @@ import {
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
 
 describe('upload file navigation', () => {
-  test('defaults to the project task list', () => {
+  test('defaults to the project summary', () => {
     expect(defaultUploadReturnUrl(PROJECT_ID)).toBe(
-      `/add-project-details/${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/project-summary`
     )
     expect(safeUploadReturnUrl(undefined, PROJECT_ID)).toBe(
-      `/add-project-details/${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/project-summary`
     )
   })
 
@@ -28,7 +28,7 @@ describe('upload file navigation', () => {
     ''
   ])('rejects unsafe return URL %j', (returnUrl) => {
     expect(safeUploadReturnUrl(returnUrl, PROJECT_ID)).toBe(
-      `/add-project-details/${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/project-summary`
     )
   })
 
@@ -52,10 +52,10 @@ describe('upload file navigation', () => {
       selectedUploadHref(
         PROJECT_ID,
         'upload-baseline-file',
-        `/add-project-details/${PROJECT_ID}`
+        `/projects/${PROJECT_ID}/project-summary`
       )
     ).toBe(
-      `/projects/${PROJECT_ID}/upload-baseline-file?returnUrl=%2Fadd-project-details%2F${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/upload-baseline-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
     )
   })
 })

@@ -16,26 +16,42 @@ const WATERCOURSES_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/watercourse
 const WATERCOURSES_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-trading-summary`
 
 describe('buildUnitTypeNavigation', () => {
-  test('always includes Summary and Area habitats', () => {
-    const items = buildUnitTypeNavigation({}, PROJECT_ID, AREA_SUMMARY_HREF)
+  test('omits habitat sections before a file is uploaded', () => {
+    const items = buildUnitTypeNavigation({}, PROJECT_ID, PROJECT_SUMMARY_HREF)
 
     expect(items).toEqual([
+      { text: 'Summary', current: true },
+      { text: 'Reports', href: REPORTS_HREF }
+    ])
+  })
+
+  test('shows Area habitats with only the uploaded phase', () => {
+    const baselineItems = buildUnitTypeNavigation(
+      { baseline: {} },
+      PROJECT_ID,
+      AREA_SUMMARY_HREF
+    )
+
+    expect(baselineItems).toEqual([
       { text: 'Summary', href: PROJECT_SUMMARY_HREF },
       {
         text: 'Area habitats',
         current: true,
-        children: [
-          {
-            text: 'Baseline',
-            href: AREA_BASELINE_HREF
-          },
-          {
-            text: 'Post-intervention',
-            href: AREA_POST_INTERVENTION_HREF
-          }
-        ]
+        children: [{ text: 'Baseline', href: AREA_BASELINE_HREF }]
       },
       { text: 'Reports', href: REPORTS_HREF }
+    ])
+
+    const piItems = buildUnitTypeNavigation(
+      { postIntervention: {} },
+      PROJECT_ID,
+      AREA_SUMMARY_HREF
+    )
+    expect(
+      piItems.find((item) => item.text === 'Area habitats').children
+    ).toEqual([
+      { text: 'Post-intervention', href: AREA_POST_INTERVENTION_HREF },
+      { text: 'Trading Rules', href: AREA_TRADING_SUMMARY_HREF }
     ])
   })
 
@@ -69,8 +85,7 @@ describe('buildUnitTypeNavigation', () => {
       expect(area.children).toEqual([
         currentHref === AREA_BASELINE_HREF
           ? { text: 'Baseline', current: true }
-          : { text: 'Baseline', href: AREA_BASELINE_HREF },
-        { text: 'Post-intervention', href: AREA_POST_INTERVENTION_HREF }
+          : { text: 'Baseline', href: AREA_BASELINE_HREF }
       ])
     }
   })
@@ -142,11 +157,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.current).toBe(true)
     expect(hedgerowsItem.href).toBeUndefined()
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
-      {
-        text: 'Post-intervention',
-        href: HEDGEROWS_POST_INTERVENTION_HREF
-      }
+      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF }
     ])
     expect(areaHabitatsItem).toEqual({
       text: 'Area habitats',
@@ -170,11 +181,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.href).toBe(HEDGEROWS_SUMMARY_HREF)
     expect(hedgerowsItem.current).toBeUndefined()
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Baseline', current: true },
-      {
-        text: 'Post-intervention',
-        href: HEDGEROWS_POST_INTERVENTION_HREF
-      }
+      { text: 'Baseline', current: true }
     ])
     expect(areaHabitatsItem).toEqual({
       text: 'Area habitats',
@@ -288,7 +295,7 @@ describe('buildUnitTypeNavigation', () => {
     })
   })
 
-  test('adds a Post-intervention child for hedgerows whenever the section is listed', () => {
+  test('omits the Hedgerows Post-intervention child until a PI file is uploaded', () => {
     const items = buildUnitTypeNavigation(
       { baseline: { hedgerows: [{}] } },
       PROJECT_ID,
@@ -297,17 +304,16 @@ describe('buildUnitTypeNavigation', () => {
     const hedgerowsItem = items.find((item) => item.text === 'Hedgerows')
 
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
-      {
-        text: 'Post-intervention',
-        href: HEDGEROWS_POST_INTERVENTION_HREF
-      }
+      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF }
     ])
   })
 
   test('marks the Hedgerows Post-intervention child as current', () => {
     const items = buildUnitTypeNavigation(
-      { baseline: { hedgerows: [{}] } },
+      {
+        baseline: { hedgerows: [{}] },
+        postIntervention: { hedgerows: [{}] }
+      },
       PROJECT_ID,
       HEDGEROWS_POST_INTERVENTION_HREF
     )

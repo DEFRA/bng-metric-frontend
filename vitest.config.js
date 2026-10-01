@@ -6,6 +6,7 @@ export default defineConfig({
     environment: 'node',
     clearMocks: true,
     maxWorkers: 4,
+    exclude: [...configDefaults.exclude, '.cache/**'],
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',

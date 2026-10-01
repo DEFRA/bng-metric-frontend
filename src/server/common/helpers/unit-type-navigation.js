@@ -39,7 +39,6 @@ const OPTIONAL_UNIT_TYPES = [
     summaryPath: WATERCOURSES_SUMMARY_PATH,
     baselinePath: WATERCOURSES_BASELINE_PATH,
     postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH,
-    postInterventionRequiresUpload: true,
     tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH,
     tradingRulesText: 'Trading rules'
   }
@@ -80,8 +79,9 @@ function sectionHrefs(projectId, itemHref, unitType) {
 function buildSectionChildren(project, projectId, unitType) {
   const children = []
   const includeBaseline =
-    !unitType.habitatKey ||
-    hasHabitatData(project?.baseline, unitType.habitatKey)
+    project?.baseline &&
+    (!unitType.habitatKey ||
+      hasHabitatData(project.baseline, unitType.habitatKey))
 
   if (includeBaseline) {
     children.push({
@@ -90,10 +90,7 @@ function buildSectionChildren(project, projectId, unitType) {
     })
   }
 
-  if (
-    unitType.postInterventionPath &&
-    (!unitType.postInterventionRequiresUpload || project?.postIntervention)
-  ) {
+  if (unitType.postInterventionPath && project?.postIntervention) {
     children.push({
       text: POST_INTERVENTION_TEXT,
       href: projectPageHref(projectId, unitType.postInterventionPath)
@@ -126,22 +123,27 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
     {
       text: SUMMARY_TEXT,
       href: projectPageHref(projectId, PROJECT_SUMMARY_PATH)
-    },
-    withSectionChildren(
-      {
-        text: AREA_HABITATS_TEXT,
-        href: projectPageHref(projectId, AREA_SUMMARY_PATH)
-      },
-      project,
-      projectId,
-      {
-        baselinePath: AREA_BASELINE_PATH,
-        postInterventionPath: AREA_POST_INTERVENTION_PATH,
-        tradingSummaryPath: AREA_TRADING_SUMMARY_PATH
-      },
-      currentHref
-    )
+    }
   ]
+
+  if (project?.baseline || project?.postIntervention) {
+    items.push(
+      withSectionChildren(
+        {
+          text: AREA_HABITATS_TEXT,
+          href: projectPageHref(projectId, AREA_SUMMARY_PATH)
+        },
+        project,
+        projectId,
+        {
+          baselinePath: AREA_BASELINE_PATH,
+          postInterventionPath: AREA_POST_INTERVENTION_PATH,
+          tradingSummaryPath: AREA_TRADING_SUMMARY_PATH
+        },
+        currentHref
+      )
+    )
+  }
 
   for (const unitType of OPTIONAL_UNIT_TYPES) {
     if (projectHasHabitatData(project, unitType.habitatKey)) {

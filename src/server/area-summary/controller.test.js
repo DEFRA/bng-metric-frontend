@@ -303,7 +303,7 @@ describe('area summary', () => {
         .attr('href')
     ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
     expect(baselineNav.text()).not.toContain('Trading Rules')
-    expect(baselineNav.text()).toContain('Post-intervention')
+    expect(baselineNav.text()).not.toContain('Post-intervention')
     expect(
       baselinePage('.app-unit-type-summary a').filter(
         (_, link) => baselinePage(link).text() === 'View area trading rules'
@@ -343,8 +343,8 @@ describe('area summary', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(1)
-    expect(navigation.text()).toContain('Post-intervention')
-    expect($('.app-project-navigation__child')).toHaveLength(2)
+    expect(navigation.text()).not.toContain('Post-intervention')
+    expect($('.app-project-navigation__child')).toHaveLength(1)
   })
 
   test('does not render the out-of-scope map or actions sections', async () => {
@@ -493,7 +493,7 @@ describe('area summary', () => {
     expect(statusCode).toBe(statusCodes.badGateway)
   })
 
-  test('redirects a project without baseline data to the existing task list', async () => {
+  test('redirects a project without baseline data to project summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: { project: { name: 'No baseline' } }
@@ -506,7 +506,7 @@ describe('area summary', () => {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${PROJECT_ID}`)
+    expect(headers.location).toBe(`/projects/${PROJECT_ID}/project-summary`)
   })
 
   test('rejects an invalid project id', async () => {

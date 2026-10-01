@@ -70,17 +70,17 @@ describe.each([
     )
   })
 
-  test('an unsafe return URL falls back to the project task list', async () => {
+  test('an unsafe return URL falls back to the project summary', async () => {
     const h = responseToolkit()
 
     await controller.handler(request('https://example.com'), h)
 
-    const encodedTaskList = `%2Fadd-project-details%2F${PROJECT_ID}`
+    const encodedProjectSummary = `%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
     expect(h.view).toHaveBeenCalledWith(
       'common/templates/upload-geopackage-file',
       expect.objectContaining({
-        backHref: `/projects/${PROJECT_ID}/upload-file?returnUrl=${encodedTaskList}`,
-        cancelHref: `/projects/${PROJECT_ID}/upload-file?returnUrl=${encodedTaskList}`
+        backHref: `/projects/${PROJECT_ID}/upload-file?returnUrl=${encodedProjectSummary}`,
+        cancelHref: `/projects/${PROJECT_ID}/upload-file?returnUrl=${encodedProjectSummary}`
       })
     )
   })

@@ -276,7 +276,6 @@ describe('project summary', () => {
     expect(result).toContain('View trading rules')
     expect(result).not.toContain('>View trading rules</a>')
     expect(result).toContain('View project details')
-    expect(result).not.toContain('>View project details</a>')
     expect(result).toContain('class="app-project-summary__actions"')
     expect(result).not.toContain('Submit metric')
     expect(result).toContain(
@@ -884,20 +883,22 @@ describe('project summary', () => {
     expect(result).not.toContain('-0.00')
   })
 
-  test('redirects a project without baseline data to the existing task list', async () => {
+  test('renders the project summary before a baseline is uploaded', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: { project: { name: 'No baseline' } }
     })
 
-    const { statusCode, headers } = await server.inject({
+    const { statusCode, result } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/project-summary`,
       auth
     })
 
-    expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${PROJECT_ID}`)
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('No baseline')
+    expect(result).toContain('Upload an on-site baseline file')
+    expect(result).not.toContain('class="app-unit-type-summary"')
   })
 
   test('rejects an invalid project id', async () => {
