@@ -70,6 +70,12 @@ describe('formatStandardTimeToTarget', () => {
     expect(formatStandardTimeToTarget('', 'Good', 0)).toBe('Good - 0 years')
   })
 
+  it('words the engine\'s ">30" key as "30+" (BMD-1040)', () => {
+    expect(formatStandardTimeToTarget('N/A', 'Good', '>30')).toBe(
+      'Good - 30+ years'
+    )
+  })
+
   it('treats GeoPackage "N/A" baseline sentinels as absent', () => {
     expect(formatStandardTimeToTarget('N/A', 'Good', 12)).toBe(
       'Good - 12 years'

@@ -43,6 +43,10 @@ describe('formatYears', () => {
     expect(formatYears(0)).toBe('0 years')
     expect(formatYears(null)).toBe('')
   })
+
+  test('words the engine\'s ">30" key as the metric does (BMD-1040)', () => {
+    expect(formatYears('>30')).toBe('30+ years')
+  })
 })
 
 describe('buildPostInterventionHabitatGrid', () => {
