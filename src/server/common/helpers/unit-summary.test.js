@@ -1,5 +1,6 @@
 import {
   areaBaselineAction,
+  areaInterventionAction,
   areaInterventionSummary,
   areaUnits,
   buildTargetsSummary,
@@ -70,6 +71,23 @@ describe('hedgerowsBaselineAction', () => {
         href: '/projects/123/hedgerows-baseline'
       }
     )
+  })
+})
+
+describe('areaInterventionAction', () => {
+  test('returns text-only action when no href is given', () => {
+    expect(areaInterventionAction()).toEqual({
+      text: 'View on-site area post intervention'
+    })
+  })
+
+  test('includes the href when one is given', () => {
+    expect(
+      areaInterventionAction('/projects/123/area-post-intervention')
+    ).toEqual({
+      text: 'View on-site area post intervention',
+      href: '/projects/123/area-post-intervention'
+    })
   })
 })
 

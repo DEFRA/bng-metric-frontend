@@ -1,5 +1,6 @@
 import { fetchProject } from '../services/projects.js'
 import {
+  formatSummaryAreaSize,
   formatTotalAreaSize,
   formatTotalLengthSize,
   formatAreaHectares,
@@ -16,7 +17,6 @@ import {
 } from './trading-rules-status.js'
 
 const NO_DATA_DISPLAY = 'No data'
-const SQUARE_METRES_PER_HECTARE = 10000
 const METRES_PER_KILOMETRE = 1000
 
 /**
@@ -198,13 +198,6 @@ function areaUnitsTotal(units) {
 function formatPercentage(value) {
   const formatted = formatHabitatUnits(value)
   return formatted ? `${formatted}%` : ''
-}
-
-function formatSummaryAreaSize(squareMetres) {
-  if (typeof squareMetres !== 'number' || !Number.isFinite(squareMetres)) {
-    return ''
-  }
-  return `${(squareMetres / SQUARE_METRES_PER_HECTARE).toFixed(2)}ha`
 }
 
 function formatSummaryLengthSize(metres) {

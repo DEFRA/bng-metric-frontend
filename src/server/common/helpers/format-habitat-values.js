@@ -11,6 +11,7 @@ const AREA_SIGNIFICANT_FIGURES = 10
 const LENGTH_SIGNIFICANT_FIGURES = 7
 const LENGTH_BASELINE_TOTAL_SIGNIFICANT_FIGURES = 10
 const HABITAT_UNITS_DECIMAL_PLACES = 2
+const SUMMARY_AREA_DECIMAL_PLACES = 2
 const HABITAT_UNITS_SIGNIFICANT_FIGURES = 7
 const KM_UNIT = 'km'
 
@@ -121,6 +122,21 @@ function formatTotalAreaSize(squareMetres) {
 }
 
 /**
+ * Format an area for a summary tile as hectares to 2 decimal places, with the
+ * "ha" suffix (no space). Returns '' for null/undefined/non-finite input.
+ *
+ * @param {number|null|undefined} squareMetres
+ * @returns {string}
+ */
+function formatSummaryAreaSize(squareMetres) {
+  if (!isUsableNumber(squareMetres)) {
+    return EMPTY_DISPLAY
+  }
+  const hectares = squareMetres / SQUARE_METRES_PER_HECTARE
+  return `${hectares.toFixed(SUMMARY_AREA_DECIMAL_PLACES)}ha`
+}
+
+/**
  * Format a total linear length for the Habitat List summary as a kilometre
  * value with the "km" suffix (no space between number and suffix). Habitat
  * presence is handled by the caller; missing numeric values remain empty.
@@ -152,6 +168,7 @@ export {
   formatLengthKm,
   formatLengthKmDisplay,
   formatHabitatUnits,
+  formatSummaryAreaSize,
   formatTotalAreaSize,
   formatTotalLengthSize,
   KM_UNIT
