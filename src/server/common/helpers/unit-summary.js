@@ -124,11 +124,11 @@ function percentageSummary(value) {
 }
 
 function resolveInterventionAction(
-  hasStandardIntervention,
+  hasIntervention,
   uploadHref,
   interventionAction
 ) {
-  if (!hasStandardIntervention) {
+  if (!hasIntervention) {
     return {
       text: 'Upload on-site post intervention file',
       href: uploadHref
@@ -158,7 +158,7 @@ function buildPostInterventionSummary(
       ? formatOptionalUnits(intervention.units)
       : `${ZERO_UNITS_DISPLAY} units`,
     action: resolveInterventionAction(
-      hasStandardIntervention,
+      Boolean(intervention),
       uploadHref,
       interventionAction
     )
