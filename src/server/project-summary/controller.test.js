@@ -633,10 +633,7 @@ describe('project summary', () => {
       const baselineTile = secondaryTiles.eq(0)
       const postInterventionTile = secondaryTiles.eq(1)
       const netChangeTile = secondaryTiles.eq(2)
-      const uploadLink = postInterventionTile.find('a')
-      const expectedUploadHref =
-        `/projects/${PROJECT_ID}/upload-file?` +
-        `returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
+      const interventionLink = postInterventionTile.find('a')
 
       expect(statusCode).toBe(statusCodes.ok)
       expect($('nav[aria-label="Project summary"]').text()).toContain(label)
@@ -670,10 +667,12 @@ describe('project summary', () => {
       expect(postInterventionTile.find('p.govuk-heading-l').text()).toBe(
         '1.99 units'
       )
-      expect(uploadLink.text().trim()).toBe(
-        'Upload on-site post intervention file'
+      expect(interventionLink.text().trim()).toBe(
+        `View on-site ${habitatType} post intervention`
       )
-      expect(uploadLink.attr('href')).toBe(expectedUploadHref)
+      expect(interventionLink.attr('href')).toBe(
+        `/projects/${PROJECT_ID}/${habitatType}-post-intervention`
+      )
 
       expect(netChangeTile.find('h3').text()).toBe(
         'Total on-site net unit change'

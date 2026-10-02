@@ -295,7 +295,7 @@ describe('hedgerows post intervention', () => {
     expect(hedgerowsSummary.text()).toContain('Not applicable')
     expect(hedgerowsSummary.find('.govuk-tag')).toHaveLength(0)
     expect(hedgerowsSummary.text()).not.toContain('View on-site baseline')
-    expect(hedgerowsSummary.find('a').text().trim()).toBe(
+    expect(hedgerowsSummary.text()).not.toContain(
       'Upload on-site post intervention file'
     )
   })

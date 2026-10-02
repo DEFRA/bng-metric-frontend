@@ -278,7 +278,7 @@ describe('hedgerows summary', () => {
     const $ = load(result)
     const hedgerowsSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
-    const uploadLink = hedgerowsSummary.find('a')
+    const interventionLink = hedgerowsSummary.find('a')
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(hedgerowsSummary.text()).toContain('Not applicable')
@@ -286,7 +286,13 @@ describe('hedgerows summary', () => {
     expect(hedgerowsSummary.text()).toContain('0.00 units')
     expect(hedgerowsSummary.text()).not.toContain('View on-site baseline')
     expect(hedgerowsSummary.text()).toContain('1.99 units')
-    expect(uploadLink.text().trim()).toBe(
+    expect(interventionLink.text().trim()).toBe(
+      'View on-site hedgerows post intervention'
+    )
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+    )
+    expect(hedgerowsSummary.text()).not.toContain(
       'Upload on-site post intervention file'
     )
     expect(targets.text()).toContain('0.00 units')
