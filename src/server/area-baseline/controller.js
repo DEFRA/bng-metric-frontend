@@ -1,9 +1,12 @@
 import {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
-  AREA_TRADING_SUMMARY_PATH
+  AREA_POST_INTERVENTION_PATH,
+  AREA_TRADING_SUMMARY_PATH,
+  projectPageHref
 } from '../common/helpers/unit-type-navigation.js'
 import {
+  areaInterventionAction,
   areaInterventionSummary,
   areaUnits
 } from '../common/helpers/unit-summary.js'
@@ -32,6 +35,10 @@ export const getController = createHabitatBaselineController({
   collectFeatures: collectAreaFeatures,
   baselineUnits: (project) => areaUnits(project?.baseline?.units),
   buildIntervention: areaInterventionSummary,
+  interventionAction: (projectId) =>
+    areaInterventionAction(
+      projectPageHref(projectId, AREA_POST_INTERVENTION_PATH)
+    ),
   tradingRulesStatus: areaTradingRulesStatus,
   readSize: (feature) => feature.sizeSquareMetres,
   formatSize: formatAreaHectares,

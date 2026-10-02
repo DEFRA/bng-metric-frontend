@@ -92,6 +92,10 @@ const populatedProject = {
     name: 'Riverbank restoration',
     baseline: {
       habitats: [{}],
+      habitatSizes: {
+        site: { totalSquareMetres: 30000 },
+        areaHabitats: { totalSquareMetres: 30049.9 }
+      },
       units: { habitatsTotal: 24, treesTotal: 0.2 }
     },
     postIntervention: {
@@ -193,7 +197,7 @@ describe('area post intervention', () => {
     )
   })
 
-  test('renders the site size and area habitats size figures', async () => {
+  test('renders the area habitats size section as three tiles in hectares to 2 dp', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: PAGE_PATH,
@@ -202,11 +206,63 @@ describe('area post intervention', () => {
 
     const $ = load(result)
     const areaSize = $('.app-area-size')
+    const tiles = areaSize
+      .find('.app-area-size__tile')
+      .map((_, tile) => ({
+        label: $(tile).find('h3').text().trim(),
+        value: $(tile).find('p').text().trim()
+      }))
+      .get()
 
-    expect(areaSize.text()).toContain('Site size')
-    expect(areaSize.text()).toContain('3ha')
-    expect(areaSize.text()).toContain('Area habitats size')
-    expect(areaSize.text()).toContain('3.0163ha')
+    expect(areaSize.find('h2').text()).toBe('Area habitats size')
+    expect(tiles).toEqual([
+      { label: 'Total baseline habitat area', value: '3.00ha' },
+      { label: 'Total post intervention habitat area', value: '3.02ha' },
+      {
+        label:
+          'Site Area (excluding areas of individual trees, green walls, intertidal hard structures)',
+        value: '3.00ha'
+      }
+    ])
+    expect(areaSize.text()).not.toContain('Site size')
+  })
+
+  test('shows N/A in the baseline size tile when the baseline has no stored sizes', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...populatedProject.project,
+          baseline: {
+            habitats: [{}],
+            units: { habitatsTotal: 24, treesTotal: 0.2 }
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const baselineTile = $('.app-area-size__tile').first()
+
+    expect(baselineTile.find('h3').text()).toBe('Total baseline habitat area')
+    expect(baselineTile.find('p').text()).toBe('N/A')
+  })
+
+  test('keeps the post-intervention results tile free of a self-link', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    expect(result).not.toContain('View on-site area post intervention')
+    expect(result).not.toContain('View on-site post intervention')
   })
 
   test('marks Post-intervention as current and links the rest of the left nav', async () => {
@@ -220,7 +276,7 @@ describe('area post intervention', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation
@@ -245,7 +301,7 @@ describe('area post intervention', () => {
     const $ = load(result)
     const tradingHref = `/projects/${PROJECT_ID}/area-trading-summary`
     const navigationLink = $('nav[aria-label="Project summary"] a').filter(
-      (_, link) => $(link).text() === 'Trading Rules'
+      (_, link) => $(link).text() === 'Trading rules'
     )
     const resultsLink = $('.app-unit-type-summary a').filter(
       (_, link) => $(link).text() === 'View area trading rules'
@@ -279,7 +335,7 @@ describe('area post intervention', () => {
     const $ = load(result)
 
     expect($('nav[aria-label="Project summary"]').text()).not.toContain(
-      'Trading Rules'
+      'Trading rules'
     )
     expect($('.app-unit-type-summary a').text()).not.toContain(
       'View area trading rules'

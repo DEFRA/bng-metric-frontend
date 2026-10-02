@@ -193,7 +193,7 @@ function registerNavigationTests(ctx) {
     const children = navigation.find('.app-project-navigation__child')
     expect(children).toHaveLength(1)
     expect(children.eq(0).text().trim()).toBe(BASELINE_LABEL)
-    expect(navigation.text()).not.toContain('Post-intervention')
+    expect(navigation.text()).not.toContain('Post intervention')
     expect(navigation.text()).toContain(ctx.otherLabel)
   })
 }

@@ -429,8 +429,17 @@ describe('area baseline', () => {
     expect(summary.text()).toContain('2.00 units')
     expect($('.govuk-tag--green').text()).toBe('Met')
     expect(
+      summary
+        .find('a')
+        .filter(
+          (_, link) =>
+            $(link).text().trim() === 'View on-site area post intervention'
+        )
+        .attr('href')
+    ).toBe(`/projects/${PROJECT_ID}/area-post-intervention`)
+    expect(
       $('nav[aria-label="Project summary"] a')
-        .filter((_, link) => $(link).text() === 'Trading Rules')
+        .filter((_, link) => $(link).text() === 'Trading rules')
         .attr('href')
     ).toBe(`/projects/${PROJECT_ID}/area-trading-summary`)
     expect(
@@ -482,8 +491,8 @@ describe('area baseline', () => {
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(0)
     expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
-    expect(navigation.text()).not.toContain('Trading Rules')
-    expect(navigation.text()).not.toContain('Post-intervention')
+    expect(navigation.text()).not.toContain('Trading rules')
+    expect(navigation.text()).not.toContain('Post intervention')
     expect(
       $('.app-unit-type-summary a').filter(
         (_, link) => $(link).text() === 'View area trading rules'

@@ -2,6 +2,7 @@ import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { hasBaselineData } from '../common/helpers/project-state.js'
 import {
   AREA_HABITATS_TEXT,
+  AREA_POST_INTERVENTION_PATH,
   AREA_SUMMARY_PATH,
   AREA_TRADING_SUMMARY_PATH,
   buildUnitTypeNavigation,
@@ -10,6 +11,7 @@ import {
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
   areaBaselineAction,
+  areaInterventionAction,
   areaInterventionSummary,
   areaUnits,
   buildTargetsSummary,
@@ -50,6 +52,9 @@ function buildAreaSummary(project, projectId) {
       intervention: interventionSummary,
       baselineAction: areaBaselineAction(
         `/projects/${projectId}/area-baseline`
+      ),
+      interventionAction: areaInterventionAction(
+        projectPageHref(projectId, AREA_POST_INTERVENTION_PATH)
       ),
       tradingRulesStatus: areaTradingRulesStatus(project),
       tradingRulesHref: project?.postIntervention

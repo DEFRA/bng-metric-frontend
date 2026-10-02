@@ -226,7 +226,7 @@ describe('hedgerows post intervention', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation
@@ -286,7 +286,7 @@ describe('hedgerows post intervention', () => {
     const hedgerowsSummary = $('.app-unit-type-summary')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')

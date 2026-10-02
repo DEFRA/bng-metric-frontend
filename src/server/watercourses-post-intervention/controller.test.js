@@ -226,7 +226,7 @@ describe('watercourses post intervention', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
@@ -435,7 +435,7 @@ describe('watercourses post intervention', () => {
     const watercoursesSummary = $('.app-unit-type-summary')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
