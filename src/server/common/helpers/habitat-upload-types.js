@@ -11,9 +11,7 @@ const HABITAT_UPLOAD_TYPES = {
       'Upload a GeoPackage (.gpkg) file containing a red line boundary and baseline habitat parcels.',
     uploadRoute: 'upload-baseline-file',
     uploadReceivedRoute: 'upload-received',
-    listRoute: 'baseline-habitat-list',
     successRoute: 'project-summary',
-    listView: 'habitat-list/habitat-list',
     detailsRoute: 'baseline-habitat-details',
     backendValidatePath: 'baseline',
     backendFeaturePath: (projectId, featureId) =>
@@ -39,9 +37,7 @@ const HABITAT_UPLOAD_TYPES = {
       'Upload a GeoPackage (.gpkg) file containing a red line boundary and post-intervention habitat parcels.',
     uploadRoute: 'upload-post-intervention-file',
     uploadReceivedRoute: 'post-intervention-upload-received',
-    listRoute: 'post-intervention-habitat-list',
     successRoute: 'project-summary',
-    listView: 'habitat-list/habitat-list',
     detailsRoute: 'post-intervention-habitat-details',
     backendValidatePath: 'post-intervention',
     backendFeaturePath: (projectId, featureId) =>

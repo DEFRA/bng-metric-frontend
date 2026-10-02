@@ -56,6 +56,18 @@ describe('upload file routes', () => {
     mockProject()
   })
 
+  test.each(['baseline-habitat-list', 'post-intervention-habitat-list'])(
+    'does not register the retired %s page',
+    async (page) => {
+      const response = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/${page}`,
+        auth: AUTH
+      })
+      expect(response.statusCode).toBe(404)
+    }
+  )
+
   test('blocks a request without a usable authenticated role', async () => {
     const response = await server.inject({
       method: 'GET',

@@ -16,10 +16,10 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 }))
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
-const RETURN_URL = `/projects/${PROJECT_ID}/baseline-habitat-list`
+const RETURN_URL = `/projects/${PROJECT_ID}/area-baseline`
 const SELECTION_HREF =
   `/projects/${PROJECT_ID}/upload-file?` +
-  `returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fbaseline-habitat-list`
+  `returnUrl=%2Fprojects%2F${PROJECT_ID}%2Farea-baseline`
 
 function request(returnUrl = RETURN_URL) {
   return {

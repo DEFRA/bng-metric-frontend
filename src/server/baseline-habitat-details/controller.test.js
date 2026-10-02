@@ -292,9 +292,7 @@ describe('#baselineHabitatDetails - GET', () => {
       auth: authedAuth
     })
     expect(result).toContain('Save')
-    expect(result).toContain(
-      `href="/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}"`
-    )
+    expect(result).toContain(`href="/projects/${projectId}/area-baseline"`)
   })
 
   test('Renders Back link to the Habitat List page', async () => {
@@ -303,9 +301,7 @@ describe('#baselineHabitatDetails - GET', () => {
       url,
       auth: authedAuth
     })
-    expect(result).toContain(
-      `href="/projects/${projectId}/baseline-habitat-list"`
-    )
+    expect(result).toContain(`href="/projects/${projectId}/area-baseline"`)
   })
 
   test('Renders Back link to the referring post-intervention habitat details page', async () => {
@@ -333,9 +329,7 @@ describe('#baselineHabitatDetails - GET', () => {
       },
       auth: authedAuth
     })
-    expect(result).toContain(
-      `href="/projects/${projectId}/baseline-habitat-list"`
-    )
+    expect(result).toContain(`href="/projects/${projectId}/area-baseline"`)
   })
 
   test('Renders Cancel link to the referring post-intervention habitat details page', async () => {
@@ -363,9 +357,7 @@ describe('#baselineHabitatDetails - GET', () => {
       },
       auth: authedAuth
     })
-    expect(result).toContain(
-      `href="/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}"`
-    )
+    expect(result).toContain(`href="/projects/${projectId}/area-baseline"`)
   })
 
   test('Calls the conditions endpoint with the combined "Broad - Type" key', async () => {
@@ -757,9 +749,7 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
       url: hedgerowUrl,
       auth: authedAuth
     })
-    expect(result).toContain(
-      `href="/projects/${projectId}/baseline-habitat-list#hedgerows"`
-    )
+    expect(result).toContain(`href="/projects/${projectId}/hedgerows-baseline"`)
   })
 
   test.each(REQUIRED_ELEMENT_IDS_HEDGEROW)(
@@ -859,9 +849,7 @@ describe('#baselineHabitatDetails - POST', () => {
     })
 
     expect(statusCode).toBe(302)
-    expect(headers.location).toBe(
-      `/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}`
-    )
+    expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
     expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
       expect.stringContaining(`/projects/${projectId}/features/${habitatId}`),
       expect.objectContaining({
@@ -905,9 +893,7 @@ describe('#baselineHabitatDetails - POST', () => {
     })
 
     expect(statusCode).toBe(302)
-    expect(headers.location).toBe(
-      `/projects/${projectId}/baseline-habitat-list#hedgerows`
-    )
+    expect(headers.location).toBe(`/projects/${projectId}/hedgerows-baseline`)
   })
 
   test('Redirects to the Watercourses tab when the backend reports a watercourse edit', async () => {
@@ -942,7 +928,7 @@ describe('#baselineHabitatDetails - POST', () => {
 
     expect(statusCode).toBe(302)
     expect(headers.location).toBe(
-      `/projects/${projectId}/baseline-habitat-list#watercourses`
+      `/projects/${projectId}/watercourses-baseline-summary`
     )
   })
 
@@ -968,9 +954,7 @@ describe('#baselineHabitatDetails - POST', () => {
     })
 
     expect(statusCode).toBe(302)
-    expect(headers.location).toBe(
-      `/projects/${projectId}/baseline-habitat-list#habitat-${habitatId}`
-    )
+    expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
   })
 
   test('Sends nulls when dropdown values are empty (Incomplete habitat)', async () => {

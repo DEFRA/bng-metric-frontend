@@ -105,7 +105,7 @@ function uploadHref(uploadType, projectId) {
 }
 
 function successHref(uploadType, projectId) {
-  return `/projects/${projectId}/${uploadType.successRoute ?? uploadType.listRoute}`
+  return `/projects/${projectId}/${uploadType.successRoute}`
 }
 
 async function handleReadyUpload(

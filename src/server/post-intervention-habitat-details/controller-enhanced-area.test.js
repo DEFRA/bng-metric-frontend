@@ -70,7 +70,7 @@ describe('#postInterventionHabitatDetailsController enhanced area', () => {
         finalTimeToTargetDisplay: '15',
         appliedDifficultyMultiplierDisplay: '1',
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
+        backHref: `/projects/${projectId}/area-post-intervention`
       })
     )
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')

@@ -51,7 +51,7 @@ describe('buildEnhancedAreaViewOnlyViewModel', () => {
       strategicSignificanceDisplay: 'Low (1)',
       habitatUnitsDisplay: '0.00',
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-      backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`,
+      backHref: `/projects/${projectId}/area-post-intervention`,
       targetConditionDisplay: 'Good (3)',
       standardTimeToTargetDisplay: `Poor to Good - 10${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Low',

@@ -140,8 +140,8 @@ function buildViewModel(watercourse, reference, { projectId, projectName }) {
       watercourseEncroachments: reference.watercourseEncroachments,
       riparianEncroachments: reference.riparianEncroachments
     }),
-    backHref: `/projects/${projectId}/baseline-habitat-list#watercourses`,
-    cancelHref: `/projects/${projectId}/baseline-habitat-list#watercourses`,
+    backHref: `/projects/${projectId}/watercourses-baseline-summary`,
+    cancelHref: `/projects/${projectId}/watercourses-baseline-summary`,
     featureId: watercourse.featureId
   }
 }

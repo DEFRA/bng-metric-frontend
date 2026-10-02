@@ -34,11 +34,8 @@ describe('upload file navigation', () => {
 
   test('retains an internal return URL', () => {
     expect(
-      safeUploadReturnUrl(
-        `/projects/${PROJECT_ID}/baseline-habitat-list`,
-        PROJECT_ID
-      )
-    ).toBe(`/projects/${PROJECT_ID}/baseline-habitat-list`)
+      safeUploadReturnUrl(`/projects/${PROJECT_ID}/area-baseline`, PROJECT_ID)
+    ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
   })
 
   test('builds the selection-page URL with an encoded return URL', () => {
