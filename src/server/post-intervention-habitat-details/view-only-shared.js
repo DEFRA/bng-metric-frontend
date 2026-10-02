@@ -17,6 +17,8 @@ import {
   ABSENT_BASELINE_CONDITION,
   ABSENT_BASELINE_CONDITION_PREFIX,
   HABITAT_UNITS_DELIVERED_LABEL,
+  OVER_MAX_YEARS,
+  OVER_MAX_YEARS_DISPLAY,
   PI_DETAILS_HEADING,
   STANDARD_TIME_TO_TARGET_SUFFIX,
   TIME_DIFFICULTY_SECTION_HEADING
@@ -164,7 +166,8 @@ export function formatStandardTimeToTarget(
 ) {
   const baseline = conditionDisplayText(baselineCondition)
   const target = conditionDisplayText(targetCondition)
-  const years = displayText(value)
+  const years =
+    value === OVER_MAX_YEARS ? OVER_MAX_YEARS_DISPLAY : displayText(value)
   if (!target || !years) {
     return EMPTY_PLACEHOLDER
   }
