@@ -85,7 +85,7 @@ export const getController = {
     const project = await fetchProjectOrThrow(request, id)
 
     if (!hasBaselineData(project)) {
-      return h.redirect(`/add-project-details/${id}`)
+      return h.redirect(`/projects/${id}/project-summary`)
     }
 
     const summary = buildHedgerowsSummary(project, id)

@@ -73,7 +73,7 @@ function createHabitatBaselineController(config) {
         })
       }
 
-      return h.redirect(`/add-project-details/${id}`)
+      return h.redirect(`/projects/${id}/project-summary`)
     }
   }
 }

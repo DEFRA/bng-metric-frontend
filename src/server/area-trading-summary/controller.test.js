@@ -440,7 +440,7 @@ describe('area trading summary', () => {
       )
     })
 
-    test('redirects a project without baseline data to its task list', async () => {
+    test('redirects a project without baseline data to project summary', async () => {
       mockProject({ project: { name: 'Empty' } })
 
       const response = await server.inject({
@@ -451,7 +451,7 @@ describe('area trading summary', () => {
 
       expect(response.statusCode).toBe(statusCodes.redirect)
       expect(response.headers.location).toBe(
-        `/add-project-details/${PROJECT_ID}`
+        `/projects/${PROJECT_ID}/project-summary`
       )
     })
   })

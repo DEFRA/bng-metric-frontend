@@ -25,7 +25,7 @@ const getController = {
     // No baseline means nothing to report on — same rule as the summary page,
     // and the same destination: the journey that gets the project a baseline.
     if (!hasBaselineData(project)) {
-      return h.redirect(`/add-project-details/${id}`)
+      return h.redirect(`/projects/${id}/project-summary`)
     }
 
     return h.view('project-reports/index', {

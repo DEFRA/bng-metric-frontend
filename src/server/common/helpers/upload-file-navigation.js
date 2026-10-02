@@ -31,7 +31,7 @@ function isSafeRelativePath(path) {
 }
 
 function defaultUploadReturnUrl(projectId) {
-  return `/add-project-details/${projectId}`
+  return `/projects/${projectId}/project-summary`
 }
 
 function safeUploadReturnUrl(returnUrl, projectId) {

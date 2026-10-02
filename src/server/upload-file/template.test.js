@@ -18,9 +18,9 @@ function render(error, selected) {
       heading: 'What would you like to upload?',
       caption: 'Habitat project',
       projectId: PROJECT_ID,
-      returnUrl: `/add-project-details/${PROJECT_ID}`,
-      backHref: `/add-project-details/${PROJECT_ID}`,
-      cancelHref: `/add-project-details/${PROJECT_ID}`,
+      returnUrl: `/projects/${PROJECT_ID}/project-summary`,
+      backHref: `/projects/${PROJECT_ID}/project-summary`,
+      cancelHref: `/projects/${PROJECT_ID}/project-summary`,
       crumb: 'csrf-token',
       items: Object.values(FILE_TYPES).map(({ value, text }) => ({
         value,
@@ -50,7 +50,7 @@ describe('upload file template', () => {
     )
     expect($('button').text()).toContain('Continue')
     expect($('a.govuk-back-link').attr('href')).toBe(
-      `/add-project-details/${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/project-summary`
     )
     expect($('a.govuk-link').last().text()).toContain('Cancel')
     expect($('input[name="crumb"]').attr('value')).toBe('csrf-token')

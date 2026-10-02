@@ -300,10 +300,10 @@ describe('watercourseStrategy.buildViewModel', () => {
       ctx
     )
     expect(vm.backHref).toBe(
-      '/projects/project-uuid/baseline-habitat-list#watercourses'
+      '/projects/project-uuid/watercourses-baseline-summary'
     )
     expect(vm.cancelHref).toBe(
-      '/projects/project-uuid/baseline-habitat-list#watercourses'
+      '/projects/project-uuid/watercourses-baseline-summary'
     )
   })
 })

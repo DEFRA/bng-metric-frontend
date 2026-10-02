@@ -88,7 +88,7 @@ describe('#postInterventionHabitatDetailsController created hedgerow', () => {
         finalTimeToTargetDisplay: '15',
         appliedDifficultyMultiplierDisplay: '1',
         viewBaselineHref: null,
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#hedgerows`
+        backHref: `/projects/${projectId}/hedgerows-post-intervention`
       })
     )
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')

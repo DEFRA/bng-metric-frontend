@@ -16,8 +16,6 @@ import { postInterventionUploadReceived } from './post-intervention-upload-recei
 import { baselineHabitatDetails } from './baseline-habitat-details/index.js'
 import { postInterventionHabitatDetails } from './post-intervention-habitat-details/index.js'
 import { invalidFile } from './error-file/index.js'
-import { baselineHabitatList } from './baseline-habitat-list/index.js'
-import { postInterventionHabitatList } from './post-intervention-habitat-list/index.js'
 import { projectDetails } from './project-details/index.js'
 import { projectSummary } from './project-summary/index.js'
 import { projectReport } from './project-report/index.js'
@@ -65,8 +63,6 @@ export const router = {
         postInterventionUploadReceived,
         baselineHabitatDetails,
         postInterventionHabitatDetails,
-        baselineHabitatList,
-        postInterventionHabitatList,
         invalidFile,
         projectDetails,
         projectSummary,

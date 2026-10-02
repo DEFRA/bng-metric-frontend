@@ -22,6 +22,8 @@ import {
   TIME_DIFFICULTY_SECTION_HEADING
 } from './constants.js'
 import { interventionDisplay, RETENTION_RETAINED } from './retention.js'
+import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
+import { HEDGEROWS_TAB_ANCHOR, WATERCOURSES_TAB_ANCHOR } from './constants.js'
 
 // Retained features carry their baseline strategic significance, which the
 // service fixes at Low (1) — matching the baseline details pages. Created and
@@ -30,6 +32,12 @@ import { interventionDisplay, RETENTION_RETAINED } from './retention.js'
 export const LOW_STRATEGIC_SIGNIFICANCE = 'Low (1)'
 
 export const EMPTY_PLACEHOLDER = ''
+
+function featureTypeForTabAnchor(anchor) {
+  if (anchor === HEDGEROWS_TAB_ANCHOR) return 'hedgerow'
+  if (anchor === WATERCOURSES_TAB_ANCHOR) return 'watercourse'
+  return 'habitat'
+}
 
 /**
  * Render a value with its multiplier in brackets ("Low (2)"), or just the value
@@ -274,7 +282,11 @@ export function buildSharedPiViewOnlyFields(
     strategicSignificanceDisplay: strategicSignificanceDisplay(feature),
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
     viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${listTabAnchor}`
+    backHref: habitatDetailsDestination(
+      projectId,
+      featureTypeForTabAnchor(listTabAnchor),
+      'postIntervention'
+    )
   }
 }
 
@@ -327,7 +339,11 @@ export function buildViewOnlyViewModel(
     strategicSignificanceDisplay: strategicSignificanceDisplay(feature),
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
     viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${spec.tabAnchor}`
+    backHref: habitatDetailsDestination(
+      projectId,
+      featureTypeForTabAnchor(spec.tabAnchor),
+      'postIntervention'
+    )
   }
 
   const extraFields = spec.extraFields?.({

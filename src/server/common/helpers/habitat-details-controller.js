@@ -5,6 +5,7 @@ import { config } from '../../../config/config.js'
 import { statusCodes } from '../constants.js'
 import { backendRequest } from './auth/backend-request.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
+import { habitatDetailsDestination } from './habitat-details-destination.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -59,32 +60,6 @@ async function fetchFeature(request, uploadType, projectId, featureId) {
       throw Boom.notFound(`Feature ${featureId} not found`)
     }
     throw err
-  }
-}
-
-function listHref(uploadType, projectId) {
-  return `/projects/${projectId}/${uploadType.listRoute}`
-}
-
-function adaptListHref(href, uploadType, projectId) {
-  return href
-    .replace(
-      `/projects/${projectId}/habitat-list`,
-      listHref(uploadType, projectId)
-    )
-    .replace(
-      `/projects/${projectId}/baseline-habitat-list`,
-      listHref(uploadType, projectId)
-    )
-}
-
-function habitatListAnchorFor(payload, featureId) {
-  if (payload?.type === 'hedgerow') {
-    return '#hedgerows'
-  } else if (payload?.type === 'watercourse') {
-    return '#watercourses'
-  } else {
-    return `#habitat-${featureId}`
   }
 }
 
@@ -147,7 +122,7 @@ function postInterventionBackHref(request, projectId) {
       }).toString()}`
     }
   } catch {
-    // Missing or malformed referrers use the baseline list fallback.
+    // Missing or malformed referrers use the baseline summary fallback.
   }
 
   return null
@@ -190,12 +165,8 @@ function createGetController(uploadType) {
         ...viewModel,
         formAction: `/${uploadType.detailsRoute}`,
         detailsSectionHeading: uploadType.detailsSectionHeading,
-        backHref:
-          piBackHref ??
-          adaptListHref(viewModel.backHref, uploadType, projectId),
-        cancelHref:
-          piBackHref ??
-          adaptListHref(viewModel.cancelHref, uploadType, projectId)
+        backHref: piBackHref ?? viewModel.backHref,
+        cancelHref: piBackHref ?? viewModel.cancelHref
       })
     }
   }
@@ -256,7 +227,7 @@ function createPostController(uploadType) {
       }
 
       return h.redirect(
-        `${listHref(uploadType, projectId)}${habitatListAnchorFor(payload, featureId)}`
+        habitatDetailsDestination(projectId, payload?.type, uploadType.key)
       )
     }
   }

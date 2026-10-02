@@ -1,7 +1,4 @@
-import {
-  projectsListController,
-  projectTaskListController
-} from './controller.js'
+import { projectsListController } from './controller.js'
 import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 
 /**
@@ -27,26 +24,15 @@ export const projects = {
   plugin: {
     name: 'projects',
     register(server) {
-      server.route([
-        {
-          method: 'GET',
-          path: '/manage-projects',
-          ...projectsListController,
-          options: {
-            ...projectsListController.options,
-            ...protectedRouteOptions
-          }
-        },
-        {
-          method: 'GET',
-          path: '/add-project-details/{id}',
-          ...projectTaskListController,
-          options: {
-            ...projectTaskListController.options,
-            ...protectedRouteOptions
-          }
+      server.route({
+        method: 'GET',
+        path: '/manage-projects',
+        ...projectsListController,
+        options: {
+          ...projectsListController.options,
+          ...protectedRouteOptions
         }
-      ])
+      })
     }
   }
 }

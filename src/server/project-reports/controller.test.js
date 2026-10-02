@@ -123,7 +123,7 @@ describe('project reports', () => {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${PROJECT_ID}`)
+    expect(headers.location).toBe(`/projects/${PROJECT_ID}/project-summary`)
   })
 
   test('passes a backend 404 through', async () => {

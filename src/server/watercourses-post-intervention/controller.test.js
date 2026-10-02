@@ -454,7 +454,7 @@ describe('watercourses post intervention', () => {
     ).toHaveLength(1)
   })
 
-  test('redirects a project without baseline data to the existing task list', async () => {
+  test('redirects a project without baseline data to project summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: { project: { name: 'No baseline' } }
@@ -467,7 +467,7 @@ describe('watercourses post intervention', () => {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${projectId}`)
+    expect(headers.location).toBe(`/projects/${projectId}/project-summary`)
   })
 
   test('rejects an invalid project id', async () => {

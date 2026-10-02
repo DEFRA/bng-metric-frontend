@@ -16,7 +16,7 @@ function createUnitSummaryPlaceholderController({
       const project = await fetchProjectOrThrow(request, id)
 
       if (!hasBaselineData(project)) {
-        return h.redirect(`/add-project-details/${id}`)
+        return h.redirect(`/projects/${id}/project-summary`)
       }
 
       return h.view('common/templates/unit-summary-placeholder', {

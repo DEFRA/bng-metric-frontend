@@ -87,7 +87,7 @@ describe('#changeProjectNameController', () => {
     )
   })
 
-  test('Should render a back link to the project task list', async () => {
+  test('Should render a back link to the project summary', async () => {
     const { result, statusCode } = await server.inject({
       method: 'GET',
       url: changeProjectNameUrl,
@@ -96,7 +96,7 @@ describe('#changeProjectNameController', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(result).toEqual(
-      expect.stringContaining(`href="/add-project-details/${projectId}"`)
+      expect.stringContaining(`href="/projects/${projectId}/project-summary"`)
     )
     expect(result).toEqual(expect.stringContaining('govuk-back-link'))
   })
@@ -223,7 +223,7 @@ describe('#changeProjectNamePostController', () => {
     expect(body.project).toEqual({ name: 'Updated Project Name' })
   })
 
-  test('Should redirect to project task list on valid input', async () => {
+  test('Should redirect to project summary on valid input', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url: changeProjectNameUrl,
@@ -233,7 +233,7 @@ describe('#changeProjectNamePostController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${projectId}`)
+    expect(headers.location).toBe(`/projects/${projectId}/project-summary`)
   })
 
   test('Should return 502 when backend returns a non-2xx response', async () => {
