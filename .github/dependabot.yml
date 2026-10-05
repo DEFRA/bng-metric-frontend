@@ -23,8 +23,6 @@ updates:
       lint:
         patterns:
           - 'prettier'
-          - 'stylelint'
-          - 'stylelint-*'
 
       logging:
         patterns:
