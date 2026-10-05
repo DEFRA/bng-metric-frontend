@@ -18,7 +18,7 @@ alwaysApply: true
 - Nunjucks templates npm library
 - Webpack + Babel
 - vitest + ESLint + Prettier
-- SCSS + PostCSS + Stylelint
+- SCSS + PostCSS
 
 ## Code Standards
 

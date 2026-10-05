@@ -17,7 +17,9 @@
 //     their own visited colour deliberately and share this rule's specificity,
 //     so they are excluded explicitly rather than relying on source order.
 a:visited,
-.govuk-link:not(.govuk-link--muted):not(.govuk-link--text-colour):not(.govuk-link--inverse):visited,
+.govuk-link:not(.govuk-link--muted):not(.govuk-link--text-colour):not(
+    .govuk-link--inverse
+  ):visited,
 .govuk-footer__link:visited,
 .govuk-tabs__tab:visited {
   color: govuk-functional-colour(link);
