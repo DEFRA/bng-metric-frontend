@@ -206,25 +206,6 @@ crumb, and a PR review checklist.
 Authentication (OIDC via Defra Identity) is documented in
 [docs/authentication.md](docs/authentication.md).
 
-### Dependency audit
-
-`npm run security-audit` runs npm's audit and blocks high and critical findings.
-Registry errors or invalid audit reports also fail the check.
-
-A temporary exception was agreed on 5 October 2026 for
-[`GHSA-vfj7-8cjw-p6xm`](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
-in `braces`: no patched release is available. It is pulled in by nodemon and
-Nunjucks development file watching, and Stylelint's repository glob tooling.
-Nunjucks template watching is disabled in production. This accepts the known
-finding; it does not patch the dependency.
-
-The exception matches this advisory only, including dependent packages whose
-findings come exclusively from it. Other advisories on those same packages
-remain enforced. It expires on **4 November 2026 at 00:00 UTC**, when this
-finding blocks the audit again. Review before then and remove the exception
-as soon as an upstream fix is available. The policy is in
-`scripts/security-audit.mjs`; raw `npm audit` still reports the vulnerability.
-
 ### Secret scanning
 
 This repo scans for secrets at three independent layers — a real credential has to slip past all three to reach `main`:
