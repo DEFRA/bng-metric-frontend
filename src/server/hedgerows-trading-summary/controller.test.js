@@ -1,6 +1,6 @@
 import { createServer } from '../server.js'
 import { load } from 'cheerio'
-import { statusCodes } from '../common/constants.js'
+import { DEFAULT_PROJECT_NAME, statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -109,7 +109,47 @@ describe('hedgerows trading summary links', () => {
     }
   )
 
-  test('opens the placeholder and marks Trading Rules current', async () => {
+  test('redirects a baseline-only project to the hedgerows summary', async () => {
+    mockProject({ name: 'Test project', baseline })
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: TRADING_HREF,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(`/projects/${PROJECT_ID}/hedgerows-summary`)
+  })
+
+  test.each([null, { name: 'No baseline' }])(
+    'redirects to project setup when baseline data is missing: %j',
+    async (project) => {
+      mockProject(project)
+      const { statusCode, headers } = await server.inject({
+        method: 'GET',
+        url: TRADING_HREF,
+        auth
+      })
+
+      expect(statusCode).toBe(statusCodes.redirect)
+      expect(headers.location).toBe(`/add-project-details/${PROJECT_ID}`)
+    }
+  )
+
+  test('shows the default project name when none was saved', async () => {
+    mockProject({ baseline, postIntervention })
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: TRADING_HREF,
+      auth
+    })
+    const $ = load(result)
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect($('.govuk-caption-l').text()).toBe(DEFAULT_PROJECT_NAME)
+  })
+
+  test('opens the placeholder and marks Trading rules current', async () => {
     mockProject({ name: 'Test project', baseline, postIntervention })
     const { result, statusCode } = await server.inject({
       method: 'GET',
