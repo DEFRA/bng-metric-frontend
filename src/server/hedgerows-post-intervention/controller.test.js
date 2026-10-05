@@ -226,7 +226,7 @@ describe('hedgerows post intervention', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation
@@ -286,7 +286,7 @@ describe('hedgerows post intervention', () => {
     const hedgerowsSummary = $('.app-unit-type-summary')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
@@ -295,9 +295,9 @@ describe('hedgerows post intervention', () => {
     expect(hedgerowsSummary.text()).toContain('Not applicable')
     expect(hedgerowsSummary.find('.govuk-tag')).toHaveLength(0)
     expect(hedgerowsSummary.text()).not.toContain('View on-site baseline')
-    expect(
-      hedgerowsSummary.find('.app-unit-type-summary__secondary a').text().trim()
-    ).toBe('Upload on-site post intervention file')
+    expect(hedgerowsSummary.text()).not.toContain(
+      'Upload on-site post intervention file'
+    )
   })
 
   test('shows Retained, Enhanced and Created GOV.UK tabs with in-page hash links', async () => {
@@ -394,7 +394,7 @@ describe('hedgerows post intervention', () => {
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)
     expect(refs).toEqual(['P-A2'])
     expect(panel.find('tbody a').attr('href')).toBe(
-      `/post-intervention-habitat-details?featureId=${retainedHedgerow.featureId}&projectId=${PROJECT_ID}`
+      `/post-intervention-habitat-details?featureId=${retainedHedgerow.featureId}&projectId=${PROJECT_ID}&returnUrl=${encodeURIComponent(PAGE_PATH)}`
     )
     expect(panel.find('tbody').text()).toContain('0.50')
     expect(panel.find('tbody').text()).toContain('1km')

@@ -8,6 +8,7 @@ import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
+  AREA_POST_INTERVENTION_PATH,
   AREA_SUMMARY_PATH,
   AREA_TRADING_SUMMARY_PATH,
   HEDGEROWS_BASELINE_PATH,
@@ -22,12 +23,14 @@ import {
   WATERCOURSES_POST_INTERVENTION_PATH,
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
+  WATERCOURSES_TRADING_SUMMARY_PATH,
   WATERCOURSES_TEXT,
   buildUnitTypeNavigation,
   projectPageHref
 } from '../common/helpers/unit-type-navigation.js'
 import {
   areaBaselineAction,
+  areaInterventionAction,
   areaInterventionSummary,
   areaUnits,
   buildUnitSummary,
@@ -82,6 +85,9 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
       baselineAction: areaBaselineAction(
         projectPageHref(projectId, AREA_BASELINE_PATH)
       ),
+      interventionAction: areaInterventionAction(
+        projectPageHref(projectId, AREA_POST_INTERVENTION_PATH)
+      ),
       baselineUnits: areaUnits(baselineUnits),
       buildIntervention: areaInterventionSummary,
       tradingRulesStatus: areaTradingRulesStatus(project),
@@ -126,7 +132,11 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         WATERCOURSES_HABITAT_KEY
       ),
       buildIntervention: watercoursesInterventionSummary,
-      tradingRulesStatus: watercourseTradingRulesStatus(project)
+      tradingRulesStatus: watercourseTradingRulesStatus(project),
+      tradingRulesHref: project?.postIntervention
+        ? projectPageHref(projectId, WATERCOURSES_TRADING_SUMMARY_PATH)
+        : null,
+      tradingRulesLinkText: 'View watercourses trading rules'
     }
   ]
 }

@@ -29,7 +29,7 @@ describe('area post-intervention trading link', () => {
     )
 
     expect(areaNav.children).toContainEqual({
-      text: 'Trading Rules',
+      text: 'Trading rules',
       href: TRADING_HREF
     })
     expect(viewModel.unitSummary.tradingRules).toEqual({

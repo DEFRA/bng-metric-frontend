@@ -206,10 +206,18 @@ describe('area summary', () => {
 
     const $ = load(result)
     const targets = $('#targets-heading').closest('section')
+    const interventionLink = $('.app-unit-type-summary a').filter(
+      (_, link) =>
+        $(link).text().trim() === 'View on-site area post intervention'
+    )
 
     expect(targets.text()).toContain('1.10 units')
     expect(targets.text()).toContain('0.00 units')
     expect($('.govuk-tag--red').text()).toBe('Not met')
+    expect(interventionLink).toHaveLength(1)
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-post-intervention`
+    )
   })
 
   test('renders a baseline-only project instead of redirecting, with deficit equal to units required', async () => {
@@ -277,7 +285,7 @@ describe('area summary', () => {
     const piResponse = await server.inject({ method: 'GET', url, auth })
     const piPage = load(piResponse.result)
     const navLink = piPage('nav[aria-label="Project summary"] a').filter(
-      (_, link) => piPage(link).text() === 'Trading Rules'
+      (_, link) => piPage(link).text() === 'Trading rules'
     )
     const tileLink = piPage('.app-unit-type-summary a').filter(
       (_, link) => piPage(link).text() === 'View area trading rules'
@@ -302,8 +310,8 @@ describe('area summary', () => {
         .filter((_, link) => baselinePage(link).text() === 'Baseline')
         .attr('href')
     ).toBe(`/projects/${PROJECT_ID}/area-baseline`)
-    expect(baselineNav.text()).not.toContain('Trading Rules')
-    expect(baselineNav.text()).not.toContain('Post-intervention')
+    expect(baselineNav.text()).not.toContain('Trading rules')
+    expect(baselineNav.text()).toContain('Post intervention')
     expect(
       baselinePage('.app-unit-type-summary a').filter(
         (_, link) => baselinePage(link).text() === 'View area trading rules'
@@ -343,7 +351,8 @@ describe('area summary', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(1)
-    expect($('.app-project-navigation__child')).toHaveLength(1)
+    expect(navigation.text()).toContain('Post intervention')
+    expect($('.app-project-navigation__child')).toHaveLength(2)
   })
 
   test('does not render the out-of-scope map or actions sections', async () => {

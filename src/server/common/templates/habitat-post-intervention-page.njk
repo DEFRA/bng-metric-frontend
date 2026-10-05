@@ -21,6 +21,20 @@
 
   {{ appUnitTypeSummary(unitSummary) }}
 
+  {% if areaSize %}
+    <section class="app-area-size" aria-labelledby="area-size-heading">
+      <h2 id="area-size-heading" class="govuk-heading-m">{{ areaSize.heading }}</h2>
+      <div class="app-area-size__tiles">
+        {% for tile in areaSize.tiles %}
+          <div class="app-area-size__tile">
+            <h3 class="govuk-heading-s">{{ tile.label }}</h3>
+            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ tile.value }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
   <h2 class="govuk-heading-m">{{ detailsHeading }}</h2>
 
   {% set tabItems = [] %}

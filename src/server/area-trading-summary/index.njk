@@ -1,0 +1,7 @@
+{% extends "unit-type-page.njk" %}
+
+{% from "trading-summary/macro.njk" import tradingSummary %}
+
+{% block unitTypeBody %}
+  {{ tradingSummary(trading) }}
+{% endblock %}

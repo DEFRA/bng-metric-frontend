@@ -1,5 +1,6 @@
 import {
   areaBaselineAction,
+  areaInterventionAction,
   areaInterventionSummary,
   areaUnits,
   buildTargetsSummary,
@@ -70,6 +71,23 @@ describe('hedgerowsBaselineAction', () => {
         href: '/projects/123/hedgerows-baseline'
       }
     )
+  })
+})
+
+describe('areaInterventionAction', () => {
+  test('returns text-only action when no href is given', () => {
+    expect(areaInterventionAction()).toEqual({
+      text: 'View on-site area post intervention'
+    })
+  })
+
+  test('includes the href when one is given', () => {
+    expect(
+      areaInterventionAction('/projects/123/area-post-intervention')
+    ).toEqual({
+      text: 'View on-site area post intervention',
+      href: '/projects/123/area-post-intervention'
+    })
   })
 })
 
@@ -335,7 +353,11 @@ describe('buildUnitSummary', () => {
         netUnitChange: 1.98,
         netPercentageChange: null
       },
-      postInterventionOnly: true
+      postInterventionOnly: true,
+      interventionAction: {
+        text: 'View on-site hedgerows post intervention',
+        href: '/hedgerows-post-intervention'
+      }
     })
 
     expect(summary.netPercentageChange).toBe('Not applicable')
@@ -344,8 +366,8 @@ describe('buildUnitSummary', () => {
     expect(summary.postIntervention.heading).toBe('On-site post intervention')
     expect(summary.postIntervention.units).toBe('1.98 units')
     expect(summary.postIntervention.action).toEqual({
-      text: 'Upload on-site post intervention file',
-      href: '/upload'
+      text: 'View on-site hedgerows post intervention',
+      href: '/hedgerows-post-intervention'
     })
     expect(summary.netUnitChange).toBe('1.98 units')
   })

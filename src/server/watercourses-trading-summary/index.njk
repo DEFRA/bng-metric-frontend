@@ -1,0 +1,9 @@
+{% extends "unit-type-page.njk" %}
+
+{% from "trading-summary/macro.njk" import tradingSummary %}
+
+{% block unitTypeBody %}
+  <div class="app-watercourses-trading-summary">
+    {{ tradingSummary(trading) }}
+  </div>
+{% endblock %}

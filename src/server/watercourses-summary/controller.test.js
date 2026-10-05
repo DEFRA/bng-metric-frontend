@@ -270,7 +270,13 @@ describe('watercourses summary', () => {
     const $ = load(result)
     const watercoursesSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
-    const uploadLink = watercoursesSummary.find('a')
+    const interventionLink = watercoursesSummary
+      .find('a')
+      .filter(
+        (_, link) =>
+          $(link).text().trim() ===
+          'View on-site watercourses post intervention'
+      )
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(watercoursesSummary.text()).toContain('Not applicable')
@@ -278,7 +284,11 @@ describe('watercourses summary', () => {
     expect(watercoursesSummary.text()).toContain('0.00 units')
     expect(watercoursesSummary.text()).not.toContain('View on-site baseline')
     expect(watercoursesSummary.text()).toContain('1.99 units')
-    expect(uploadLink.text().trim()).toBe(
+    expect(interventionLink).toHaveLength(1)
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
+    )
+    expect(watercoursesSummary.text()).not.toContain(
       'Upload on-site post intervention file'
     )
     expect(targets.text()).toContain('0.00 units')
@@ -303,7 +313,7 @@ describe('watercourses summary', () => {
     expect(navigation.text()).toContain('Summary')
     const postInterventionLink = navigation
       .find('a')
-      .filter((_, link) => $(link).text() === 'Post-intervention')
+      .filter((_, link) => $(link).text() === 'Post intervention')
     expect(postInterventionLink.attr('href')).toBe(
       `/projects/${PROJECT_ID}/watercourses-post-intervention`
     )
@@ -586,7 +596,9 @@ describe('watercourses summary trading rules status', () => {
     const $ = await renderWith(projectWithPostIntervention)
 
     expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
-    expect(tradingRulesTile($).text()).toContain('View trading rules')
+    expect(tradingRulesTile($).text()).toContain(
+      'View watercourses trading rules'
+    )
   })
 
   test('shows no status when trading rules do not apply', async () => {

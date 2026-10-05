@@ -226,7 +226,7 @@ describe('watercourses post intervention', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
@@ -304,7 +304,7 @@ describe('watercourses post intervention', () => {
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)
     expect(panel.find('tbody a').text()).toBe('W-A2')
     expect(panel.find('tbody a').attr('href')).toBe(
-      `/post-intervention-habitat-details?featureId=${retainedWatercourse.featureId}&projectId=${projectId}`
+      `/post-intervention-habitat-details?featureId=${retainedWatercourse.featureId}&projectId=${projectId}&returnUrl=${encodeURIComponent(pagePath)}`
     )
     expect(row).toContain('0.50')
     expect(row).toContain('1km')
@@ -435,7 +435,7 @@ describe('watercourses post intervention', () => {
     const watercoursesSummary = $('.app-unit-type-summary')
 
     expect(navigation.find('[aria-current="page"]').text()).toBe(
-      'Post-intervention'
+      'Post intervention'
     )
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
@@ -444,7 +444,7 @@ describe('watercourses post intervention', () => {
     expect(watercoursesSummary.text()).toContain('Not applicable')
     expect(watercoursesSummary.find('.govuk-tag')).toHaveLength(0)
     expect(watercoursesSummary.text()).not.toContain('View on-site baseline')
-    expect(watercoursesSummary.find('a').text().trim()).toBe(
+    expect(watercoursesSummary.text()).not.toContain(
       'Upload on-site post intervention file'
     )
   })

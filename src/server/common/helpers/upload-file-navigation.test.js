@@ -21,6 +21,10 @@ describe('upload file navigation', () => {
     'https://example.com',
     '//example.com/path',
     String.raw`\example.com`,
+    '/\t/evil.example',
+    '/\n/evil.example',
+    '/\r/evil.example',
+    '/\u0000/evil.example',
     ''
   ])('rejects unsafe return URL %j', (returnUrl) => {
     expect(safeUploadReturnUrl(returnUrl, PROJECT_ID)).toBe(

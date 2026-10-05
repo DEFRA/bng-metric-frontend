@@ -142,7 +142,7 @@ describe('hedgerows summary', () => {
     const navigation = $('nav[aria-label="Project summary"]')
     const postInterventionNav = navigation
       .find('a')
-      .filter((_, link) => $(link).text() === 'Post-intervention')
+      .filter((_, link) => $(link).text() === 'Post intervention')
 
     expect(interventionLink).toHaveLength(1)
     expect(interventionLink.attr('href')).toBe(
@@ -278,7 +278,7 @@ describe('hedgerows summary', () => {
     const $ = load(result)
     const hedgerowsSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
-    const uploadLink = hedgerowsSummary.find(
+    const interventionLink = hedgerowsSummary.find(
       '.app-unit-type-summary__secondary a'
     )
 
@@ -288,7 +288,13 @@ describe('hedgerows summary', () => {
     expect(hedgerowsSummary.text()).toContain('0.00 units')
     expect(hedgerowsSummary.text()).not.toContain('View on-site baseline')
     expect(hedgerowsSummary.text()).toContain('1.99 units')
-    expect(uploadLink.text().trim()).toBe(
+    expect(interventionLink.text().trim()).toBe(
+      'View on-site hedgerows post intervention'
+    )
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+    )
+    expect(hedgerowsSummary.text()).not.toContain(
       'Upload on-site post intervention file'
     )
     expect(targets.text()).toContain('0.00 units')

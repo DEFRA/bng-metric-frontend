@@ -3,11 +3,18 @@ import {
   RETENTION_ENHANCED,
   RETENTION_RETAINED
 } from '../../post-intervention-habitat-details/retention.js'
+import {
+  OVER_MAX_YEARS,
+  OVER_MAX_YEARS_DISPLAY
+} from '../../post-intervention-habitat-details/constants.js'
+import {
+  LOW_STRATEGIC_SIGNIFICANCE,
+  proposedStrategicSignificanceDisplay
+} from '../../post-intervention-habitat-details/view-only-shared.js'
 import { formatHabitatUnits } from './format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
 import {
   EMPTY_DISPLAY,
-  FIXED_STRATEGIC_SIGNIFICANCE,
   TOTALS_LABEL,
   boldCell,
   buildHabitatGrid,
@@ -80,6 +87,9 @@ function parseYears(value) {
 }
 
 function formatYears(value) {
+  if (value === OVER_MAX_YEARS) {
+    return yearsPhrase(OVER_MAX_YEARS_DISPLAY)
+  }
   const years = parseYears(value)
   if (years === null) {
     return EMPTY_DISPLAY
@@ -101,7 +111,12 @@ function formatFinalTimeToTarget(proposed) {
   return formatLabelAndScore(years, proposed.timeMultiplier)
 }
 
-function sharedSizeColumns({ readSize, formatSize, formatSizeTotal }) {
+function sharedSizeColumns({
+  readSize,
+  formatSize,
+  formatSizeTotal,
+  returnUrl
+}) {
   return [
     {
       text: 'Ref',
@@ -109,7 +124,8 @@ function sharedSizeColumns({ readSize, formatSize, formatSizeTotal }) {
         buildRefCell(
           feature,
           projectId,
-          HABITAT_UPLOAD_TYPES.postIntervention.detailsRoute
+          HABITAT_UPLOAD_TYPES.postIntervention.detailsRoute,
+          returnUrl
         ),
       total: () => boldCell(textCell(TOTALS_LABEL))
     },
@@ -169,10 +185,17 @@ function conditionColumn(interventionType) {
   }
 }
 
-function strategicSignificanceColumn() {
+// Retained features carry their baseline strategic significance, always Low (1);
+// created and enhanced features show the proposed value they were priced at.
+function strategicSignificanceColumn(interventionType) {
   return {
     text: 'Strategic significance',
-    cell: () => textCell(FIXED_STRATEGIC_SIGNIFICANCE)
+    cell: (feature) =>
+      textCell(
+        interventionType === RETENTION_RETAINED
+          ? LOW_STRATEGIC_SIGNIFICANCE
+          : proposedStrategicSignificanceDisplay(proposedOf(feature))
+      )
   }
 }
 
@@ -227,16 +250,19 @@ function buildColumns({
   readSize,
   formatSize,
   formatSizeTotal,
-  extraColumns
+  leadingExtraColumns = [],
+  extraColumns = [],
+  returnUrl
 }) {
   return [
-    ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal }),
+    ...sharedSizeColumns({ readSize, formatSize, formatSizeTotal, returnUrl }),
+    ...leadingExtraColumns,
     ...habitatTypeAndDistinctivenessColumns(interventionType),
     ...(interventionType === INTERVENTION_WITH_CONDITION
       ? [conditionColumn(interventionType)]
       : []),
     ...extraColumns,
-    strategicSignificanceColumn(),
+    strategicSignificanceColumn(interventionType),
     ...(INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)
       ? targetAndTimeColumns()
       : [])
@@ -264,7 +290,9 @@ function habitatTabHeading(tabLabel, habitatNoun) {
  * @param {(feature: object) => number|null|undefined} options.readSize
  * @param {(value: number|null|undefined) => string} options.formatSize
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
+ * @param {object[]} [options.leadingExtraColumns]
  * @param {object[]} [options.extraColumns]
+ * @param {string} [options.returnUrl] Back link target for the details page.
  */
 function buildPostInterventionHabitatGrid({
   features,
@@ -273,7 +301,9 @@ function buildPostInterventionHabitatGrid({
   readSize,
   formatSize,
   formatSizeTotal,
-  extraColumns = []
+  leadingExtraColumns = [],
+  extraColumns = [],
+  returnUrl
 }) {
   return buildHabitatGrid({
     columns: buildColumns({
@@ -281,7 +311,9 @@ function buildPostInterventionHabitatGrid({
       readSize,
       formatSize,
       formatSizeTotal,
-      extraColumns
+      leadingExtraColumns,
+      extraColumns,
+      returnUrl
     }),
     features,
     projectId,
@@ -294,5 +326,6 @@ export {
   descriptiveSource,
   formatYears,
   habitatTabHeading,
+  proposedValue,
   sourceValue
 }

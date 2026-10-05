@@ -84,7 +84,7 @@ describe('hedgerows trading summary links', () => {
     if (path !== 'project-summary') {
       expect(
         $('nav[aria-label="Project summary"] a')
-          .filter((_, item) => $(item).text() === 'Trading Rules')
+          .filter((_, item) => $(item).text() === 'Trading rules')
           .attr('href')
       ).toBe(TRADING_HREF)
     }
@@ -104,7 +104,7 @@ describe('hedgerows trading summary links', () => {
       expect(statusCode).toBe(statusCodes.ok)
       expect($(`a[href="${TRADING_HREF}"]`)).toHaveLength(0)
       expect($('nav[aria-label="Project summary"]').text()).not.toContain(
-        'Trading Rules'
+        'Trading rules'
       )
     }
   )
@@ -122,6 +122,6 @@ describe('hedgerows trading summary links', () => {
     expect($('h1').text()).toBe('Hedgerows trading rules')
     expect(
       $('nav[aria-label="Project summary"] [aria-current="page"]').text()
-    ).toBe('Trading Rules')
+    ).toBe('Trading rules')
   })
 })

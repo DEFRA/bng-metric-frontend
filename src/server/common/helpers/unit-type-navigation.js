@@ -3,8 +3,8 @@ import { hasHabitatData, projectHasHabitatData } from './project-state.js'
 const SUMMARY_TEXT = 'Summary'
 const AREA_HABITATS_TEXT = 'Area habitats'
 const BASELINE_TEXT = 'Baseline'
-const POST_INTERVENTION_TEXT = 'Post-intervention'
-const TRADING_RULES_TEXT = 'Trading Rules'
+const POST_INTERVENTION_TEXT = 'Post intervention'
+const TRADING_RULES_TEXT = 'Trading rules'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
 const REPORTS_TEXT = 'Reports'
@@ -24,6 +24,7 @@ const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
 const REPORTS_PATH = 'reports'
 const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline-summary'
 const WATERCOURSES_POST_INTERVENTION_PATH = 'watercourses-post-intervention'
+const WATERCOURSES_TRADING_SUMMARY_PATH = 'watercourses-trading-summary'
 
 const OPTIONAL_UNIT_TYPES = [
   {
@@ -32,6 +33,7 @@ const OPTIONAL_UNIT_TYPES = [
     summaryPath: HEDGEROWS_SUMMARY_PATH,
     baselinePath: HEDGEROWS_BASELINE_PATH,
     postInterventionPath: HEDGEROWS_POST_INTERVENTION_PATH,
+    postInterventionRequiresUpload: true,
     tradingSummaryPath: HEDGEROWS_TRADING_SUMMARY_PATH
   },
   {
@@ -39,7 +41,9 @@ const OPTIONAL_UNIT_TYPES = [
     text: WATERCOURSES_TEXT,
     summaryPath: WATERCOURSES_SUMMARY_PATH,
     baselinePath: WATERCOURSES_BASELINE_PATH,
-    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH
+    postInterventionPath: WATERCOURSES_POST_INTERVENTION_PATH,
+    postInterventionRequiresUpload: true,
+    tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH
   }
 ]
 
@@ -72,10 +76,6 @@ function sectionHrefs(projectId, itemHref, unitType) {
     hrefs.push(projectPageHref(projectId, unitType.tradingSummaryPath))
   }
 
-  if (unitType.tradingSummaryPath === AREA_TRADING_SUMMARY_PATH) {
-    hrefs.push(projectPageHref(projectId, AREA_POST_INTERVENTION_PATH))
-  }
-
   return hrefs
 }
 
@@ -94,8 +94,7 @@ function buildSectionChildren(project, projectId, unitType) {
 
   if (
     unitType.postInterventionPath &&
-    (unitType.postInterventionPath !== HEDGEROWS_POST_INTERVENTION_PATH ||
-      project?.postIntervention)
+    (!unitType.postInterventionRequiresUpload || project?.postIntervention)
   ) {
     children.push({
       text: POST_INTERVENTION_TEXT,
@@ -139,6 +138,7 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
       projectId,
       {
         baselinePath: AREA_BASELINE_PATH,
+        postInterventionPath: AREA_POST_INTERVENTION_PATH,
         tradingSummaryPath: AREA_TRADING_SUMMARY_PATH
       },
       currentHref
@@ -200,6 +200,7 @@ export {
   WATERCOURSES_HABITAT_KEY,
   WATERCOURSES_SUMMARY_PATH,
   WATERCOURSES_TEXT,
+  WATERCOURSES_TRADING_SUMMARY_PATH,
   buildUnitTypeNavigation,
   projectPageHref
 }

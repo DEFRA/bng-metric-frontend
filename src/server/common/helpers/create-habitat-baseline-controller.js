@@ -1,5 +1,5 @@
 import { uploadFileHref } from './upload-file-navigation.js'
-import { hasBaselineData } from './project-state.js'
+import { hasBaselineData, projectHasHabitatData } from './project-state.js'
 import {
   buildUnitTypeNavigation,
   projectPageHref
@@ -38,11 +38,14 @@ function buildHabitatBaseline(project, projectId, config) {
       baselineAction: null,
       interventionAction: config.interventionAction?.(projectId),
       tradingRulesStatus: config.tradingRulesStatus?.(project) ?? null,
-      tradingRulesLinkText: config.tradingRulesLinkText,
       tradingRulesHref:
-        config.tradingSummaryPath && project?.postIntervention
+        config.tradingSummaryPath &&
+        project?.postIntervention &&
+        (!config.tradingSummaryHabitatKey ||
+          projectHasHabitatData(project, config.tradingSummaryHabitatKey))
           ? projectPageHref(projectId, config.tradingSummaryPath)
-          : null
+          : null,
+      tradingRulesLinkText: config.tradingRulesLinkText
     }),
     ...buildBaselineHabitatGrid({
       features,
