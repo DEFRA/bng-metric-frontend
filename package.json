@@ -28,8 +28,8 @@
     "test": "npm run build:frontend && cross-env AWS_EMF_ENVIRONMENT=Local TZ=UTC vitest run --coverage",
     "test:watch": "cross-env AWS_EMF_ENVIRONMENT=Local TZ=UTC vitest",
     "security-audit": "npm audit --audit-level=high",
-    "server:watch": "nodemon --inspect=0.0.0.0 --ext js,json --legacy-watch ./src",
-    "server:debug": "nodemon --inspect-brk=0.0.0.0 --ext js,json --legacy-watch ./src",
+    "server:watch": "cross-env NODE_ENV=development node --inspect=0.0.0.0 --watch --watch-kill-signal=SIGINT ./src",
+    "server:debug": "cross-env NODE_ENV=development node --inspect-brk=0.0.0.0 --watch --watch-kill-signal=SIGINT ./src",
     "start": "npm run build:frontend && cross-env NODE_ENV=production node --use-strict .",
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module"
   },
@@ -88,7 +88,6 @@
     "happy-dom": "20.14.5",
     "husky": "9.1.7",
     "neostandard": "0.13.0",
-    "nodemon": "3.1.14",
     "npm-run-all": "4.1.5",
     "postcss-load-config": "6.0.1",
     "postcss-loader": "8.2.1",

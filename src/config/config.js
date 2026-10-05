@@ -228,11 +228,6 @@ export const config = convict({
     }
   },
   nunjucks: {
-    watch: {
-      doc: 'Reload templates when they are changed.',
-      format: Boolean,
-      default: isDevelopment
-    },
     noCache: {
       doc: 'Use a cache and recompile templates each time',
       format: Boolean,
