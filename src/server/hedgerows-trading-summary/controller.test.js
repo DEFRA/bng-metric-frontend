@@ -109,15 +109,41 @@ describe('hedgerows trading summary links', () => {
     }
   )
 
-  describe.each(['hedgerows-baseline', 'hedgerows-post-intervention'])(
-    '%s trading link eligibility',
-    (path) => {
-      test('omits the trading link when neither phase contains hedgerows', async () => {
-        mockProject({
-          name: 'Area-only project',
-          baseline: { habitats: [{}], units: { areaTotal: 1 } },
-          postIntervention: { habitats: [{}], units: { areaTotal: 2 } }
-        })
+  describe.each([
+    'project-summary',
+    'hedgerows-summary',
+    'hedgerows-baseline',
+    'hedgerows-post-intervention'
+  ])('%s trading link eligibility', (path) => {
+    test('omits the trading link when neither phase contains hedgerows', async () => {
+      mockProject({
+        name: 'Area-only project',
+        baseline: { habitats: [{}], units: { areaTotal: 1 } },
+        postIntervention: { habitats: [{}], units: { areaTotal: 2 } }
+      })
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/${path}`,
+        auth
+      })
+      const $ = load(result)
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($(`a[href="${TRADING_HREF}"]`)).toHaveLength(0)
+      expect($('nav[aria-label="Project summary"]').text()).not.toContain(
+        'Hedgerows'
+      )
+    })
+
+    test.each(['baseline', 'postIntervention'])(
+      'links trading rules when hedgerows occur only in %s',
+      async (phase) => {
+        const project = {
+          baseline: { units: { hedgerowsTotal: 0 } },
+          postIntervention: { units: { hedgerowsTotal: 0 } }
+        }
+        project[phase].hedgerows = [{ ref: 'H-1', sizeMetres: 100 }]
+        mockProject(project)
         const { result, statusCode } = await server.inject({
           method: 'GET',
           url: `/projects/${PROJECT_ID}/${path}`,
@@ -126,37 +152,54 @@ describe('hedgerows trading summary links', () => {
         const $ = load(result)
 
         expect(statusCode).toBe(statusCodes.ok)
-        expect($(`a[href="${TRADING_HREF}"]`)).toHaveLength(0)
-        expect($('nav[aria-label="Project summary"]').text()).not.toContain(
-          'Hedgerows'
-        )
-      })
-
-      test.each(['baseline', 'postIntervention'])(
-        'links trading rules when hedgerows occur only in %s',
-        async (phase) => {
-          const project = {
-            baseline: { units: { hedgerowsTotal: 0 } },
-            postIntervention: { units: { hedgerowsTotal: 0 } }
-          }
-          project[phase].hedgerows = [{ ref: 'H-1', sizeMetres: 100 }]
-          mockProject(project)
-          const { result, statusCode } = await server.inject({
-            method: 'GET',
-            url: `/projects/${PROJECT_ID}/${path}`,
-            auth
-          })
-          const $ = load(result)
-
-          expect(statusCode).toBe(statusCodes.ok)
-          expect(
-            $(`.app-unit-type-summary a[href="${TRADING_HREF}"]`).text()
-          ).toBe('View hedgerows trading rules')
+        expect(
+          $(`.app-unit-type-summary a[href="${TRADING_HREF}"]`).text()
+        ).toBe('View hedgerows trading rules')
+        if (path !== 'project-summary') {
           expect(
             $(`nav[aria-label="Project summary"] a[href="${TRADING_HREF}"]`)
           ).toHaveLength(1)
         }
-      )
+      }
+    )
+  })
+
+  test.each([undefined, { units: { areaTotal: 2 } }])(
+    'redirects projects without hedgerows to the project summary',
+    async (intervention) => {
+      mockProject({
+        baseline: { units: { areaTotal: 1 }, hedgerows: [] },
+        postIntervention: intervention
+      })
+      const { statusCode, headers } = await server.inject({
+        method: 'GET',
+        url: TRADING_HREF,
+        auth
+      })
+
+      expect(statusCode).toBe(statusCodes.redirect)
+      expect(headers.location).toBe(`/projects/${PROJECT_ID}/project-summary`)
+    }
+  )
+
+  test.each(['baseline', 'postIntervention'])(
+    'opens the trading page with current navigation when hedgerows occur only in %s',
+    async (phase) => {
+      const project = { baseline: {}, postIntervention: {} }
+      project[phase].hedgerows = [{}]
+      mockProject(project)
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: TRADING_HREF,
+        auth
+      })
+      const $ = load(result)
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect(
+        $('nav[aria-label="Project summary"] [aria-current="page"]').text()
+      ).toBe('Trading rules')
+      expect($('[aria-current="page"] a')).toHaveLength(0)
     }
   )
 
@@ -198,6 +241,67 @@ describe('hedgerows trading summary links', () => {
 
     expect(statusCode).toBe(statusCodes.ok)
     expect($('.govuk-caption-l').text()).toBe(DEFAULT_PROJECT_NAME)
+  })
+
+  test('requires authentication before fetching a project', async () => {
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: TRADING_HREF
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe('/auth/forbidden')
+    expect(wreck.get).not.toHaveBeenCalled()
+  })
+
+  test('rejects a user without an approved completer role', async () => {
+    const { statusCode, headers } = await server.inject({
+      method: 'GET',
+      url: TRADING_HREF,
+      auth: { ...auth, credentials: { ...auth.credentials, roles: [] } }
+    })
+
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe('/auth/forbidden')
+    expect(wreck.get).not.toHaveBeenCalled()
+  })
+
+  test('rejects an invalid project ID before fetching a project', async () => {
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: '/projects/not-a-uuid/hedgerows-trading-summary',
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.get).not.toHaveBeenCalled()
+  })
+
+  test.each([
+    [404, statusCodes.notFound],
+    [500, statusCodes.badGateway]
+  ])('handles a backend %s response', async (backendStatus, expectedStatus) => {
+    vi.mocked(wreck.get).mockRejectedValue({
+      data: { isResponseError: true, res: { statusCode: backendStatus } }
+    })
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: TRADING_HREF,
+      auth
+    })
+
+    expect(statusCode).toBe(expectedStatus)
+  })
+
+  test('handles an unreachable backend', async () => {
+    vi.mocked(wreck.get).mockRejectedValue(new Error('Connection refused'))
+    const { statusCode } = await server.inject({
+      method: 'GET',
+      url: TRADING_HREF,
+      auth
+    })
+
+    expect(statusCode).toBe(statusCodes.badGateway)
   })
 
   test('opens the placeholder and marks Trading rules current', async () => {

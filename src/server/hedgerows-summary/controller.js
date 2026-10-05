@@ -1,10 +1,12 @@
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import {
   hasBaselineData,
-  hasPostInterventionOnlyHabitat
+  hasPostInterventionOnlyHabitat,
+  projectHasHabitatData
 } from '../common/helpers/project-state.js'
 import {
   HEDGEROWS_BASELINE_PATH,
+  HEDGEROWS_HABITAT_KEY,
   HEDGEROWS_POST_INTERVENTION_PATH,
   HEDGEROWS_SUMMARY_PATH,
   HEDGEROWS_TRADING_SUMMARY_PATH,
@@ -71,9 +73,11 @@ function buildHedgerowsSummary(project, projectId) {
       interventionAction: hedgerowsInterventionAction(
         projectPageHref(projectId, HEDGEROWS_POST_INTERVENTION_PATH)
       ),
-      tradingRulesHref: project?.postIntervention
-        ? projectPageHref(projectId, HEDGEROWS_TRADING_SUMMARY_PATH)
-        : null,
+      tradingRulesHref:
+        project?.postIntervention &&
+        projectHasHabitatData(project, HEDGEROWS_HABITAT_KEY)
+          ? projectPageHref(projectId, HEDGEROWS_TRADING_SUMMARY_PATH)
+          : null,
       tradingRulesLinkText: 'View hedgerows trading rules'
     }),
     targetsSummary: buildTargetsSummary({

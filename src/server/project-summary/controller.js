@@ -111,9 +111,11 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         HEDGEROWS_HABITAT_KEY
       ),
       buildIntervention: hedgerowsInterventionSummary,
-      tradingRulesHref: project?.postIntervention
-        ? projectPageHref(projectId, HEDGEROWS_TRADING_SUMMARY_PATH)
-        : null,
+      tradingRulesHref:
+        project?.postIntervention &&
+        projectHasHabitatData(project, HEDGEROWS_HABITAT_KEY)
+          ? projectPageHref(projectId, HEDGEROWS_TRADING_SUMMARY_PATH)
+          : null,
       tradingRulesLinkText: 'View hedgerows trading rules'
     },
     {
