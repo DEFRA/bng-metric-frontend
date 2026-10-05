@@ -109,6 +109,57 @@ describe('hedgerows trading summary links', () => {
     }
   )
 
+  describe.each(['hedgerows-baseline', 'hedgerows-post-intervention'])(
+    '%s trading link eligibility',
+    (path) => {
+      test('omits the trading link when neither phase contains hedgerows', async () => {
+        mockProject({
+          name: 'Area-only project',
+          baseline: { habitats: [{}], units: { areaTotal: 1 } },
+          postIntervention: { habitats: [{}], units: { areaTotal: 2 } }
+        })
+        const { result, statusCode } = await server.inject({
+          method: 'GET',
+          url: `/projects/${PROJECT_ID}/${path}`,
+          auth
+        })
+        const $ = load(result)
+
+        expect(statusCode).toBe(statusCodes.ok)
+        expect($(`a[href="${TRADING_HREF}"]`)).toHaveLength(0)
+        expect($('nav[aria-label="Project summary"]').text()).not.toContain(
+          'Hedgerows'
+        )
+      })
+
+      test.each(['baseline', 'postIntervention'])(
+        'links trading rules when hedgerows occur only in %s',
+        async (phase) => {
+          const project = {
+            baseline: { units: { hedgerowsTotal: 0 } },
+            postIntervention: { units: { hedgerowsTotal: 0 } }
+          }
+          project[phase].hedgerows = [{ ref: 'H-1', sizeMetres: 100 }]
+          mockProject(project)
+          const { result, statusCode } = await server.inject({
+            method: 'GET',
+            url: `/projects/${PROJECT_ID}/${path}`,
+            auth
+          })
+          const $ = load(result)
+
+          expect(statusCode).toBe(statusCodes.ok)
+          expect(
+            $(`.app-unit-type-summary a[href="${TRADING_HREF}"]`).text()
+          ).toBe('View hedgerows trading rules')
+          expect(
+            $(`nav[aria-label="Project summary"] a[href="${TRADING_HREF}"]`)
+          ).toHaveLength(1)
+        }
+      )
+    }
+  )
+
   test('redirects a baseline-only project to the hedgerows summary', async () => {
     mockProject({ name: 'Test project', baseline })
     const { statusCode, headers } = await server.inject({

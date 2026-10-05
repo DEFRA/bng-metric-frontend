@@ -24,6 +24,7 @@ const DETAILS_HEADING = 'Hedgerow habitat details'
 export const getController = createHabitatPostInterventionController({
   path: HEDGEROWS_POST_INTERVENTION_PATH,
   tradingSummaryPath: HEDGEROWS_TRADING_SUMMARY_PATH,
+  tradingSummaryHabitatKey: HEDGEROWS_HABITAT_KEY,
   tradingRulesLinkText: 'View hedgerows trading rules',
   pageHeading: PAGE_HEADING,
   resultsHeading: RESULTS_HEADING,
