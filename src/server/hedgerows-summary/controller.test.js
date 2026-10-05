@@ -278,7 +278,9 @@ describe('hedgerows summary', () => {
     const $ = load(result)
     const hedgerowsSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
-    const interventionLink = hedgerowsSummary.find('a')
+    const interventionLink = hedgerowsSummary.find(
+      '.app-unit-type-summary__secondary a'
+    )
 
     expect(statusCode).toBe(statusCodes.ok)
     expect(hedgerowsSummary.text()).toContain('Not applicable')

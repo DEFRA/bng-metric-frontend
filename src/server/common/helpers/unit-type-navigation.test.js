@@ -9,6 +9,7 @@ const AREA_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-trading-summary`
 const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+const HEDGEROWS_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-trading-summary`
 const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
 const REPORTS_HREF = `/projects/${PROJECT_ID}/reports`
 const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline-summary`
@@ -142,11 +143,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.current).toBe(true)
     expect(hedgerowsItem.href).toBeUndefined()
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
-      {
-        text: 'Post intervention',
-        href: HEDGEROWS_POST_INTERVENTION_HREF
-      }
+      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF }
     ])
     expect(areaHabitatsItem).toEqual({
       text: 'Area habitats',
@@ -170,11 +167,7 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.href).toBe(HEDGEROWS_SUMMARY_HREF)
     expect(hedgerowsItem.current).toBeUndefined()
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Baseline', current: true },
-      {
-        text: 'Post intervention',
-        href: HEDGEROWS_POST_INTERVENTION_HREF
-      }
+      { text: 'Baseline', current: true }
     ])
     expect(areaHabitatsItem).toEqual({
       text: 'Area habitats',
@@ -315,7 +308,7 @@ describe('buildUnitTypeNavigation', () => {
     })
   })
 
-  test('adds a Post-intervention child for hedgerows whenever the section is listed', () => {
+  test('omits Post-intervention and Trading Rules before PI upload', () => {
     const items = buildUnitTypeNavigation(
       { baseline: { hedgerows: [{}] } },
       PROJECT_ID,
@@ -324,17 +317,13 @@ describe('buildUnitTypeNavigation', () => {
     const hedgerowsItem = items.find((item) => item.text === 'Hedgerows')
 
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
-      {
-        text: 'Post intervention',
-        href: HEDGEROWS_POST_INTERVENTION_HREF
-      }
+      { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF }
     ])
   })
 
   test('marks the Hedgerows Post-intervention child as current', () => {
     const items = buildUnitTypeNavigation(
-      { baseline: { hedgerows: [{}] } },
+      { baseline: { hedgerows: [{}] }, postIntervention: { hedgerows: [{}] } },
       PROJECT_ID,
       HEDGEROWS_POST_INTERVENTION_HREF
     )
@@ -343,7 +332,8 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.href).toBe(HEDGEROWS_SUMMARY_HREF)
     expect(hedgerowsItem.children).toEqual([
       { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
-      { text: 'Post intervention', current: true }
+      { text: 'Post intervention', current: true },
+      { text: 'Trading rules', href: HEDGEROWS_TRADING_SUMMARY_HREF }
     ])
   })
 
@@ -356,7 +346,8 @@ describe('buildUnitTypeNavigation', () => {
     const hedgerowsItem = items.find((item) => item.text === 'Hedgerows')
 
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Post intervention', current: true }
+      { text: 'Post intervention', current: true },
+      { text: 'Trading rules', href: HEDGEROWS_TRADING_SUMMARY_HREF }
     ])
   })
 

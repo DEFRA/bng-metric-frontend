@@ -67,6 +67,7 @@ describe('hedgerows baseline', () => {
     unitLabel: 'Hedgerows',
     summaryPath: '/hedgerows-summary',
     postInterventionPath: '/hedgerows-post-intervention',
+    postInterventionRequiresUpload: true,
     habitatKey: 'hedgerows',
     otherHabitatKey: 'watercourses',
     otherLabel: 'Watercourses',
