@@ -13,6 +13,7 @@ const MET = 'Met'
 const NOT_MET = 'Not met'
 const AREA_HABITATS_KEY = 'areaHabitats'
 const WATERCOURSES_KEY = 'watercourses'
+const HEDGEROWS_KEY = 'hedgerows'
 
 const TAG_CLASSES = {
   [MET]: 'govuk-tag--green',
@@ -26,7 +27,8 @@ const TAG_CLASSES = {
  *
  * Null means the backend had no verdict to give: a post-intervention file was
  * uploaded but its figures were never calculated, or trading rules do not
- * apply (for watercourses, PI-only with no baseline). Unknown is not failed,
+ * apply (for hedgerows and watercourses, PI-only with no baseline). Unknown
+ * is not failed,
  * so the pages show no tag rather than a red one claiming the site was
  * assessed. A project with no post-intervention file at all is not this case
  * — the backend returns Not met for it, because nothing has been delivered to
@@ -69,6 +71,14 @@ export function areaTradingRulesStatus(project) {
  */
 export function watercourseTradingRulesStatus(project) {
   return tradingRulesStatusFor(project?.tradingRuleStatuses?.[WATERCOURSES_KEY])
+}
+
+/**
+ * @param {object} project the project, as returned by `fetchProjectOrThrow`
+ * @returns {{ text: string, classes: string }|null}
+ */
+export function hedgerowTradingRulesStatus(project) {
+  return tradingRulesStatusFor(project?.tradingRuleStatuses?.[HEDGEROWS_KEY])
 }
 
 export { MET as TRADING_RULES_MET, NOT_MET as TRADING_RULES_NOT_MET }

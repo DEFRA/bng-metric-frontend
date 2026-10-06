@@ -2,6 +2,10 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import {
+  tileByHeading,
+  withTradingRuleStatus
+} from '../common/test-helpers/trading-rules.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -527,5 +531,65 @@ describe('hedgerows post intervention', () => {
 
     expect(statusCode).toBe(statusCodes.redirect)
     expect(headers.location).toBe('/auth/forbidden')
+  })
+})
+
+describe('hedgerows post intervention trading rules status', () => {
+  let server
+
+  const projectWithStatus = (overall) =>
+    withTradingRuleStatus(populatedProject, 'hedgerows', overall)
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+    return load(result)
+  }
+
+  const tradingRulesTile = ($) => tileByHeading($, 'Trading Rules')
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('shows Met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Met'))
+    const tag = tradingRulesTile($).find('.govuk-tag')
+
+    expect(tag.text()).toBe('Met')
+    expect(tag.hasClass('govuk-tag--green')).toBe(true)
+  })
+
+  test('shows Not met in the trading rules tile', async () => {
+    // The site-wide verdict, not a band: here Low fails while Medium and Very
+    // Low pass.
+    const $ = await renderWith(projectWithStatus('Not met'))
+    const tag = tradingRulesTile($).find('.govuk-tag')
+
+    expect(tag.text()).toBe('Not met')
+    expect(tag.hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows no status when the backend returns no verdict', async () => {
+    const $ = await renderWith(projectWithStatus(null))
+
+    expect(tradingRulesTile($)).toHaveLength(1)
+    expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
   })
 })

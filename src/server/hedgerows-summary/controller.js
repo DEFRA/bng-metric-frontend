@@ -23,6 +23,7 @@ import {
   isFiniteNumber,
   normaliseUnits
 } from '../common/helpers/unit-summary.js'
+import { hedgerowTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 import { DEFAULT_PROJECT_NAME } from '../common/constants.js'
 
 const NO_POST_INTERVENTION_UNITS = 0
@@ -73,6 +74,7 @@ function buildHedgerowsSummary(project, projectId) {
       interventionAction: hedgerowsInterventionAction(
         projectPageHref(projectId, HEDGEROWS_POST_INTERVENTION_PATH)
       ),
+      tradingRulesStatus: hedgerowTradingRulesStatus(project),
       tradingRulesHref:
         project?.postIntervention &&
         projectHasHabitatData(project, HEDGEROWS_HABITAT_KEY)

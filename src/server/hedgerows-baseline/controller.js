@@ -12,6 +12,7 @@ import {
 } from '../common/helpers/unit-summary.js'
 import { createLinearHabitatBaselineController } from '../common/helpers/create-linear-habitat-baseline-controller.js'
 import { HEDGEROWS_TOTAL_KEY } from '../common/constants.js'
+import { hedgerowTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 
 const PAGE_HEADING = 'Baseline for hedgerows'
 const RESULTS_HEADING = 'Hedgerows results'
@@ -29,6 +30,7 @@ export const getController = createLinearHabitatBaselineController({
   habitatKey: HEDGEROWS_HABITAT_KEY,
   unitsKey: HEDGEROWS_TOTAL_KEY,
   buildIntervention: hedgerowsInterventionSummary,
+  tradingRulesStatus: hedgerowTradingRulesStatus,
   interventionAction: (projectId) =>
     hedgerowsInterventionAction(
       projectPageHref(projectId, HEDGEROWS_POST_INTERVENTION_PATH)
