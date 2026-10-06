@@ -2,6 +2,10 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import {
+  tileByHeading,
+  withTradingRuleStatus
+} from '../common/test-helpers/trading-rules.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -538,12 +542,8 @@ describe('hedgerows summary', () => {
 describe('hedgerows summary trading rules status', () => {
   let server
 
-  const projectWithStatus = (overall) => ({
-    ...projectWithPostIntervention,
-    tradingRuleStatuses: {
-      hedgerows: { medium: 'Met', low: 'Not met', veryLow: 'Met', overall }
-    }
-  })
+  const projectWithStatus = (overall) =>
+    withTradingRuleStatus(projectWithPostIntervention, 'hedgerows', overall)
 
   const renderWith = async (payload) => {
     vi.mocked(wreck.get).mockResolvedValue({
@@ -558,10 +558,7 @@ describe('hedgerows summary trading rules status', () => {
     return load(result)
   }
 
-  const tradingRulesTile = ($) =>
-    $('.app-unit-type-summary__tile').filter(
-      (_, tile) => $(tile).find('h3').first().text() === 'Trading Rules'
-    )
+  const tradingRulesTile = ($) => tileByHeading($, 'Trading Rules')
 
   beforeAll(async () => {
     server = await createServer()

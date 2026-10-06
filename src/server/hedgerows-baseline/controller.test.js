@@ -3,6 +3,10 @@ import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import {
+  tileByHeading,
+  withTradingRuleStatus
+} from '../common/test-helpers/trading-rules.js'
+import {
   PROJECT_ID,
   auth,
   registerLinearBaselinePageTests
@@ -138,12 +142,8 @@ describe('hedgerows baseline trading rules status', () => {
     }
   }
 
-  const projectWithStatus = (overall) => ({
-    ...baselineProject,
-    tradingRuleStatuses: {
-      hedgerows: { medium: 'Met', low: 'Not met', veryLow: 'Met', overall }
-    }
-  })
+  const projectWithStatus = (overall) =>
+    withTradingRuleStatus(baselineProject, 'hedgerows', overall)
 
   const renderWith = async (payload) => {
     vi.mocked(wreck.get).mockResolvedValue({
@@ -158,10 +158,7 @@ describe('hedgerows baseline trading rules status', () => {
     return load(result)
   }
 
-  const tradingRulesTile = ($) =>
-    $('.app-unit-type-summary__tile').filter(
-      (_, tile) => $(tile).find('h3').first().text() === 'Trading Rules'
-    )
+  const tradingRulesTile = ($) => tileByHeading($, 'Trading Rules')
 
   beforeAll(async () => {
     server = await createServer()
