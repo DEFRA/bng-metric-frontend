@@ -66,7 +66,7 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *                 type: string
  *     responses:
  *       302:
- *         description: Redirects to the project task list on success
+ *         description: Redirects to the project summary on success
  *       200:
  *         description: Validation failure, re-renders the form with errors
  *       502:

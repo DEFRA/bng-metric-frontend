@@ -313,6 +313,6 @@ export const projectDetailsPostController = {
     ) {
       throw Boom.badGateway('Failed to save project details')
     }
-    return h.redirect(`/add-project-details/${projectId}`)
+    return h.redirect(`/projects/${projectId}/project-summary`)
   }
 }

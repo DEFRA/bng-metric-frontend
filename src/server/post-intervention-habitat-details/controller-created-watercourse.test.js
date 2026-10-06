@@ -76,7 +76,7 @@ describe('#postInterventionHabitatDetailsController created watercourse', () => 
         finalTimeToTargetDisplay: '0 years (1)',
         appliedDifficultyMultiplierDisplay: '1',
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`
+        backHref: `/projects/${projectId}/watercourses-post-intervention`
       })
     )
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')

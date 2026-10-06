@@ -18,7 +18,8 @@ import {
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
-import { AREAS_TAB_ANCHOR, PI_DETAILS_HEADING } from './constants.js'
+import { PI_DETAILS_HEADING } from './constants.js'
+import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
 import {
   normaliseRetentionCategory,
   RETENTION_CREATED,
@@ -162,19 +163,28 @@ function resolveViewOnlyPage(type, retentionCategory) {
   return retentionPage ?? VIEW_ONLY_PAGES.get(type)
 }
 
-function unsupportedFeatureBackHref(projectId, returnUrl) {
-  return isSafeRelativePath(returnUrl)
+function postInterventionBackHref(projectId, type, returnUrl) {
+  const destination = habitatDetailsDestination(
+    projectId,
+    type,
+    'postIntervention'
+  )
+  return isSafeRelativePath(returnUrl) &&
+    (returnUrl === destination || returnUrl.startsWith(`${destination}#`))
     ? returnUrl
-    : `/projects/${projectId}/post-intervention-habitat-list${AREAS_TAB_ANCHOR}`
+    : destination
 }
 
-function renderUnsupportedFeature(h, { projectId, projectName, returnUrl }) {
+function renderUnsupportedFeature(
+  h,
+  { projectId, projectName, type, returnUrl }
+) {
   return h.view('habitat-details/pi-feature-unsupported', {
     pageTitle: PI_DETAILS_HEADING,
     heading: PI_DETAILS_HEADING,
     caption: projectName,
     message: UNSUPPORTED_MESSAGE,
-    backHref: unsupportedFeatureBackHref(projectId, returnUrl)
+    backHref: postInterventionBackHref(projectId, type, returnUrl)
   })
 }
 
@@ -207,17 +217,23 @@ const getController = {
         ...feature,
         retentionCategory
       }
-      return h.view(
-        page.template,
-        page.buildViewModel(featureWithIntervention, {
-          projectId,
-          projectName,
-          baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
-        })
-      )
+      const viewModel = page.buildViewModel(featureWithIntervention, {
+        projectId,
+        projectName,
+        baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
+      })
+      return h.view(page.template, {
+        ...viewModel,
+        backHref: postInterventionBackHref(projectId, type, returnUrl)
+      })
     } else {
       // Trees, IGGIs and any new feature type without a view-only page.
-      return renderUnsupportedFeature(h, { projectId, projectName, returnUrl })
+      return renderUnsupportedFeature(h, {
+        projectId,
+        projectName,
+        type,
+        returnUrl
+      })
     }
   }
 }

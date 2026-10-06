@@ -5,6 +5,7 @@ const TRADING_HREF = `/projects/${PROJECT_ID}/area-trading-summary`
 
 const config = {
   path: 'area-post-intervention',
+  tradingSummaryPath: 'area-trading-summary',
   label: 'Area habitats',
   habitatKey: 'habitats',
   habitatNoun: 'area',

@@ -153,7 +153,7 @@ describe('#projectDetailsController', () => {
       auth: authedAuth
     })
     expect(result).toContain('govuk-back-link')
-    expect(result).toContain(`/add-project-details/${projectId}`)
+    expect(result).toContain(`/projects/${projectId}/project-summary`)
   })
 
   test('renders the project name caption', async () => {
@@ -448,7 +448,7 @@ describe('#projectDetailsPostController', () => {
     })
   })
 
-  test('redirects to the project task list on success', async () => {
+  test('redirects to the project summary on success', async () => {
     const { statusCode, headers } = await server.inject({
       method: 'POST',
       url,
@@ -458,7 +458,7 @@ describe('#projectDetailsPostController', () => {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${projectId}`)
+    expect(headers.location).toBe(`/projects/${projectId}/project-summary`)
   })
 
   test('returns 404 when backend returns 404', async () => {

@@ -20,7 +20,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
 const ROUTE = `/projects/${PROJECT_ID}/upload-file`
-const TASK_LIST = `/add-project-details/${PROJECT_ID}`
+const PROJECT_SUMMARY = `/projects/${PROJECT_ID}/project-summary`
 const AUTH = {
   strategy: 'session',
   credentials: {
@@ -55,6 +55,18 @@ describe('upload file routes', () => {
     vi.clearAllMocks()
     mockProject()
   })
+
+  test.each(['baseline-habitat-list', 'post-intervention-habitat-list'])(
+    'does not register the retired %s page',
+    async (page) => {
+      const response = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/${page}`,
+        auth: AUTH
+      })
+      expect(response.statusCode).toBe(404)
+    }
+  )
 
   test('blocks a request without a usable authenticated role', async () => {
     const response = await server.inject({
@@ -96,7 +108,7 @@ describe('upload file routes', () => {
   test('renders the complete selection page', async () => {
     const response = await server.inject({
       method: 'GET',
-      url: `${ROUTE}?returnUrl=${encodeURIComponent(TASK_LIST)}`,
+      url: `${ROUTE}?returnUrl=${encodeURIComponent(PROJECT_SUMMARY)}`,
       auth: AUTH
     })
 
@@ -118,8 +130,8 @@ describe('upload file routes', () => {
       FILE_TYPES.postIntervention.text
     )
     expect($('button[type="submit"]').text()).toContain('Continue')
-    expect($('a.govuk-back-link').attr('href')).toBe(TASK_LIST)
-    expect(cancel.attr('href')).toBe(TASK_LIST)
+    expect($('a.govuk-back-link').attr('href')).toBe(PROJECT_SUMMARY)
+    expect(cancel.attr('href')).toBe(PROJECT_SUMMARY)
   })
 
   test('rejects a POST without a CSRF token', async () => {
@@ -129,7 +141,7 @@ describe('upload file routes', () => {
       auth: AUTH,
       payload: {
         uploadType: FILE_TYPES.baseline.value,
-        returnUrl: TASK_LIST
+        returnUrl: PROJECT_SUMMARY
       }
     })
 
@@ -146,13 +158,13 @@ describe('upload file routes', () => {
       payload: {
         crumb: crumb.token,
         uploadType: FILE_TYPES.baseline.value,
-        returnUrl: TASK_LIST
+        returnUrl: PROJECT_SUMMARY
       }
     })
 
     expect(response.statusCode).toBe(302)
     expect(response.headers.location).toBe(
-      `/projects/${PROJECT_ID}/upload-baseline-file?returnUrl=%2Fadd-project-details%2F${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/upload-baseline-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
     )
   })
 
@@ -167,13 +179,13 @@ describe('upload file routes', () => {
       payload: {
         crumb: crumb.token,
         uploadType: FILE_TYPES.postIntervention.value,
-        returnUrl: TASK_LIST
+        returnUrl: PROJECT_SUMMARY
       }
     })
 
     expect(response.statusCode).toBe(302)
     expect(response.headers.location).toBe(
-      `/projects/${PROJECT_ID}/upload-post-intervention-file?returnUrl=%2Fadd-project-details%2F${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/upload-post-intervention-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
     )
   })
 
@@ -186,7 +198,7 @@ describe('upload file routes', () => {
       payload: {
         crumb: crumb.token,
         uploadType: FILE_TYPES.postIntervention.value,
-        returnUrl: TASK_LIST
+        returnUrl: PROJECT_SUMMARY
       }
     })
 
@@ -207,7 +219,7 @@ describe('upload file routes', () => {
       headers: { cookie: crumb.cookie },
       payload: {
         crumb: crumb.token,
-        returnUrl: TASK_LIST
+        returnUrl: PROJECT_SUMMARY
       }
     })
 
@@ -231,7 +243,7 @@ describe('upload file routes', () => {
     )
 
     expect(response.result).not.toContain('https://example.com')
-    expect($('a.govuk-back-link').attr('href')).toBe(TASK_LIST)
-    expect(cancel.attr('href')).toBe(TASK_LIST)
+    expect($('a.govuk-back-link').attr('href')).toBe(PROJECT_SUMMARY)
+    expect(cancel.attr('href')).toBe(PROJECT_SUMMARY)
   })
 })
