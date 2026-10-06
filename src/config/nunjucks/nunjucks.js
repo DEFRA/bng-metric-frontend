@@ -20,7 +20,6 @@ const nunjucksEnvironment = nunjucks.configure(
     throwOnUndefined: false,
     trimBlocks: true,
     lstripBlocks: true,
-    watch: config.get('nunjucks.watch'),
     noCache: config.get('nunjucks.noCache')
   }
 )

@@ -270,10 +270,12 @@ describe('watercourses summary', () => {
     const $ = load(result)
     const watercoursesSummary = $('.app-unit-type-summary')
     const targets = $('#targets-heading').closest('section')
-    const uploadLink = watercoursesSummary
+    const interventionLink = watercoursesSummary
       .find('a')
       .filter(
-        (_, link) => $(link).text() === 'Upload on-site post intervention file'
+        (_, link) =>
+          $(link).text().trim() ===
+          'View on-site watercourses post intervention'
       )
 
     expect(statusCode).toBe(statusCodes.ok)
@@ -282,7 +284,11 @@ describe('watercourses summary', () => {
     expect(watercoursesSummary.text()).toContain('0.00 units')
     expect(watercoursesSummary.text()).not.toContain('View on-site baseline')
     expect(watercoursesSummary.text()).toContain('1.99 units')
-    expect(uploadLink.text().trim()).toBe(
+    expect(interventionLink).toHaveLength(1)
+    expect(interventionLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/watercourses-post-intervention`
+    )
+    expect(watercoursesSummary.text()).not.toContain(
       'Upload on-site post intervention file'
     )
     expect(targets.text()).toContain('0.00 units')

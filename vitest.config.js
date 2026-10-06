@@ -17,7 +17,6 @@ export default defineConfig({
         '.public',
         'coverage',
         'postcss.config.js',
-        'stylelint.config.js',
         'vitest.config.js',
         '.sonarlint',
         'babel.config.cjs',

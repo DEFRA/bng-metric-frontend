@@ -632,10 +632,7 @@ describe('project summary', () => {
       const baselineTile = secondaryTiles.eq(0)
       const postInterventionTile = secondaryTiles.eq(1)
       const netChangeTile = secondaryTiles.eq(2)
-      const uploadLink = postInterventionTile.find('a')
-      const expectedUploadHref =
-        `/projects/${PROJECT_ID}/upload-file?` +
-        `returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
+      const interventionLink = postInterventionTile.find('a')
 
       expect(statusCode).toBe(statusCodes.ok)
       expect($('nav[aria-label="Project summary"]').text()).toContain(label)
@@ -648,14 +645,12 @@ describe('project summary', () => {
       expect(unitSummary.find('.govuk-tag')).toHaveLength(0)
 
       expect(tradingRulesTile.find('h3').text()).toBe('Trading Rules')
-      if (habitatType === 'watercourses') {
-        expect(tradingRulesTile.find('a').text()).toBe(
-          'View watercourses trading rules'
-        )
-      } else {
-        expect(tradingRulesTile.text()).toContain('View trading rules')
-        expect(tradingRulesTile.find('a')).toHaveLength(0)
-      }
+      expect(tradingRulesTile.find('a').text()).toBe(
+        `View ${habitatType} trading rules`
+      )
+      expect(tradingRulesTile.find('a').attr('href')).toBe(
+        `/projects/${PROJECT_ID}/${habitatType}-trading-summary`
+      )
 
       expect(baselineTile.find('h3').text()).toBe('On-site baseline')
       expect(baselineTile.find('p').text()).toBe('0.00 units')
@@ -669,10 +664,12 @@ describe('project summary', () => {
       expect(postInterventionTile.find('p.govuk-heading-l').text()).toBe(
         '1.99 units'
       )
-      expect(uploadLink.text().trim()).toBe(
-        'Upload on-site post intervention file'
+      expect(interventionLink.text().trim()).toBe(
+        `View on-site ${habitatType} post intervention`
       )
-      expect(uploadLink.attr('href')).toBe(expectedUploadHref)
+      expect(interventionLink.attr('href')).toBe(
+        `/projects/${PROJECT_ID}/${habitatType}-post-intervention`
+      )
 
       expect(netChangeTile.find('h3').text()).toBe(
         'Total on-site net unit change'

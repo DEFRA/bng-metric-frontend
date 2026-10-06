@@ -23,8 +23,6 @@ updates:
       lint:
         patterns:
           - 'prettier'
-          - 'stylelint'
-          - 'stylelint-*'
 
       logging:
         patterns:
@@ -39,7 +37,6 @@ updates:
           - 'vitest'
           - 'vitest-*'
           - '@vitest/*'
-          - 'nodemon'
           - 'npm-run-all'
           - 'lodash'
           - 'source-map-loader'

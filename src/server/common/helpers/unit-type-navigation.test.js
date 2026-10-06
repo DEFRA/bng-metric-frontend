@@ -9,6 +9,7 @@ const AREA_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/area-trading-summary`
 const HEDGEROWS_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-summary`
 const HEDGEROWS_BASELINE_HREF = `/projects/${PROJECT_ID}/hedgerows-baseline`
 const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post-intervention`
+const HEDGEROWS_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-trading-summary`
 const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
 const REPORTS_HREF = `/projects/${PROJECT_ID}/reports`
 const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline-summary`
@@ -322,7 +323,7 @@ describe('buildUnitTypeNavigation', () => {
     })
   })
 
-  test('omits the Hedgerows Post-intervention child until a PI file is uploaded', () => {
+  test('omits Post-intervention and Trading Rules before PI upload', () => {
     const items = buildUnitTypeNavigation(
       { baseline: { hedgerows: [{}] } },
       PROJECT_ID,
@@ -337,10 +338,7 @@ describe('buildUnitTypeNavigation', () => {
 
   test('marks the Hedgerows Post-intervention child as current', () => {
     const items = buildUnitTypeNavigation(
-      {
-        baseline: { hedgerows: [{}] },
-        postIntervention: { hedgerows: [{}] }
-      },
+      { baseline: { hedgerows: [{}] }, postIntervention: { hedgerows: [{}] } },
       PROJECT_ID,
       HEDGEROWS_POST_INTERVENTION_HREF
     )
@@ -349,7 +347,8 @@ describe('buildUnitTypeNavigation', () => {
     expect(hedgerowsItem.href).toBe(HEDGEROWS_SUMMARY_HREF)
     expect(hedgerowsItem.children).toEqual([
       { text: 'Baseline', href: HEDGEROWS_BASELINE_HREF },
-      { text: 'Post intervention', current: true }
+      { text: 'Post intervention', current: true },
+      { text: 'Trading rules', href: HEDGEROWS_TRADING_SUMMARY_HREF }
     ])
   })
 
@@ -362,7 +361,8 @@ describe('buildUnitTypeNavigation', () => {
     const hedgerowsItem = items.find((item) => item.text === 'Hedgerows')
 
     expect(hedgerowsItem.children).toEqual([
-      { text: 'Post intervention', current: true }
+      { text: 'Post intervention', current: true },
+      { text: 'Trading rules', href: HEDGEROWS_TRADING_SUMMARY_HREF }
     ])
   })
 

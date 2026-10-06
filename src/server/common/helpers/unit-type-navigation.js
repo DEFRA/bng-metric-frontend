@@ -19,6 +19,7 @@ const AREA_TRADING_SUMMARY_PATH = 'area-trading-summary'
 const HEDGEROWS_SUMMARY_PATH = 'hedgerows-summary'
 const HEDGEROWS_BASELINE_PATH = 'hedgerows-baseline'
 const HEDGEROWS_POST_INTERVENTION_PATH = 'hedgerows-post-intervention'
+const HEDGEROWS_TRADING_SUMMARY_PATH = 'hedgerows-trading-summary'
 const WATERCOURSES_SUMMARY_PATH = 'watercourses-summary'
 const REPORTS_PATH = 'reports'
 const WATERCOURSES_BASELINE_PATH = 'watercourses-baseline-summary'
@@ -31,7 +32,9 @@ const OPTIONAL_UNIT_TYPES = [
     text: HEDGEROWS_TEXT,
     summaryPath: HEDGEROWS_SUMMARY_PATH,
     baselinePath: HEDGEROWS_BASELINE_PATH,
-    postInterventionPath: HEDGEROWS_POST_INTERVENTION_PATH
+    postInterventionPath: HEDGEROWS_POST_INTERVENTION_PATH,
+    postInterventionRequiresUpload: true,
+    tradingSummaryPath: HEDGEROWS_TRADING_SUMMARY_PATH
   },
   {
     habitatKey: WATERCOURSES_HABITAT_KEY,
@@ -187,6 +190,7 @@ export {
   HEDGEROWS_HABITAT_KEY,
   HEDGEROWS_POST_INTERVENTION_PATH,
   HEDGEROWS_SUMMARY_PATH,
+  HEDGEROWS_TRADING_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   POST_INTERVENTION_TEXT,
   PROJECT_SUMMARY_PATH,

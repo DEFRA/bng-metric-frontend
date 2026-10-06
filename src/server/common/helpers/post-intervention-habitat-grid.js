@@ -4,6 +4,10 @@ import {
   RETENTION_RETAINED
 } from '../../post-intervention-habitat-details/retention.js'
 import {
+  OVER_MAX_YEARS,
+  OVER_MAX_YEARS_DISPLAY
+} from '../../post-intervention-habitat-details/constants.js'
+import {
   LOW_STRATEGIC_SIGNIFICANCE,
   proposedStrategicSignificanceDisplay
 } from '../../post-intervention-habitat-details/view-only-shared.js'
@@ -83,6 +87,9 @@ function parseYears(value) {
 }
 
 function formatYears(value) {
+  if (value === OVER_MAX_YEARS) {
+    return yearsPhrase(OVER_MAX_YEARS_DISPLAY)
+  }
   const years = parseYears(value)
   if (years === null) {
     return EMPTY_DISPLAY

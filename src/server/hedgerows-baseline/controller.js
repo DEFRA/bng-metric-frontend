@@ -2,6 +2,7 @@ import {
   HEDGEROWS_BASELINE_PATH,
   HEDGEROWS_HABITAT_KEY,
   HEDGEROWS_POST_INTERVENTION_PATH,
+  HEDGEROWS_TRADING_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   projectPageHref
 } from '../common/helpers/unit-type-navigation.js'
@@ -18,6 +19,9 @@ const DETAILS_HEADING = 'Hedgerows details'
 
 export const getController = createLinearHabitatBaselineController({
   path: HEDGEROWS_BASELINE_PATH,
+  tradingSummaryPath: HEDGEROWS_TRADING_SUMMARY_PATH,
+  tradingSummaryHabitatKey: HEDGEROWS_HABITAT_KEY,
+  tradingRulesLinkText: 'View hedgerows trading rules',
   pageHeading: PAGE_HEADING,
   resultsHeading: RESULTS_HEADING,
   detailsHeading: DETAILS_HEADING,

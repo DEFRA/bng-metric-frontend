@@ -27,6 +27,7 @@ import { areaTradingSummary } from './area-trading-summary/index.js'
 import { hedgerowsSummary } from './hedgerows-summary/index.js'
 import { hedgerowsBaseline } from './hedgerows-baseline/index.js'
 import { hedgerowsPostIntervention } from './hedgerows-post-intervention/index.js'
+import { hedgerowsTradingSummary } from './hedgerows-trading-summary/index.js'
 import { watercoursesSummary } from './watercourses-summary/index.js'
 import {
   watercoursesBaseline,
@@ -75,6 +76,7 @@ export const router = {
         hedgerowsSummary,
         hedgerowsBaseline,
         hedgerowsPostIntervention,
+        hedgerowsTradingSummary,
         watercoursesSummary,
         watercoursesBaseline,
         watercoursesBaselineLegacy,

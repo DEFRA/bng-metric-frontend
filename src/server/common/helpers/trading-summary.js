@@ -1,10 +1,11 @@
 import { DEFAULT_PROJECT_NAME } from '../constants.js'
 import { fetchProjectOrThrow } from './fetch-project.js'
-import { hasBaselineData } from './project-state.js'
+import { hasBaselineData, projectHasHabitatData } from './project-state.js'
 import { tradingRulesStatusTag } from './trading-rules-status.js'
 import { formatUnits } from './unit-summary.js'
 import {
   buildUnitTypeNavigation,
+  PROJECT_SUMMARY_PATH,
   projectPageHref
 } from './unit-type-navigation.js'
 import { uploadFileHref } from './upload-file-navigation.js'
@@ -191,6 +192,7 @@ function createTradingSummaryController({
   summaryPath,
   pagePath,
   pageHeading,
+  habitatKey,
   buildTrading
 }) {
   return {
@@ -200,6 +202,10 @@ function createTradingSummaryController({
 
       if (!hasBaselineData(project)) {
         return h.redirect(`/projects/${id}/project-summary`)
+      }
+
+      if (habitatKey && !projectHasHabitatData(project, habitatKey)) {
+        return h.redirect(projectPageHref(id, PROJECT_SUMMARY_PATH))
       }
 
       // Nothing has been delivered to trade against until a post-intervention
