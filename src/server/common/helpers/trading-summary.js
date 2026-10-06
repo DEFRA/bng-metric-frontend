@@ -109,20 +109,27 @@ function buildMediumSection({ deficit, status, grids, deficitLabel }) {
   }
 }
 
-function buildLowSection({
+/**
+ * A band below Medium, which can be offset by units carried down from the
+ * bands above it: net change, units available and cumulative surplus tiles,
+ * then the band's habitats. The labels default to the Low band's.
+ */
+function buildCascadeBandSection({
   netUnitChange,
-  mediumSurplus,
+  availableUnits,
   cumulativeAvailability,
   status,
   columns,
   rows,
   showTotals = true,
-  totalsLabel = TOTAL_ON_SITE_UNIT_CHANGE
+  totalsLabel = TOTAL_ON_SITE_UNIT_CHANGE,
+  netChangeLabel = LOW_NET_CHANGE_LABEL,
+  availableLabel = MEDIUM_AVAILABLE_FOR_LOW_LABEL
 }) {
   return {
     tiles: [
-      summaryTile(LOW_NET_CHANGE_LABEL, netUnitChange),
-      summaryTile(MEDIUM_AVAILABLE_FOR_LOW_LABEL, mediumSurplus),
+      summaryTile(netChangeLabel, netUnitChange),
+      summaryTile(availableLabel, availableUnits),
       summaryTile(CUMULATIVE_SURPLUS_LABEL, cumulativeAvailability, status)
     ],
     grid: buildUnitChangeGrid({
@@ -174,9 +181,9 @@ function buildDistinctivenessSections({
         })
       : null,
     low: hasLow
-      ? buildLowSection({
+      ? buildCascadeBandSection({
           netUnitChange: figures.low?.netUnitChange,
-          mediumSurplus: figures.medium?.surplus,
+          availableUnits: figures.medium?.surplus,
           cumulativeAvailability: figures.low?.cumulativeAvailability,
           columns: lowColumns,
           rows: rowsForLow(lowHabitats),
@@ -246,14 +253,12 @@ function createTradingSummaryController({
 }
 
 export {
-  CUMULATIVE_SURPLUS_LABEL,
   buildBandStatusRows,
+  buildCascadeBandSection,
   buildDistinctivenessSections,
-  buildLowSection,
   buildMediumSection,
   buildUnitChangeGrid,
   createTradingSummaryController,
   habitatsIn,
-  summaryTile,
   unitChangeCell
 }

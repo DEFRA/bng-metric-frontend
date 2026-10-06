@@ -4,14 +4,12 @@ import {
   HEDGEROWS_TRADING_SUMMARY_PATH
 } from '../common/helpers/unit-type-navigation.js'
 import {
-  CUMULATIVE_SURPLUS_LABEL,
   buildBandStatusRows,
-  buildLowSection,
+  buildCascadeBandSection,
   buildMediumSection,
   buildUnitChangeGrid,
   createTradingSummaryController,
   habitatsIn,
-  summaryTile,
   unitChangeCell
 } from '../common/helpers/trading-summary.js'
 
@@ -100,9 +98,9 @@ function buildTradingSections(project) {
         : null,
     low:
       lowHabitats.length > 0
-        ? buildLowSection({
+        ? buildCascadeBandSection({
             netUnitChange: figures.low?.netUnitChange,
-            mediumSurplus: carriedDown(figures.medium?.netUnitChange),
+            availableUnits: carriedDown(figures.medium?.netUnitChange),
             cumulativeAvailability: figures.low?.cumulativeAvailability,
             status: statuses?.low,
             columns: UNIT_CHANGE_COLUMNS,
@@ -112,27 +110,17 @@ function buildTradingSections(project) {
         : null,
     veryLow:
       veryLowHabitats.length > 0
-        ? {
-            tiles: [
-              summaryTile(
-                VERY_LOW_NET_CHANGE_LABEL,
-                figures.veryLow?.netUnitChange
-              ),
-              summaryTile(
-                AVAILABLE_FOR_VERY_LOW_LABEL,
-                carriedDown(figures.low?.cumulativeAvailability)
-              ),
-              summaryTile(
-                CUMULATIVE_SURPLUS_LABEL,
-                figures.veryLow?.cumulativeAvailability,
-                statuses?.veryLow
-              )
-            ],
-            grid: unitChangeGrid(
-              veryLowHabitats,
-              figures.veryLow?.netUnitChange
-            )
-          }
+        ? buildCascadeBandSection({
+            netUnitChange: figures.veryLow?.netUnitChange,
+            netChangeLabel: VERY_LOW_NET_CHANGE_LABEL,
+            availableUnits: carriedDown(figures.low?.cumulativeAvailability),
+            availableLabel: AVAILABLE_FOR_VERY_LOW_LABEL,
+            cumulativeAvailability: figures.veryLow?.cumulativeAvailability,
+            status: statuses?.veryLow,
+            columns: UNIT_CHANGE_COLUMNS,
+            rows: veryLowHabitats.map(habitatRow),
+            totalsLabel: TOTAL_UNIT_CHANGE
+          })
         : null
   }
 }
