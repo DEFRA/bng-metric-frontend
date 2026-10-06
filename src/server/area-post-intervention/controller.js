@@ -15,9 +15,10 @@ import {
   formatAreaHectares,
   formatSummaryAreaSize
 } from '../common/helpers/format-habitat-values.js'
+import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 
 const PAGE_HEADING = 'Post intervention for area habitats'
-const RESULTS_HEADING = 'Area habitats results'
+const RESULTS_HEADING = 'Area habitat results'
 const DETAILS_HEADING = 'Area habitat details'
 const AREA_SIZE_HEADING = 'Area habitats size'
 const BASELINE_AREA_LABEL = 'Total baseline habitat area'
@@ -80,6 +81,7 @@ export const getController = createHabitatPostInterventionController({
   buildAreaSize,
   baselineUnits: (project) => areaUnits(project?.baseline?.units),
   buildIntervention: areaInterventionSummary,
+  tradingRulesStatus: areaTradingRulesStatus,
   baselineAction: (projectId) =>
     areaBaselineAction(projectPageHref(projectId, AREA_BASELINE_PATH))
 })
