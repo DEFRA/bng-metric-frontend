@@ -4,6 +4,7 @@ import { wreck } from '../common/helpers/wreck-client.js'
 import { loadPage } from '../test-helpers/load-page.js'
 import { runAxeChecks } from '../test-helpers/axe-helper.js'
 import { assertLayoutLandmarks } from '../test-helpers/assert-landmarks.js'
+import { WORKED_EXAMPLE_TRADING_RULES } from './worked-example.fixture.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: { get: vi.fn() }
@@ -19,7 +20,7 @@ const auth = {
   }
 }
 
-describe('Hedgerows trading placeholder accessibility', () => {
+describe('Hedgerows trading summary page accessibility checks', () => {
   let server
 
   beforeAll(async () => {
@@ -31,8 +32,41 @@ describe('Hedgerows trading placeholder accessibility', () => {
     await server.stop({ timeout: 0 })
   })
 
+  test('has no accessibility violations with the worked example figures', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        tradingRuleStatuses: {
+          hedgerows: {
+            medium: 'Met',
+            low: 'Not met',
+            veryLow: 'Not met',
+            overall: 'Not met'
+          }
+        },
+        project: {
+          name: 'Worked example',
+          baseline: { hedgerows: [{ id: 'baseline-hedge' }] },
+          postIntervention: {
+            hedgerows: [{ id: 'created-hedge' }],
+            tradingRules: { hedgerows: WORKED_EXAMPLE_TRADING_RULES }
+          }
+        }
+      }
+    })
+
+    const { document } = await loadPage({
+      requestUrl: `/projects/${PROJECT_ID}/hedgerows-trading-summary`,
+      server,
+      auth
+    })
+
+    assertLayoutLandmarks(document)
+    await runAxeChecks(document.documentElement)
+  })
+
   test.each(['baseline', 'postIntervention'])(
-    'has no accessibility violations with hedgerows only in %s',
+    'has no accessibility violations without saved figures, hedgerows only in %s',
     async (phase) => {
       const project = {
         name: 'Test project',

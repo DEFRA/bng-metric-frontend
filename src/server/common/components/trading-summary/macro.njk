@@ -8,6 +8,14 @@
   <td class="govuk-table__cell{% if cell.numeric %} govuk-table__cell--numeric{% endif %}{% if cell.classes %} {{ cell.classes }}{% endif %}">{{ cell.text }}</td>
 {%- endmacro %}
 
+{% macro summaryTile(tile) %}
+  <div class="app-unit-type-summary__tile">
+    <h3 class="govuk-heading-s">{{ tile.label }}</h3>
+    <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-{{ '3' if tile.status else '0' }}">{{ tile.value }}</p>
+    {{ statusTag(tile.status) }}
+  </div>
+{% endmacro %}
+
 {% macro unitChangeGrid(grid) %}
   <table class="govuk-table app-trading-summary__grid">
     <thead class="govuk-table__head">
@@ -32,6 +40,19 @@
       </tfoot>
     {% endif %}
   </table>
+{% endmacro %}
+
+{#- A band below Medium: three summary tiles, then each habitat type's unit change. -#}
+{% macro bandSection(id, heading, band) %}
+  <section class="app-trading-summary__section" aria-labelledby="{{ id }}">
+    <h2 id="{{ id }}" class="govuk-heading-l">{{ heading }}</h2>
+
+    <div class="app-trading-summary__tiles app-trading-summary__tiles--three">
+      {% for tile in band.tiles %}{{ summaryTile(tile) }}{% endfor %}
+    </div>
+
+    {{ unitChangeGrid(band.grid) }}
+  </section>
 {% endmacro %}
 
 {% macro tradingSummary(trading) %}
@@ -65,11 +86,7 @@
         <h2 id="medium-distinctiveness-heading" class="govuk-heading-l">Medium distinctiveness</h2>
 
         <div class="app-trading-summary__tiles">
-          <div class="app-unit-type-summary__tile">
-            <h3 class="govuk-heading-s">{{ trading.medium.deficitLabel }}</h3>
-            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-3">{{ trading.medium.deficit }}</p>
-            {{ statusTag(trading.medium.status) }}
-          </div>
+          {{ summaryTile(trading.medium.tile) }}
         </div>
 
         {% for grid in trading.medium.grids %}
@@ -82,26 +99,11 @@
     {% endif %}
 
     {% if trading.low %}
-      <section class="app-trading-summary__section" aria-labelledby="low-distinctiveness-heading">
-        <h2 id="low-distinctiveness-heading" class="govuk-heading-l">Low distinctiveness</h2>
+      {{ bandSection("low-distinctiveness-heading", "Low distinctiveness", trading.low) }}
+    {% endif %}
 
-        <div class="app-trading-summary__tiles app-trading-summary__tiles--three">
-          <div class="app-unit-type-summary__tile">
-            <h3 class="govuk-heading-s">Low distinctiveness net change in units</h3>
-            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ trading.low.netUnitChange }}</p>
-          </div>
-          <div class="app-unit-type-summary__tile">
-            <h3 class="govuk-heading-s">Medium units available to offset low distinctiveness deficit</h3>
-            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ trading.low.mediumSurplus }}</p>
-          </div>
-          <div class="app-unit-type-summary__tile">
-            <h3 class="govuk-heading-s">Cumulative surplus of units</h3>
-            <p class="govuk-heading-l govuk-!-font-weight-regular govuk-!-margin-bottom-0">{{ trading.low.cumulativeSurplus }}</p>
-          </div>
-        </div>
-
-        {{ unitChangeGrid(trading.low.grid) }}
-      </section>
+    {% if trading.veryLow %}
+      {{ bandSection("very-low-distinctiveness-heading", "Very low distinctiveness", trading.veryLow) }}
     {% endif %}
   {% endif %}
 {% endmacro %}
