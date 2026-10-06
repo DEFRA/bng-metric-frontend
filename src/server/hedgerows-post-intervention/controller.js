@@ -12,6 +12,7 @@ import {
 } from '../common/helpers/unit-summary.js'
 import { createHabitatPostInterventionController } from '../common/helpers/create-habitat-post-intervention-controller.js'
 import { HEDGEROWS_TOTAL_KEY } from '../common/constants.js'
+import { hedgerowTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 import {
   formatLengthKmDisplay,
   formatTotalLengthSize
@@ -37,6 +38,7 @@ export const getController = createHabitatPostInterventionController({
   formatSizeTotal: formatTotalLengthSize,
   baselineUnits: (project) => project?.baseline?.units?.[HEDGEROWS_TOTAL_KEY],
   buildIntervention: hedgerowsInterventionSummary,
+  tradingRulesStatus: hedgerowTradingRulesStatus,
   baselineAction: (projectId) =>
     hedgerowsBaselineAction(projectPageHref(projectId, HEDGEROWS_BASELINE_PATH))
 })

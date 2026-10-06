@@ -267,7 +267,11 @@ describe('#postInterventionHabitatListController - summary table', () => {
 describe('#postInterventionHabitatListController - trading rules column', () => {
   let server
 
-  const projectWithStatus = (areaOverall, watercourseOverall = null) => ({
+  const projectWithStatus = (
+    areaOverall,
+    watercourseOverall = null,
+    hedgerowOverall = null
+  ) => ({
     ...mockProject,
     tradingRuleStatuses: {
       areaHabitats: { medium: 'Not met', low: 'Met', overall: areaOverall },
@@ -275,6 +279,12 @@ describe('#postInterventionHabitatListController - trading rules column', () => 
         medium: 'Met',
         low: 'Met',
         overall: watercourseOverall
+      },
+      hedgerows: {
+        medium: 'Met',
+        low: 'Not met',
+        veryLow: 'Met',
+        overall: hedgerowOverall
       }
     }
   })
@@ -336,7 +346,15 @@ describe('#postInterventionHabitatListController - trading rules column', () => 
     expect(row.find('.govuk-tag').hasClass('govuk-tag--green')).toBe(true)
   })
 
-  test('leaves the hedgerow cell empty, as those rules are not calculated yet', async () => {
+  test('shows the status against the hedgerows row', async () => {
+    const result = await renderWith(projectWithStatus('Met', 'Met', 'Not met'))
+    const row = summaryRow(result, 'Hedgerows')
+
+    expect(row.find('.govuk-tag').text()).toBe('Not met')
+    expect(row.find('.govuk-tag').hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('leaves the hedgerows cell empty until the rules are calculated', async () => {
     const result = await renderWith(projectWithStatus('Not met', 'Met'))
 
     expect(summaryRow(result, 'Hedgerows').find('.govuk-tag')).toHaveLength(0)

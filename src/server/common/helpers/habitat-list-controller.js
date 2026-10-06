@@ -13,6 +13,7 @@ import { uploadFileHref } from './upload-file-navigation.js'
 import { hasHabitatData } from './project-state.js'
 import {
   areaTradingRulesStatus,
+  hedgerowTradingRulesStatus,
   watercourseTradingRulesStatus
 } from './trading-rules-status.js'
 
@@ -239,6 +240,7 @@ function buildPostInterventionSummary(project, tradingRuleStatuses) {
       )
     },
     hedgerows: {
+      tradingRulesStatus: hedgerowTradingRulesStatus({ tradingRuleStatuses }),
       size: formatLinearValue(
         postIntervention,
         'hedgerows',

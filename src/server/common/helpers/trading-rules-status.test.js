@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   areaTradingRulesStatus,
+  hedgerowTradingRulesStatus,
   watercourseTradingRulesStatus
 } from './trading-rules-status.js'
 
@@ -11,10 +12,12 @@ const projectWith = (statuses) => ({
 
 const areaProject = (areaHabitats) => projectWith({ areaHabitats })
 const watercourseProject = (watercourses) => projectWith({ watercourses })
+const hedgerowProject = (hedgerows) => projectWith({ hedgerows })
 
 describe.each([
   ['area habitats', areaTradingRulesStatus, areaProject],
-  ['watercourses', watercourseTradingRulesStatus, watercourseProject]
+  ['watercourses', watercourseTradingRulesStatus, watercourseProject],
+  ['hedgerows', hedgerowTradingRulesStatus, hedgerowProject]
 ])('%s tradingRulesStatus', (_label, statusFor, projectFor) => {
   test('renders Met as a green tag', () => {
     expect(

@@ -43,6 +43,7 @@ import {
 } from '../common/helpers/unit-summary.js'
 import {
   areaTradingRulesStatus,
+  hedgerowTradingRulesStatus,
   watercourseTradingRulesStatus
 } from '../common/helpers/trading-rules-status.js'
 import {
@@ -111,6 +112,7 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
         HEDGEROWS_HABITAT_KEY
       ),
       buildIntervention: hedgerowsInterventionSummary,
+      tradingRulesStatus: hedgerowTradingRulesStatus(project),
       tradingRulesHref:
         project?.postIntervention &&
         projectHasHabitatData(project, HEDGEROWS_HABITAT_KEY)

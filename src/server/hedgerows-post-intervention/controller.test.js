@@ -529,3 +529,70 @@ describe('hedgerows post intervention', () => {
     expect(headers.location).toBe('/auth/forbidden')
   })
 })
+
+describe('hedgerows post intervention trading rules status', () => {
+  let server
+
+  const projectWithStatus = (overall) => ({
+    ...populatedProject,
+    tradingRuleStatuses: {
+      hedgerows: { medium: 'Met', low: 'Not met', veryLow: 'Met', overall }
+    }
+  })
+
+  const renderWith = async (payload) => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+    return load(result)
+  }
+
+  const tradingRulesTile = ($) =>
+    $('.app-unit-type-summary__tile').filter(
+      (_, tile) => $(tile).find('h3').first().text() === 'Trading Rules'
+    )
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('shows Met in the trading rules tile', async () => {
+    const $ = await renderWith(projectWithStatus('Met'))
+    const tag = tradingRulesTile($).find('.govuk-tag')
+
+    expect(tag.text()).toBe('Met')
+    expect(tag.hasClass('govuk-tag--green')).toBe(true)
+  })
+
+  test('shows Not met in the trading rules tile', async () => {
+    // The site-wide verdict, not a band: here Low fails while Medium and Very
+    // Low pass.
+    const $ = await renderWith(projectWithStatus('Not met'))
+    const tag = tradingRulesTile($).find('.govuk-tag')
+
+    expect(tag.text()).toBe('Not met')
+    expect(tag.hasClass('govuk-tag--red')).toBe(true)
+  })
+
+  test('shows no status when the backend returns no verdict', async () => {
+    const $ = await renderWith(projectWithStatus(null))
+
+    expect(tradingRulesTile($)).toHaveLength(1)
+    expect(tradingRulesTile($).find('.govuk-tag')).toHaveLength(0)
+  })
+})
