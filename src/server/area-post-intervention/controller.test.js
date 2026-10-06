@@ -151,7 +151,7 @@ describe('area post intervention', () => {
       '<h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Post intervention for area habitats</h1>'
     )
     expect(result).toContain(
-      '<h2 class="govuk-heading-m">Area habitats results</h2>'
+      '<h2 class="govuk-heading-m">Area habitat results</h2>'
     )
     expect(result).toContain(
       '<h2 class="govuk-heading-m">Area habitat details</h2>'
@@ -252,6 +252,29 @@ describe('area post intervention', () => {
 
     expect(baselineTile.find('h3').text()).toBe('Total baseline habitat area')
     expect(baselineTile.find('p').text()).toBe('N/A')
+  })
+
+  test('tags the Trading Rules tile with the area trading rules verdict', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        ...populatedProject,
+        tradingRuleStatuses: { areaHabitats: { overall: 'Not met' } }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const tradingRulesTile = $('.app-unit-type-summary__tile').filter(
+      (_, tile) => $(tile).find('h3').text().trim() === 'Trading Rules'
+    )
+
+    expect(tradingRulesTile.find('.govuk-tag--red').text()).toBe('Not met')
   })
 
   test('keeps the post-intervention results tile free of a self-link', async () => {

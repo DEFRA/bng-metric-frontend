@@ -16,7 +16,7 @@ import { createHabitatBaselineController } from '../common/helpers/create-habita
 import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 
 const PAGE_HEADING = 'Baseline for area habitats'
-const RESULTS_HEADING = 'Area habitats results'
+const RESULTS_HEADING = 'Area habitat results'
 const DETAILS_HEADING = 'Area habitat details'
 
 function collectAreaFeatures(project) {

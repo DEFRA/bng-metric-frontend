@@ -114,7 +114,7 @@ describe('area baseline', () => {
       '<h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Baseline for area habitats</h1>'
     )
     expect(result).toContain(
-      '<h2 class="govuk-heading-m">Area habitats results</h2>'
+      '<h2 class="govuk-heading-m">Area habitat results</h2>'
     )
     expect(result).toContain(
       '<h2 class="govuk-heading-m">Area habitat details</h2>'
