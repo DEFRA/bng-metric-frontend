@@ -240,7 +240,7 @@ describe('buildSharedPiViewOnlyFields', () => {
       strategicSignificanceDisplay: 'Low (1)',
       habitatUnitsDisplay: '2.50',
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-      backHref: `/projects/${projectId}/post-intervention-habitat-list${listTabAnchor}`
+      backHref: `/projects/${projectId}/area-post-intervention`
     })
   })
 

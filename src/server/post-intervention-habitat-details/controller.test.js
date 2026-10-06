@@ -79,7 +79,7 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '2.50',
         // Baseline feature resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
+        backHref: `/projects/${projectId}/area-post-intervention`
       })
     )
     // View-only: no form action is passed to the template.
@@ -180,7 +180,7 @@ describe('#postInterventionHabitatDetailsController', () => {
       expect.objectContaining({
         caption: 'Test Project',
         message: expect.stringContaining('not yet supported'),
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
+        backHref: `/projects/${projectId}/area-post-intervention`
       })
     )
   })
@@ -211,32 +211,38 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
-  test('GET ignores an unsafe returnUrl and falls back to the old-design list', async () => {
-    vi.mocked(wreck.get).mockImplementation((url) => {
-      if (url.includes(`/post-intervention/features/${featureId}`)) {
-        return Promise.resolve({
-          payload: { type: 'tree', feature: { featureId, ref: 'T-1' } }
-        })
-      }
-      if (isProjectUrl(url)) {
-        return Promise.resolve(projectPayload)
-      }
-      throw new Error(`Unexpected URL ${url}`)
-    })
-
-    const h = createMockH()
-    await getController.handler(
-      { query: { projectId, featureId, returnUrl: '//evil.example.com' } },
-      h
-    )
-
-    expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-feature-unsupported',
-      expect.objectContaining({
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`
+  test.each([
+    ['unsafe', '//evil.example.com'],
+    ['retired list', `/projects/${projectId}/post-intervention-habitat-list`]
+  ])(
+    'GET ignores a %s returnUrl and returns to the area page',
+    async (_label, returnUrl) => {
+      vi.mocked(wreck.get).mockImplementation((url) => {
+        if (url.includes(`/post-intervention/features/${featureId}`)) {
+          return Promise.resolve({
+            payload: { type: 'tree', feature: { featureId, ref: 'T-1' } }
+          })
+        }
+        if (isProjectUrl(url)) {
+          return Promise.resolve(projectPayload)
+        }
+        throw new Error(`Unexpected URL ${url}`)
       })
-    )
-  })
+
+      const h = createMockH()
+      await getController.handler(
+        { query: { projectId, featureId, returnUrl } },
+        h
+      )
+
+      expect(h.view).toHaveBeenCalledWith(
+        'habitat-details/pi-feature-unsupported',
+        expect.objectContaining({
+          backHref: `/projects/${projectId}/area-post-intervention`
+        })
+      )
+    }
+  )
 
   test('GET renders the read-only hedgerow details page for a retained hedgerow', async () => {
     const hedgerowBaselinePayload = {
@@ -294,7 +300,7 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '4.25',
         // Baseline hedgerow resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#hedgerows`
+        backHref: `/projects/${projectId}/hedgerows-post-intervention`
       })
     )
     // View-only: no form action is passed to the template.
@@ -366,7 +372,7 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '6.50',
         // Baseline watercourse resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`
+        backHref: `/projects/${projectId}/watercourses-post-intervention`
       })
     )
     // View-only: no form action is passed to the template.

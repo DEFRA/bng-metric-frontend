@@ -53,7 +53,7 @@ describe('buildWatercourseViewOnlyViewModel', () => {
       strategicSignificanceDisplay: 'Low (1)',
       habitatUnitsDisplay: '6.50',
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-      backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`
+      backHref: `/projects/${projectId}/watercourses-post-intervention`
     })
   })
 

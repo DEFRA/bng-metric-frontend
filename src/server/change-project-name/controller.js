@@ -94,6 +94,6 @@ export const changeProjectNamePostController = {
       throw Boom.badGateway('Failed to update project name')
     }
 
-    return h.redirect(`/add-project-details/${id}`)
+    return h.redirect(`/projects/${id}/project-summary`)
   }
 }

@@ -50,7 +50,7 @@ describe('buildCreatedAreaViewOnlyViewModel', () => {
       strategicSignificanceDisplay: 'Low (1)',
       habitatUnitsDisplay: '0.00',
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-      backHref: `/projects/${projectId}/post-intervention-habitat-list#area-habitats`,
+      backHref: `/projects/${projectId}/area-post-intervention`,
       targetConditionDisplay: 'N/A - Other (0)',
       standardTimeToTargetDisplay: `N/A - Other - 0${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Medium',

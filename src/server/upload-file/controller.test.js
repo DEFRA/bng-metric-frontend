@@ -12,11 +12,11 @@ vi.mock('../common/services/projects.js', () => ({
 }))
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
-const TASK_LIST = `/add-project-details/${PROJECT_ID}`
+const PROJECT_SUMMARY = `/projects/${PROJECT_ID}/project-summary`
 
 function request({
   uploadType,
-  returnUrl = TASK_LIST,
+  returnUrl = PROJECT_SUMMARY,
   queryReturnUrl = returnUrl
 } = {}) {
   return {
@@ -57,9 +57,9 @@ describe('upload file controller', () => {
       heading: 'What would you like to upload?',
       caption: 'Habitat project',
       projectId: PROJECT_ID,
-      returnUrl: TASK_LIST,
-      backHref: TASK_LIST,
-      cancelHref: TASK_LIST,
+      returnUrl: PROJECT_SUMMARY,
+      backHref: PROJECT_SUMMARY,
+      cancelHref: PROJECT_SUMMARY,
       items: [
         {
           value: FILE_TYPES.baseline.value,
@@ -76,7 +76,7 @@ describe('upload file controller', () => {
     })
   })
 
-  test('uses the task list instead of an external return URL', async () => {
+  test('uses the project summary instead of an external return URL', async () => {
     const h = responseToolkit()
 
     await getController.handler(
@@ -87,9 +87,9 @@ describe('upload file controller', () => {
     expect(h.view).toHaveBeenCalledWith(
       'upload-file/index',
       expect.objectContaining({
-        backHref: TASK_LIST,
-        cancelHref: TASK_LIST,
-        returnUrl: TASK_LIST
+        backHref: PROJECT_SUMMARY,
+        cancelHref: PROJECT_SUMMARY,
+        returnUrl: PROJECT_SUMMARY
       })
     )
   })
@@ -103,7 +103,7 @@ describe('upload file controller', () => {
     )
 
     expect(h.redirect).toHaveBeenCalledWith(
-      `/projects/${PROJECT_ID}/upload-baseline-file?returnUrl=%2Fadd-project-details%2F${PROJECT_ID}`
+      `/projects/${PROJECT_ID}/upload-baseline-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
     )
   })
 
@@ -128,7 +128,7 @@ describe('upload file controller', () => {
       )
 
       expect(h.redirect).toHaveBeenCalledWith(
-        `/projects/${PROJECT_ID}/upload-post-intervention-file?returnUrl=%2Fadd-project-details%2F${PROJECT_ID}`
+        `/projects/${PROJECT_ID}/upload-post-intervention-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
       )
     }
   )

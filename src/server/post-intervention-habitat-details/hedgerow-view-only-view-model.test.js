@@ -42,7 +42,7 @@ describe('buildHedgerowViewOnlyViewModel', () => {
       strategicSignificanceDisplay: 'Low (1)',
       habitatUnitsDisplay: '4.25',
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-      backHref: `/projects/${projectId}/post-intervention-habitat-list#hedgerows`
+      backHref: `/projects/${projectId}/hedgerows-post-intervention`
     })
   })
 

@@ -55,7 +55,7 @@ describe('buildEnhancedWatercourseViewOnlyViewModel', () => {
       riparianEncroachmentDisplay: 'Minor/No Encroachment (0.98)',
       habitatUnitsDisplay: '9.90',
       viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-      backHref: `/projects/${projectId}/post-intervention-habitat-list#watercourses`,
+      backHref: `/projects/${projectId}/watercourses-post-intervention`,
       targetConditionDisplay: 'Moderate (2)',
       standardTimeToTargetDisplay: `Poor to Moderate - 4${STANDARD_TIME_TO_TARGET_SUFFIX}`,
       standardDifficultyDisplay: 'Medium',

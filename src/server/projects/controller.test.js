@@ -26,8 +26,7 @@ const authedAuth = {
 }
 
 // The list endpoint returns a projection, not the stored project document:
-// name, timestamps and a has_baseline flag (BMD-933). Nothing here carries a
-// baseline / postIntervention body, because the backend no longer selects one.
+// name and timestamps. Nothing here carries a baseline or post-intervention body.
 const mockProjects = [
   {
     id: '0d7c6f7c-5f9e-4e7e-8f77-9d99d30a8d77',
@@ -46,8 +45,6 @@ const mockProjects = [
     updatedAt: '2024-04-10T00:00:00.000Z'
   }
 ]
-
-const projectTaskListurl = `/add-project-details/${mockProjects[0].id}`
 
 describe('#projectsListController', () => {
   let server
@@ -119,7 +116,7 @@ describe('#projectsListController', () => {
     expect(result).toEqual(expect.stringContaining('20 March 2024 at 12:00am'))
   })
 
-  test('Should render each project name as a link to its task list', async () => {
+  test('Should render each project name as a link to its project summary', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: '/manage-projects',
@@ -128,22 +125,22 @@ describe('#projectsListController', () => {
 
     expect(result).toEqual(
       expect.stringContaining(
-        `href="/add-project-details/${mockProjects[0].id}"`
+        `href="/projects/${mockProjects[0].id}/project-summary"`
       )
     )
     expect(result).toEqual(
       expect.stringContaining(
-        `href="/add-project-details/${mockProjects[1].id}"`
+        `href="/projects/${mockProjects[1].id}/project-summary"`
       )
     )
     expect(result).toEqual(
       expect.stringContaining(
-        `href="/add-project-details/${mockProjects[0].id}">Greenfield Meadow Restoration</a>`
+        `href="/projects/${mockProjects[0].id}/project-summary">Greenfield Meadow Restoration</a>`
       )
     )
     expect(result).toEqual(
       expect.stringContaining(
-        `href="/add-project-details/${mockProjects[1].id}">Oakwood Farm BNG Assessment</a>`
+        `href="/projects/${mockProjects[1].id}/project-summary">Oakwood Farm BNG Assessment</a>`
       )
     )
   })
@@ -166,8 +163,7 @@ describe('#projectsListController', () => {
   })
 
   test('Should render the list without any project document body', async () => {
-    // Guards the contract the backend now honours: the page needs a name, two
-    // timestamps and has_baseline — nothing that lives inside the document.
+    // The dashboard only needs names and timestamps from the list endpoint.
     const { result, statusCode } = await server.inject({
       method: 'GET',
       url: '/manage-projects',
@@ -181,9 +177,7 @@ describe('#projectsListController', () => {
     expect(result).toEqual(expect.stringContaining('15 January 2024'))
   })
 
-  // Frontend and backend deploy independently, so the list can still arrive
-  // with the full document and no flag for one release.
-  test('Should fall back to the document when the backend sends no has_baseline', async () => {
+  test('Should link a legacy-shaped project to its summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },
       payload: [
@@ -207,7 +201,7 @@ describe('#projectsListController', () => {
     )
   })
 
-  test('Should link a project with no baseline to add-project-details', async () => {
+  test('Should link a project with no baseline to its project summary', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: '/manage-projects',
@@ -215,7 +209,7 @@ describe('#projectsListController', () => {
     })
 
     expect(result).toContain(
-      `href="/add-project-details/${mockProjects[0].id}"`
+      `href="/projects/${mockProjects[0].id}/project-summary"`
     )
   })
 
@@ -277,7 +271,7 @@ describe('#projectsListController', () => {
   })
 })
 
-describe('#projectTaskListController', () => {
+describe('removed project task list URL', () => {
   let server
 
   beforeAll(async () => {
@@ -289,266 +283,13 @@ describe('#projectTaskListController', () => {
     await server.stop({ timeout: 0 })
   })
 
-  beforeEach(() => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: mockProjects[0]
-    })
-  })
-
-  afterEach(() => {
-    vi.mocked(wreck.get).mockReset()
-    vi.restoreAllMocks()
-  })
-
-  test('Should render the page with correct title', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('Project Task List'))
-  })
-
-  test('Should show the page heading', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining('data-testid="app-heading-title"')
-    )
-  })
-
-  test('Should show the page paragraph content', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining('data-testid="project-task-list-information"')
-    )
-  })
-
-  test('Should show the page content list', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining('data-testid="project-task-list-content-list"')
-    )
-  })
-
-  test('Should show the page task list', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining('data-testid="project-task-list-component"')
-    )
-  })
-
-  test('Should redirect to login when unauthenticated', async () => {
-    const { statusCode, headers } = await server.inject({
-      method: 'GET',
-      url: `/add-project-details/${mockProjects[0].id}`
-    })
-
-    expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe('/auth/forbidden')
-  })
-
-  test('Should contain a link to the project details in the task list', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining(
-        `<a class="govuk-link govuk-task-list__link" href="/project-details/${mockProjects[0].id}"`
-      )
-    )
-  })
-
-  test('Should contain a link to upload baseline in the task list', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining(
-        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-file"`
-      )
-    )
-  })
-
-  test('Should link to baseline-habitat-list when a baseline has been uploaded', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: {
-        ...mockProjects[0],
-        project: {
-          ...mockProjects[0].project,
-          baseline: {
-            uploadId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            importedAt: '2026-05-01T12:00:00.000Z'
-          }
-        }
-      }
-    })
-
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining(
-        `href="/projects/${mockProjects[0].id}/baseline-habitat-list"`
-      )
-    )
-  })
-
-  test('Should show "Completed" status when a baseline has been uploaded', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: {
-        ...mockProjects[0],
-        project: {
-          ...mockProjects[0].project,
-          baseline: {
-            uploadId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            importedAt: '2026-05-01T12:00:00.000Z'
-          }
-        }
-      }
-    })
-
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    // The "Completed" string appears twice — once for Project Name and once for
-    // On-site baseline habitats — when the baseline has been uploaded.
-    const completedMatches = result.match(/Completed/g) ?? []
-    expect(completedMatches.length).toBeGreaterThanOrEqual(2)
-  })
-
-  test('Should contain a link to upload post-intervention habitats when not uploaded', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining(
-        `<a class="govuk-link govuk-task-list__link" href="/projects/${mockProjects[0].id}/upload-file"`
-      )
-    )
-  })
-
-  test('Should link to post-intervention habitat list when uploaded', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: {
-        ...mockProjects[0],
-        project: {
-          ...mockProjects[0].project,
-          postIntervention: {
-            uploadId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            importedAt: '2026-05-01T12:00:00.000Z'
-          }
-        }
-      }
-    })
-
-    const { result } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(result).toEqual(
-      expect.stringContaining(
-        `href="/projects/${mockProjects[0].id}/post-intervention-habitat-list"`
-      )
-    )
-  })
-
-  test('Should return bad request when project id is not a UUID', async () => {
+  test('returns 404', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
-      url: '/add-project-details/aaa-bbb-ccc',
+      url: `/add-project-details/${mockProjects[0].id}`,
       auth: authedAuth
     })
 
-    expect(statusCode).toBe(statusCodes.badRequest)
-  })
-
-  test('Should return 504 when backend request times out', async () => {
-    vi.mocked(wreck.get).mockRejectedValue(
-      Boom.gatewayTimeout('Client request timeout')
-    )
-
-    const { statusCode } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.gatewayTimeout)
-  })
-
-  test('Should return 500 when wreck throws an unexpected error', async () => {
-    vi.mocked(wreck.get).mockRejectedValue(new Error('Network failure'))
-
-    const { statusCode } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.internalServerError)
-  })
-
-  test('Should render error state when backend returns 404', async () => {
-    const boomErr = new Boom.Boom('Not Found', { statusCode: 404 })
-    boomErr.data = { isResponseError: true }
-    vi.mocked(wreck.get).mockRejectedValue(boomErr)
-
-    const { result, statusCode } = await server.inject({
-      method: 'GET',
-      url: projectTaskListurl,
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toEqual(expect.stringContaining('Project not found'))
-    expect(result).not.toEqual(
-      expect.stringContaining('data-testid="project-task-list-information"')
-    )
-    expect(result).not.toEqual(
-      expect.stringContaining('data-testid="project-task-list-component"')
-    )
+    expect(statusCode).toBe(statusCodes.notFound)
   })
 })

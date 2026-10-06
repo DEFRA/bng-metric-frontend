@@ -2,6 +2,7 @@ import {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
   AREA_POST_INTERVENTION_PATH,
+  AREA_TRADING_SUMMARY_PATH,
   projectPageHref
 } from '../common/helpers/unit-type-navigation.js'
 import {
@@ -67,6 +68,7 @@ function buildAreaSize(project) {
 
 export const getController = createHabitatPostInterventionController({
   path: AREA_POST_INTERVENTION_PATH,
+  tradingSummaryPath: AREA_TRADING_SUMMARY_PATH,
   pageHeading: PAGE_HEADING,
   resultsHeading: RESULTS_HEADING,
   detailsHeading: DETAILS_HEADING,

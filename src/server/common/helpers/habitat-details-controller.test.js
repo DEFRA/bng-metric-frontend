@@ -104,8 +104,8 @@ describe('createHabitatDetailsControllers', () => {
     mockBuildViewModel.mockReturnValue({
       headingPrefix: 'Habitat',
       habitatRef: PI_FEATURE.ref,
-      backHref: `/projects/${projectId}/post-intervention-habitat-list`,
-      cancelHref: `/projects/${projectId}/post-intervention-habitat-list#habitat-${featureId}`
+      backHref: `/projects/${projectId}/area-post-intervention`,
+      cancelHref: `/projects/${projectId}/area-post-intervention`
     })
   })
 
@@ -146,7 +146,7 @@ describe('createHabitatDetailsControllers', () => {
     )
   })
 
-  it('POST redirects to the post-intervention list anchor', async () => {
+  it('POST redirects to the post-intervention area page', async () => {
     vi.mocked(backendRequest).mockResolvedValue({
       payload: { type: 'habitat' }
     })
@@ -180,7 +180,7 @@ describe('createHabitatDetailsControllers', () => {
       })
     )
     expect(h.redirect).toHaveBeenCalledWith(
-      `/projects/${projectId}/post-intervention-habitat-list#habitat-${featureId}`
+      `/projects/${projectId}/area-post-intervention`
     )
   })
 
@@ -204,7 +204,7 @@ describe('createHabitatDetailsControllers', () => {
     )
 
     expect(h.redirect).toHaveBeenCalledWith(
-      `/projects/${projectId}/post-intervention-habitat-list#hedgerows`
+      `/projects/${projectId}/hedgerows-post-intervention`
     )
   })
 
@@ -244,7 +244,7 @@ describe('createHabitatDetailsControllers', () => {
       })
     )
     expect(h.redirect).toHaveBeenCalledWith(
-      `/projects/${projectId}/post-intervention-habitat-list#watercourses`
+      `/projects/${projectId}/watercourses-post-intervention`
     )
   })
 

@@ -216,7 +216,7 @@ describe('hedgerows trading summary links', () => {
   })
 
   test.each([null, { name: 'No baseline' }])(
-    'redirects to project setup when baseline data is missing: %j',
+    'redirects to project summary when baseline data is missing: %j',
     async (project) => {
       mockProject(project)
       const { statusCode, headers } = await server.inject({
@@ -226,7 +226,7 @@ describe('hedgerows trading summary links', () => {
       })
 
       expect(statusCode).toBe(statusCodes.redirect)
-      expect(headers.location).toBe(`/add-project-details/${PROJECT_ID}`)
+      expect(headers.location).toBe(`/projects/${PROJECT_ID}/project-summary`)
     }
   )
 

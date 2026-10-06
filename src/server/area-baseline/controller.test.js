@@ -490,9 +490,9 @@ describe('area baseline', () => {
     expect(
       navigation.find('a').filter((_, link) => $(link).text() === 'Baseline')
     ).toHaveLength(0)
-    expect(navigation.find('.app-project-navigation__child')).toHaveLength(2)
+    expect(navigation.find('.app-project-navigation__child')).toHaveLength(1)
     expect(navigation.text()).not.toContain('Trading rules')
-    expect(navigation.text()).toContain('Post intervention')
+    expect(navigation.text()).not.toContain('Post intervention')
     expect(
       $('.app-unit-type-summary a').filter(
         (_, link) => $(link).text() === 'View area trading rules'
@@ -500,7 +500,7 @@ describe('area baseline', () => {
     ).toHaveLength(0)
   })
 
-  test('redirects a project without baseline data to the existing task list', async () => {
+  test('redirects a project without baseline data to project summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: { project: { name: 'No baseline' } }
@@ -513,7 +513,7 @@ describe('area baseline', () => {
     })
 
     expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/add-project-details/${PROJECT_ID}`)
+    expect(headers.location).toBe(`/projects/${PROJECT_ID}/project-summary`)
   })
 
   test('rejects an invalid project id', async () => {

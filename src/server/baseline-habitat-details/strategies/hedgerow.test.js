@@ -154,11 +154,7 @@ describe('hedgerowStrategy.buildViewModel', () => {
       reference,
       ctx
     )
-    expect(vm.backHref).toBe(
-      '/projects/project-uuid/baseline-habitat-list#hedgerows'
-    )
-    expect(vm.cancelHref).toBe(
-      '/projects/project-uuid/baseline-habitat-list#hedgerows'
-    )
+    expect(vm.backHref).toBe('/projects/project-uuid/hedgerows-baseline')
+    expect(vm.cancelHref).toBe('/projects/project-uuid/hedgerows-baseline')
   })
 })

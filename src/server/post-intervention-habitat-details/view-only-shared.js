@@ -17,13 +17,16 @@ import {
   ABSENT_BASELINE_CONDITION,
   ABSENT_BASELINE_CONDITION_PREFIX,
   HABITAT_UNITS_DELIVERED_LABEL,
+  HEDGEROWS_TAB_ANCHOR,
   OVER_MAX_YEARS,
   OVER_MAX_YEARS_DISPLAY,
   PI_DETAILS_HEADING,
   STANDARD_TIME_TO_TARGET_SUFFIX,
-  TIME_DIFFICULTY_SECTION_HEADING
+  TIME_DIFFICULTY_SECTION_HEADING,
+  WATERCOURSES_TAB_ANCHOR
 } from './constants.js'
 import { interventionDisplay, RETENTION_RETAINED } from './retention.js'
+import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
 
 // Retained features carry their baseline strategic significance, which the
 // service fixes at Low (1) — matching the baseline details pages. Created and
@@ -32,6 +35,16 @@ import { interventionDisplay, RETENTION_RETAINED } from './retention.js'
 export const LOW_STRATEGIC_SIGNIFICANCE = 'Low (1)'
 
 export const EMPTY_PLACEHOLDER = ''
+
+function featureTypeForTabAnchor(anchor) {
+  if (anchor === HEDGEROWS_TAB_ANCHOR) {
+    return 'hedgerow'
+  }
+  if (anchor === WATERCOURSES_TAB_ANCHOR) {
+    return 'watercourse'
+  }
+  return 'habitat'
+}
 
 /**
  * Render a value with its multiplier in brackets ("Low (2)"), or just the value
@@ -277,7 +290,11 @@ export function buildSharedPiViewOnlyFields(
     strategicSignificanceDisplay: strategicSignificanceDisplay(feature),
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
     viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${listTabAnchor}`
+    backHref: habitatDetailsDestination(
+      projectId,
+      featureTypeForTabAnchor(listTabAnchor),
+      'postIntervention'
+    )
   }
 }
 
@@ -330,7 +347,11 @@ export function buildViewOnlyViewModel(
     strategicSignificanceDisplay: strategicSignificanceDisplay(feature),
     habitatUnitsDisplay: formatHabitatUnits(feature.units),
     viewBaselineHref: baselineDetailsHref(baselineFeatureId, projectId),
-    backHref: `/projects/${projectId}/post-intervention-habitat-list${spec.tabAnchor}`
+    backHref: habitatDetailsDestination(
+      projectId,
+      featureTypeForTabAnchor(spec.tabAnchor),
+      'postIntervention'
+    )
   }
 
   const extraFields = spec.extraFields?.({

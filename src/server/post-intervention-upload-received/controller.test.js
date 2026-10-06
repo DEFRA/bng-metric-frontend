@@ -68,7 +68,7 @@ describe('post-intervention-upload-received controller', () => {
       'postInterventionPendingUploadId'
     )
     expect(h.redirect).toHaveBeenCalledWith(
-      '/projects/proj-123/post-intervention-habitat-list'
+      '/projects/proj-123/project-summary'
     )
   })
 

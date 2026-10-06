@@ -28,6 +28,10 @@
         }) }}
       </div>
 
+      {% if not hasBaseline %}
+        <p class="govuk-body">Upload an on-site baseline file to see your biodiversity net gain results.</p>
+      {% endif %}
+
       {% for summary in unitSummaries %}
         {{ appUnitTypeSummary(summary) }}
       {% endfor %}

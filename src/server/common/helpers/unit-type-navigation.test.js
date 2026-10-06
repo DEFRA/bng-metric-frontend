@@ -17,26 +17,42 @@ const WATERCOURSES_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/watercourse
 const WATERCOURSES_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-trading-summary`
 
 describe('buildUnitTypeNavigation', () => {
-  test('always includes Summary and Area habitats', () => {
-    const items = buildUnitTypeNavigation({}, PROJECT_ID, AREA_SUMMARY_HREF)
+  test('omits habitat sections before a file is uploaded', () => {
+    const items = buildUnitTypeNavigation({}, PROJECT_ID, PROJECT_SUMMARY_HREF)
 
     expect(items).toEqual([
+      { text: 'Summary', current: true },
+      { text: 'Reports', href: REPORTS_HREF }
+    ])
+  })
+
+  test('shows Area habitats with only the uploaded phase', () => {
+    const baselineItems = buildUnitTypeNavigation(
+      { baseline: {} },
+      PROJECT_ID,
+      AREA_SUMMARY_HREF
+    )
+
+    expect(baselineItems).toEqual([
       { text: 'Summary', href: PROJECT_SUMMARY_HREF },
       {
         text: 'Area habitats',
         current: true,
-        children: [
-          {
-            text: 'Baseline',
-            href: AREA_BASELINE_HREF
-          },
-          {
-            text: 'Post intervention',
-            href: AREA_POST_INTERVENTION_HREF
-          }
-        ]
+        children: [{ text: 'Baseline', href: AREA_BASELINE_HREF }]
       },
       { text: 'Reports', href: REPORTS_HREF }
+    ])
+
+    const piItems = buildUnitTypeNavigation(
+      { postIntervention: {} },
+      PROJECT_ID,
+      AREA_SUMMARY_HREF
+    )
+    expect(
+      piItems.find((item) => item.text === 'Area habitats').children
+    ).toEqual([
+      { text: 'Post intervention', href: AREA_POST_INTERVENTION_HREF },
+      { text: 'Trading rules', href: AREA_TRADING_SUMMARY_HREF }
     ])
   })
 
@@ -70,8 +86,7 @@ describe('buildUnitTypeNavigation', () => {
       expect(area.children).toEqual([
         currentHref === AREA_BASELINE_HREF
           ? { text: 'Baseline', current: true }
-          : { text: 'Baseline', href: AREA_BASELINE_HREF },
-        { text: 'Post intervention', href: AREA_POST_INTERVENTION_HREF }
+          : { text: 'Baseline', href: AREA_BASELINE_HREF }
       ])
     }
   })
