@@ -14,6 +14,10 @@ const MEDIUM = 'Medium'
 const LOW = 'Low'
 const NUMERIC_COLUMN_COUNT = 1
 const TOTAL_ON_SITE_UNIT_CHANGE = 'Total on-site unit change'
+const LOW_NET_CHANGE_LABEL = 'Low distinctiveness net change in units'
+const MEDIUM_AVAILABLE_FOR_LOW_LABEL =
+  'Medium units available to offset low distinctiveness deficit'
+const CUMULATIVE_SURPLUS_LABEL = 'Cumulative surplus of units'
 
 function unitsText(value) {
   return `${formatUnits(value)} units`
@@ -82,36 +86,56 @@ function buildUnitChangeGrid({
   return grid
 }
 
+/**
+ * A summary tile: a label, a figure in units and, optionally, the band's
+ * Met / Not met status.
+ *
+ * @param {string} label
+ * @param {number | null | undefined} value
+ * @param {string | null | undefined} [status]
+ */
+function summaryTile(label, value, status) {
+  return {
+    label,
+    value: unitsText(value),
+    status: tradingRulesStatusTag(status)
+  }
+}
+
 function buildMediumSection({ deficit, status, grids, deficitLabel }) {
   return {
-    deficit: unitsText(deficit),
-    deficitLabel,
-    status: tradingRulesStatusTag(status),
+    tile: summaryTile(deficitLabel, deficit, status),
     grids
   }
 }
 
-function buildLowSection({
+/**
+ * A band below Medium, which can be offset by units carried down from the
+ * bands above it: net change, units available and cumulative surplus tiles,
+ * then the band's habitats. The labels default to the Low band's.
+ */
+function buildCascadeBandSection({
   netUnitChange,
-  mediumSurplus,
+  availableUnits,
   cumulativeAvailability,
+  status,
   columns,
   rows,
-  showTotals = true
+  showTotals = true,
+  totalsLabel = TOTAL_ON_SITE_UNIT_CHANGE,
+  netChangeLabel = LOW_NET_CHANGE_LABEL,
+  availableLabel = MEDIUM_AVAILABLE_FOR_LOW_LABEL
 }) {
   return {
-    netUnitChange: unitsText(netUnitChange),
-    mediumSurplus: unitsText(mediumSurplus),
-    cumulativeSurplus: unitsText(cumulativeAvailability),
+    tiles: [
+      summaryTile(netChangeLabel, netUnitChange),
+      summaryTile(availableLabel, availableUnits),
+      summaryTile(CUMULATIVE_SURPLUS_LABEL, cumulativeAvailability, status)
+    ],
     grid: buildUnitChangeGrid({
       columns,
       rows,
-      ...(showTotals
-        ? {
-            totalsLabel: TOTAL_ON_SITE_UNIT_CHANGE,
-            totalsValue: netUnitChange
-          }
-        : {})
+      ...(showTotals ? { totalsLabel, totalsValue: netUnitChange } : {})
     })
   }
 }
@@ -157,9 +181,9 @@ function buildDistinctivenessSections({
         })
       : null,
     low: hasLow
-      ? buildLowSection({
+      ? buildCascadeBandSection({
           netUnitChange: figures.low?.netUnitChange,
-          mediumSurplus: figures.medium?.surplus,
+          availableUnits: figures.medium?.surplus,
           cumulativeAvailability: figures.low?.cumulativeAvailability,
           columns: lowColumns,
           rows: rowsForLow(lowHabitats),
@@ -229,8 +253,12 @@ function createTradingSummaryController({
 }
 
 export {
+  buildBandStatusRows,
+  buildCascadeBandSection,
   buildDistinctivenessSections,
+  buildMediumSection,
   buildUnitChangeGrid,
   createTradingSummaryController,
+  habitatsIn,
   unitChangeCell
 }
