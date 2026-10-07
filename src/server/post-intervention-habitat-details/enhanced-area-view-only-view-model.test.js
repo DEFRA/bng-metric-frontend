@@ -19,6 +19,8 @@ describe('buildEnhancedAreaViewOnlyViewModel', () => {
         type: 'Modified grassland',
         condition: '6. Good',
         conditionScore: 3,
+        strategicSignificanceCategory: 'Low',
+        strategicSignificanceScore: 1,
         distinctiveness: 'Low',
         distinctivenessScore: 2,
         standardTimeToTargetCondition: '10',

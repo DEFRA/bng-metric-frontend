@@ -18,6 +18,8 @@ describe('buildEnhancedWatercourseViewOnlyViewModel', () => {
         type: 'Priority habitat',
         condition: '4. Moderate',
         conditionScore: 2,
+        strategicSignificanceCategory: 'Low',
+        strategicSignificanceScore: 1,
         distinctiveness: 'V.High',
         distinctivenessScore: 8,
         watercourseEncroachment: 'Minor',

@@ -68,15 +68,16 @@ export function withMultiplier(value, score) {
 
 /**
  * The strategic significance a created or enhanced feature was priced at, with
- * its multiplier ("High (1.15)"). A feature calculated before the proposed
- * value was applied has no category and was priced at ×1, so shows Low (1).
+ * its multiplier ("High (1.15)"). A feature with no category had no valid value
+ * on import (only Low and High are valid, BMD-1051): the backend nulled it and
+ * priced the feature at zero, so nothing is shown until the user picks one.
  *
  * @param {object} proposed the feature's `proposed` sub-object
  * @returns {string}
  */
 export function proposedStrategicSignificanceDisplay(proposed) {
   if (!proposed?.strategicSignificanceCategory) {
-    return LOW_STRATEGIC_SIGNIFICANCE
+    return EMPTY_PLACEHOLDER
   }
   return withMultiplier(
     proposed.strategicSignificanceCategory,

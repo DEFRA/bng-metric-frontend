@@ -34,6 +34,8 @@ describe('#postInterventionHabitatDetailsController created area', () => {
         type: 'Developed land; sealed surface',
         condition: 'N/A - Other',
         conditionScore: 0,
+        strategicSignificanceCategory: 'Low',
+        strategicSignificanceScore: 1,
         distinctiveness: 'Very low',
         distinctivenessScore: 0,
         standardTimeToTargetCondition: '0',

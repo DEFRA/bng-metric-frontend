@@ -169,7 +169,6 @@ describe('baselineDetailsHref', () => {
 describe('proposedStrategicSignificanceDisplay', () => {
   it.each([
     ['High', 1.15, 'High (1.15)'],
-    ['Medium', 1.1, 'Medium (1.1)'],
     ['Low', 1, 'Low (1)']
   ])('shows %s with its multiplier', (category, score, expected) => {
     expect(
@@ -180,9 +179,18 @@ describe('proposedStrategicSignificanceDisplay', () => {
     ).toBe(expected)
   })
 
-  it('shows Low (1) for a feature calculated before the proposed value was applied', () => {
-    expect(proposedStrategicSignificanceDisplay({})).toBe('Low (1)')
-    expect(proposedStrategicSignificanceDisplay(undefined)).toBe('Low (1)')
+  // BMD-1051 — an invalid imported value is nulled by the backend and the
+  // feature priced at zero, so there is no category to show.
+  it('shows nothing for a feature whose value was invalid on import', () => {
+    expect(
+      proposedStrategicSignificanceDisplay({
+        strategicSignificance: null,
+        strategicSignificanceCategory: null,
+        strategicSignificanceScore: null
+      })
+    ).toBe('')
+    expect(proposedStrategicSignificanceDisplay({})).toBe('')
+    expect(proposedStrategicSignificanceDisplay(undefined)).toBe('')
   })
 })
 

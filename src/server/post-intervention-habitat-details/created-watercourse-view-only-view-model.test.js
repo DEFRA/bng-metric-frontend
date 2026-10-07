@@ -17,6 +17,8 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
         type: 'Ditches',
         condition: 'Moderate',
         conditionScore: 2,
+        strategicSignificanceCategory: 'Low',
+        strategicSignificanceScore: 1,
         distinctiveness: 'Low',
         distinctivenessScore: 4,
         watercourseEncroachment: 'Minor',

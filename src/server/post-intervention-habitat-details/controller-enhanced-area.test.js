@@ -34,6 +34,8 @@ describe('#postInterventionHabitatDetailsController enhanced area', () => {
         type: 'Modified grassland',
         condition: 'Good',
         conditionScore: 3,
+        strategicSignificanceCategory: 'Low',
+        strategicSignificanceScore: 1,
         distinctiveness: 'Low',
         distinctivenessScore: 2,
         standardTimeToTargetCondition: '10',
