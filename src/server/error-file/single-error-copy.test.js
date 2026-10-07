@@ -340,6 +340,37 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
+  test('TREE_COUNT_NOT_WHOLE names the tree in the title and the fix in the message', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'TREE_COUNT_NOT_WHOLE',
+        message: 'x',
+        details: {
+          count: 1,
+          sample: [{ feature_ref: 'T001', fid: null, idx: 0, count: 2.5 }]
+        }
+      },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('This tree T001 contains an error')
+    expect(result.messageBefore).toBe(
+      'The Count for a tree is not a whole number of trees. Leave Count blank for one tree, or enter how many trees the point stands for and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+  })
+
+  test('TREE_COUNT_NOT_WHOLE falls back to the generic title without a ref', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'TREE_COUNT_NOT_WHOLE', message: 'x' },
+      null
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.linkText).toBeNull()
+    expect(result.messageBefore).toBe(
+      'The Count for a tree is not a whole number of trees. Leave Count blank for one tree, or enter how many trees the point stands for.'
+    )
+  })
+
   test.each([
     'REDLINE_OUTSIDE_ENGLAND',
     'REDLINE_AREA_TOO_LARGE',
