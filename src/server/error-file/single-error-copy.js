@@ -87,6 +87,19 @@ const advanceAndDelayEntry = () =>
     'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
   )
 
+// A tree point's "Count" column says how many trees it stands for. The backend
+// refuses a value that is not a whole number of trees (TREE_COUNT_NOT_WHOLE,
+// validation/geopackage/tree-count-check.js) rather than guess between two
+// and three, and names the tree, so the title can too. A blank is fine: the
+// metric reads it as one tree, which is why the fix offers it.
+const treeCountEntry = (error) => {
+  const ref = describeRef(firstSample(error))
+  return standard(
+    ref ? `This tree ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
+    'The Count for a tree is not a whole number of trees. Leave Count blank for one tree, or enter how many trees the point stands for and '
+  )
+}
+
 // The uploaded file's own name was rejected (backend SAFE_FILENAME_RE). Its
 // sibling code INVALID_FILE_METADATA means the document structure is wrong,
 // so it stays on the layer/column catch-all below.
@@ -193,6 +206,7 @@ const CODE_ENTRIES = {
   SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
+  TREE_COUNT_NOT_WHOLE: treeCountEntry,
   INVALID_FILENAME: invalidFilenameEntry,
   GPKG_TOO_MANY_FEATURES: tooManyFeaturesEntry,
 
