@@ -5,6 +5,11 @@ import { config } from '../../config.js'
 import { buildNavigation } from './build-navigation.js'
 import { createLogger } from '../../../server/common/helpers/logging/logger.js'
 import { canSelectDifferentOrganisation } from '../../../server/common/helpers/auth/organisation-reselection.js'
+import {
+  googleAnalyticsConsentScript,
+  googleTagManagerScript,
+  isGoogleTagManagerEnabled
+} from '../../../server/common/helpers/google-tag-manager.js'
 
 const logger = createLogger()
 const assetPath = config.get('assetPath')
@@ -35,6 +40,11 @@ export function context(request) {
     assetPath: `${assetPath}/assets`,
     serviceName: config.get('serviceName'),
     serviceUrl: '/',
+    googleTagManager: {
+      enabled: isGoogleTagManagerEnabled(),
+      consentScript: googleAnalyticsConsentScript,
+      script: googleTagManagerScript
+    },
     breadcrumbs: [],
     navigation: buildNavigation(request),
     user,

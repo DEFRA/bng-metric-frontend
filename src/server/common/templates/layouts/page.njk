@@ -12,8 +12,23 @@
 {% set mainClasses = "app-main-wrapper" %}
 
 {% block head %}
+  {% if googleTagManager.enabled %}
+  {# Temporary assumed analytics consent for BMD-1010; replace in BMD-568. #}
+  <script>{{ googleTagManager.consentScript | safe }}</script>
+  <!-- Google Tag Manager -->
+  <script>{{ googleTagManager.script | safe }}</script>
+  <!-- End Google Tag Manager -->
+  {% endif %}
   <meta name="csrf-token" content="{{ crumb }}">
   <link href="{{ getAssetPath('stylesheets/application.scss') }}" rel="stylesheet">
+{% endblock %}
+
+{% block bodyStart %}
+  {% if googleTagManager.enabled %}
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K5LRK3HR" height="0" width="0" style="display:none;visibility:hidden" title="Google Tag Manager"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  {% endif %}
 {% endblock %}
 
 {# Override the header/serviceNav sub-blocks rather than the outer `header`

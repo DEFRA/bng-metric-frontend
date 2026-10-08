@@ -1,4 +1,20 @@
 describe('#config', () => {
+  test('uses the deployment environment independently of the production Node runtime', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('ENVIRONMENT', 'dev')
+    vi.resetModules()
+    try {
+      const { config } = await import('./config.js')
+      const { isGoogleTagManagerEnabled } =
+        await import('../server/common/helpers/google-tag-manager.js')
+      expect(config.get('isProduction')).toBe(true)
+      expect(config.get('environment')).toBe('dev')
+      expect(isGoogleTagManagerEnabled()).toBe(true)
+    } finally {
+      vi.unstubAllEnvs()
+      vi.resetModules()
+    }
+  })
   test('Should default to non-production settings', async () => {
     const { config } = await import('./config.js')
 

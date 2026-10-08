@@ -55,6 +55,13 @@ describe('context and cache', () => {
           ],
           serviceName: 'Biodiversity Net Gain',
           serviceUrl: '/',
+          googleTagManager: {
+            enabled: false,
+            consentScript: expect.stringContaining(
+              "analytics_storage:'granted'"
+            ),
+            script: expect.stringContaining('GTM-K5LRK3HR')
+          },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
@@ -142,6 +149,13 @@ describe('context and cache', () => {
           ],
           serviceName: 'Biodiversity Net Gain',
           serviceUrl: '/',
+          googleTagManager: {
+            enabled: false,
+            consentScript: expect.stringContaining(
+              "analytics_storage:'granted'"
+            ),
+            script: expect.stringContaining('GTM-K5LRK3HR')
+          },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
