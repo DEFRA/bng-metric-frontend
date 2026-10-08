@@ -1,8 +1,11 @@
 # Google Tag Manager (BMD-1010)
 
-The shared layout loads non-prod container `GTM-K5LRK3HR`. Set `ENVIRONMENT`
-to `dev`, `test`, `ext-test` or `perf-test` in CDP; local development uses
-`local`. `NODE_ENV=production` is also used by non-prod deployments and does
+The shared layout loads non-prod container `GTM-K5LRK3HR`. CDP automatically
+injects `ENVIRONMENT` into application containers in its
+[deployment template](https://github.com/DEFRA/cdp-ecs-deployment-lambda/blob/main/templates/application_container.json#L28).
+The recognised deployed values are `dev`, `test`, `ext-test` and `perf-test`;
+local development defaults to `local`. No new CDP configuration entry is required
+for `ENVIRONMENT`. `NODE_ENV=production` is also used by non-prod deployments and does
 not determine whether GTM is enabled. Production (`prod`), missing and unknown
 deployment environments omit both snippets and the Google CSP permissions.
 Set `GTM_ENABLED=false` to disable GTM in any environment.
@@ -22,6 +25,12 @@ No consent cookie is written. Container loading and GA tag firing are separate: 
 their triggers are maintained in GTM, not in this application. BMD-568 must
 gate GA tags on explicit consent, including preventing cookieless GA requests
 before consent, and persist rejection/withdrawal across navigation.
+
+`ext-test` is intentionally included in this temporary non-prod scope. The
+agreed BMD-1010 assumption is not limited to local or internal QA. If a deployment
+needs to exclude that environment before BMD-568, set `GTM_ENABLED=false` there;
+this disables both the container and assumed-consent script. This is a deployment
+control, not a replacement for the cookie banner or its acceptance checks.
 
 The snippet adds only `gtm.start` and `gtm.js` to the data layer. It does not
 send user details, project names or form values. This alone cannot guarantee
