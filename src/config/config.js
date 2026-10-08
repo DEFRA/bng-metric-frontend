@@ -21,6 +21,20 @@ const backendUrl = (process.env.BACKEND_URL ?? 'http://localhost:3001').replace(
 convict.addFormats(convictFormatWithValidator)
 
 export const config = convict({
+  environment: {
+    doc: 'CDP deployment environment, separate from NODE_ENV. Required to enable GTM in deployed non-prod environments.',
+    format: String,
+    default: isDevelopment ? 'local' : '',
+    env: 'ENVIRONMENT'
+  },
+  googleTagManager: {
+    enabled: {
+      doc: 'Enable the non-prod GTM container in local, dev, test, ext-test and perf-test only. Consent is temporarily assumed until BMD-568.',
+      format: Boolean,
+      default: true,
+      env: 'GTM_ENABLED'
+    }
+  },
   serviceVersion: {
     doc: 'The service version, this variable is injected into your docker container in CDP environments',
     format: String,
