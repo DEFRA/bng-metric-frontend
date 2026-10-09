@@ -340,6 +340,34 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
+  test('HABITAT_REF_MISSING (BMD-1058) is one file-level error, not one per habitat', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'HABITAT_REF_MISSING',
+        message: 'x',
+        details: { count: 3, sample: [{ layer: 'areas', idx: 0, fid: 1 }] }
+      },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'All habitats must have a reference. Add a reference to every habitat and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+  })
+
+  test('HABITAT_REF_INVALID_CHARACTERS (BMD-1058) names the problem and the fix', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'HABITAT_REF_INVALID_CHARACTERS', message: 'x' },
+      null
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'One or more habitat references contain characters that are not allowed. Change the references to use only letters, numbers and standard punctuation.'
+    )
+    expect(result.linkText).toBeNull()
+  })
+
   test('TREE_COUNT_NOT_WHOLE names the tree in the title and the fix in the message', () => {
     const result = resolveSingleErrorCopy(
       {

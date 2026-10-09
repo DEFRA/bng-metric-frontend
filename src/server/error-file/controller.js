@@ -1,5 +1,18 @@
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
-import { resolveSingleErrorCopy } from './single-error-copy.js'
+import {
+  HABITAT_REF_INVALID_CHARACTERS_TEXT,
+  HABITAT_REF_MISSING_TEXT,
+  resolveSingleErrorCopy
+} from './single-error-copy.js'
+
+// BMD-1058: errors that stand for every habitat they apply to at once, shown
+// as one heading with no list of habitats. A habitat with no reference has
+// nothing to list it by. The heading is the frontend's, matching the
+// single-error copy, rather than the backend's message.
+const COLLATED_ERROR_HEADINGS = {
+  HABITAT_REF_MISSING: HABITAT_REF_MISSING_TEXT,
+  HABITAT_REF_INVALID_CHARACTERS: HABITAT_REF_INVALID_CHARACTERS_TEXT
+}
 
 // Per-error renderers — mirror the backend's formatting so each offender
 // can be shown on its own line under the error-type heading rather than
@@ -78,6 +91,9 @@ function describeDistinctivenessOffender(s) {
 }
 
 function buildItems(err) {
+  if (COLLATED_ERROR_HEADINGS[err.code]) {
+    return []
+  }
   // Non-list errors don't carry details. Use the part of the message after
   // the first ": " as the single sub-line; if there's no separator, the
   // heading already says everything (no items).
@@ -111,6 +127,9 @@ function buildItems(err) {
 }
 
 function buildHeading(err) {
+  if (COLLATED_ERROR_HEADINGS[err.code]) {
+    return COLLATED_ERROR_HEADINGS[err.code]
+  }
   const idx = err.message.indexOf(': ')
   return idx === -1 ? err.message : err.message.slice(0, idx)
 }
@@ -141,9 +160,10 @@ function buildNote(err) {
 function buildBlock(err) {
   const items = buildItems(err)
   const total = Number(err.details?.count ?? 0)
-  const more = err.details
-    ? Math.max(0, total - (err.details.sample?.length ?? 0))
-    : 0
+  const more =
+    err.details && !COLLATED_ERROR_HEADINGS[err.code]
+      ? Math.max(0, total - (err.details.sample?.length ?? 0))
+      : 0
   const note = buildNote(err)
   const block = { heading: buildHeading(err), items, more }
   if (note) {

@@ -12,6 +12,10 @@ const REF_SORT_LOCALE = 'en'
 // localeCompare, which would put 'P-10' before 'P-2'. Zero-padding each run of
 // digits keeps a Ref click in the order the server rendered.
 const SORT_KEY_DIGIT_WIDTH = 10
+// BMD-1058 AC6: the grids show at most this many characters of a reference,
+// then an ellipsis. Showing the whole reference on hover is a separate ticket.
+const MAX_REF_DISPLAY_LENGTH = 10
+const TRUNCATION_MARK = '…'
 
 function featureRef(feature) {
   const ref = feature?.ref?.trim()
@@ -22,6 +26,18 @@ function compareFeatureRefs(left, right) {
   return featureRef(left).localeCompare(featureRef(right), REF_SORT_LOCALE, {
     numeric: true
   })
+}
+
+/**
+ * The reference as a grid shows it: its first MAX_REF_DISPLAY_LENGTH
+ * characters, then an ellipsis when there are more. Characters are counted as
+ * code points, so the cut never splits one in two.
+ */
+function displayRef(reference) {
+  const characters = Array.from(reference)
+  return characters.length > MAX_REF_DISPLAY_LENGTH
+    ? `${characters.slice(0, MAX_REF_DISPLAY_LENGTH).join('')}${TRUNCATION_MARK}`
+    : reference
 }
 
 function refSortValue(reference) {
@@ -77,8 +93,12 @@ function detailsHref(detailsRoute, featureId, projectId, returnUrl) {
 
 function buildRefCell(feature, projectId, detailsRoute, returnUrl) {
   const reference = featureRef(feature)
+  // Only a real reference is cut short, and only its text: the grid still
+  // sorts on the whole reference. The featureId shown in place of a blank one
+  // is not a reference, so it is shown whole.
+  const hasRef = Boolean(feature?.ref?.trim())
   const cell = {
-    text: reference,
+    text: hasRef ? displayRef(reference) : reference,
     attributes: { 'data-sort-value': refSortValue(reference) }
   }
 

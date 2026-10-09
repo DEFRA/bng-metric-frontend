@@ -513,6 +513,47 @@ describe('invalidFileController.handler — populated session', () => {
     ])
   })
 
+  test('errorBlocks: BMD-1058 habitat reference errors are one heading each, with no habitats listed', async () => {
+    const sample = Array.from({ length: 50 }, (_, idx) => ({
+      layer: 'areas',
+      idx,
+      fid: idx + 1
+    }))
+    const errors = [
+      {
+        code: 'HABITAT_REF_MISSING',
+        message: 'Every habitat must have a Parcel Ref: areas fid 1, …',
+        details: { count: 53, sample }
+      },
+      {
+        code: 'HABITAT_REF_INVALID_CHARACTERS',
+        message: 'One or more Parcel Refs contain characters …: areas fid 9',
+        details: { count: 1, sample: [{ layer: 'areas', idx: 8, fid: 9 }] }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      { heading: 'All habitats must have a reference', items: [], more: 0 },
+      {
+        heading:
+          'One or more habitat references contain characters that are not allowed',
+        items: [],
+        more: 0
+      }
+    ])
+    expect(view.errorList).toEqual([
+      { text: 'All habitats must have a reference' },
+      {
+        text: 'One or more habitat references contain characters that are not allowed'
+      }
+    ])
+  })
+
   test('errorBlocks: AREA_PARCELS_TOO_SMALL rows name the parcel and its area', async () => {
     const errors = [
       {
