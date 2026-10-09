@@ -31,7 +31,7 @@
 
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      <p class="govuk-body">Uploading a file will overwrite any previous files you have uploaded.</p>
+      <p class="govuk-body">You can either use a baseline file to check the details of your project, or a post-intervention file to review its BNG status. Choose from the following options.</p>
 
       {% call appForm({ action: "/projects/" + projectId + "/upload-file" }) %}
         <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
