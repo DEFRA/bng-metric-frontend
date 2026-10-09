@@ -29,15 +29,24 @@ function compareFeatureRefs(left, right) {
 }
 
 /**
- * The reference as a grid shows it: its first MAX_REF_DISPLAY_LENGTH
- * characters, then an ellipsis when there are more. Characters are counted as
- * code points, so the cut never splits one in two.
+ * A reference longer than a grid shows, split where the grid cuts it: the
+ * first MAX_REF_DISPLAY_LENGTH characters, shown, and the rest, which the
+ * macro keeps for assistive technology. Null when it fits. Characters are
+ * counted as code points, so the cut never splits one in two.
+ *
+ * @param {string} reference
+ * @returns {{ shown: string, hidden: string, mark: string } | null}
  */
-function displayRef(reference) {
+function splitRef(reference) {
   const characters = Array.from(reference)
-  return characters.length > MAX_REF_DISPLAY_LENGTH
-    ? `${characters.slice(0, MAX_REF_DISPLAY_LENGTH).join('')}${TRUNCATION_MARK}`
-    : reference
+  if (characters.length <= MAX_REF_DISPLAY_LENGTH) {
+    return null
+  }
+  return {
+    shown: characters.slice(0, MAX_REF_DISPLAY_LENGTH).join(''),
+    hidden: characters.slice(MAX_REF_DISPLAY_LENGTH).join(''),
+    mark: TRUNCATION_MARK
+  }
 }
 
 function refSortValue(reference) {
@@ -96,10 +105,16 @@ function buildRefCell(feature, projectId, detailsRoute, returnUrl) {
   // Only a real reference is cut short, and only its text: the grid still
   // sorts on the whole reference. The featureId shown in place of a blank one
   // is not a reference, so it is shown whole.
-  const hasRef = Boolean(feature?.ref?.trim())
+  const split = feature?.ref?.trim() ? splitRef(reference) : null
   const cell = {
-    text: hasRef ? displayRef(reference) : reference,
+    text: split ? `${split.shown}${split.mark}` : reference,
     attributes: { 'data-sort-value': refSortValue(reference) }
+  }
+  // The macro renders a cut reference so that assistive technology still
+  // hears all of it: the link's name is the whole reference, and starts with
+  // the text on screen. Showing it on hover is a separate ticket.
+  if (split) {
+    cell.truncated = split
   }
 
   if (feature.featureId) {

@@ -71,8 +71,15 @@ describe('buildBaselineHabitatGrid', () => {
     expect(long.href).toBe(
       `/baseline-habitat-details?featureId=a&projectId=${PROJECT_ID}`
     )
+    expect(long.truncated).toEqual({
+      shown: 'H-01234567',
+      hidden: '89-north',
+      mark: '…'
+    })
     expect(exactlyTen.text).toBe('H-01234567')
+    expect(exactlyTen.truncated).toBeUndefined()
     expect(wide.text).toBe('草地草地草地草地草地…')
+    expect(wide.truncated.hidden).toBe('草')
   })
 
   test('builds aligned columns with formatted size, units and a Low (1) default', () => {

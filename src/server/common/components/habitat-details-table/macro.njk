@@ -1,5 +1,16 @@
+{#- A cut-short cell (cell.truncated) shows its first characters and an
+    ellipsis, keeps the rest visually hidden so assistive technology hears the
+    whole value, and hides the ellipsis from it. -#}
+{% macro habitatDetailsCellContent(cell) -%}
+  {%- if cell.truncated -%}
+    <span>{{ cell.truncated.shown }}</span><span class="govuk-visually-hidden">{{ cell.truncated.hidden }}</span><span aria-hidden="true">{{ cell.truncated.mark }}</span>
+  {%- else -%}
+    {{ cell.text }}
+  {%- endif -%}
+{%- endmacro %}
+
 {% macro habitatDetailsCell(cell) -%}
-  <td class="govuk-table__cell{% if cell.numeric %} govuk-table__cell--numeric{% endif %}{% if cell.classes %} {{ cell.classes }}{% endif %}"{% if cell.attributes %}{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}{% endif %}>{% if cell.href %}<a class="govuk-link" href="{{ cell.href }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
+  <td class="govuk-table__cell{% if cell.numeric %} govuk-table__cell--numeric{% endif %}{% if cell.classes %} {{ cell.classes }}{% endif %}"{% if cell.attributes %}{% for attr, val in cell.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}{% endif %}>{% if cell.href %}<a class="govuk-link" href="{{ cell.href }}">{{ habitatDetailsCellContent(cell) }}</a>{% else %}{{ habitatDetailsCellContent(cell) }}{% endif %}</td>
 {%- endmacro %}
 
 {% macro appHabitatDetailsTable(params) %}
