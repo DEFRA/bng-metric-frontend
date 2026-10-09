@@ -355,6 +355,55 @@ describe('area baseline', () => {
     )
   })
 
+  test('shows a long ref cut short, but gives its link the whole ref for assistive technology (BMD-1058)', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          name: 'Long refs',
+          baseline: {
+            units: { habitatsTotal: 24 },
+            habitats: [
+              { ...habitatP1, ref: 'H-01234567-north' },
+              { ...habitatP1, featureId: 'other-id', ref: 'H-01234567-south' }
+            ],
+            trees: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-baseline`,
+      auth
+    })
+
+    const $ = load(result)
+    const links = $('tbody .govuk-table__row td:first-child a')
+      .map((_, link) => ({
+        // What a screen reader names the link: everything but aria-hidden.
+        name: $(link)
+          .clone()
+          .find('[aria-hidden="true"]')
+          .remove()
+          .end()
+          .text(),
+        visible: $(link)
+          .clone()
+          .find('.govuk-visually-hidden')
+          .remove()
+          .end()
+          .text()
+      }))
+      .get()
+
+    expect(links).toEqual([
+      { name: 'H-01234567-north', visible: 'H-01234567…' },
+      { name: 'H-01234567-south', visible: 'H-01234567…' }
+    ])
+  })
+
   test('falls back to the feature id for a blank ref and drops the link when there is no feature id', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },

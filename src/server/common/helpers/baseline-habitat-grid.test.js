@@ -52,6 +52,36 @@ describe('buildBaselineHabitatGrid', () => {
     )
   })
 
+  test('shows the first 10 characters of a longer ref, then an ellipsis, but sorts on the whole ref (BMD-1058 AC6)', () => {
+    const grid = buildBaselineHabitatGrid({
+      features: [
+        { featureId: 'a', ref: 'H-0123456789-north' },
+        { featureId: 'b', ref: 'H-01234567' },
+        { featureId: 'c', ref: '草地草地草地草地草地草' }
+      ],
+      projectId: PROJECT_ID,
+      readSize: (feature) => feature.sizeMetres,
+      formatSize: formatLengthKmDisplay,
+      formatSizeTotal: formatBaselineTotalLengthSize
+    })
+
+    const [long, exactlyTen, wide] = grid.habitatRows.map((row) => row[0])
+    expect(long.text).toBe('H-01234567…')
+    expect(long.attributes['data-sort-value']).toBe('H-0123456789-north')
+    expect(long.href).toBe(
+      `/baseline-habitat-details?featureId=a&projectId=${PROJECT_ID}`
+    )
+    expect(long.truncated).toEqual({
+      shown: 'H-01234567',
+      hidden: '89-north',
+      mark: '…'
+    })
+    expect(exactlyTen.text).toBe('H-01234567')
+    expect(exactlyTen.truncated).toBeUndefined()
+    expect(wide.text).toBe('草地草地草地草地草地…')
+    expect(wide.truncated.hidden).toBe('草')
+  })
+
   test('builds aligned columns with formatted size, units and a Low (1) default', () => {
     const grid = buildBaselineHabitatGrid({
       features: [

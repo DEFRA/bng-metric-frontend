@@ -307,6 +307,46 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
+  test('GET links to the baseline hedgerow when the baseline was saved before refs were cleaned (BMD-1058)', async () => {
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: {
+            type: 'hedgerow',
+            feature: {
+              featureId,
+              ref: 'HG-2',
+              sizeMetres: 336,
+              units: 4.25,
+              retentionCategory: 'Retained',
+              proposed: { type: 'Native hedgerow', condition: 'Moderate' }
+            }
+          }
+        })
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve({
+          payload: {
+            project: {
+              name: 'Test Project',
+              baseline: {
+                hedgerows: [{ featureId: baselineFeatureId, ref: '  HG-2 ' }]
+              }
+            }
+          }
+        })
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view.mock.calls[0][1].viewBaselineHref).toBe(
+      `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+    )
+  })
+
   test('GET renders the read-only watercourse details page for a retained watercourse', async () => {
     const watercourseBaselinePayload = {
       payload: {

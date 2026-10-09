@@ -141,6 +141,27 @@ const tooManyFeaturesEntry = (error) => {
   )
 }
 
+// BMD-1058: habitats with no Parcel Ref, or one with characters that are not
+// valid UTF-8. Each is one collated error for every habitat it applies to, and
+// a habitat with no reference has none to put in the title, so both use the
+// file-level h1. Interim copy from the refinement session, pending UCD (Jack /
+// Kyle): replace it here and in COLLATED_ERROR_HEADINGS (controller.js).
+export const HABITAT_REF_MISSING_TEXT = 'All habitats must have a reference'
+export const HABITAT_REF_INVALID_CHARACTERS_TEXT =
+  'One or more habitat references contain characters that are not allowed'
+
+const habitatRefMissingEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    `${HABITAT_REF_MISSING_TEXT}. Add a reference to every habitat and `
+  )
+
+const habitatRefInvalidCharactersEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    `${HABITAT_REF_INVALID_CHARACTERS_TEXT}. Change the references to use only letters, numbers and standard punctuation and `
+  )
+
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
   GPKG_RLB_NO_POLYGON: noRedlineEntry,
@@ -206,6 +227,8 @@ const CODE_ENTRIES = {
   SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
+  HABITAT_REF_MISSING: habitatRefMissingEntry,
+  HABITAT_REF_INVALID_CHARACTERS: habitatRefInvalidCharactersEntry,
   TREE_COUNT_NOT_WHOLE: treeCountEntry,
   INVALID_FILENAME: invalidFilenameEntry,
   GPKG_TOO_MANY_FEATURES: tooManyFeaturesEntry,

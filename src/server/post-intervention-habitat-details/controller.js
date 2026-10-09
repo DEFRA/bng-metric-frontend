@@ -131,6 +131,26 @@ const UNSUPPORTED_MESSAGE =
 
 const DEFAULT_PROJECT_NAME = 'Project'
 
+// The backend's MAX_HABITAT_REF_LENGTH (validation/geopackage/habitat-ref-check.js).
+const MAX_REF_LENGTH = 100
+
+/**
+ * A ref as the backend stores it since BMD-1058: as text, trimmed, cut to
+ * MAX_REF_LENGTH characters and trimmed again (the backend's
+ * cleanHabitatRef). A baseline saved before then may hold ' H001', 12 or a
+ * longer ref, so both sides are compared cleaned. Null when there is none.
+ */
+function comparableRef(ref) {
+  if (typeof ref !== 'string' && typeof ref !== 'number') {
+    return null
+  }
+  const cleaned = Array.from(String(ref).trim())
+    .slice(0, MAX_REF_LENGTH)
+    .join('')
+    .trimEnd()
+  return cleaned === '' ? null : cleaned
+}
+
 /**
  * Resolve the baseline feature that corresponds to a post-intervention parcel.
  * Baseline and PI are separate uploads with independent featureIds, so the
@@ -138,7 +158,8 @@ const DEFAULT_PROJECT_NAME = 'Project'
  * been uploaded or no baseline feature shares the ref.
  */
 function resolveBaselineFeatureId(project, ref) {
-  if (ref) {
+  const wanted = comparableRef(ref)
+  if (wanted) {
     const baseline = project?.project?.baseline
     const candidates = [
       ...(baseline?.habitats ?? []),
@@ -146,7 +167,9 @@ function resolveBaselineFeatureId(project, ref) {
       ...(baseline?.hedgerows ?? []),
       ...(baseline?.watercourses ?? [])
     ]
-    const match = candidates.find((feature) => feature.ref === ref)
+    const match = candidates.find(
+      (feature) => comparableRef(feature.ref) === wanted
+    )
     return match?.featureId ?? null
   } else {
     return null
