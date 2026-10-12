@@ -3,6 +3,12 @@
 .app-heading {
   display: flex;
   margin-bottom: govuk-spacing(4);
+
+  // Let a column shrink below its longest word, so a long unbroken
+  // habitat ref wraps within the column instead of widening it.
+  > [class*='govuk-grid-column'] {
+    min-width: 0;
+  }
 }
 
 .app-heading-secondary-info {
