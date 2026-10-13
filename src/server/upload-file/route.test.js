@@ -117,8 +117,9 @@ describe('upload file routes', () => {
     expect($('.govuk-caption-m').text()).toContain('Habitat project')
     expect($('h1').text()).toContain('What would you like to upload?')
     expect($('main').text()).toContain(
-      'You can either use a baseline file to check the details of your project, or a post-intervention file to review its BNG status. Choose from the following options.'
+      'You can either use a baseline file to check the details of your project, or a post-intervention file to review its BNG status.'
     )
+    expect($('main').text()).toContain('Choose from the following options:')
     expect($(`label[for="uploadType"]`).text()).toContain(
       FILE_TYPES.baseline.text
     )

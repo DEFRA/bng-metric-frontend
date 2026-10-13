@@ -87,6 +87,24 @@ const advanceAndDelayEntry = () =>
     'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
   )
 
+// A Retained or Enhanced row with no Baseline type (backend
+// BASELINE_TYPE_MISSING). The layers and columns are fine; those habitats
+// are incomplete, so name the missing field rather than the schema catch-all.
+const missingBaselineTypeEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    'Some retained or enhanced habitats have no baseline habitat type. Add a baseline habitat type for each of them and '
+  )
+
+// A post-intervention file that derives no baseline area habitats (backend
+// NO_DERIVED_BASELINE_HABITATS). Different from a blank Baseline type: there
+// is nothing to keep as the baseline.
+const noDerivedBaselineEntry = () =>
+  standard(
+    GEOPACKAGE_ERROR_H1,
+    'This file has no baseline area habitats. Add baseline habitats and '
+  )
+
 // A tree point's "Count" column says how many trees it stands for. The backend
 // refuses a value that is not a whole number of trees (TREE_COUNT_NOT_WHOLE,
 // validation/geopackage/tree-count-check.js) rather than guess between two
@@ -227,6 +245,8 @@ const CODE_ENTRIES = {
   SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
 
   ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
+  BASELINE_TYPE_MISSING: missingBaselineTypeEntry,
+  NO_DERIVED_BASELINE_HABITATS: noDerivedBaselineEntry,
   HABITAT_REF_MISSING: habitatRefMissingEntry,
   HABITAT_REF_INVALID_CHARACTERS: habitatRefInvalidCharactersEntry,
   TREE_COUNT_NOT_WHOLE: treeCountEntry,
