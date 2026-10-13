@@ -17,7 +17,7 @@ const FILE_TYPES = {
   },
   postIntervention: {
     value: HABITAT_UPLOAD_TYPES.postIntervention.key,
-    text: 'Post-Intervention',
+    text: 'Post-intervention',
     uploadRoute: HABITAT_UPLOAD_TYPES.postIntervention.uploadRoute
   }
 }
