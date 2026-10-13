@@ -317,6 +317,41 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
+  test('BASELINE_TYPE_MISSING names the missing baseline habitat type and the fix', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'BASELINE_TYPE_MISSING', message: 'x' },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+    expect(result.messageBefore).toBe(
+      'Some retained or enhanced habitats have no baseline habitat type. Add a baseline habitat type for each of them and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+    expect(result.messageAfter).toBe('.')
+  })
+
+  test('BASELINE_TYPE_MISSING reads as a full sentence when uploadHref is null', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'BASELINE_TYPE_MISSING', message: 'x' },
+      null
+    )
+    expect(result.linkText).toBeNull()
+    expect(result.messageBefore).toBe(
+      'Some retained or enhanced habitats have no baseline habitat type. Add a baseline habitat type for each of them.'
+    )
+  })
+
+  test('NO_DERIVED_BASELINE_HABITATS names the empty baseline and the fix', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'NO_DERIVED_BASELINE_HABITATS', message: 'x' },
+      UPLOAD_HREF
+    )
+    expect(result.messageBefore).toBe(
+      'This file has no baseline area habitats. Add baseline habitats and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+  })
+
   test('ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
     const result = resolveSingleErrorCopy(
       { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },

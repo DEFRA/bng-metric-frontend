@@ -1,6 +1,5 @@
 import { fetchProject } from '../common/services/projects.js'
 import {
-  BASELINE_REQUIRED_ERROR,
   FILE_TYPES,
   SELECT_FILE_TYPE_ERROR,
   getController,
@@ -108,6 +107,7 @@ describe('upload file controller', () => {
   })
 
   test.each([
+    [{}, 'without a baseline or PI'],
     [{ baseline: { uploadId: 'baseline' } }, 'without existing PI'],
     [
       {
@@ -116,24 +116,8 @@ describe('upload file controller', () => {
       },
       'with existing PI'
     ]
-  ])(
-    'redirects a post-intervention selection when baseline exists %s',
-    async (project) => {
-      mockProject(project)
-      const h = responseToolkit()
-
-      await postController.handler(
-        request({ uploadType: FILE_TYPES.postIntervention.value }),
-        h
-      )
-
-      expect(h.redirect).toHaveBeenCalledWith(
-        `/projects/${PROJECT_ID}/upload-post-intervention-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
-      )
-    }
-  )
-
-  test('shows an error and retains the PI selection when baseline is absent', async () => {
+  ])('redirects a post-intervention selection %s', async (project) => {
+    mockProject(project)
     const h = responseToolkit()
 
     await postController.handler(
@@ -141,19 +125,8 @@ describe('upload file controller', () => {
       h
     )
 
-    expect(h.redirect).not.toHaveBeenCalled()
-    expect(h.view).toHaveBeenCalledWith(
-      'upload-file/index',
-      expect.objectContaining({
-        pageTitle: 'Error: What would you like to upload?',
-        error: BASELINE_REQUIRED_ERROR,
-        items: expect.arrayContaining([
-          expect.objectContaining({
-            value: FILE_TYPES.postIntervention.value,
-            checked: true
-          })
-        ])
-      })
+    expect(h.redirect).toHaveBeenCalledWith(
+      `/projects/${PROJECT_ID}/upload-post-intervention-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
     )
   })
 

@@ -2,11 +2,7 @@ import { load } from 'cheerio'
 import { createServer } from '../server.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
 import { wreck } from '../common/helpers/wreck-client.js'
-import {
-  BASELINE_REQUIRED_ERROR,
-  FILE_TYPES,
-  SELECT_FILE_TYPE_ERROR
-} from './controller.js'
+import { FILE_TYPES, SELECT_FILE_TYPE_ERROR } from './controller.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -121,8 +117,9 @@ describe('upload file routes', () => {
     expect($('.govuk-caption-m').text()).toContain('Habitat project')
     expect($('h1').text()).toContain('What would you like to upload?')
     expect($('main').text()).toContain(
-      'Uploading a file will overwrite any previous files you have uploaded.'
+      'You can either use a baseline file to check the details of your project, or a post-intervention file to review its BNG status.'
     )
+    expect($('main').text()).toContain('Choose from the following options:')
     expect($(`label[for="uploadType"]`).text()).toContain(
       FILE_TYPES.baseline.text
     )
@@ -189,7 +186,7 @@ describe('upload file routes', () => {
     )
   })
 
-  test('renders both PI-without-baseline errors and retains the selection', async () => {
+  test('redirects a PI selection when the project has no baseline yet', async () => {
     const response = await server.inject({
       method: 'POST',
       url: ROUTE,
@@ -202,13 +199,10 @@ describe('upload file routes', () => {
       }
     })
 
-    expect(response.statusCode).toBe(200)
-    const $ = load(response.result)
-    expect(
-      response.result.match(new RegExp(BASELINE_REQUIRED_ERROR, 'g'))
-    ).toHaveLength(2)
-    expect($('#uploadType-2').is(':checked')).toBe(true)
-    expect($('title').text()).toContain('Error: What would you like to upload?')
+    expect(response.statusCode).toBe(302)
+    expect(response.headers.location).toBe(
+      `/projects/${PROJECT_ID}/upload-post-intervention-file?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
+    )
   })
 
   test('renders both errors when no upload type is selected', async () => {

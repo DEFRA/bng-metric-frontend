@@ -12,19 +12,17 @@ import { fetchProject } from '../common/services/projects.js'
 const FILE_TYPES = {
   baseline: {
     value: HABITAT_UPLOAD_TYPES.baseline.key,
-    text: 'Baseline Biodiversity Net Gain GeoPackage (.gpkg) file',
+    text: 'Baseline',
     uploadRoute: HABITAT_UPLOAD_TYPES.baseline.uploadRoute
   },
   postIntervention: {
     value: HABITAT_UPLOAD_TYPES.postIntervention.key,
-    text: 'Post-intervention Biodiversity Net Gain GeoPackage (.gpkg) file',
+    text: 'Post-intervention',
     uploadRoute: HABITAT_UPLOAD_TYPES.postIntervention.uploadRoute
   }
 }
 
 const SELECT_FILE_TYPE_ERROR = 'Select the type of file you want to upload'
-const BASELINE_REQUIRED_ERROR =
-  'Upload a baseline file before uploading a post intervention file'
 
 const payloadSchema = Joi.object({
   uploadType: Joi.string()
@@ -81,14 +79,8 @@ function renderUploadFilePage(
   })
 }
 
-function selectedTypeError(uploadType, project) {
-  if (!uploadType) {
-    return SELECT_FILE_TYPE_ERROR
-  }
-  if (uploadType === FILE_TYPES.postIntervention.value && !project?.baseline) {
-    return BASELINE_REQUIRED_ERROR
-  }
-  return null
+function selectedTypeError(uploadType) {
+  return uploadType ? null : SELECT_FILE_TYPE_ERROR
 }
 
 export const getController = {
@@ -114,7 +106,7 @@ export const postController = {
     const { id: projectId } = request.params
     const { uploadType, returnUrl } = request.payload
     const project = await projectForUpload(request, projectId)
-    const error = selectedTypeError(uploadType, project)
+    const error = selectedTypeError(uploadType)
 
     if (error) {
       return renderUploadFilePage(h, {
@@ -136,9 +128,4 @@ export const postController = {
   }
 }
 
-export {
-  BASELINE_REQUIRED_ERROR,
-  FILE_TYPES,
-  SELECT_FILE_TYPE_ERROR,
-  payloadSchema
-}
+export { FILE_TYPES, SELECT_FILE_TYPE_ERROR, payloadSchema }
