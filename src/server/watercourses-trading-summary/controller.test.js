@@ -2,6 +2,7 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import { tilesIn } from '../common/test-helpers/trading-rules.js'
 import { WORKED_EXAMPLE_TRADING_RULES } from './worked-example.fixture.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -279,6 +280,11 @@ describe('watercourses trading summary', () => {
 
       expect(tile.find('p').text()).toBe('0.00 units')
       expect(tile.find('.govuk-tag--green').text()).toBe('Met')
+      expect(
+        tilesIn($, sectionHeaded($, 'Low distinctiveness')).map(
+          ([, , tag]) => tag
+        )
+      ).toEqual(['', '', 'Met'])
       expect(tableRows($, statusTable)).toEqual([
         ['Medium', 'Met'],
         ['Low', 'Met']
@@ -314,21 +320,16 @@ describe('watercourses trading summary', () => {
     test('shows the three summary tiles and the low watercourse types', async () => {
       const $ = await renderPage()
       const section = sectionHeaded($, 'Low distinctiveness')
-      const tiles = section
-        .find('.app-unit-type-summary__tile')
-        .map((_, tile) => [
-          [$(tile).find('h3').text(), $(tile).find('p').text()]
-        ])
-        .get()
       const grid = section.find('table')
 
-      expect(tiles).toEqual([
-        ['Low distinctiveness net change in units', '-21.49 units'],
+      expect(tilesIn($, section)).toEqual([
+        ['Low distinctiveness net change in units', '-21.49 units', ''],
         [
           'Medium units available to offset low distinctiveness deficit',
-          '12.92 units'
+          '12.92 units',
+          ''
         ],
-        ['Cumulative surplus of units', '-8.56 units']
+        ['Cumulative surplus of units', '-8.56 units', 'Not met']
       ])
       expect(
         grid

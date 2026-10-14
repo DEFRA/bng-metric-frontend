@@ -2,6 +2,7 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { DEFAULT_PROJECT_NAME, statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import { tilesIn } from '../common/test-helpers/trading-rules.js'
 import { WORKED_EXAMPLE_TRADING_RULES } from './worked-example.fixture.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -80,18 +81,6 @@ const tableRows = ($, table) =>
         .find('td')
         .map((__, cell) => $(cell).text().trim())
         .get()
-    ])
-    .get()
-
-const tilesIn = ($, section) =>
-  section
-    .find('.app-unit-type-summary__tile')
-    .map((_, tile) => [
-      [
-        $(tile).find('h3').text(),
-        $(tile).find('p').text(),
-        $(tile).find('.govuk-tag').text()
-      ]
     ])
     .get()
 
