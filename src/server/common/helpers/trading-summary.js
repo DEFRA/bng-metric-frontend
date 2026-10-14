@@ -185,6 +185,7 @@ function buildDistinctivenessSections({
           netUnitChange: figures.low?.netUnitChange,
           availableUnits: figures.medium?.surplus,
           cumulativeAvailability: figures.low?.cumulativeAvailability,
+          status: statuses?.low,
           columns: lowColumns,
           rows: rowsForLow(lowHabitats),
           showTotals: showLowTotals

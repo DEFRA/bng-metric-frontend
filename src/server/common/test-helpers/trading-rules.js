@@ -11,6 +11,24 @@ export const tileByHeading = ($, heading) =>
   )
 
 /**
+ * Lists each tile in a section as `[heading, figure, status tag]`, with an
+ * empty string for a tile that carries no tag.
+ * @param {import('cheerio').CheerioAPI} $
+ * @param {import('cheerio').Cheerio<any>} section
+ */
+export const tilesIn = ($, section) =>
+  section
+    .find(TILE_SELECTOR)
+    .map((_, tile) => [
+      [
+        $(tile).find('h3').text(),
+        $(tile).find('p').text(),
+        $(tile).find('.govuk-tag').text()
+      ]
+    ])
+    .get()
+
+/**
  * Adds a trading rules verdict for one unit type to a project payload. The
  * bands deliberately disagree with each other, so a page that reads a band
  * instead of `overall` fails its test.

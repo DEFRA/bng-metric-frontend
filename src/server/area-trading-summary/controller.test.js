@@ -2,6 +2,7 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import { tilesIn } from '../common/test-helpers/trading-rules.js'
 import { WORKED_EXAMPLE_TRADING_RULES } from './worked-example.fixture.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -204,6 +205,14 @@ describe('area trading summary', () => {
 
       expect(tableRows($, table)).toEqual([['Low', 'Not met']])
       expect(sectionHeaded($, 'Medium distinctiveness')).toHaveLength(0)
+
+      const lowSection = sectionHeaded($, 'Low distinctiveness')
+      expect(tilesIn($, lowSection).map(([, , tag]) => tag)).toEqual([
+        '',
+        '',
+        'Not met'
+      ])
+      expect(lowSection.find('.govuk-tag--red').text()).toBe('Not met')
     })
 
     test('omits the Low row when no Low habitat is present', async () => {
@@ -369,20 +378,14 @@ describe('area trading summary', () => {
   describe('AC6 and AC7 low distinctiveness', () => {
     test('shows the three Low summary tiles to 2 dp', async () => {
       const $ = await renderPage()
-      const tiles = sectionHeaded($, 'Low distinctiveness')
-        .find('.app-unit-type-summary__tile')
-        .map((_, tile) => [
-          [$(tile).find('h3').text(), $(tile).find('p').text()]
-        ])
-        .get()
-
-      expect(tiles).toEqual([
-        ['Low distinctiveness net change in units', '-90.00 units'],
+      expect(tilesIn($, sectionHeaded($, 'Low distinctiveness'))).toEqual([
+        ['Low distinctiveness net change in units', '-90.00 units', ''],
         [
           'Medium units available to offset low distinctiveness deficit',
-          '122.52 units'
+          '122.52 units',
+          ''
         ],
-        ['Cumulative surplus of units', '32.52 units']
+        ['Cumulative surplus of units', '32.52 units', 'Met']
       ])
     })
 
