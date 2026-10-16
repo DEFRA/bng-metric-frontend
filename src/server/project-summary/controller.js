@@ -146,7 +146,6 @@ function buildProjectUnitTypes(project, projectId, baselineUnits) {
 }
 
 function buildProjectSummary(project, projectId) {
-  const hasBaseline = hasBaselineData(project)
   const baselineUnits = project?.baseline?.units
   const postInterventionUnits = project?.postIntervention?.units
   const returnUrl = projectPageHref(projectId, PROJECT_SUMMARY_PATH)
@@ -160,24 +159,19 @@ function buildProjectSummary(project, projectId) {
   return {
     projectName: project?.name ?? DEFAULT_PROJECT_NAME,
     uploadHref,
-    navigationItems: hasBaseline
-      ? buildUnitTypeNavigation(
-          project,
-          projectId,
-          projectPageHref(projectId, PROJECT_SUMMARY_PATH)
-        )
-      : [{ text: SUMMARY_TEXT, current: true }],
-    hasBaseline,
-    unitSummaries: hasBaseline
-      ? visibleUnitTypes.map((unitType) =>
-          buildUnitTypeSummary(
-            unitType,
-            postInterventionUnits,
-            uploadHref,
-            Boolean(project?.postIntervention)
-          )
-        )
-      : []
+    navigationItems: buildUnitTypeNavigation(
+      project,
+      projectId,
+      projectPageHref(projectId, PROJECT_SUMMARY_PATH)
+    ),
+    unitSummaries: visibleUnitTypes.map((unitType) =>
+      buildUnitTypeSummary(
+        unitType,
+        postInterventionUnits,
+        uploadHref,
+        Boolean(project?.postIntervention)
+      )
+    )
   }
 }
 
@@ -185,6 +179,10 @@ export const getController = {
   async handler(request, h) {
     const { id } = request.params
     const project = await fetchProjectOrThrow(request, id)
+
+    if (!hasBaselineData(project)) {
+      return h.redirect(uploadFileHref(id))
+    }
 
     const summary = buildProjectSummary(project, id)
 
