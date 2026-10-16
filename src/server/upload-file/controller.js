@@ -7,7 +7,10 @@ import {
   selectedUploadHref
 } from '../common/helpers/upload-file-navigation.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
+import { hasBaselineData } from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
+
+const PROJECTS_PATH = '/manage-projects'
 
 const FILE_TYPES = {
   baseline: {
@@ -64,6 +67,10 @@ function renderUploadFilePage(
   { projectId, project, returnUrl, selectedUploadType, error }
 ) {
   const safeReturnUrl = safeUploadReturnUrl(returnUrl, projectId)
+  // An empty project has no summary to return to, so Back and Cancel go to
+  // the project list. The return URL still points at the summary, which is
+  // where the user lands once an upload has given the project some data.
+  const exitHref = hasBaselineData(project) ? safeReturnUrl : PROJECTS_PATH
   return h.view('upload-file/index', {
     pageTitle: error
       ? 'Error: What would you like to upload?'
@@ -72,8 +79,8 @@ function renderUploadFilePage(
     caption: project?.name ?? 'Project',
     projectId,
     returnUrl: safeReturnUrl,
-    backHref: safeReturnUrl,
-    cancelHref: safeReturnUrl,
+    backHref: exitHref,
+    cancelHref: exitHref,
     items: radioItems(selectedUploadType),
     error
   })

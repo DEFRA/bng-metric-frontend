@@ -127,8 +127,9 @@ describe('upload file routes', () => {
       FILE_TYPES.postIntervention.text
     )
     expect($('button[type="submit"]').text()).toContain('Continue')
-    expect($('a.govuk-back-link').attr('href')).toBe(PROJECT_SUMMARY)
-    expect(cancel.attr('href')).toBe(PROJECT_SUMMARY)
+    expect($('a.govuk-back-link').attr('href')).toBe('/manage-projects')
+    expect(cancel.attr('href')).toBe('/manage-projects')
+    expect($('input[name="returnUrl"]').attr('value')).toBe(PROJECT_SUMMARY)
   })
 
   test('rejects a POST without a CSRF token', async () => {
@@ -224,6 +225,8 @@ describe('upload file routes', () => {
   })
 
   test('does not redirect Back or Cancel to an external URL', async () => {
+    mockProject({ baseline: { uploadId: 'baseline-upload' } })
+
     const response = await server.inject({
       method: 'GET',
       url: `${ROUTE}?returnUrl=${encodeURIComponent('https://example.com')}`,

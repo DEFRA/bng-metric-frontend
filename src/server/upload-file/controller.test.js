@@ -57,8 +57,8 @@ describe('upload file controller', () => {
       caption: 'Habitat project',
       projectId: PROJECT_ID,
       returnUrl: PROJECT_SUMMARY,
-      backHref: PROJECT_SUMMARY,
-      cancelHref: PROJECT_SUMMARY,
+      backHref: '/manage-projects',
+      cancelHref: '/manage-projects',
       items: [
         {
           value: FILE_TYPES.baseline.value,
@@ -75,7 +75,24 @@ describe('upload file controller', () => {
     })
   })
 
+  test('keeps Back and Cancel on the return page when the project has a baseline', async () => {
+    mockProject({ baseline: { uploadId: 'baseline' } })
+    const h = responseToolkit()
+
+    await getController.handler(request(), h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'upload-file/index',
+      expect.objectContaining({
+        backHref: PROJECT_SUMMARY,
+        cancelHref: PROJECT_SUMMARY,
+        returnUrl: PROJECT_SUMMARY
+      })
+    )
+  })
+
   test('uses the project summary instead of an external return URL', async () => {
+    mockProject({ baseline: { uploadId: 'baseline' } })
     const h = responseToolkit()
 
     await getController.handler(
