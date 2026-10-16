@@ -888,22 +888,23 @@ describe('project summary', () => {
     expect(result).not.toContain('-0.00')
   })
 
-  test('renders the project summary before a baseline is uploaded', async () => {
+  test('redirects to the upload chooser when the project has no baseline', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: { project: { name: 'No baseline' } }
     })
 
-    const { statusCode, result } = await server.inject({
+    const { statusCode, headers } = await server.inject({
       method: 'GET',
       url: `/projects/${PROJECT_ID}/project-summary`,
       auth
     })
 
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toContain('No baseline')
-    expect(result).toContain('Upload an on-site baseline file')
-    expect(result).not.toContain('class="app-unit-type-summary"')
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(
+      `/projects/${PROJECT_ID}/upload-file?` +
+        `returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
+    )
   })
 
   test('rejects an invalid project id', async () => {
