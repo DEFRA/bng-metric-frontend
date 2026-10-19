@@ -248,7 +248,7 @@ describe('hedgerows trading summary', () => {
       ])
       expect($('.app-hedgerows-trading-summary .govuk-tag')).toHaveLength(0)
       expect(sectionHeaded($, 'Medium distinctiveness').find('p').text()).toBe(
-        '0.41 units'
+        '0.81 units'
       )
     })
   })
@@ -262,17 +262,17 @@ describe('hedgerows trading summary', () => {
       expect(tilesIn($, section)).toEqual([
         [
           'Medium distinctiveness unit deficit required to meet trading rules',
-          '0.41 units',
+          '0.81 units',
           'Met'
         ]
       ])
       expect(section.find('.govuk-tag--green')).toHaveLength(1)
       expect(columnHeadings($, grid)).toEqual(['Habitat type', 'Unit change'])
       expect(tableRows($, grid)).toEqual([
-        ['Species-rich native hedgerow', '-1.68'],
-        ['Native hedgerow - associated with bank or ditch', '1.29'],
+        ['Species-rich native hedgerow', '-1.48'],
+        ['Native hedgerow - associated with bank or ditch', '1.49'],
         ['Native hedgerow with trees', '0.80'],
-        ['Total unit change', '0.41']
+        ['Total unit change', '0.81']
       ])
     })
 
@@ -327,20 +327,20 @@ describe('hedgerows trading summary', () => {
       const grid = section.find('table')
 
       expect(tilesIn($, section)).toEqual([
-        ['Low distinctiveness net change in units', '-2.55 units', ''],
+        ['Low distinctiveness net change in units', '-2.37 units', ''],
         [
           'Medium units available to offset low distinctiveness deficit',
-          '0.41 units',
+          '0.81 units',
           ''
         ],
-        ['Cumulative surplus of units', '-2.13 units', 'Not met']
+        ['Cumulative surplus of units', '-1.55 units', 'Not met']
       ])
       expect(columnHeadings($, grid)).toEqual(['Habitat type', 'Unit change'])
       expect(tableRows($, grid)).toEqual([
-        ['Native hedgerow', '-1.98'],
+        ['Native hedgerow', '-1.80'],
         ['Line of trees', '0.16'],
         ['Line of trees - associated with bank or ditch', '-0.73'],
-        ['Total unit change', '-2.55']
+        ['Total unit change', '-2.37']
       ])
     })
 
