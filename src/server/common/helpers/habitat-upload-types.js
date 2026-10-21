@@ -5,7 +5,7 @@ const HABITAT_UPLOAD_TYPES = {
     label: 'baseline',
     isPostIntervention: false,
     pageHeading: 'On-site baseline habitats',
-    detailsSectionHeading: 'Baseline Details',
+    detailsSectionHeading: 'Baseline details',
     uploadPageTitle: 'Upload Baseline File',
     uploadInstruction:
       'Upload a GeoPackage (.gpkg) file containing a red line boundary and baseline habitat parcels.',
