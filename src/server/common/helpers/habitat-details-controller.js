@@ -133,6 +133,31 @@ function postInterventionBackHref(request, projectId) {
   return null
 }
 
+// Form fields that only some feature types submit. A field the form did not
+// send keeps the stored value: hedgerows and watercourses have no broad
+// habitat, and only watercourses have encroachment.
+const OPTIONAL_CHOICE_FIELDS = Object.freeze([
+  { field: 'broadHabitat', featureKey: 'broadType' },
+  { field: 'watercourseEncroachment', featureKey: 'watercourseEncroachment' },
+  { field: 'riparianEncroachment', featureKey: 'riparianEncroachment' }
+])
+
+/**
+ * The reference-data entry for a habitat type, or undefined. Area habitat
+ * types belong to a broad habitat; hedgerow and watercourse types have none
+ * (`broad: null`).
+ *
+ * @param {object} reference the strategy's reference data
+ * @param {{ type: string | null, broadType?: string | null }} chosen
+ * @returns {object | undefined}
+ */
+function findHabitatType(reference, { type, broadType }) {
+  return reference.habitatTypes?.find(
+    (t) =>
+      t.name === type && ((t.broad ?? null) === null || t.broad === broadType)
+  )
+}
+
 /**
  * The stored feature with the user's unsaved dropdown choices laid over it, so
  * a page shown again with an error keeps what they picked. Distinctiveness
@@ -147,27 +172,15 @@ function postInterventionBackHref(request, projectId) {
 function withSubmittedChoices(feature, submitted, reference) {
   const chosen = {
     ...feature,
-    // Hedgerow and watercourse forms have no broad habitat field.
-    broadType:
-      'broadHabitat' in submitted
-        ? submitted.broadHabitat || null
-        : feature.broadType,
     type: submitted.habitatType || null,
     condition: submitted.condition || null
   }
-  if (submitted.watercourseEncroachment !== undefined) {
-    chosen.watercourseEncroachment = submitted.watercourseEncroachment || null
+  for (const { field, featureKey } of OPTIONAL_CHOICE_FIELDS) {
+    if (submitted[field] !== undefined) {
+      chosen[featureKey] = submitted[field] || null
+    }
   }
-  if (submitted.riparianEncroachment !== undefined) {
-    chosen.riparianEncroachment = submitted.riparianEncroachment || null
-  }
-  const typeEntry = reference.habitatTypes?.find(
-    (t) =>
-      t.name === chosen.type &&
-      (t.broad === null ||
-        t.broad === undefined ||
-        t.broad === chosen.broadType)
-  )
+  const typeEntry = findHabitatType(reference, chosen)
   chosen.distinctiveness = typeEntry?.distinctiveness ?? null
   chosen.distinctivenessScore = typeEntry?.distinctivenessScore ?? null
   return chosen
@@ -221,9 +234,8 @@ async function renderDetailsPage(
     heading,
     caption: projectName,
     ...viewModel,
-    habitatRefValue: submitted
-      ? (submitted.habitatRef ?? '')
-      : viewModel.habitatRef,
+    // A refused save always carries the typed reference: it is what was refused.
+    habitatRefValue: submitted ? submitted.habitatRef : viewModel.habitatRef,
     habitatRefError: hasErrors ? { text: errors[0].text } : undefined,
     maxHabitatRefLength: MAX_HABITAT_REF_LENGTH,
     errors,

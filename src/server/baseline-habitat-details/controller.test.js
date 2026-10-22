@@ -1452,3 +1452,194 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     })
   })
 })
+
+describe('#baselineHabitatDetails - refused reference on hedgerow and watercourse pages (BMD-1061)', () => {
+  let server
+  let crumb
+
+  const hedgerowId = 'bb0e8400-e29b-41d4-a716-446655440012'
+  const watercourseId = 'cc0e8400-e29b-41d4-a716-446655440013'
+
+  const mockHedgerow = {
+    featureId: hedgerowId,
+    ref: 'H1',
+    type: 'Native hedgerow',
+    distinctiveness: 'Low',
+    distinctivenessScore: 2,
+    condition: 'Good',
+    sizeMetres: 1000,
+    units: 4
+  }
+  const mockWatercourse = {
+    featureId: watercourseId,
+    ref: 'W1',
+    type: 'Ditches',
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    watercourseEncroachment: 'No Encroachment',
+    riparianEncroachment: 'No Encroachment',
+    sizeMetres: 500,
+    units: 2
+  }
+  const payloads = [
+    [
+      `/projects/${projectId}/features/${hedgerowId}`,
+      { type: 'hedgerow', feature: mockHedgerow }
+    ],
+    [
+      `/projects/${projectId}/features/${watercourseId}`,
+      { type: 'watercourse', feature: mockWatercourse }
+    ],
+    [`/projects/${projectId}`, mockProject],
+    [
+      '/reference/hedgerow-types',
+      [
+        {
+          name: 'Native hedgerow',
+          distinctiveness: 'Low',
+          distinctivenessScore: 2
+        },
+        {
+          name: 'Native hedgerow with trees',
+          distinctiveness: 'Medium',
+          distinctivenessScore: 4
+        }
+      ]
+    ],
+    [
+      '/reference/watercourse-types',
+      [
+        { name: 'Ditches', distinctiveness: 'Medium', distinctivenessScore: 4 },
+        { name: 'Canals', distinctiveness: 'Medium', distinctivenessScore: 4 }
+      ]
+    ],
+    [
+      '/reference/watercourse-encroachments',
+      {
+        watercourse: ['No Encroachment', 'Minor', 'Major', 'N/A - Culvert'],
+        riparian: [
+          'No Encroachment',
+          'Minor/Minor',
+          'Major/Major',
+          'N/A - Culvert'
+        ]
+      }
+    ]
+  ]
+
+  function routeLinearWreck(u) {
+    if (u.includes('/reference/conditions')) {
+      return { res: { statusCode: 200 }, payload: mockConditions }
+    }
+    if (u.includes('/reference/trading-rules')) {
+      return { res: { statusCode: 200 }, payload: mockTradingRules }
+    }
+    const match = payloads.find(([suffix]) => u.endsWith(suffix))
+    return match
+      ? { res: { statusCode: 200 }, payload: match[1] }
+      : { res: { statusCode: 404 }, payload: null }
+  }
+
+  const post = (featureId, fields) =>
+    server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: { projectId, featureId, crumb: crumb.token, ...fields },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    _resetReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeLinearWreck(u))
+    )
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Keeps the unsaved watercourse type and encroachment choices', async () => {
+    const { statusCode, result } = await post(watercourseId, {
+      habitatRef: '',
+      habitatType: 'Canals',
+      condition: 'Poor',
+      watercourseEncroachment: 'Major',
+      riparianEncroachment: 'Minor/Minor'
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    expect(result).toContain('Watercourse W1')
+    expect(result).toContain('Enter a habitat reference')
+    expect(result).toMatch(/<option value="Canals" selected>/)
+    expect(result).toMatch(/<option value="Major" selected>/)
+    expect(result).toMatch(/<option value="Minor\/Minor" selected>/)
+  })
+
+  test('Keeps the stored encroachment when the form does not send it', async () => {
+    const { result } = await post(watercourseId, {
+      habitatRef: ' ',
+      habitatType: 'Ditches',
+      condition: 'Good'
+    })
+
+    expect(result).toMatch(
+      /id="watercourseEncroachment"[\s\S]*?<option value="No Encroachment" selected>/
+    )
+  })
+
+  test('Keeps an encroachment the user cleared', async () => {
+    const { result } = await post(watercourseId, {
+      habitatRef: '',
+      habitatType: 'Ditches',
+      condition: 'Good',
+      watercourseEncroachment: '',
+      riparianEncroachment: 'Minor/Minor'
+    })
+
+    expect(result).toMatch(
+      /<option value="" selected>Choose watercourse encroachment<\/option>/
+    )
+  })
+
+  test('Shows the distinctiveness of the unsaved hedgerow type', async () => {
+    const { statusCode, result } = await post(hedgerowId, {
+      habitatRef: '',
+      habitatType: 'Native hedgerow with trees',
+      condition: 'Good'
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(result).toContain('Hedgerow H1')
+    expect(result).toMatch(
+      /<option value="Native hedgerow with trees" selected>/
+    )
+    expect(result).toContain(
+      '<span id="distinctivenessDisplay">Medium (4)</span>'
+    )
+    expect(result).not.toContain('id="broadHabitat"')
+  })
+
+  test('Shows no distinctiveness for a habitat type the reference data does not hold', async () => {
+    const { result } = await post(hedgerowId, {
+      habitatRef: '',
+      habitatType: '',
+      condition: ''
+    })
+
+    expect(result).toContain('<span id="distinctivenessDisplay"></span>')
+  })
+})
