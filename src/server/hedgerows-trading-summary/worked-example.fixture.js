@@ -4,6 +4,11 @@
 // Confluence worked example uses 1.1 for three baselines, so its figures can't
 // come out of the service. Values are the metric's Trading Summary Hedgerows
 // sheet at full precision (rounded only for display).
+//
+// bng-library's hedgerow worked-example test still checks the SS=1.1 Confluence
+// figures, so these deliberately don't match it. That test feeds unit totals
+// straight into the calculation (after strategic significance is applied), so
+// it remains a valid check of the maths.
 
 export const WORKED_EXAMPLE_TRADING_RULES = {
   habitatTypes: [
