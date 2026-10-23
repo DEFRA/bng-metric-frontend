@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 
-import { HABITAT_REF_ERRORS, habitatRefError } from './habitat-ref.js'
+import { isValidHabitatRef } from './habitat-ref.js'
 
-describe('habitatRefError', () => {
+describe('isValidHabitatRef', () => {
   test.each([
     ['a reference', 'B-A1'],
     ['a reference with surrounding spaces', '  B-A1  '],
@@ -12,22 +12,17 @@ describe('habitatRefError', () => {
     ],
     ['non-Latin text', 'Ŵ-ŷ 1']
   ])('accepts %s', (_label, value) => {
-    expect(habitatRefError(value)).toBeNull()
+    expect(isValidHabitatRef(value)).toBe(true)
   })
 
   test.each([
     ['an empty value', ''],
     ['whitespace only', ' \t '],
     ['a missing value', undefined],
-    ['a null value', null]
-  ])('asks for a reference given %s', (_label, value) => {
-    expect(habitatRefError(value)).toBe(HABITAT_REF_ERRORS.missing)
-  })
-
-  test.each([
-    ['a replacement character from invalid UTF-8', 'B-A�'],
+    ['a null value', null],
+    ['a replacement character from invalid UTF-8', 'B-A\uFFFD'],
     ['a lone surrogate', 'B-A\uD800']
   ])('refuses %s', (_label, value) => {
-    expect(habitatRefError(value)).toBe(HABITAT_REF_ERRORS.invalidCharacters)
+    expect(isValidHabitatRef(value)).toBe(false)
   })
 })

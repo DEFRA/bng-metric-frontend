@@ -10,12 +10,12 @@
 
 export const MAX_HABITAT_REF_LENGTH = 100
 
-// Placeholder GDS-style wording until the content designer confirms it
-// (BMD-1061 open point).
-export const HABITAT_REF_ERRORS = Object.freeze({
-  missing: 'Enter a habitat reference',
-  invalidCharacters:
-    'Habitat reference must only include characters that can be saved'
+// Content design wording: one message pair for every invalid reference
+// (blank, whitespace only or not UTF-8). The error summary and the inline
+// message say different things by design.
+export const HABITAT_REF_ERROR = Object.freeze({
+  summary: 'You have entered an invalid habitat reference.',
+  inline: 'Enter a valid habitat reference.'
 })
 
 // What a UTF-8 decoder puts in place of bytes that are not valid UTF-8.
@@ -23,15 +23,13 @@ const REPLACEMENT_CHARACTER = '�'
 
 /**
  * @param {unknown} value the submitted habitat reference
- * @returns {string | null} the error message, or null when the value is valid
+ * @returns {boolean} whether the reference can be saved
  */
-export function habitatRefError(value) {
+export function isValidHabitatRef(value) {
   const trimmed = typeof value === 'string' ? value.trim() : ''
-  if (trimmed === '') {
-    return HABITAT_REF_ERRORS.missing
-  }
-  if (trimmed.includes(REPLACEMENT_CHARACTER) || !trimmed.isWellFormed()) {
-    return HABITAT_REF_ERRORS.invalidCharacters
-  }
-  return null
+  return (
+    trimmed !== '' &&
+    !trimmed.includes(REPLACEMENT_CHARACTER) &&
+    trimmed.isWellFormed()
+  )
 }

@@ -6,7 +6,11 @@ import { statusCodes } from '../constants.js'
 import { backendRequest } from './auth/backend-request.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
-import { MAX_HABITAT_REF_LENGTH, habitatRefError } from './habitat-ref.js'
+import {
+  HABITAT_REF_ERROR,
+  MAX_HABITAT_REF_LENGTH,
+  isValidHabitatRef
+} from './habitat-ref.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -193,7 +197,9 @@ function withSubmittedChoices(feature, submitted, reference) {
  * @param {import('@hapi/hapi').Request} request
  * @param {import('@hapi/hapi').ResponseToolkit} h
  * @param {object} uploadType
- * @param {{ projectId: string, featureId: string, submitted?: object, errors?: Array<{ text: string, href: string }> }} params
+ * @param {{ projectId: string, featureId: string, submitted?: object, errors?: Array<{ text: string, inline: string, href: string }> }} params
+ *   Each error carries its error-summary `text` and the `inline` message shown
+ *   at the field, which content design words differently.
  */
 async function renderDetailsPage(
   request,
@@ -236,7 +242,7 @@ async function renderDetailsPage(
     ...viewModel,
     // A refused save always carries the typed reference: it is what was refused.
     habitatRefValue: submitted ? submitted.habitatRef : viewModel.habitatRef,
-    habitatRefError: hasErrors ? { text: errors[0].text } : undefined,
+    habitatRefError: hasErrors ? { text: errors[0].inline } : undefined,
     maxHabitatRefLength: MAX_HABITAT_REF_LENGTH,
     errors,
     formAction: `/${uploadType.detailsRoute}`,
@@ -292,14 +298,18 @@ function createPostController(uploadType) {
         riparianEncroachment
       } = request.payload
 
-      const refError =
-        habitatRef === undefined ? null : habitatRefError(habitatRef)
-      if (refError) {
+      if (habitatRef !== undefined && !isValidHabitatRef(habitatRef)) {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
           submitted: request.payload,
-          errors: [{ text: refError, href: '#habitatRef' }]
+          errors: [
+            {
+              text: HABITAT_REF_ERROR.summary,
+              inline: HABITAT_REF_ERROR.inline,
+              href: '#habitatRef'
+            }
+          ]
         })
         return response.code(statusCodes.badRequest)
       }

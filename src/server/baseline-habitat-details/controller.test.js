@@ -724,7 +724,7 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
       auth: authedAuth
     })
     expect(result).toMatch(/id="habitatRef" name="habitatRef"[^>]*value="H1"/)
-    expect(result).toContain('Habitat Reference')
+    expect(result).toContain('Habitat reference')
   })
 
   test('Omits the Broad habitat row for hedgerows', async () => {
@@ -1313,14 +1313,14 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
   })
 
   describe('on page load', () => {
-    test('Renders a "Habitat Reference" text input holding the saved reference', async () => {
+    test('Renders a "Habitat reference" text input holding the saved reference', async () => {
       const { result } = await server.inject({
         method: 'GET',
         url,
         auth: authedAuth
       })
       expect(result).toMatch(
-        /<label class="govuk-label govuk-label--s" for="habitatRef">\s*Habitat Reference\s*<\/label>/
+        /<label class="govuk-label govuk-label--s" for="habitatRef">\s*Habitat reference\s*<\/label>/
       )
       expect(result).toMatch(
         /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="100">/
@@ -1409,7 +1409,12 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
         expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
         expect(result).toContain('There is a problem')
         expect(result).toContain('href="#habitatRef"')
-        expect(result).toContain('Enter a habitat reference')
+        expect(result).toMatch(
+          /<a href="#habitatRef">You have entered an invalid habitat reference.<\/a>/
+        )
+        expect(result).toMatch(
+          /<p id="habitatRef-error" class="govuk-error-message">\s*<span class="govuk-visually-hidden">Error:<\/span> Enter a valid habitat reference.\s*<\/p>/
+        )
         expect(result).toContain('govuk-input--error')
         // The heading keeps naming the habitat by its saved reference.
         expect(result).toContain('Habitat 12')
@@ -1421,9 +1426,8 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
 
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
-      expect(result).toContain(
-        'Habitat reference must only include characters that can be saved'
-      )
+      expect(result).toContain('You have entered an invalid habitat reference.')
+      expect(result).toContain('Enter a valid habitat reference.')
     })
 
     test('Keeps the unsaved dropdown choices and shows what the user typed', async () => {
@@ -1583,7 +1587,7 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     expect(statusCode).toBe(statusCodes.badRequest)
     expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
     expect(result).toContain('Watercourse W1')
-    expect(result).toContain('Enter a habitat reference')
+    expect(result).toContain('Enter a valid habitat reference.')
     expect(result).toMatch(/<option value="Canals" selected>/)
     expect(result).toMatch(/<option value="Major" selected>/)
     expect(result).toMatch(/<option value="Minor\/Minor" selected>/)
