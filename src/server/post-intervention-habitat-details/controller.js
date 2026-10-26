@@ -21,6 +21,13 @@ import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-
 import { PI_DETAILS_HEADING } from './constants.js'
 import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
 import {
+  buildCreatedAreaEditViewModel,
+  createdAreaPayloadSchema,
+  loadCreatedAreaReference,
+  saveCreatedArea,
+  validateCreatedArea
+} from './created-area-edit.js'
+import {
   normaliseRetentionCategory,
   RETENTION_CREATED,
   RETENTION_ENHANCED
@@ -234,6 +241,16 @@ const getController = {
     const retentionCategory = normaliseRetentionCategory(
       feature.retentionCategory
     )
+    if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_CREATED) {
+      const reference = await loadCreatedAreaReference()
+      return h.view(
+        'habitat-details/pi-habitat-details-created-edit',
+        buildCreatedAreaEditViewModel(feature, reference, {
+          projectId,
+          projectName
+        })
+      )
+    }
     const page = resolveViewOnlyPage(type, retentionCategory)
     if (page) {
       const featureWithIntervention = {
@@ -261,13 +278,48 @@ const getController = {
   }
 }
 
-// Every PI details page is read-only, so nothing renders a form that posts
-// here any more. The route stays registered and answers 501 so a stale page
-// or client gets an explicit "not implemented" rather than a 404.
 const postController = {
-  handler() {
-    throw Boom.notImplemented(
-      'Saving post-intervention habitat details is not implemented'
+  options: {
+    validate: { payload: createdAreaPayloadSchema }
+  },
+  async handler(request, h) {
+    const { projectId, featureId, ...values } = request.payload
+    const { type, feature } = await fetchFeature(
+      request,
+      uploadType,
+      projectId,
+      featureId
+    )
+    if (
+      type !== AREA_HABITAT_TYPE ||
+      normaliseRetentionCategory(feature.retentionCategory) !==
+        RETENTION_CREATED
+    ) {
+      throw Boom.notImplemented(
+        'Saving this post-intervention feature is not implemented'
+      )
+    }
+    const reference = await loadCreatedAreaReference()
+    const errors = validateCreatedArea(values, reference)
+    if (Object.keys(errors).length) {
+      const project = await fetchProject(request, projectId)
+      return h.view(
+        'habitat-details/pi-habitat-details-created-edit',
+        buildCreatedAreaEditViewModel(
+          feature,
+          reference,
+          {
+            projectId,
+            projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME
+          },
+          values,
+          errors
+        )
+      )
+    }
+    await saveCreatedArea(request, values)
+    return h.redirect(
+      habitatDetailsDestination(projectId, AREA_HABITAT_TYPE, uploadType.key)
     )
   }
 }

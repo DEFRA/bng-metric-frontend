@@ -25,6 +25,7 @@ export const postInterventionHabitatDetails = {
           path: '/post-intervention-habitat-details',
           ...postController,
           options: {
+            ...postController.options,
             ...protectedRouteOptions
           }
         }
