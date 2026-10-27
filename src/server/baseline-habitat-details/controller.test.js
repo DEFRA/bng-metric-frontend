@@ -1395,6 +1395,72 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     })
   })
 
+  describe('on Save for a habitat imported with no reference', () => {
+    // Imported before the BMD-1058 import check: the stored ref is blank.
+    function withStoredRef(ref) {
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.endsWith(`/projects/${projectId}/features/${habitatId}`)
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: { type: 'habitat', feature: { ...mockHabitat, ref } }
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+    }
+
+    test.each([
+      ['missing', undefined, ''],
+      ['null', null, ''],
+      ['blank', '', '  ']
+    ])(
+      'Saves the dropdowns without a reference when the stored one is %s and the field is left blank',
+      async (_label, storedRef, habitatRef) => {
+        withStoredRef(storedRef)
+
+        const { statusCode, headers } = await postRef({ habitatRef })
+
+        expect(statusCode).toBe(302)
+        expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
+        const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+        expect(JSON.parse(payload)).toEqual({
+          broadType: 'Grassland',
+          habitatType: 'Modified grassland',
+          condition: 'Good'
+        })
+      }
+    )
+
+    test('Saves a reference the user types in', async () => {
+      withStoredRef(null)
+
+      await postRef({ habitatRef: 'A-NEW' })
+
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload).ref).toBe('A-NEW')
+    })
+
+    test('Still refuses a reference that is not valid UTF-8', async () => {
+      withStoredRef(null)
+
+      const { statusCode } = await postRef({ habitatRef: 'A\uFFFD' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+
+    test('Names the page "Habitat" with no trailing space when the reference is blank', async () => {
+      withStoredRef(null)
+
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+
+      expect(result).toMatch(/<title[^>]*>\s*Habitat -/)
+    })
+  })
+
   describe('on Save with an invalid reference', () => {
     test.each([
       ['empty', ''],

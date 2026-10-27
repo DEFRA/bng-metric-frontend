@@ -232,7 +232,7 @@ async function renderDetailsPage(
     : postInterventionBackHref(request, projectId)
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.
-  const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`
+  const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
   const hasErrors = errors.length > 0
 
   return h.view('habitat-details/habitat-details', {
@@ -250,6 +250,50 @@ async function renderDetailsPage(
     backHref: piBackHref ?? viewModel.backHref,
     cancelHref: piBackHref ?? viewModel.cancelHref
   })
+}
+
+// What submittedRefToSave answers for a reference that must not be saved.
+const REFUSED_REF = Symbol('refused habitat reference')
+
+function isBlank(ref) {
+  return ref === undefined || ref === null || String(ref).trim() === ''
+}
+
+/**
+ * The habitat reference to send with a save, undefined to leave the stored one
+ * alone, or REFUSED_REF when the submitted one is invalid.
+ *
+ * A habitat imported before the BMD-1058 import check can have no reference.
+ * Its page shows the input empty, so a save that leaves it empty is not asking
+ * to change the reference, only the dropdowns. That save goes ahead without a
+ * reference rather than being refused until the user makes one up. Typing a
+ * reference, or blanking one that was saved, is still checked.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {object} uploadType
+ * @param {{ projectId: string, featureId: string, habitatRef: string | undefined }} params
+ * @returns {Promise<string | undefined | symbol>}
+ */
+async function submittedRefToSave(
+  request,
+  uploadType,
+  { projectId, featureId, habitatRef }
+) {
+  if (habitatRef === undefined || isValidHabitatRef(habitatRef)) {
+    return habitatRef
+  }
+  if (isBlank(habitatRef)) {
+    const { feature } = await fetchFeature(
+      request,
+      uploadType,
+      projectId,
+      featureId
+    )
+    if (isBlank(feature?.ref)) {
+      return undefined
+    }
+  }
+  return REFUSED_REF
 }
 
 function createGetController(uploadType) {
@@ -298,7 +342,12 @@ function createPostController(uploadType) {
         riparianEncroachment
       } = request.payload
 
-      if (habitatRef !== undefined && !isValidHabitatRef(habitatRef)) {
+      const refToSave = await submittedRefToSave(request, uploadType, {
+        projectId,
+        featureId,
+        habitatRef
+      })
+      if (refToSave === REFUSED_REF) {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
@@ -315,7 +364,7 @@ function createPostController(uploadType) {
       }
 
       const body = buildSaveBody({
-        habitatRef,
+        habitatRef: refToSave,
         broadHabitat,
         habitatType,
         condition,
