@@ -374,6 +374,58 @@ describe('invalidFileController.handler — populated session', () => {
     ])
   })
 
+  test('errorBlocks: BMD-1182 BASELINE_NOT_ENHANCEABLE lists each enhanced habitat with its baseline type and condition', async () => {
+    const errors = [
+      {
+        code: 'BASELINE_NOT_ENHANCEABLE',
+        message:
+          'One or more habitats are enhanced, but their baseline habitat cannot be enhanced in this service: Feature Ref H001, Feature Ref HG1',
+        details: {
+          count: 2,
+          sample: [
+            {
+              layer: 'habitats',
+              feature_ref: 'H001',
+              habitat_type: 'Grassland - Other neutral grassland',
+              condition: 'Good',
+              distinctiveness: 'Medium',
+              rule: 'medium-area-good',
+              mvsOnly: true
+            },
+            {
+              layer: 'hedgerows',
+              feature_ref: 'HG1',
+              habitat_type: 'Non-native and ornamental hedgerow',
+              condition: '',
+              distinctiveness: 'V.Low',
+              rule: 'very-low-hedgerow',
+              mvsOnly: false
+            }
+          ]
+        }
+      },
+      { code: 'NO_REDLINE', message: 'No red line boundary' }
+    ]
+    const request = makeRequest({
+      postInterventionValidationErrors: errors,
+      validationUploadType: 'postIntervention'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[0]).toEqual({
+      heading:
+        'One or more habitats are enhanced, but their baseline habitat cannot be enhanced in this service',
+      items: [
+        'Feature Ref H001 — Grassland - Other neutral grassland (Good)',
+        'Feature Ref HG1 — Non-native and ornamental hedgerow'
+      ],
+      more: 0
+    })
+  })
+
   test('errorBlocks: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE falls back when habitat_type / distinctiveness are missing', async () => {
     const errors = [
       {

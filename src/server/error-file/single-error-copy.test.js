@@ -439,7 +439,8 @@ describe('#resolveSingleErrorCopy', () => {
     'REDLINE_AREA_TOO_LARGE',
     'IGGIS_OUTSIDE_REDLINE',
     'TREES_OUTSIDE_REDLINE',
-    'AREA_SUM_MISMATCH'
+    'AREA_SUM_MISMATCH',
+    'BASELINE_NOT_ENHANCEABLE'
   ])('AC14: %s renders the UCD placeholder variant', (code) => {
     const result = resolveSingleErrorCopy(
       { code, message: 'backend message for ' + code },
