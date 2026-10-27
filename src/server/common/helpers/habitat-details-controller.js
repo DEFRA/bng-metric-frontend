@@ -103,7 +103,7 @@ function buildSaveBody({
   return body
 }
 
-function postInterventionBackHref(request, projectId) {
+function postInterventionDetailsRefererHref(request, projectId) {
   try {
     const referer = new URL(request.headers.referer)
     const featureId = referer.searchParams.get('featureId')
@@ -156,7 +156,7 @@ function createGetController(uploadType) {
       })
       const piBackHref = uploadType.isPostIntervention
         ? null
-        : postInterventionBackHref(request, projectId)
+        : postInterventionDetailsRefererHref(request, projectId)
 
       return h.view('habitat-details/habitat-details', {
         pageTitle: `${viewModel.headingPrefix} ${viewModel.habitatRef}`,
@@ -169,6 +169,38 @@ function createGetController(uploadType) {
         cancelHref: piBackHref ?? viewModel.cancelHref
       })
     }
+  }
+}
+
+/** Save a habitat with consistent session, conflict and upstream error handling. */
+export async function saveHabitat(request, path, body) {
+  try {
+    const { res, payload } = await backendRequest(
+      request,
+      'put',
+      `${backendUrl}/${path}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        payload: JSON.stringify(body)
+      }
+    )
+    if (res?.statusCode >= statusCodes.badRequest) {
+      throw Boom.boomify(new Error('Backend rejected habitat save'), {
+        statusCode: res.statusCode
+      })
+    }
+    return payload
+  } catch (err) {
+    if (err.data?.sessionExpired) {
+      throw err
+    }
+    if (
+      err.output?.statusCode === statusCodes.conflict ||
+      err.data?.res?.statusCode === statusCodes.conflict
+    ) {
+      throw Boom.conflict('Another user is editing this project')
+    }
+    throw Boom.badGateway('Failed to save habitat')
   }
 }
 
@@ -207,24 +239,11 @@ function createPostController(uploadType) {
         riparianEncroachment
       })
 
-      let payload
-      try {
-        const result = await backendRequest(
-          request,
-          'put',
-          `${backendUrl}/${uploadType.backendSavePath(projectId, featureId)}`,
-          {
-            headers: { 'Content-Type': 'application/json' },
-            payload: JSON.stringify(body)
-          }
-        )
-        payload = result.payload
-      } catch (err) {
-        if (err?.output?.statusCode === statusCodes.conflict) {
-          throw Boom.conflict('Another user is editing this project')
-        }
-        throw Boom.badGateway('Failed to save habitat')
-      }
+      const payload = await saveHabitat(
+        request,
+        uploadType.backendSavePath(projectId, featureId),
+        body
+      )
 
       return h.redirect(
         habitatDetailsDestination(projectId, payload?.type, uploadType.key)

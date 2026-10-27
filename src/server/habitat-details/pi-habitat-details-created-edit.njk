@@ -57,6 +57,7 @@
           id: "ref", name: "ref", value: values.ref,
           classes: "app-pi-edit-reference",
           label: { text: "Habitat reference", classes: "govuk-label--s" },
+          hint: { text: referenceHint } if referenceHint else null,
           errorMessage: { text: errors.ref } if errors.ref else null
         }) }}
         {% if viewBaselineHref %}

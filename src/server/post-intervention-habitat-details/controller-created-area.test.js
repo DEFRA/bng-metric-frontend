@@ -313,6 +313,29 @@ describe('Created area authenticated form', () => {
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
+  test('explains the limit without truncating a legacy imported reference on GET', async () => {
+    const ref = 'x'.repeat(101)
+    mockFeature({
+      type: 'habitat',
+      feature: { ...structuredClone(createdAreaFeature), ref }
+    })
+    const page = await server.inject({
+      method: 'GET',
+      url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
+      auth
+    })
+    expect(page.statusCode).toBe(200)
+    expect(page.payload).toContain(`value="${ref}"`)
+    expect(page.payload).toContain(
+      'This imported reference exceeds 100 characters.'
+    )
+    expect(page.payload).toContain(
+      'Shorten it to 100 characters or fewer before saving.'
+    )
+    expect(page.payload).toContain('aria-describedby="ref-hint"')
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
   test('renders the CSRF token and saves a protected form submission', async () => {
     const { token, cookie } = await primeCrumb(server)
     const page = await server.inject({

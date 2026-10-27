@@ -1,15 +1,13 @@
-import Boom from '@hapi/boom'
 import Joi from 'joi'
 
 import { config } from '../../config/config.js'
-import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
   createdAreaDerived,
   selectedHabitat,
   YEAR_OPTIONS
 } from '../../shared/created-area-details.js'
-import { backendRequest } from '../common/helpers/auth/backend-request.js'
+import { saveHabitat } from '../common/helpers/habitat-details-controller.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
@@ -231,6 +229,10 @@ export function buildCreatedAreaEditViewModel(
     featureId: feature.featureId,
     values,
     errors,
+    referenceHint:
+      Array.from(values.ref.trim()).length > MAX_REF_LENGTH
+        ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
+        : null,
     errorList: Object.entries(errors)
       .filter(([field]) => field !== 'delayYears' || !errors.advanceYears)
       .map(([field, text]) => ({
@@ -267,31 +269,9 @@ function createdAreaSavePayload(values) {
 
 export async function saveCreatedArea(request, values) {
   const { projectId, featureId } = request.payload
-  try {
-    const { res } = await backendRequest(
-      request,
-      'put',
-      `${backendUrl}/projects/${projectId}/post-intervention/habitats/${featureId}`,
-      {
-        headers: { 'Content-Type': 'application/json' },
-        payload: JSON.stringify(createdAreaSavePayload(values))
-      }
-    )
-    if (res.statusCode >= statusCodes.badRequest) {
-      throw Boom.boomify(new Error('Backend rejected habitat save'), {
-        statusCode: res.statusCode
-      })
-    }
-  } catch (err) {
-    if (err.data?.sessionExpired) {
-      throw err
-    }
-    if (
-      err.output?.statusCode === statusCodes.conflict ||
-      err.data?.res?.statusCode === statusCodes.conflict
-    ) {
-      throw Boom.conflict('Another user is editing this project')
-    }
-    throw Boom.badGateway('Failed to save habitat')
-  }
+  return saveHabitat(
+    request,
+    `projects/${projectId}/post-intervention/habitats/${featureId}`,
+    createdAreaSavePayload(values)
+  )
 }
