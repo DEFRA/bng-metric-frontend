@@ -222,12 +222,21 @@ export function buildCreatedAreaEditViewModel(
   const base = buildCreatedAreaViewOnlyViewModel(feature, ctx)
   const initialLoad = values === null
   values ??= createdAreaValues(feature)
-  const derived = createdAreaDerived(reference, values)
-  if (initialLoad) {
-    for (const field of Object.keys(derived)) {
-      if (derived[field] && base[field]) {
-        derived[field] = base[field]
-      }
+  const baseline = stripConditionPrefix(feature.baseline?.condition)
+  const baselineCondition = typeof baseline === 'string' ? baseline : ''
+  const originalDerived = createdAreaDerived(
+    reference,
+    createdAreaValues(feature),
+    baselineCondition
+  )
+  const derived = createdAreaDerived(reference, values, baselineCondition)
+  for (const field of Object.keys(derived)) {
+    if (
+      derived[field] &&
+      derived[field] === originalDerived[field] &&
+      base[field]
+    ) {
+      derived[field] = base[field]
     }
   }
   const type = selectedHabitat(reference, values)
@@ -245,6 +254,7 @@ export function buildCreatedAreaEditViewModel(
     featureId: feature.featureId,
     values,
     errors,
+    baselineCondition,
     referenceHint:
       initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`

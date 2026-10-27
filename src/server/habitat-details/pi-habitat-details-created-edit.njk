@@ -51,7 +51,7 @@
         <input type="hidden" name="projectId" value="{{ projectId }}">
         <input type="hidden" name="featureId" value="{{ featureId }}">
         <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
-        <script type="application/json" id="created-area-reference-data">{{ referenceJson | safe }}</script>
+        <script type="application/json" id="created-area-reference-data" data-baseline-condition="{{ baselineCondition }}">{{ referenceJson | safe }}</script>
         <h2 class="govuk-heading-m">{{ habitatDetailsSectionHeading }}</h2>
         {{ govukInput({
           id: "ref", name: "ref", value: values.ref,

@@ -116,10 +116,14 @@ describe('Created area editing', () => {
       'Standard time to target condition:'
     )
     change('condition', 'Poor')
-    expect(text('standardTimeToTargetDisplay')).toBe('Poor - 1 years')
+    expect(text('standardTimeToTargetDisplay')).toBe('Poor to Poor - 1 years')
     expect(text('created-area-results-status')).toContain(
       'Standard time to target condition: Poor'
     )
+    change('condition', 'Good')
+    expect(text('standardTimeToTargetDisplay')).toBe(initialStandard)
+    change('delayYears', '0')
+    expect(text('finalTimeToTargetDisplay')).toBe(initialFinal)
   })
 
   test('renders the matching baseline link and preserves the list anchor in the form', () => {

@@ -19,15 +19,32 @@ export function initCreatedAreaDetails() {
   const reference = JSON.parse(dataElement.textContent)
   const form = document.getElementById('created-area-details-form')
   const values = () => Object.fromEntries(new FormData(form))
-  let previousDerived = createdAreaDerived(reference, values())
+  const baselineCondition = dataElement.dataset.baselineCondition ?? ''
+  const initialDerived = createdAreaDerived(
+    reference,
+    values(),
+    baselineCondition
+  )
+  const initialLabels = Object.fromEntries(
+    Object.keys(initialDerived).map((id) => [
+      id,
+      document.getElementById(id).textContent
+    ])
+  )
+  let previousDerived = initialDerived
   const updateDerived = () => {
     const changed = []
-    const nextDerived = createdAreaDerived(reference, values())
+    const nextDerived = createdAreaDerived(
+      reference,
+      values(),
+      baselineCondition
+    )
     for (const [id, value] of Object.entries(nextDerived)) {
       const element = document.getElementById(id)
       if (previousDerived[id] !== value) {
-        element.textContent = value
-        changed.push(`${DERIVED_LABELS[id]}: ${value || 'Not available'}.`)
+        const label = initialDerived[id] === value ? initialLabels[id] : value
+        element.textContent = label
+        changed.push(`${DERIVED_LABELS[id]}: ${label || 'Not available'}.`)
       }
     }
     previousDerived = nextDerived

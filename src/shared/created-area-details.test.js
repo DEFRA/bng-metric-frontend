@@ -36,6 +36,18 @@ describe('Created area derived fields', () => {
     ).toBe('29 years (0.3558705807)')
   })
 
+  test.each([
+    ['Poor', 'Poor to Good - 7 years'],
+    ['N/A', 'Good - 7 years'],
+    ['N/A - Other', 'Good - 7 years'],
+    ['', 'Good - 7 years']
+  ])('retains the baseline wording for %s', (baseline, expected) => {
+    expect(
+      createdAreaDerived(creationReference, values, baseline)
+        .standardTimeToTargetDisplay
+    ).toBe(expected)
+  })
+
   test('cleared habitat type clears every derived value', () => {
     const result = createdAreaDerived(creationReference, {
       ...values,

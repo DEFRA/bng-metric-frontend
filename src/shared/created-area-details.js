@@ -13,18 +13,22 @@ export function selectedHabitat(reference, values) {
   )
 }
 
-export function createdAreaDerived(reference, values) {
+export function createdAreaDerived(reference, values, baselineCondition = '') {
   const type = selectedHabitat(reference, values)
   const condition = type?.conditions.find(
     (c) => c.condition === values.condition
   )
   return {
-    ...standardFields(type, condition),
+    ...standardFields(type, condition, baselineCondition),
     finalTimeToTargetDisplay: finalTimeDisplay(reference, condition, values)
   }
 }
 
-function standardFields(type, condition) {
+function standardFields(type, condition, baselineCondition) {
+  const baselinePrefix =
+    baselineCondition && !baselineCondition.startsWith('N/A')
+      ? `${baselineCondition} to `
+      : ''
   return {
     distinctivenessDisplay: type
       ? `${type.distinctiveness} (${type.distinctivenessScore})`
@@ -34,7 +38,7 @@ function standardFields(type, condition) {
       type?.difficultyMultiplier ?? ''
     ),
     standardTimeToTargetDisplay: condition
-      ? `${condition.condition} - ${condition.years} years`
+      ? `${baselinePrefix}${condition.condition} - ${condition.years} years`
       : ''
   }
 }

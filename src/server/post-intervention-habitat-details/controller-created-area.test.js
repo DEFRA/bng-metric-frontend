@@ -319,6 +319,36 @@ describe('Created area controller', () => {
     )
   })
 
+  test('preserves canonical display wording when a reference error redisplays unchanged calculations', async () => {
+    mockFeature({
+      type: 'habitat',
+      feature: {
+        ...structuredClone(createdAreaFeature),
+        baseline: { condition: '5. Poor' },
+        proposed: {
+          ...createdAreaFeature.proposed,
+          standardTimeToTargetCondition: '7',
+          finalTimeToTargetCondition: 'Saved final time label',
+          difficultyMultiplier: 0.5
+        }
+      }
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    await postController.handler(request({ ref: ' ' }), h)
+    const initial = h.view.mock.calls[0][1]
+    const redisplayed = h.view.mock.calls[1][1]
+    expect(initial.standardTimeToTargetDisplay).toBe('Poor to Good - 7 years')
+    for (const field of [
+      'standardTimeToTargetDisplay',
+      'finalTimeToTargetDisplay',
+      'appliedDifficultyMultiplierDisplay'
+    ]) {
+      expect(redisplayed[field]).toBe(initial[field])
+    }
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
   test('surfaces concurrent edit errors', async () => {
     vi.mocked(wreck.put).mockRejectedValue(Boom.conflict())
     await expect(
