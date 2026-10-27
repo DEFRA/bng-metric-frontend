@@ -11,15 +11,7 @@ const DERIVED_LABELS = {
   appliedDifficultyMultiplierDisplay: 'Applied difficulty multiplier'
 }
 
-export function initCreatedAreaDetails() {
-  const dataElement = document.getElementById('created-area-reference-data')
-  if (!dataElement) {
-    return
-  }
-  const reference = JSON.parse(dataElement.textContent)
-  const form = document.getElementById('created-area-details-form')
-  const values = () => Object.fromEntries(new FormData(form))
-  const baselineCondition = dataElement.dataset.baselineCondition ?? ''
+function createDerivedUpdater(reference, values, baselineCondition) {
   const initialDerived = createdAreaDerived(
     reference,
     values(),
@@ -32,7 +24,7 @@ export function initCreatedAreaDetails() {
     ])
   )
   let previousDerived = initialDerived
-  const updateDerived = () => {
+  return () => {
     const changed = []
     const nextDerived = createdAreaDerived(
       reference,
@@ -53,6 +45,22 @@ export function initCreatedAreaDetails() {
         changed.join(' ')
     }
   }
+}
+
+export function initCreatedAreaDetails() {
+  const dataElement = document.getElementById('created-area-reference-data')
+  if (!dataElement) {
+    return
+  }
+  const reference = JSON.parse(dataElement.textContent)
+  const form = document.getElementById('created-area-details-form')
+  const values = () => Object.fromEntries(new FormData(form))
+  const baselineCondition = dataElement.dataset.baselineCondition ?? ''
+  const updateDerived = createDerivedUpdater(
+    reference,
+    values,
+    baselineCondition
+  )
   const reset = (id, label, options = []) => {
     const select = document.getElementById(id)
     const option = ({ value, text }) => {
