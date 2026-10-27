@@ -1,5 +1,6 @@
-import Boom from '@hapi/boom'
 import Joi from 'joi'
+
+import { statusCodes } from '../common/constants.js'
 
 import {
   fetchFeature,
@@ -20,6 +21,12 @@ import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { PI_DETAILS_HEADING } from './constants.js'
 import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
+import { isValidHabitatRef } from '../common/helpers/habitat-ref.js'
+import {
+  isRefEditable,
+  retainedRefEditFields,
+  saveRetainedRef
+} from './retained-ref-edit.js'
 import {
   normaliseRetentionCategory,
   RETENTION_CREATED,
@@ -96,12 +103,10 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
 
-// The read-only details page for each feature type. Each keeps its own
-// template — they share chrome via layouts/pi-view-only-page.njk (or the
-// sections layout for Created/Enhanced area, Created/Enhanced hedgerow, and
-// Created/Enhanced watercourse) and differ in the rows they show. Those
-// retention categories use a two-section layout (BMD-845); other categories
-// keep the single-list page for now.
+// The details page for each feature type. Each keeps its own template — they
+// share chrome via layouts/pi-view-only-sections-page.njk and differ in the
+// rows they show. Created/Enhanced area, hedgerow and watercourse add a second
+// section (BMD-845); the Retained pages carry the reference input (BMD-1180).
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
@@ -211,6 +216,64 @@ function renderUnsupportedFeature(
   })
 }
 
+/**
+ * Render the details page for one post-intervention feature. A Retained area
+ * habitat, hedgerow or watercourse gets the reference form (BMD-1180);
+ * `submittedRef` is set when a save of it was refused.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {import('@hapi/hapi').ResponseToolkit} h
+ * @param {{ projectId: string, featureId: string, returnUrl?: string, submittedRef?: string }} params
+ */
+async function renderDetailsPage(
+  request,
+  h,
+  { projectId, featureId, returnUrl, submittedRef }
+) {
+  const [{ type, feature }, project] = await Promise.all([
+    fetchFeature(request, uploadType, projectId, featureId),
+    fetchProject(request, projectId)
+  ])
+  const projectName = project?.project?.name ?? DEFAULT_PROJECT_NAME
+
+  // Normalise the feature-root retention category so a "1. Enhanced" list
+  // prefix or a missing value resolves consistently for every view-only page.
+  const retentionCategory = normaliseRetentionCategory(
+    feature.retentionCategory
+  )
+  const page = resolveViewOnlyPage(type, retentionCategory)
+  if (!page) {
+    // Trees, IGGIs and any new feature type without a view-only page.
+    return renderUnsupportedFeature(h, {
+      projectId,
+      projectName,
+      type,
+      returnUrl
+    })
+  }
+  const viewModel = page.buildViewModel(
+    { ...feature, retentionCategory },
+    {
+      projectId,
+      projectName,
+      baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
+    }
+  )
+  const backHref = postInterventionBackHref(projectId, type, returnUrl)
+  const refEditFields = isRefEditable(type, retentionCategory)
+    ? retainedRefEditFields({
+        type,
+        feature,
+        projectId,
+        featureId,
+        returnUrl,
+        cancelHref: backHref,
+        submittedRef
+      })
+    : {}
+  return h.view(page.template, { ...viewModel, ...refEditFields, backHref })
+}
+
 const getController = {
   options: {
     validate: {
@@ -221,54 +284,46 @@ const getController = {
       })
     }
   },
-  async handler(request, h) {
+  handler(request, h) {
     const { featureId, projectId, returnUrl } = request.query
-    const [{ type, feature }, project] = await Promise.all([
-      fetchFeature(request, uploadType, projectId, featureId),
-      fetchProject(request, projectId)
-    ])
-    const projectName = project?.project?.name ?? DEFAULT_PROJECT_NAME
-
-    // Normalise the feature-root retention category so a "1. Enhanced" list
-    // prefix or a missing value resolves consistently for every view-only page.
-    const retentionCategory = normaliseRetentionCategory(
-      feature.retentionCategory
-    )
-    const page = resolveViewOnlyPage(type, retentionCategory)
-    if (page) {
-      const featureWithIntervention = {
-        ...feature,
-        retentionCategory
-      }
-      const viewModel = page.buildViewModel(featureWithIntervention, {
-        projectId,
-        projectName,
-        baselineFeatureId: resolveBaselineFeatureId(project, feature.ref)
-      })
-      return h.view(page.template, {
-        ...viewModel,
-        backHref: postInterventionBackHref(projectId, type, returnUrl)
-      })
-    } else {
-      // Trees, IGGIs and any new feature type without a view-only page.
-      return renderUnsupportedFeature(h, {
-        projectId,
-        projectName,
-        type,
-        returnUrl
-      })
-    }
+    return renderDetailsPage(request, h, { projectId, featureId, returnUrl })
   }
 }
 
-// Every PI details page is read-only, so nothing renders a form that posts
-// here any more. The route stays registered and answers 501 so a stale page
-// or client gets an explicit "not implemented" rather than a 404.
+// Saves the reference of a Retained area habitat, hedgerow or watercourse
+// (BMD-1180) — the one thing editable on those pages. Nothing else on a
+// post-intervention details page posts here.
 const postController = {
-  handler() {
-    throw Boom.notImplemented(
-      'Saving post-intervention habitat details is not implemented'
-    )
+  options: {
+    validate: {
+      payload: Joi.object({
+        projectId: Joi.string().uuid().required(),
+        featureId: Joi.string().uuid().required(),
+        ref: Joi.string().allow('').required(),
+        returnUrl: Joi.string().allow('').optional(),
+        crumb: Joi.string().optional()
+      })
+    }
+  },
+  async handler(request, h) {
+    const { projectId, featureId, ref, returnUrl } = request.payload
+
+    if (!isValidHabitatRef(ref)) {
+      const response = await renderDetailsPage(request, h, {
+        projectId,
+        featureId,
+        returnUrl,
+        submittedRef: ref
+      })
+      return response.code(statusCodes.badRequest)
+    }
+
+    const { type } = await saveRetainedRef(request, {
+      projectId,
+      featureId,
+      ref
+    })
+    return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
   }
 }
 

@@ -29,7 +29,11 @@ describe('buildHedgerowViewOnlyViewModel', () => {
     })
 
     expect(vm).toMatchObject({
-      heading: 'Post-intervention habitat details',
+      // Parcel ref as the H1; the page name becomes the section heading.
+      heading: 'HG-2',
+      pageTitle: 'HG-2',
+      habitatDetailsSectionHeading: 'Post-intervention habitat details',
+      habitatUnitsLabel: 'Habitat units delivered',
       caption: 'Test Project',
       habitatRef: 'HG-2',
       interventionDisplay: 'Retained',
@@ -79,6 +83,18 @@ describe('buildHedgerowViewOnlyViewModel', () => {
       habitatUnitsDisplay: '',
       // no matching baseline feature -> link is omitted
       viewBaselineHref: null
+    })
+  })
+
+  it('falls back to the page name when the hedgerow has no ref', () => {
+    const vm = buildHedgerowViewOnlyViewModel(
+      { proposed: {} },
+      { projectId, projectName: 'Test Project', baselineFeatureId: null }
+    )
+
+    expect(vm).toMatchObject({
+      heading: '',
+      pageTitle: 'Post-intervention habitat details'
     })
   })
 })

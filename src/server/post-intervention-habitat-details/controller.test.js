@@ -20,7 +20,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
   }
 }))
 
-const { getController, postController } = await import('./controller.js')
+const { getController } = await import('./controller.js')
 
 describe('#postInterventionHabitatDetailsController', () => {
   afterEach(() => {
@@ -63,8 +63,10 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-habitat-details',
       expect.objectContaining({
-        // Parcel ref as the H1; the page name becomes the section heading.
-        heading: 'P-1',
+        // "Habitat" and the saved ref as the H1 (BMD-1180); the page name
+        // becomes the section heading.
+        heading: 'Habitat P-1',
+        pageTitle: 'Habitat P-1',
         habitatDetailsSectionHeading: 'Post-intervention habitat details',
         habitatUnitsLabel: 'Habitat units delivered',
         caption: 'Test Project',
@@ -79,11 +81,22 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '2.50',
         // Baseline feature resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/area-post-intervention`
+        backHref: `/projects/${projectId}/area-post-intervention`,
+        // Retained, so the reference is editable (BMD-1180).
+        errors: [],
+        refForm: {
+          action: '/post-intervention-habitat-details',
+          projectId,
+          featureId,
+          returnUrl: '',
+          fieldId: 'ref',
+          value: 'P-1',
+          error: undefined,
+          maxLength: 100,
+          cancelHref: `/projects/${projectId}/area-post-intervention`
+        }
       })
     )
-    // View-only: no form action is passed to the template.
-    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
   test('GET omits the baseline link when no baseline feature shares the ref', async () => {
@@ -289,7 +302,10 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-hedgerow-details',
       expect.objectContaining({
-        heading: 'Post-intervention habitat details',
+        // "Hedgerow" and the saved ref as the H1 (BMD-1180).
+        heading: 'Hedgerow HG-2',
+        habitatDetailsSectionHeading: 'Post-intervention habitat details',
+        habitatUnitsLabel: 'Habitat units delivered',
         habitatRef: 'HG-2',
         interventionDisplay: 'Retained',
         sizeDisplay: '0.336',
@@ -300,11 +316,13 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '4.25',
         // Baseline hedgerow resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/hedgerows-post-intervention`
+        backHref: `/projects/${projectId}/hedgerows-post-intervention`,
+        refForm: expect.objectContaining({
+          value: 'HG-2',
+          cancelHref: `/projects/${projectId}/hedgerows-post-intervention`
+        })
       })
     )
-    // View-only: no form action is passed to the template.
-    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
   test('GET links to the baseline hedgerow when the baseline was saved before refs were cleaned (BMD-1058)', async () => {
@@ -396,8 +414,9 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-watercourse-details',
       expect.objectContaining({
-        // Parcel ref as the H1; the page name becomes the section heading.
-        heading: 'W-1',
+        // "Watercourse" and the saved ref as the H1 (BMD-1180); the page
+        // name becomes the section heading.
+        heading: 'Watercourse W-1',
         habitatDetailsSectionHeading: 'Post-intervention habitat details',
         habitatUnitsLabel: 'Habitat units delivered',
         habitatRef: 'W-1',
@@ -412,11 +431,13 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '6.50',
         // Baseline watercourse resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/watercourses-post-intervention`
+        backHref: `/projects/${projectId}/watercourses-post-intervention`,
+        refForm: expect.objectContaining({
+          value: 'W-1',
+          cancelHref: `/projects/${projectId}/watercourses-post-intervention`
+        })
       })
     )
-    // View-only: no form action is passed to the template.
-    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
   test('GET shows the unsupported-feature message for an unrecognised feature type', async () => {
@@ -531,18 +552,5 @@ describe('#postInterventionHabitatDetailsController', () => {
       'habitat-details/pi-watercourse-details-created',
       expect.objectContaining({ interventionDisplay: 'Created' })
     )
-  })
-
-  test('POST responds 501 Not Implemented', () => {
-    // The PI details pages are read-only and render no form; the save route
-    // answers 501 so a stale page or client gets an explicit refusal.
-    let error
-    try {
-      postController.handler()
-    } catch (err) {
-      error = err
-    }
-    expect(error.isBoom).toBe(true)
-    expect(error.output.statusCode).toBe(501)
   })
 })

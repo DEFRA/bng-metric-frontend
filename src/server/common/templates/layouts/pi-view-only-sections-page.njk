@@ -1,7 +1,7 @@
 {% extends 'layouts/page.njk' %}
 
-{# Shared chrome for multi-section read-only post-intervention details pages
-   (Enhanced area now; hedgerows/watercourses later).
+{# Shared chrome for the stacked post-intervention details pages: Retained,
+   Created and Enhanced area habitats, hedgerows and watercourses.
 
    Fields are stacked: bold label on one line, value on the next — not a
    two-column summary list. No separators between fields. Only the units
@@ -10,9 +10,18 @@
 
    Each child template sets `sections` — an array of
    { heading, rows: [{ label, value }], showBaselineLink? } — plus
-   habitatUnitsLabel and habitatUnitsDisplay. #}
+   habitatUnitsLabel and habitatUnitsDisplay.
+
+   Every value is read-only, except on a Retained habitat, whose view model
+   carries `refForm` (BMD-1180): the page is then a form, with the "Habitat
+   reference" input first in the first section and Save / Cancel below the
+   units. A refused save sets `errors` for the error summary and
+   `refForm.error` for the inline message. #}
 
 {% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 
 {% block beforeContent %}
@@ -24,45 +33,91 @@
 {% endblock %}
 
 {% block content %}
+  {% if errors | length %}
+    {{ govukErrorSummary({
+      titleText: "There is a problem",
+      errorList: errors
+    }) }}
+  {% endif %}
+
   {{ appHeading({
     text: heading,
     caption: caption
   }) }}
 
+  {% set details %}
+    {% for section in sections %}
+      <h2 class="govuk-heading-m">{{ section.heading }}</h2>
+
+      <div class="app-stacked-fields">
+        {% if loop.first and refForm %}
+          {{ govukInput({
+            id: refForm.fieldId,
+            name: refForm.fieldId,
+            label: { text: "Habitat reference", classes: "govuk-label--s" },
+            value: refForm.value,
+            classes: "govuk-input--width-20",
+            spellcheck: false,
+            attributes: { maxlength: refForm.maxLength },
+            errorMessage: refForm.error,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+        {% endif %}
+
+        {% for row in section.rows %}
+          <div class="app-stacked-fields__item">
+            {# govuk-heading-s keeps GDS Transport (same as summary-list keys) #}
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ row.label }}</h3>
+            <p class="govuk-body">{{ row.value }}</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# Below Strategic significance (end of first section), before Time to target #}
+      {% if loop.first and viewBaselineHref %}
+        <p class="govuk-body">
+          <a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a>
+        </p>
+      {% endif %}
+    {% endfor %}
+
+    {# Two-column label | value with top/bottom lines — matches the design
+       image for Habitat units delivered only. #}
+    {{ govukSummaryList({
+      classes: "app-units-delivered govuk-!-margin-top-6",
+      rows: [
+        {
+          key: { text: habitatUnitsLabel },
+          value: { text: habitatUnitsDisplay }
+        }
+      ]
+    }) }}
+  {% endset %}
+
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      {% for section in sections %}
-        <h2 class="govuk-heading-m">{{ section.heading }}</h2>
+      {% if refForm %}
+        {% call appForm({
+          action: refForm.action,
+          id: "habitat-details-form"
+        }) %}
+          <input type="hidden" name="projectId" value="{{ refForm.projectId }}">
+          <input type="hidden" name="featureId" value="{{ refForm.featureId }}">
+          <input type="hidden" name="returnUrl" value="{{ refForm.returnUrl }}">
 
-        <div class="app-stacked-fields">
-          {% for row in section.rows %}
-            <div class="app-stacked-fields__item">
-              {# govuk-heading-s keeps GDS Transport (same as summary-list keys) #}
-              <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ row.label }}</h3>
-              <p class="govuk-body">{{ row.value }}</p>
-            </div>
-          {% endfor %}
-        </div>
+          {{ details | safe }}
 
-        {# Below Strategic significance (end of first section), before Time to target #}
-        {% if loop.first and viewBaselineHref %}
-          <p class="govuk-body">
-            <a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a>
-          </p>
-        {% endif %}
-      {% endfor %}
+          <div class="govuk-button-group">
+            {{ govukButton({
+              text: "Save"
+            }) }}
 
-      {# Two-column label | value with top/bottom lines — matches the design
-         image for Habitat units delivered only. #}
-      {{ govukSummaryList({
-        classes: "app-units-delivered govuk-!-margin-top-6",
-        rows: [
-          {
-            key: { text: habitatUnitsLabel },
-            value: { text: habitatUnitsDisplay }
-          }
-        ]
-      }) }}
+            <a class="govuk-link" href="{{ refForm.cancelHref }}">Cancel</a>
+          </div>
+        {% endcall %}
+      {% else %}
+        {{ details | safe }}
+      {% endif %}
     </div>
   </div>
 {% endblock %}
