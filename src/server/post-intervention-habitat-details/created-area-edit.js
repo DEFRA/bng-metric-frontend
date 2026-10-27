@@ -212,16 +212,7 @@ function createdAreaFields(reference, values, type, initialLoad) {
   }))
 }
 
-export function buildCreatedAreaEditViewModel(
-  feature,
-  reference,
-  ctx,
-  values = null,
-  errors = {}
-) {
-  const base = buildCreatedAreaViewOnlyViewModel(feature, ctx)
-  const initialLoad = values === null
-  values ??= createdAreaValues(feature)
+function createdAreaDisplayFields(feature, reference, values, base) {
   const baseline = stripConditionPrefix(feature.baseline?.condition)
   const baselineCondition = typeof baseline === 'string' ? baseline : ''
   const originalDerived = createdAreaDerived(
@@ -239,7 +230,54 @@ export function buildCreatedAreaEditViewModel(
       derived[field] = base[field]
     }
   }
-  const type = selectedHabitat(reference, values)
+  return { baselineCondition, ...derived }
+}
+
+function editFieldsWithImportHints(feature, reference, values) {
+  const originalValues = createdAreaValues(feature)
+  const originalFields = createdAreaFields(
+    reference,
+    originalValues,
+    selectedHabitat(reference, originalValues),
+    true
+  )
+  const fields = createdAreaFields(
+    reference,
+    values,
+    selectedHabitat(reference, values),
+    false
+  )
+  return fields.map((field, index) => {
+    const importedValue = originalValues[field.id]
+    const pendingClear =
+      importedValue && (!values[field.id] || values[field.id] === importedValue)
+    const importedField = originalFields[index]
+    const unavailable = !importedField.items.some(
+      (item) => item.value === importedValue
+    )
+    return {
+      ...field,
+      hint: pendingClear && unavailable ? importedField.hint : field.hint
+    }
+  })
+}
+
+export function buildCreatedAreaEditViewModel(
+  feature,
+  reference,
+  ctx,
+  values = null,
+  errors = {}
+) {
+  const base = buildCreatedAreaViewOnlyViewModel(feature, ctx)
+  const initialLoad = values === null
+  values ??= createdAreaValues(feature)
+  const { baselineCondition, ...derived } = createdAreaDisplayFields(
+    feature,
+    reference,
+    values,
+    base
+  )
   const backHref = postInterventionBackHref(
     ctx.projectId,
     'habitat',
@@ -266,7 +304,7 @@ export function buildCreatedAreaEditViewModel(
       text: ERROR_SUMMARY_TEXT[field] ?? errors[field],
       href: `#${field}`
     })),
-    fields: createdAreaFields(reference, values, type, initialLoad),
+    fields: editFieldsWithImportHints(feature, reference, values),
     referenceJson: JSON.stringify(reference).replaceAll(
       '<',
       String.raw`\u003c`

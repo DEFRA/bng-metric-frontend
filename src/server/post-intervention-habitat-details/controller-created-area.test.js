@@ -349,6 +349,47 @@ describe('Created area controller', () => {
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
+  test('keeps warnings for original unavailable import values after a validation error', async () => {
+    mockFeature({
+      type: 'habitat',
+      feature: {
+        ...structuredClone(createdAreaFeature),
+        proposed: {
+          ...createdAreaFeature.proposed,
+          condition: 'Fairly Poor',
+          advanceYears: 2.5
+        }
+      }
+    })
+    const h = createMockH()
+    // Unavailable imported select values submit the rendered empty option.
+    await postController.handler(
+      request({ ref: ' ', condition: '', advanceYears: '' }),
+      h
+    )
+    const fields = h.view.mock.calls[0][1].fields
+    expect(fields.find((field) => field.id === 'condition').hint).toContain(
+      '"Fairly Poor" is not available'
+    )
+    expect(fields.find((field) => field.id === 'advanceYears').hint).toContain(
+      '"2.5" is not available'
+    )
+    expect(fields.find((field) => field.id === 'condition').hint).toContain(
+      'saving without a new selection will clear this value'
+    )
+
+    await postController.handler(
+      request({ ref: ' ', condition: 'Good', advanceYears: '0' }),
+      h
+    )
+    expect(
+      h.view.mock.calls[1][1].fields.every(
+        (field) => !field.hint?.includes('imported value')
+      )
+    ).toBe(true)
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
   test('surfaces concurrent edit errors', async () => {
     vi.mocked(wreck.put).mockRejectedValue(Boom.conflict())
     await expect(
