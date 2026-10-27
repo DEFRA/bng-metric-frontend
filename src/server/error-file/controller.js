@@ -90,6 +90,16 @@ function describeDistinctivenessOffender(s) {
   return `${base} — ${type} (${displayBand(s?.distinctiveness)})`
 }
 
+// BMD-1182: the baseline habitat that cannot be enhanced, in the condition
+// that makes it so.
+function describeUnenhanceableBaseline(s) {
+  const base = describeFeature(s)
+  const type = s?.habitat_type ?? 'unknown habitat'
+  return s?.condition
+    ? `${base} — ${type} (${s.condition})`
+    : `${base} — ${type}`
+}
+
 function buildItems(err) {
   if (COLLATED_ERROR_HEADINGS[err.code]) {
     return []
@@ -122,6 +132,9 @@ function buildItems(err) {
   }
   if (err.code === 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE') {
     return sample.map(describeDistinctivenessOffender)
+  }
+  if (err.code === 'BASELINE_NOT_ENHANCEABLE') {
+    return sample.map(describeUnenhanceableBaseline)
   }
   return sample.map(describeFeature)
 }
