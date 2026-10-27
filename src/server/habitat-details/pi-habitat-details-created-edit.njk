@@ -50,6 +50,7 @@
       {% call appForm({ action: formAction, id: "created-area-details-form" }) %}
         <input type="hidden" name="projectId" value="{{ projectId }}">
         <input type="hidden" name="featureId" value="{{ featureId }}">
+        <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
         <script type="application/json" id="created-area-reference-data">{{ referenceJson | safe }}</script>
         <h2 class="govuk-heading-m">{{ habitatDetailsSectionHeading }}</h2>
         {{ govukInput({
@@ -58,6 +59,9 @@
           label: { text: "Habitat reference", classes: "govuk-label--s" },
           errorMessage: { text: errors.ref } if errors.ref else null
         }) }}
+        {% if viewBaselineHref %}
+          <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
+        {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
         {{ derived("Size (hectares)", "sizeDisplay", sizeDisplay) }}
         {{ select(fields[0]) }}
@@ -81,6 +85,7 @@
             {{ select(fields[5], true) }}
           {% endcall %}
         </div>
+        <p class="govuk-visually-hidden" id="created-area-results-status" role="status" aria-live="polite" aria-atomic="true"></p>
         {{ derived("Final time to target condition (multiplier)", "finalTimeToTargetDisplay", finalTimeToTargetDisplay) }}
         {{ derived("Applied difficulty multiplier", "appliedDifficultyMultiplierDisplay", appliedDifficultyMultiplierDisplay) }}
         {{ govukSummaryList({ classes: "app-units-delivered app-pi-edit-units govuk-!-margin-top-6", rows: [

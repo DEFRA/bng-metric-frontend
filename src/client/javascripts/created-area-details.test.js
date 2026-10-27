@@ -60,6 +60,48 @@ describe('Created area editing', () => {
     )
   })
 
+  test('announces changed calculation labels politely without moving focus', () => {
+    const status = document.getElementById('created-area-results-status')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.getAttribute('aria-atomic')).toBe('true')
+    expect(status.textContent).toBe('')
+    document.getElementById('advanceYears').focus()
+    change('advanceYears', '2')
+    expect(status.textContent).toContain(
+      'Final time to target condition (multiplier): 5 years'
+    )
+    expect(document.activeElement.id).toBe('advanceYears')
+    change('condition', '')
+    expect(status.textContent).toContain(
+      'Final time to target condition (multiplier): Not available'
+    )
+  })
+
+  test('renders the matching baseline link and preserves the list anchor in the form', () => {
+    const returnUrl = `/projects/${ctx.projectId}/area-post-intervention#created`
+    renderTemplateIntoDocument(
+      'habitat-details/pi-habitat-details-created-edit.njk',
+      {
+        ...buildCreatedAreaEditViewModel(
+          createdAreaFeature,
+          creationReference,
+          { ...ctx, baselineFeatureId: 'baseline-1', returnUrl }
+        ),
+        crumb: 'test-token'
+      }
+    )
+    const baseline = [...document.querySelectorAll('a')].find(
+      (a) => a.textContent === 'View baseline details'
+    )
+    expect(baseline.getAttribute('href')).toContain('featureId=baseline-1')
+    expect(document.querySelector('input[name=returnUrl]').value).toBe(
+      returnUrl
+    )
+    expect(
+      document.querySelector('.govuk-back-link').getAttribute('href')
+    ).toBe(returnUrl)
+  })
+
   test('broad change resets type and condition but preserves independent choices', () => {
     change('broadHabitat', 'Urban')
     expect(value('habitatType')).toBe('')

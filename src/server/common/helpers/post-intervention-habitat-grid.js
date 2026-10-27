@@ -87,7 +87,7 @@ function parseYears(value) {
 }
 
 function formatYears(value) {
-  if (value === OVER_MAX_YEARS) {
+  if (value === OVER_MAX_YEARS || value === OVER_MAX_YEARS_DISPLAY) {
     return yearsPhrase(OVER_MAX_YEARS_DISPLAY)
   }
   const years = parseYears(value)

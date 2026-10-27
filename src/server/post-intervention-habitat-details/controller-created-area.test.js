@@ -3,6 +3,8 @@ import { wreck } from '../common/helpers/wreck-client.js'
 import { createServer } from '../server.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
 import {
+  baselineFeatureId,
+  projectWithBaselinePayload,
   createMockH,
   featureId,
   mockFeature,
@@ -56,6 +58,61 @@ describe('Created area controller', () => {
       })
     )
     expect(wreck.put).not.toHaveBeenCalled()
+  })
+
+  test('keeps the baseline link and safe list anchor on GET and validation redisplay', async () => {
+    mockFeature(
+      { type: 'habitat', feature: structuredClone(createdAreaFeature) },
+      projectWithBaselinePayload
+    )
+    const returnUrl = `/projects/${projectId}/area-post-intervention#created`
+    const h = createMockH()
+    await getController.handler(
+      { query: { projectId, featureId, returnUrl } },
+      h
+    )
+    await postController.handler(request({ returnUrl, ref: ' ' }), h)
+    for (const [, vm] of h.view.mock.calls) {
+      expect(vm).toMatchObject({
+        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
+        backHref: returnUrl,
+        cancelHref: returnUrl,
+        returnUrl
+      })
+    }
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
+  test.each([
+    [
+      `/projects/${projectId}/area-post-intervention#created`,
+      `/projects/${projectId}/area-post-intervention#created`
+    ],
+    ['https://evil.example', `/projects/${projectId}/area-post-intervention`],
+    ['//evil.example', `/projects/${projectId}/area-post-intervention`],
+    [
+      `/projects/${projectId}/hedgerow-post-intervention`,
+      `/projects/${projectId}/area-post-intervention`
+    ]
+  ])('saves to the validated return URL %s', async (returnUrl, expected) => {
+    const h = createMockH()
+    await postController.handler(request({ returnUrl }), h)
+    expect(h.redirect).toHaveBeenCalledWith(expected)
+  })
+
+  test('rejects a reference over the Unicode character limit without saving', async () => {
+    const h = createMockH()
+    await postController.handler(request({ ref: 'x'.repeat(101) }), h)
+    expect(wreck.put).not.toHaveBeenCalled()
+    expect(h.view.mock.calls[0][1].errors.ref).toContain(
+      '100 characters or fewer'
+    )
+    expect(
+      validateCreatedArea(
+        { ...values, ref: '\u{1F33F}'.repeat(100) },
+        creationReference
+      )
+    ).toEqual({})
   })
 
   test('saves all editable values and redirects to the area list', async () => {

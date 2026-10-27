@@ -6,9 +6,7 @@ import {
   fetchProject
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
-import { isSafeRelativePath } from '../common/helpers/upload-file-navigation.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
-import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import {
@@ -18,8 +16,8 @@ import {
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
-import { PI_DETAILS_HEADING } from './constants.js'
-import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
+import { PI_DETAILS_HEADING, MAX_REF_LENGTH } from './constants.js'
+import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
@@ -40,20 +38,13 @@ const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const WATERCOURSE_TYPE = 'watercourse'
 
-// Created/Enhanced area habitats use a two-section layout keyed by retention.
+// Enhanced areas use the view-only layout; Created areas use the edit page.
 const AREA_RETENTION_PAGES = new Map([
   [
     RETENTION_ENHANCED,
     {
       template: 'habitat-details/pi-habitat-details-enhanced',
       buildViewModel: buildEnhancedAreaViewOnlyViewModel
-    }
-  ],
-  [
-    RETENTION_CREATED,
-    {
-      template: 'habitat-details/pi-habitat-details-created',
-      buildViewModel: buildCreatedAreaViewOnlyViewModel
     }
   ]
 ])
@@ -138,9 +129,6 @@ const UNSUPPORTED_MESSAGE =
 
 const DEFAULT_PROJECT_NAME = 'Project'
 
-// The backend's MAX_HABITAT_REF_LENGTH (validation/geopackage/habitat-ref-check.js).
-const MAX_REF_LENGTH = 100
-
 /**
  * A ref as the backend stores it since BMD-1058: as text, trimmed, cut to
  * MAX_REF_LENGTH characters and trimmed again (the backend's
@@ -193,18 +181,6 @@ function resolveViewOnlyPage(type, retentionCategory) {
   return retentionPage ?? VIEW_ONLY_PAGES.get(type)
 }
 
-function postInterventionBackHref(projectId, type, returnUrl) {
-  const destination = habitatDetailsDestination(
-    projectId,
-    type,
-    'postIntervention'
-  )
-  return isSafeRelativePath(returnUrl) &&
-    (returnUrl === destination || returnUrl.startsWith(`${destination}#`))
-    ? returnUrl
-    : destination
-}
-
 function renderUnsupportedFeature(
   h,
   { projectId, projectName, type, returnUrl }
@@ -247,7 +223,9 @@ const getController = {
         'habitat-details/pi-habitat-details-created-edit',
         buildCreatedAreaEditViewModel(feature, reference, {
           projectId,
-          projectName
+          projectName,
+          baselineFeatureId: resolveBaselineFeatureId(project, feature.ref),
+          returnUrl
         })
       )
     }
@@ -283,7 +261,7 @@ const postController = {
     validate: { payload: createdAreaPayloadSchema }
   },
   async handler(request, h) {
-    const { projectId, featureId, ...values } = request.payload
+    const { projectId, featureId, returnUrl, ...values } = request.payload
     const { type, feature } = await fetchFeature(
       request,
       uploadType,
@@ -310,7 +288,9 @@ const postController = {
           reference,
           {
             projectId,
-            projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME
+            projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
+            baselineFeatureId: resolveBaselineFeatureId(project, feature.ref),
+            returnUrl
           },
           values,
           errors
@@ -319,7 +299,7 @@ const postController = {
     }
     await saveCreatedArea(request, values)
     return h.redirect(
-      habitatDetailsDestination(projectId, AREA_HABITAT_TYPE, uploadType.key)
+      postInterventionBackHref(projectId, AREA_HABITAT_TYPE, returnUrl)
     )
   }
 }

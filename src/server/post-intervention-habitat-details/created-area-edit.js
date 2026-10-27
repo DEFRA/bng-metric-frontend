@@ -12,6 +12,8 @@ import { wreck } from '../common/helpers/wreck-client.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
+import { MAX_REF_LENGTH } from './constants.js'
+import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
@@ -34,6 +36,7 @@ export const createdAreaPayloadSchema = Joi.object({
   delayYears: Joi.string()
     .valid('', ...YEAR_OPTIONS)
     .required(),
+  returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
 })
 
@@ -62,15 +65,17 @@ export function createdAreaValues(feature) {
   }
 }
 
+function validateReference(ref, errors) {
+  if (!ref.trim() || !ref.isWellFormed() || ref.includes('\uFFFD')) {
+    errors.ref = 'Enter a valid habitat reference.'
+  } else if (Array.from(ref.trim()).length > MAX_REF_LENGTH) {
+    errors.ref = `Enter a habitat reference of ${MAX_REF_LENGTH} characters or fewer.`
+  }
+}
+
 export function validateCreatedArea(values, reference) {
   const errors = {}
-  if (
-    !values.ref.trim() ||
-    !values.ref.isWellFormed() ||
-    values.ref.includes('\uFFFD')
-  ) {
-    errors.ref = 'Enter a valid habitat reference.'
-  }
+  validateReference(values.ref, errors)
   if (
     Number.parseInt(values.advanceYears) > 0 &&
     Number.parseInt(values.delayYears) > 0
@@ -110,27 +115,8 @@ function selectItems(options, value, label) {
   ]
 }
 
-export function buildCreatedAreaEditViewModel(
-  feature,
-  reference,
-  ctx,
-  values = null,
-  errors = {}
-) {
-  const base = buildCreatedAreaViewOnlyViewModel(feature, ctx)
-  const initialLoad = values === null
-  values ??= createdAreaValues(feature)
-  const derived = createdAreaDerived(reference, values)
-  if (initialLoad) {
-    for (const field of Object.keys(derived)) {
-      if (derived[field] && base[field]) {
-        derived[field] = base[field]
-      }
-    }
-  }
-  const type = selectedHabitat(reference, values)
+function createdAreaFields(reference, values, type) {
   const options = (list) => list.map((value) => ({ value, text: value }))
-  const backHref = `/projects/${ctx.projectId}/area-post-intervention`
   const fields = [
     [
       'broadHabitat',
@@ -171,6 +157,45 @@ export function buildCreatedAreaEditViewModel(
     condition: 'target condition',
     strategicSignificance: 'strategic significance'
   }
+  return fields.map(([id, label, items]) => ({
+    id,
+    label,
+    hint:
+      id === 'strategicSignificance'
+        ? "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
+        : null,
+    items: selectItems(
+      items,
+      values[id],
+      placeholders[id] ?? label.toLowerCase()
+    )
+  }))
+}
+
+export function buildCreatedAreaEditViewModel(
+  feature,
+  reference,
+  ctx,
+  values = null,
+  errors = {}
+) {
+  const base = buildCreatedAreaViewOnlyViewModel(feature, ctx)
+  const initialLoad = values === null
+  values ??= createdAreaValues(feature)
+  const derived = createdAreaDerived(reference, values)
+  if (initialLoad) {
+    for (const field of Object.keys(derived)) {
+      if (derived[field] && base[field]) {
+        derived[field] = base[field]
+      }
+    }
+  }
+  const type = selectedHabitat(reference, values)
+  const backHref = postInterventionBackHref(
+    ctx.projectId,
+    'habitat',
+    ctx.returnUrl
+  )
   return {
     ...base,
     ...derived,
@@ -186,33 +211,21 @@ export function buildCreatedAreaEditViewModel(
         text: ERROR_SUMMARY_TEXT[field] ?? text,
         href: `#${field}`
       })),
-    fields: fields.map(([id, label, items]) => ({
-      id,
-      label,
-      hint:
-        id === 'strategicSignificance'
-          ? "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
-          : null,
-      items: selectItems(
-        items,
-        values[id],
-        placeholders[id] ?? label.toLowerCase()
-      )
-    })),
+    fields: createdAreaFields(reference, values, type),
     referenceJson: JSON.stringify(reference).replaceAll('<', '\\u003c'),
     formAction: '/post-intervention-habitat-details',
     backHref,
     cancelHref: backHref,
+    returnUrl: backHref,
     uploadHref: uploadFileHref(
       ctx.projectId,
-      `/post-intervention-habitat-details?${new URLSearchParams({ projectId: ctx.projectId, featureId: feature.featureId })}`
+      `/post-intervention-habitat-details?${new URLSearchParams({ projectId: ctx.projectId, featureId: feature.featureId, returnUrl: backHref })}`
     )
   }
 }
 
-export async function saveCreatedArea(request, values) {
-  const { projectId, featureId } = request.payload
-  const body = {
+function createdAreaSavePayload(values) {
+  return {
     ref: values.ref.trim(),
     broadType: values.broadHabitat || null,
     habitatType: values.habitatType || null,
@@ -221,6 +234,10 @@ export async function saveCreatedArea(request, values) {
     advanceYears: values.advanceYears === '' ? null : values.advanceYears,
     delayYears: values.delayYears === '' ? null : values.delayYears
   }
+}
+
+export async function saveCreatedArea(request, values) {
+  const { projectId, featureId } = request.payload
   try {
     const { res } = await backendRequest(
       request,
@@ -228,7 +245,7 @@ export async function saveCreatedArea(request, values) {
       `${backendUrl}/projects/${projectId}/post-intervention/habitats/${featureId}`,
       {
         headers: { 'Content-Type': 'application/json' },
-        payload: JSON.stringify(body)
+        payload: JSON.stringify(createdAreaSavePayload(values))
       }
     )
     if (res.statusCode >= 400) {

@@ -18,7 +18,14 @@ export function createdAreaDerived(reference, values) {
   const condition = type?.conditions.find(
     (c) => c.condition === values.condition
   )
-  const result = {
+  return {
+    ...standardFields(type, condition),
+    finalTimeToTargetDisplay: finalTimeDisplay(reference, condition, values)
+  }
+}
+
+function standardFields(type, condition) {
+  return {
     distinctivenessDisplay: type
       ? `${type.distinctiveness} (${type.distinctivenessScore})`
       : '',
@@ -28,9 +35,11 @@ export function createdAreaDerived(reference, values) {
     ),
     standardTimeToTargetDisplay: condition
       ? `${condition.condition} - ${condition.years} years`
-      : '',
-    finalTimeToTargetDisplay: ''
+      : ''
   }
+}
+
+function finalTimeDisplay(reference, condition, values) {
   const { advanceYears, delayYears } = values
   if (
     !condition ||
@@ -38,7 +47,7 @@ export function createdAreaDerived(reference, values) {
     !YEAR_OPTIONS.includes(delayYears) ||
     (Number.parseInt(advanceYears) > 0 && Number.parseInt(delayYears) > 0)
   ) {
-    return result
+    return ''
   }
   // The metric engine accepts 30+ as a legacy alias for 30 input years.
   const years = (value) =>
@@ -54,7 +63,7 @@ export function createdAreaDerived(reference, values) {
       : String(finalYears)
   const multiplier = reference.timeMultipliers[key]
   if (typeof multiplier === 'number') {
-    result.finalTimeToTargetDisplay = `${key} years (${multiplier})`
+    return `${key} years (${multiplier})`
   }
-  return result
+  return ''
 }

@@ -3,6 +3,14 @@ import {
   selectedHabitat
 } from '../../shared/created-area-details.js'
 
+const DERIVED_LABELS = {
+  distinctivenessDisplay: 'Distinctiveness (multiplier)',
+  standardTimeToTargetDisplay: 'Standard time to target condition',
+  standardDifficultyDisplay: 'Standard difficulty',
+  finalTimeToTargetDisplay: 'Final time to target condition (multiplier)',
+  appliedDifficultyMultiplierDisplay: 'Applied difficulty multiplier'
+}
+
 export function initCreatedAreaDetails() {
   const dataElement = document.getElementById('created-area-reference-data')
   if (!dataElement) {
@@ -12,10 +20,19 @@ export function initCreatedAreaDetails() {
   const form = document.getElementById('created-area-details-form')
   const values = () => Object.fromEntries(new FormData(form))
   const updateDerived = () => {
+    const changed = []
     for (const [id, value] of Object.entries(
       createdAreaDerived(reference, values())
     )) {
-      document.getElementById(id).textContent = value
+      const element = document.getElementById(id)
+      if (element.textContent !== value) {
+        element.textContent = value
+        changed.push(`${DERIVED_LABELS[id]}: ${value || 'Not available'}.`)
+      }
+    }
+    if (changed.length) {
+      document.getElementById('created-area-results-status').textContent =
+        changed.join(' ')
     }
   }
   const reset = (id, label, options = []) => {
