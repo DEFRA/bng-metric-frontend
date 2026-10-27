@@ -100,6 +100,23 @@ function describeUnenhanceableBaseline(s) {
     : `${base} — ${type}`
 }
 
+function describeFeatureWithReason(s) {
+  const base = describeFeature(s)
+  return s?.reason ? `${base} (${s.reason})` : base
+}
+
+// How each error's offenders are listed, by error code; any other code lists
+// each offender by its ref.
+const SAMPLE_DESCRIBERS = {
+  PARCEL_OVERLAPS: describeOverlapPair,
+  SLIVERS_OUTSIDE_REDLINE: describeSliver,
+  AREA_PARCELS_TOO_SMALL: describeFeatureWithArea,
+  AREA_PARCELS_INVALID_GEOMETRY: describeFeatureWithReason,
+  AREA_PARCELS_OUTSIDE_REDLINE: describeFeatureWithEscape,
+  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: describeDistinctivenessOffender,
+  BASELINE_NOT_ENHANCEABLE: describeUnenhanceableBaseline
+}
+
 function buildItems(err) {
   if (COLLATED_ERROR_HEADINGS[err.code]) {
     return []
@@ -111,32 +128,8 @@ function buildItems(err) {
     const idx = err.message.indexOf(': ')
     return idx === -1 ? [] : [err.message.slice(idx + 2)]
   }
-  const sample = err.details.sample
-  if (err.code === 'PARCEL_OVERLAPS') {
-    return sample.map(describeOverlapPair)
-  }
-  if (err.code === 'SLIVERS_OUTSIDE_REDLINE') {
-    return sample.map(describeSliver)
-  }
-  if (err.code === 'AREA_PARCELS_TOO_SMALL') {
-    return sample.map(describeFeatureWithArea)
-  }
-  if (err.code === 'AREA_PARCELS_INVALID_GEOMETRY') {
-    return sample.map((s) => {
-      const base = describeFeature(s)
-      return s?.reason ? `${base} (${s.reason})` : base
-    })
-  }
-  if (err.code === 'AREA_PARCELS_OUTSIDE_REDLINE') {
-    return sample.map(describeFeatureWithEscape)
-  }
-  if (err.code === 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE') {
-    return sample.map(describeDistinctivenessOffender)
-  }
-  if (err.code === 'BASELINE_NOT_ENHANCEABLE') {
-    return sample.map(describeUnenhanceableBaseline)
-  }
-  return sample.map(describeFeature)
+  const describe = SAMPLE_DESCRIBERS[err.code] ?? describeFeature
+  return err.details.sample.map(describe)
 }
 
 function buildHeading(err) {
