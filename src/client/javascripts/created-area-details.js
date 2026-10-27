@@ -19,17 +19,18 @@ export function initCreatedAreaDetails() {
   const reference = JSON.parse(dataElement.textContent)
   const form = document.getElementById('created-area-details-form')
   const values = () => Object.fromEntries(new FormData(form))
+  let previousDerived = createdAreaDerived(reference, values())
   const updateDerived = () => {
     const changed = []
-    for (const [id, value] of Object.entries(
-      createdAreaDerived(reference, values())
-    )) {
+    const nextDerived = createdAreaDerived(reference, values())
+    for (const [id, value] of Object.entries(nextDerived)) {
       const element = document.getElementById(id)
-      if (element.textContent !== value) {
+      if (previousDerived[id] !== value) {
         element.textContent = value
         changed.push(`${DERIVED_LABELS[id]}: ${value || 'Not available'}.`)
       }
     }
+    previousDerived = nextDerived
     if (changed.length) {
       document.getElementById('created-area-results-status').textContent =
         changed.join(' ')

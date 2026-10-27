@@ -77,6 +77,51 @@ describe('Created area editing', () => {
     )
   })
 
+  test('preserves stored calculation formatting and announces only changed calculations', () => {
+    const imported = {
+      ...createdAreaFeature,
+      baseline: { condition: 'Poor' },
+      proposed: {
+        ...createdAreaFeature.proposed,
+        standardTimeToTargetCondition: '7',
+        finalTimeToTargetCondition: 'Saved final time label',
+        difficultyMultiplier: 0.5
+      }
+    }
+    renderTemplateIntoDocument(
+      'habitat-details/pi-habitat-details-created-edit.njk',
+      {
+        ...buildCreatedAreaEditViewModel(imported, creationReference, ctx),
+        crumb: 'test-token'
+      }
+    )
+    const initialStandard = text('standardTimeToTargetDisplay')
+    const initialFinal = text('finalTimeToTargetDisplay')
+    const initialDifficulty = text('appliedDifficultyMultiplierDisplay')
+    expect(initialStandard).toContain('Poor')
+    expect(initialFinal).toBe('Saved final time label')
+    initCreatedAreaDetails()
+    change('delayYears', '0')
+    expect(text('standardTimeToTargetDisplay')).toBe(initialStandard)
+    expect(text('finalTimeToTargetDisplay')).toBe(initialFinal)
+    expect(text('appliedDifficultyMultiplierDisplay')).toBe(initialDifficulty)
+    expect(text('created-area-results-status')).toBe('')
+
+    change('delayYears', '2')
+    expect(text('standardTimeToTargetDisplay')).toBe(initialStandard)
+    expect(text('created-area-results-status')).toContain(
+      'Final time to target condition'
+    )
+    expect(text('created-area-results-status')).not.toContain(
+      'Standard time to target condition:'
+    )
+    change('condition', 'Poor')
+    expect(text('standardTimeToTargetDisplay')).toBe('Poor - 1 years')
+    expect(text('created-area-results-status')).toContain(
+      'Standard time to target condition: Poor'
+    )
+  })
+
   test('renders the matching baseline link and preserves the list anchor in the form', () => {
     const returnUrl = `/projects/${ctx.projectId}/area-post-intervention#created`
     renderTemplateIntoDocument(
