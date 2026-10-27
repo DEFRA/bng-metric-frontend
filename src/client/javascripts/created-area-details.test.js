@@ -52,6 +52,11 @@ describe('Created area editing', () => {
     expect(value('condition')).toBe('Good')
     expect(value('advanceYears')).toBe('0')
     expect(value('delayYears')).toBe('0')
+    expect(
+      document
+        .getElementById('advanceYears')
+        .classList.contains('govuk-select--error')
+    ).toBe(false)
     expect(document.querySelectorAll('#advanceYears option')).toHaveLength(33)
     expect(document.querySelector('input[name=crumb]').value).toBe('test-token')
     expect(document.body.textContent).toContain('11.68')
@@ -323,6 +328,9 @@ describe('Created area editing', () => {
       'Either the advance or delay field must be set at zero.'
     )
     for (const id of ['advanceYears', 'delayYears']) {
+      expect(
+        document.getElementById(id).classList.contains('govuk-select--error')
+      ).toBe(true)
       expect(document.getElementById(id).getAttribute('aria-describedby')).toBe(
         'timing-error'
       )

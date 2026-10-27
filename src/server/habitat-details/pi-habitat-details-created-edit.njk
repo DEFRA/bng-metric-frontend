@@ -28,6 +28,7 @@
     hint: { text: field.hint } if field.hint else null,
     items: field.items,
     describedBy: "timing-error" if timing and errors.advanceYears else null,
+    classes: "govuk-select--error" if timing and errors.advanceYears else "",
     errorMessage: { text: errors[field.id] } if errors[field.id] and not timing else null
   }) }}
 {% endmacro %}
