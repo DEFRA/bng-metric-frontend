@@ -47,11 +47,11 @@ export async function loadCreatedAreaReference() {
   return payload
 }
 
-function yearValue(value) {
+function yearValue(value, is30Plus) {
   if (value === null || value === undefined) {
     return ''
   }
-  return Number(value) > MAX_YEARS ? '30+' : String(value)
+  return is30Plus && Number(value) === MAX_YEARS ? '30+' : String(value)
 }
 
 export function createdAreaValues(feature) {
@@ -62,8 +62,11 @@ export function createdAreaValues(feature) {
     habitatType: proposed.type ?? '',
     condition: stripConditionPrefix(proposed.condition) ?? '',
     strategicSignificance: proposed.strategicSignificanceCategory ?? '',
-    advanceYears: yearValue(proposed.advanceYears),
-    delayYears: yearValue(proposed.delayYears)
+    advanceYears: yearValue(
+      proposed.advanceYears,
+      proposed.advanceYearsIs30Plus
+    ),
+    delayYears: yearValue(proposed.delayYears, proposed.delayYearsIs30Plus)
   }
 }
 
@@ -119,6 +122,21 @@ function selectItems(options, value, label) {
   ]
 }
 
+function choiceHint(id, items, value) {
+  const hints = []
+  if (id === 'strategicSignificance') {
+    hints.push(
+      "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
+    )
+  }
+  if (value && !items.some((item) => item.value === value)) {
+    hints.push(
+      `The imported value "${value}" is not available. Choose a valid option; saving without a new selection will clear this value.`
+    )
+  }
+  return hints.join(' ') || null
+}
+
 function createdAreaFields(reference, values, type) {
   const options = (list) => list.map((value) => ({ value, text: value }))
   const fields = [
@@ -168,10 +186,7 @@ function createdAreaFields(reference, values, type) {
   return fields.map(([id, label, items]) => ({
     id,
     label,
-    hint:
-      id === 'strategicSignificance'
-        ? "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
-        : null,
+    hint: choiceHint(id, items, values[id]),
     items: selectItems(
       items,
       values[id],

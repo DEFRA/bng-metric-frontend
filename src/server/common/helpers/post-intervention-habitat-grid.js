@@ -1,3 +1,4 @@
+import { MAX_YEARS } from '../../../shared/created-area-details.js'
 import {
   RETENTION_CREATED,
   RETENTION_ENHANCED,
@@ -199,6 +200,13 @@ function strategicSignificanceColumn(interventionType) {
   }
 }
 
+function proposedYears(feature, field) {
+  const value = proposedValue(feature, field)
+  return proposedOf(feature)[`${field}Is30Plus`] === true && value === MAX_YEARS
+    ? OVER_MAX_YEARS_DISPLAY
+    : value
+}
+
 function targetAndTimeColumns() {
   return [
     {
@@ -221,12 +229,12 @@ function targetAndTimeColumns() {
     {
       text: 'Advance',
       cell: (feature) =>
-        textCell(formatYears(proposedValue(feature, 'advanceYears')))
+        textCell(formatYears(proposedYears(feature, 'advanceYears')))
     },
     {
       text: 'Delay',
       cell: (feature) =>
-        textCell(formatYears(proposedValue(feature, 'delayYears')))
+        textCell(formatYears(proposedYears(feature, 'delayYears')))
     },
     {
       text: 'Final time to target',

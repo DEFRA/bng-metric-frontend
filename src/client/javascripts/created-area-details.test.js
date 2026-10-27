@@ -102,6 +102,45 @@ describe('Created area editing', () => {
     ).toBe(returnUrl)
   })
 
+  test('explains when unavailable imported values will be cleared on save', () => {
+    const imported = {
+      ...createdAreaFeature,
+      proposed: {
+        ...createdAreaFeature.proposed,
+        condition: 'Fairly Poor',
+        advanceYears: 2.5
+      }
+    }
+    renderTemplateIntoDocument(
+      'habitat-details/pi-habitat-details-created-edit.njk',
+      {
+        ...buildCreatedAreaEditViewModel(imported, creationReference, ctx),
+        crumb: 'test-token'
+      }
+    )
+    expect(value('condition')).toBe('')
+    expect(value('advanceYears')).toBe('')
+    expect(text('condition-hint')).toContain('"Fairly Poor" is not available')
+    expect(text('condition-hint')).toContain(
+      'saving without a new selection will clear this value'
+    )
+    expect(text('advanceYears-hint')).toContain('"2.5" is not available')
+  })
+
+  test('retains 30+ selections while reading numeric stored years', () => {
+    const feature = {
+      ...createdAreaFeature,
+      proposed: {
+        ...createdAreaFeature.proposed,
+        advanceYears: 30,
+        advanceYearsIs30Plus: true
+      }
+    }
+    expect(createdAreaValues(feature).advanceYears).toBe('30+')
+    feature.proposed.advanceYearsIs30Plus = false
+    expect(createdAreaValues(feature).advanceYears).toBe('30')
+  })
+
   test('broad change resets type and condition but preserves independent choices', () => {
     change('broadHabitat', 'Urban')
     expect(value('habitatType')).toBe('')

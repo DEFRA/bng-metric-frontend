@@ -116,6 +116,33 @@ describe('Created area controller', () => {
     ).toEqual({})
   })
 
+  test.each([baselineFeatureId, null])(
+    'uses the stored Created parent link after reference editing (%s)',
+    async (parentFeatureId) => {
+      mockFeature(
+        {
+          type: 'habitat',
+          feature: {
+            ...createdAreaFeature,
+            ref: parentFeatureId ? 'Changed reference' : 'P-1',
+            parentFeatureId
+          }
+        },
+        projectWithBaselinePayload
+      )
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+      await postController.handler(request({ ref: ' ' }), h)
+      for (const [, vm] of h.view.mock.calls) {
+        expect(vm.viewBaselineHref).toBe(
+          parentFeatureId
+            ? `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+            : null
+        )
+      }
+    }
+  )
+
   test('saves all editable values and redirects to the area list', async () => {
     const h = createMockH()
     await postController.handler(
@@ -154,7 +181,12 @@ describe('Created area controller', () => {
         features: [
           {
             ...createdAreaFeature,
-            proposed: { ...createdAreaFeature.proposed, ...saved }
+            proposed: {
+              ...createdAreaFeature.proposed,
+              ...saved,
+              [field]: 30,
+              [`${field}Is30Plus`]: true
+            }
           }
         ],
         projectId,

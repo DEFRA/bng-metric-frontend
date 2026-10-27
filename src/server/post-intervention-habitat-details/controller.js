@@ -171,6 +171,17 @@ function resolveBaselineFeatureId(project, ref) {
   }
 }
 
+function createdBaselineFeatureId(project, feature) {
+  if (Object.hasOwn(feature, 'parentFeatureId')) {
+    const parentId = feature.parentFeatureId
+    const exists = project?.project?.baseline?.habitats?.some(
+      (f) => f.featureId === parentId
+    )
+    return exists ? parentId : null
+  }
+  return resolveBaselineFeatureId(project, feature.ref)
+}
+
 /**
  * @param {string} type
  * @param {string|null} retentionCategory
@@ -224,7 +235,7 @@ const getController = {
         buildCreatedAreaEditViewModel(feature, reference, {
           projectId,
           projectName,
-          baselineFeatureId: resolveBaselineFeatureId(project, feature.ref),
+          baselineFeatureId: createdBaselineFeatureId(project, feature),
           returnUrl
         })
       )
@@ -289,7 +300,7 @@ const postController = {
           {
             projectId,
             projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-            baselineFeatureId: resolveBaselineFeatureId(project, feature.ref),
+            baselineFeatureId: createdBaselineFeatureId(project, feature),
             returnUrl
           },
           values,
