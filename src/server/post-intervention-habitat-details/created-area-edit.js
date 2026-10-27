@@ -61,7 +61,10 @@ export function createdAreaValues(feature) {
     broadHabitat: proposed.broadType ?? '',
     habitatType: proposed.type ?? '',
     condition: stripConditionPrefix(proposed.condition) ?? '',
-    strategicSignificance: proposed.strategicSignificanceCategory ?? '',
+    strategicSignificance:
+      proposed.strategicSignificanceCategory ??
+      proposed.strategicSignificance ??
+      '',
     advanceYears: yearValue(
       proposed.advanceYears,
       proposed.advanceYearsIs30Plus

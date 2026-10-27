@@ -141,6 +141,33 @@ describe('Created area editing', () => {
     expect(createdAreaValues(feature).advanceYears).toBe('30')
   })
 
+  test.each(['Low', 'High'])(
+    'keeps valid imported %s significance when incomplete units have no derived category',
+    (strategicSignificance) => {
+      const imported = {
+        ...createdAreaFeature,
+        units: null,
+        status: 'Incomplete',
+        proposed: {
+          ...createdAreaFeature.proposed,
+          advanceYears: null,
+          strategicSignificance,
+          strategicSignificanceCategory: null,
+          strategicSignificanceScore: null
+        }
+      }
+      renderTemplateIntoDocument(
+        'habitat-details/pi-habitat-details-created-edit.njk',
+        {
+          ...buildCreatedAreaEditViewModel(imported, creationReference, ctx),
+          crumb: 'test-token'
+        }
+      )
+      expect(value('strategicSignificance')).toBe(strategicSignificance)
+      expect(text('strategicSignificance-hint')).not.toContain('will clear')
+    }
+  )
+
   test('broad change resets type and condition but preserves independent choices', () => {
     change('broadHabitat', 'Urban')
     expect(value('habitatType')).toBe('')
