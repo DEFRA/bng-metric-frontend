@@ -27,7 +27,7 @@
     label: { text: field.label, classes: "govuk-label--s" if not timing else "" },
     hint: { text: field.hint } if field.hint else null,
     items: field.items,
-    attributes: { "aria-describedby": "timing-error" } if timing and errors.advanceYears else {},
+    describedBy: "timing-error" if timing and errors.advanceYears else null,
     errorMessage: { text: errors[field.id] } if errors[field.id] and not timing else null
   }) }}
 {% endmacro %}

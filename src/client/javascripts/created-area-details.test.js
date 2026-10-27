@@ -332,6 +332,41 @@ describe('Created area editing', () => {
     await runAxeChecks(document.documentElement)
   })
 
+  test('associates a timing select with both its imported-value hint and shared error', async () => {
+    const imported = {
+      ...createdAreaFeature,
+      proposed: { ...createdAreaFeature.proposed, advanceYears: 2.5 }
+    }
+    const error = 'Either the advance or delay field must be set at zero.'
+    renderTemplateIntoDocument(
+      'habitat-details/pi-habitat-details-created-edit.njk',
+      {
+        ...buildCreatedAreaEditViewModel(
+          imported,
+          creationReference,
+          ctx,
+          null,
+          {
+            advanceYears: error,
+            delayYears: error
+          }
+        ),
+        crumb: 'test-token'
+      }
+    )
+    const descriptions = document
+      .getElementById('advanceYears')
+      .getAttribute('aria-describedby')
+      .split(/\s+/)
+    expect(descriptions).toEqual(
+      expect.arrayContaining(['advanceYears-hint', 'timing-error'])
+    )
+    for (const id of descriptions) {
+      expect(document.getElementById(id)).not.toBeNull()
+    }
+    await runAxeChecks(document.documentElement)
+  })
+
   test('complete page meets accessibility checks', async () => {
     await runAxeChecks(document.documentElement)
   })
