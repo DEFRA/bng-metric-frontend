@@ -91,7 +91,7 @@ function yearValue(value, is30Plus) {
 export function createdAreaValues(feature) {
   const proposed = feature.proposed ?? {}
   return {
-    ref: feature.ref ?? '',
+    ref: String(feature.ref ?? ''),
     broadHabitat: proposed.broadType ?? '',
     habitatType: proposed.type ?? '',
     condition: stripConditionPrefix(proposed.condition) ?? '',

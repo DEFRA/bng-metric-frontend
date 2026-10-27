@@ -465,6 +465,23 @@ describe('Created area authenticated form', () => {
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
+  test('renders a legacy numeric reference as an editable string', async () => {
+    mockFeature({
+      type: 'habitat',
+      feature: { ...structuredClone(createdAreaFeature), ref: 12 }
+    })
+    const page = await server.inject({
+      method: 'GET',
+      url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
+      auth
+    })
+    expect(page.statusCode).toBe(200)
+    expect(page.payload).toContain('name="ref"')
+    expect(page.payload).toContain('value="12"')
+    expect(createdAreaValues({ ref: 12 }).ref).toBe('12')
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
   test('renders the CSRF token and saves a protected form submission', async () => {
     const { token, cookie } = await primeCrumb(server)
     const page = await server.inject({
