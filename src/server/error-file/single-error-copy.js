@@ -17,7 +17,10 @@ const PLACEHOLDER_ERROR_CODES = new Set([
   'REDLINE_AREA_TOO_LARGE',
   'IGGIS_OUTSIDE_REDLINE',
   'TREES_OUTSIDE_REDLINE',
-  'AREA_SUM_MISMATCH'
+  'AREA_SUM_MISMATCH',
+  // BMD-1182 — an enhanced habitat whose baseline cannot be enhanced. The
+  // dropout copy is to come from UCD (Figma).
+  'BASELINE_NOT_ENHANCEABLE'
 ])
 
 function describeRef(sample, suffix = '') {
