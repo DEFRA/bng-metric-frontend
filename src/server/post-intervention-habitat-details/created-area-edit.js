@@ -2,7 +2,9 @@ import Boom from '@hapi/boom'
 import Joi from 'joi'
 
 import { config } from '../../config/config.js'
+import { statusCodes } from '../common/constants.js'
 import {
+  MAX_YEARS,
   createdAreaDerived,
   selectedHabitat,
   YEAR_OPTIONS
@@ -49,7 +51,7 @@ function yearValue(value) {
   if (value === null || value === undefined) {
     return ''
   }
-  return Number(value) > 30 ? '30+' : String(value)
+  return Number(value) > MAX_YEARS ? '30+' : String(value)
 }
 
 export function createdAreaValues(feature) {
@@ -68,7 +70,9 @@ export function createdAreaValues(feature) {
 function validateReference(ref, errors) {
   if (!ref.trim() || !ref.isWellFormed() || ref.includes('\uFFFD')) {
     errors.ref = 'Enter a valid habitat reference.'
-  } else if (Array.from(ref.trim()).length > MAX_REF_LENGTH) {
+    return
+  }
+  if (Array.from(ref.trim()).length > MAX_REF_LENGTH) {
     errors.ref = `Enter a habitat reference of ${MAX_REF_LENGTH} characters or fewer.`
   }
 }
@@ -121,7 +125,11 @@ function createdAreaFields(reference, values, type) {
     [
       'broadHabitat',
       'Broad habitat',
-      options([...new Set(reference.habitatTypes.map((t) => t.broad))].sort())
+      options(
+        [...new Set(reference.habitatTypes.map((t) => t.broad))].sort((a, b) =>
+          a.localeCompare(b)
+        )
+      )
     ],
     [
       'habitatType',
@@ -212,7 +220,10 @@ export function buildCreatedAreaEditViewModel(
         href: `#${field}`
       })),
     fields: createdAreaFields(reference, values, type),
-    referenceJson: JSON.stringify(reference).replaceAll('<', '\\u003c'),
+    referenceJson: JSON.stringify(reference).replaceAll(
+      '<',
+      String.raw`\u003c`
+    ),
     formAction: '/post-intervention-habitat-details',
     backHref,
     cancelHref: backHref,
@@ -248,7 +259,7 @@ export async function saveCreatedArea(request, values) {
         payload: JSON.stringify(createdAreaSavePayload(values))
       }
     )
-    if (res.statusCode >= 400) {
+    if (res.statusCode >= statusCodes.badRequest) {
       throw Boom.boomify(new Error('Backend rejected habitat save'), {
         statusCode: res.statusCode
       })
@@ -257,7 +268,10 @@ export async function saveCreatedArea(request, values) {
     if (err.data?.sessionExpired) {
       throw err
     }
-    if (err.output?.statusCode === 409 || err.data?.res?.statusCode === 409) {
+    if (
+      err.output?.statusCode === statusCodes.conflict ||
+      err.data?.res?.statusCode === statusCodes.conflict
+    ) {
       throw Boom.conflict('Another user is editing this project')
     }
     throw Boom.badGateway('Failed to save habitat')
