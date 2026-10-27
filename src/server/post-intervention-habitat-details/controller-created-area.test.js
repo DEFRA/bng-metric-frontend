@@ -116,6 +116,10 @@ describe('Created area controller', () => {
       '100 characters or fewer'
     )
     expect(h.view.mock.calls[0][1].referenceHint).toBeNull()
+    expect(h.view.mock.calls[0][1].errorList[0]).toEqual({
+      href: '#ref',
+      text: h.view.mock.calls[0][1].errors.ref
+    })
     expect(
       validateCreatedArea(
         { ...values, ref: '\u{1F33F}'.repeat(100) },

@@ -29,8 +29,10 @@ const FIELD_ORDER = [
 ]
 
 const ERROR_SUMMARY_TEXT = {
-  ref: 'You have entered an invalid habitat reference.',
-  advanceYears: 'A habitat cannot be created both in advance and with a delay.'
+  'Enter a valid habitat reference.':
+    'You have entered an invalid habitat reference.',
+  'Either the advance or delay field must be set at zero.':
+    'A habitat cannot be created both in advance and with a delay.'
 }
 
 export const createdAreaPayloadSchema = Joi.object({
@@ -333,7 +335,7 @@ export function buildCreatedAreaEditViewModel(
       (field) =>
         errors[field] && (field !== 'delayYears' || !errors.advanceYears)
     ).map((field) => ({
-      text: ERROR_SUMMARY_TEXT[field] ?? errors[field],
+      text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
       href: `#${field}`
     })),
     fields: editFieldsWithImportHints(feature, reference, values),
