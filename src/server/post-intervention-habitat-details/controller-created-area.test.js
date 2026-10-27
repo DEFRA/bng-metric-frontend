@@ -15,7 +15,12 @@ import {
   createdAreaFeature,
   creationReference
 } from './created-area-test-fixtures.js'
-import { createdAreaValues, validateCreatedArea } from './created-area-edit.js'
+import {
+  createdAreaValues,
+  validateCreatedArea,
+  loadCreatedAreaReference,
+  _resetCreatedAreaReferenceCache
+} from './created-area-edit.js'
 import { getController, postController } from './controller.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -27,6 +32,8 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
     delete: vi.fn()
   }
 }))
+
+beforeEach(() => _resetCreatedAreaReferenceCache())
 
 const values = createdAreaValues(createdAreaFeature)
 const request = (overrides = {}) => ({
@@ -295,13 +302,13 @@ describe('Created area controller', () => {
     expect(vm.errors.condition).toBe(
       'Choose a target condition for the selected habitat type'
     )
-    expect(
-      vm.fields.find((field) => field.id === 'habitatType').items
-    ).toContainEqual(
+    expect(vm.fields.habitatType.items).toContainEqual(
       expect.objectContaining({ value: 'Developed land; sealed surface' })
     )
     expect(
-      vm.fields.every((field) => !field.hint?.includes('imported value'))
+      Object.values(vm.fields).every(
+        (field) => !field.hint?.includes('imported value')
+      )
     ).toBe(true)
     expect(wreck.put).not.toHaveBeenCalled()
 
@@ -368,13 +375,9 @@ describe('Created area controller', () => {
       h
     )
     const fields = h.view.mock.calls[0][1].fields
-    expect(fields.find((field) => field.id === 'condition').hint).toContain(
-      '"Fairly Poor" is not available'
-    )
-    expect(fields.find((field) => field.id === 'advanceYears').hint).toContain(
-      '"2.5" is not available'
-    )
-    expect(fields.find((field) => field.id === 'condition').hint).toContain(
+    expect(fields.condition.hint).toContain('"Fairly Poor" is not available')
+    expect(fields.advanceYears.hint).toContain('"2.5" is not available')
+    expect(fields.condition.hint).toContain(
       'saving without a new selection will clear this value'
     )
 
@@ -383,7 +386,7 @@ describe('Created area controller', () => {
       h
     )
     expect(
-      h.view.mock.calls[1][1].fields.every(
+      Object.values(h.view.mock.calls[1][1].fields).every(
         (field) => !field.hint?.includes('imported value')
       )
     ).toBe(true)
@@ -479,5 +482,52 @@ describe('Created area authenticated form', () => {
     expect(response.headers.location).toBe(
       `/projects/${projectId}/area-post-intervention`
     )
+  })
+})
+
+describe('Created area reference cache', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  test('coalesces concurrent loads and isolates callers from cached data', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({ payload: creationReference })
+    const [first, second] = await Promise.all([
+      loadCreatedAreaReference(),
+      loadCreatedAreaReference()
+    ])
+    expect(wreck.get).toHaveBeenCalledOnce()
+    expect(second).toEqual(creationReference)
+    first.habitatTypes.length = 0
+    first.timeMultipliers[0] = -1
+    expect(await loadCreatedAreaReference()).toEqual(creationReference)
+    expect(wreck.get).toHaveBeenCalledOnce()
+  })
+
+  test.each([500, 200])(
+    'does not cache an invalid HTTP %s response',
+    async (statusCode) => {
+      vi.mocked(wreck.get)
+        .mockResolvedValueOnce({
+          res: { statusCode },
+          payload: { message: 'unavailable' }
+        })
+        .mockResolvedValueOnce({ payload: creationReference })
+      await expect(loadCreatedAreaReference()).rejects.toThrow(
+        'Invalid area creation reference response'
+      )
+      await expect(loadCreatedAreaReference()).resolves.toEqual(
+        creationReference
+      )
+      expect(wreck.get).toHaveBeenCalledTimes(2)
+    }
+  )
+
+  test('retries after a failed reference request', async () => {
+    const error = new Error('reference service unavailable')
+    vi.mocked(wreck.get)
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce({ payload: creationReference })
+    await expect(loadCreatedAreaReference()).rejects.toBe(error)
+    await expect(loadCreatedAreaReference()).resolves.toEqual(creationReference)
+    expect(wreck.get).toHaveBeenCalledTimes(2)
   })
 })

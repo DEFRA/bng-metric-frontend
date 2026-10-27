@@ -1,6 +1,7 @@
 import Joi from 'joi'
 
 import { config } from '../../config/config.js'
+import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
   createdAreaDerived,
@@ -50,9 +51,32 @@ export const createdAreaPayloadSchema = Joi.object({
   crumb: Joi.string().optional()
 })
 
+let creationReferencePromise = null
+
 export async function loadCreatedAreaReference() {
-  const { payload } = await wreck.get(`${backendUrl}/reference/area-creation`)
-  return payload
+  creationReferencePromise ??= wreck
+    .get(`${backendUrl}/reference/area-creation`)
+    .then(({ res, payload }) => {
+      if (
+        res?.statusCode >= statusCodes.badRequest ||
+        !Array.isArray(payload?.habitatTypes) ||
+        !Array.isArray(payload?.strategicSignificance) ||
+        !payload?.timeMultipliers
+      ) {
+        throw new Error('Invalid area creation reference response')
+      }
+      return structuredClone(payload)
+    })
+    .catch((error) => {
+      creationReferencePromise = null
+      throw error
+    })
+  return structuredClone(await creationReferencePromise)
+}
+
+// Match the existing area-strategy cache reset convention for isolated tests.
+export function _resetCreatedAreaReferenceCache() {
+  creationReferencePromise = null
 }
 
 function yearValue(value, is30Plus) {
@@ -235,11 +259,13 @@ function createdAreaDisplayFields(feature, reference, values, base) {
 
 function editFieldsWithImportHints(feature, reference, values) {
   const originalValues = createdAreaValues(feature)
-  const originalFields = createdAreaFields(
-    reference,
-    originalValues,
-    selectedHabitat(reference, originalValues),
-    true
+  const originalFields = new Map(
+    createdAreaFields(
+      reference,
+      originalValues,
+      selectedHabitat(reference, originalValues),
+      true
+    ).map((field) => [field.id, field])
   )
   const fields = createdAreaFields(
     reference,
@@ -247,19 +273,25 @@ function editFieldsWithImportHints(feature, reference, values) {
     selectedHabitat(reference, values),
     false
   )
-  return fields.map((field, index) => {
-    const importedValue = originalValues[field.id]
-    const pendingClear =
-      importedValue && (!values[field.id] || values[field.id] === importedValue)
-    const importedField = originalFields[index]
-    const unavailable = !importedField.items.some(
-      (item) => item.value === importedValue
-    )
-    return {
-      ...field,
-      hint: pendingClear && unavailable ? importedField.hint : field.hint
-    }
-  })
+  return Object.fromEntries(
+    fields.map((field) => {
+      const importedValue = originalValues[field.id]
+      const pendingClear =
+        importedValue &&
+        (!values[field.id] || values[field.id] === importedValue)
+      const importedField = originalFields.get(field.id)
+      const unavailable = !importedField.items.some(
+        (item) => item.value === importedValue
+      )
+      return [
+        field.id,
+        {
+          ...field,
+          hint: pendingClear && unavailable ? importedField.hint : field.hint
+        }
+      ]
+    })
+  )
 }
 
 export function buildCreatedAreaEditViewModel(

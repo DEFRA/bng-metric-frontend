@@ -65,12 +65,12 @@
         {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
         {{ derived("Size (hectares)", "sizeDisplay", sizeDisplay) }}
-        {{ select(fields[0]) }}
-        {{ select(fields[1]) }}
+        {{ select(fields.broadHabitat) }}
+        {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
-        {{ select(fields[3]) }}
+        {{ select(fields.strategicSignificance) }}
         <h2 class="govuk-heading-m">{{ timeDifficultySectionHeading }}</h2>
-        {{ select(fields[2]) }}
+        {{ select(fields.condition) }}
         {{ derived("Standard time to target condition", "standardTimeToTargetDisplay", standardTimeToTargetDisplay) }}
         {{ derived("Standard difficulty", "standardDifficultyDisplay", standardDifficultyDisplay) }}
         <div class="govuk-form-group{% if errors.advanceYears %} govuk-form-group--error{% endif %}">
@@ -81,9 +81,9 @@
             {% if errors.advanceYears %}
               {{ govukErrorMessage({ id: "timing-error", text: errors.advanceYears }) }}
             {% endif %}
-            {{ select(fields[4], true) }}
+            {{ select(fields.advanceYears, true) }}
             <p class="govuk-body">or</p>
-            {{ select(fields[5], true) }}
+            {{ select(fields.delayYears, true) }}
           {% endcall %}
         </div>
         <p class="govuk-visually-hidden" id="created-area-results-status" role="status" aria-live="polite" aria-atomic="true"></p>
