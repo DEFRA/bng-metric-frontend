@@ -1,4 +1,5 @@
 import Boom from '@hapi/boom'
+import { buildPostInterventionHabitatGrid } from '../common/helpers/post-intervention-habitat-grid.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { createServer } from '../server.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
@@ -143,6 +144,30 @@ describe('Created area controller', () => {
       `/projects/${projectId}/area-post-intervention`
     )
   })
+
+  test.each(['advanceYears', 'delayYears'])(
+    'keeps saved 30+ %s visible on the list',
+    async (field) => {
+      await postController.handler(request({ [field]: '30+' }), createMockH())
+      const saved = JSON.parse(wreck.put.mock.calls[0][1].payload)
+      const grid = buildPostInterventionHabitatGrid({
+        features: [
+          {
+            ...createdAreaFeature,
+            proposed: { ...createdAreaFeature.proposed, ...saved }
+          }
+        ],
+        projectId,
+        interventionType: 'Created',
+        readSize: (feature) => feature.sizeSquareMetres,
+        formatSize: String,
+        formatSizeTotal: String
+      })
+      const label = field === 'advanceYears' ? 'Advance' : 'Delay'
+      const column = grid.columns.findIndex((c) => c.text === label)
+      expect(grid.habitatRows[0][column].text).toBe('30+ years')
+    }
+  )
 
   test('allows incomplete saves and sends null rather than default labels', async () => {
     await postController.handler(
