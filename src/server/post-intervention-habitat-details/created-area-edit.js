@@ -17,6 +17,16 @@ import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
+const FIELD_ORDER = [
+  'ref',
+  'broadHabitat',
+  'habitatType',
+  'strategicSignificance',
+  'condition',
+  'advanceYears',
+  'delayYears'
+]
+
 const ERROR_SUMMARY_TEXT = {
   ref: 'You have entered an invalid habitat reference.',
   advanceYears: 'A habitat cannot be created both in advance and with a delay.'
@@ -103,7 +113,13 @@ export function validateCreatedArea(values, reference) {
   }
   for (const [field, options] of Object.entries(choices)) {
     if (values[field] && !options.includes(values[field])) {
-      errors[field] = 'Choose a valid option'
+      const messages = {
+        broadHabitat: 'Choose a valid broad habitat',
+        habitatType: 'Choose a habitat type for the selected broad habitat',
+        condition: 'Choose a target condition for the selected habitat type',
+        strategicSignificance: 'Choose a valid strategic significance'
+      }
+      errors[field] = messages[field]
     }
   }
   return errors
@@ -123,14 +139,14 @@ function selectItems(options, value, label) {
   ]
 }
 
-function choiceHint(id, items, value) {
+function choiceHint(id, items, value, initialLoad) {
   const hints = []
   if (id === 'strategicSignificance') {
     hints.push(
       "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
     )
   }
-  if (value && !items.some((item) => item.value === value)) {
+  if (initialLoad && value && !items.some((item) => item.value === value)) {
     hints.push(
       `The imported value "${value}" is not available. Choose a valid option; saving without a new selection will clear this value.`
     )
@@ -138,7 +154,7 @@ function choiceHint(id, items, value) {
   return hints.join(' ') || null
 }
 
-function createdAreaFields(reference, values, type) {
+function createdAreaFields(reference, values, type, initialLoad) {
   const options = (list) => list.map((value) => ({ value, text: value }))
   const fields = [
     [
@@ -187,7 +203,7 @@ function createdAreaFields(reference, values, type) {
   return fields.map(([id, label, items]) => ({
     id,
     label,
-    hint: choiceHint(id, items, values[id]),
+    hint: choiceHint(id, items, values[id], initialLoad),
     items: selectItems(
       items,
       values[id],
@@ -230,16 +246,17 @@ export function buildCreatedAreaEditViewModel(
     values,
     errors,
     referenceHint:
-      Array.from(values.ref.trim()).length > MAX_REF_LENGTH
+      initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
         : null,
-    errorList: Object.entries(errors)
-      .filter(([field]) => field !== 'delayYears' || !errors.advanceYears)
-      .map(([field, text]) => ({
-        text: ERROR_SUMMARY_TEXT[field] ?? text,
-        href: `#${field}`
-      })),
-    fields: createdAreaFields(reference, values, type),
+    errorList: FIELD_ORDER.filter(
+      (field) =>
+        errors[field] && (field !== 'delayYears' || !errors.advanceYears)
+    ).map((field) => ({
+      text: ERROR_SUMMARY_TEXT[field] ?? errors[field],
+      href: `#${field}`
+    })),
+    fields: createdAreaFields(reference, values, type, initialLoad),
     referenceJson: JSON.stringify(reference).replaceAll(
       '<',
       String.raw`\u003c`

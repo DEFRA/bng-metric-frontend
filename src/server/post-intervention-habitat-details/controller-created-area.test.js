@@ -108,6 +108,7 @@ describe('Created area controller', () => {
     expect(h.view.mock.calls[0][1].errors.ref).toContain(
       '100 characters or fewer'
     )
+    expect(h.view.mock.calls[0][1].referenceHint).toBeNull()
     expect(
       validateCreatedArea(
         { ...values, ref: '\u{1F33F}'.repeat(100) },
@@ -266,6 +267,56 @@ describe('Created area controller', () => {
     expect(
       validateCreatedArea({ ...values, ref: 'é 🌿' }, creationReference)
     ).toEqual({})
+  })
+
+  test('supports correcting dependent choices without JavaScript and orders errors by the page', async () => {
+    const h = createMockH()
+    await postController.handler(
+      request({
+        ref: ' ',
+        broadHabitat: 'Urban',
+        strategicSignificance: 'Unknown',
+        advanceYears: '2',
+        delayYears: '3'
+      }),
+      h
+    )
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.errorList.map((error) => error.href)).toEqual([
+      '#ref',
+      '#habitatType',
+      '#strategicSignificance',
+      '#condition',
+      '#advanceYears'
+    ])
+    expect(vm.errors.habitatType).toBe(
+      'Choose a habitat type for the selected broad habitat'
+    )
+    expect(vm.errors.condition).toBe(
+      'Choose a target condition for the selected habitat type'
+    )
+    expect(
+      vm.fields.find((field) => field.id === 'habitatType').items
+    ).toContainEqual(
+      expect.objectContaining({ value: 'Developed land; sealed surface' })
+    )
+    expect(
+      vm.fields.every((field) => !field.hint?.includes('imported value'))
+    ).toBe(true)
+    expect(wreck.put).not.toHaveBeenCalled()
+
+    await postController.handler(
+      request({
+        broadHabitat: 'Urban',
+        habitatType: 'Developed land; sealed surface',
+        condition: 'N/A - Other'
+      }),
+      h
+    )
+    expect(wreck.put).toHaveBeenCalledOnce()
+    expect(h.redirect).toHaveBeenCalledWith(
+      `/projects/${projectId}/area-post-intervention`
+    )
   })
 
   test('surfaces concurrent edit errors', async () => {
