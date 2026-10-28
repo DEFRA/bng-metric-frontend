@@ -1100,6 +1100,37 @@ describe('#baselineHabitatDetails - POST', () => {
     expect(result).toContain('Another user is editing this')
   })
 
+  test.each([
+    [statusCodes.badRequest, statusCodes.badRequest],
+    [statusCodes.notFound, statusCodes.notFound]
+  ])(
+    'Answers a backend %i with %i rather than reporting an upstream failure',
+    async (backendStatus, expectedStatus) => {
+      vi.mocked(wreck.put).mockRejectedValue({
+        isBoom: true,
+        output: { statusCode: backendStatus }
+      })
+
+      const { statusCode } = await server.inject({
+        method: 'POST',
+        url: '/baseline-habitat-details',
+        payload: {
+          projectId,
+          featureId: habitatId,
+          habitatRef: 'B-A1',
+          broadHabitat: 'Grassland',
+          habitatType: 'Modified grassland',
+          condition: 'Good',
+          crumb: crumb.token
+        },
+        headers: { cookie: crumb.cookie },
+        auth: authedAuth
+      })
+
+      expect(statusCode).toBe(expectedStatus)
+    }
+  )
+
   test('Rejects POST with 403 when crumb is missing', async () => {
     const { statusCode } = await server.inject({
       method: 'POST',
@@ -1392,6 +1423,60 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     test('Saves a reference that another habitat already uses', async () => {
       const { statusCode } = await postRef({ habitatRef: '12' })
       expect(statusCode).toBe(302)
+    })
+  })
+
+  describe('when opened from a post-intervention details page', () => {
+    const piHref = `/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
+    const piHrefInHtml = piHref.replace('&', '&amp;')
+
+    test('Carries the post-intervention page through the form', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        headers: { host: 'localhost', referer: `http://localhost${piHref}` },
+        auth: authedAuth
+      })
+
+      expect(result).toContain(
+        `<input type="hidden" name="returnUrl" value="${piHrefInHtml}">`
+      )
+    })
+
+    test('Keeps Back and Cancel on the post-intervention page after a refused save', async () => {
+      const { statusCode, result } = await postRef({
+        habitatRef: ' ',
+        returnUrl: piHref
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(
+        `<a href="${piHrefInHtml}" class="govuk-back-link"`
+      )
+      expect(result).toContain(`href="${piHrefInHtml}">Cancel`)
+      expect(result).toContain(
+        `<input type="hidden" name="returnUrl" value="${piHrefInHtml}">`
+      )
+    })
+
+    test.each([
+      ['another site', `//example.com${piHref}`],
+      ['an absolute URL', `https://example.com${piHref}`],
+      ['another project', piHref.replace(projectId, habitatId)],
+      ['another page', `/projects/${projectId}/somewhere`],
+      [
+        'a feature id that is not a UUID',
+        `/post-intervention-habitat-details?featureId=x&projectId=${projectId}`
+      ]
+    ])('Ignores a return URL to %s', async (_label, returnUrl) => {
+      const { result } = await postRef({ habitatRef: ' ', returnUrl })
+
+      expect(result).toContain(
+        `href="/projects/${projectId}/area-baseline">Cancel`
+      )
+      expect(result).toContain(
+        '<input type="hidden" name="returnUrl" value="">'
+      )
     })
   })
 

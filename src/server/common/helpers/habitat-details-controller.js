@@ -4,6 +4,7 @@ import Joi from 'joi'
 import { config } from '../../../config/config.js'
 import { statusCodes } from '../constants.js'
 import { backendRequest } from './auth/backend-request.js'
+import { backendSaveError } from './backend-save-error.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
 import {
@@ -112,29 +113,71 @@ function buildSaveBody({
   return body
 }
 
+const PI_DETAILS_PATH = '/post-intervention-habitat-details'
+
+/**
+ * The post-intervention details page `url` points at, rebuilt from its
+ * featureId and projectId alone, or null when it is not one for this project.
+ *
+ * @param {URL} url
+ * @param {string} projectId
+ * @returns {string | null}
+ */
+function postInterventionDetailsHref(url, projectId) {
+  const featureId = url.searchParams.get('featureId')
+  if (
+    url.pathname === PI_DETAILS_PATH &&
+    url.searchParams.get('projectId') === projectId &&
+    !Joi.string().uuid().required().validate(featureId).error
+  ) {
+    return `${PI_DETAILS_PATH}?${new URLSearchParams({
+      featureId,
+      projectId
+    }).toString()}`
+  }
+  return null
+}
+
+/**
+ * Where Back and Cancel go when the page was opened from "View baseline
+ * details" on a post-intervention details page: the referrer, on GET.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {string} projectId
+ * @returns {string | null}
+ */
 function postInterventionBackHref(request, projectId) {
   try {
     const referer = new URL(request.headers.referer)
-    const featureId = referer.searchParams.get('featureId')
-    const refererProjectId = referer.searchParams.get('projectId')
-    const isValidFeatureId = !Joi.string().uuid().validate(featureId).error
-
-    if (
-      referer.host === request.headers.host &&
-      referer.pathname === '/post-intervention-habitat-details' &&
-      refererProjectId === projectId &&
-      isValidFeatureId
-    ) {
-      return `/post-intervention-habitat-details?${new URLSearchParams({
-        featureId,
-        projectId
-      }).toString()}`
-    }
+    return referer.host === request.headers.host
+      ? postInterventionDetailsHref(referer, projectId)
+      : null
   } catch {
     // Missing or malformed referrers use the baseline summary fallback.
+    return null
   }
+}
 
-  return null
+/**
+ * The same origin carried through the form as `returnUrl`, on a POST, whose
+ * referrer is the baseline page itself. Only a same-site path is taken.
+ *
+ * @param {unknown} returnUrl
+ * @param {string} projectId
+ * @returns {string | null}
+ */
+function returnedPostInterventionHref(returnUrl, projectId) {
+  if (
+    typeof returnUrl !== 'string' ||
+    !returnUrl.startsWith('/') ||
+    returnUrl.startsWith('//')
+  ) {
+    return null
+  }
+  return postInterventionDetailsHref(
+    new URL(returnUrl, 'http://localhost'),
+    projectId
+  )
 }
 
 // Form fields that only some feature types submit. A field the form did not
@@ -197,7 +240,8 @@ function withSubmittedChoices(feature, submitted, reference) {
  * @param {import('@hapi/hapi').Request} request
  * @param {import('@hapi/hapi').ResponseToolkit} h
  * @param {object} uploadType
- * @param {{ projectId: string, featureId: string, submitted?: object, errors?: Array<{ text: string, inline: string, href: string }> }} params
+ * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, errors?: Array<{ text: string, inline: string, href: string }> }} params
+ *   `piBackHref` is the post-intervention page the user came from, if any.
  *   Each error carries its error-summary `text` and the `inline` message shown
  *   at the field, which content design words differently.
  */
@@ -205,7 +249,7 @@ async function renderDetailsPage(
   request,
   h,
   uploadType,
-  { projectId, featureId, submitted = null, errors = [] }
+  { projectId, featureId, piBackHref = null, submitted = null, errors = [] }
 ) {
   const [{ type, feature: rawFeature }, projectName] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
@@ -227,9 +271,6 @@ async function renderDetailsPage(
     projectId,
     projectName
   })
-  const piBackHref = uploadType.isPostIntervention
-    ? null
-    : postInterventionBackHref(request, projectId)
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.
   const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
@@ -247,6 +288,8 @@ async function renderDetailsPage(
     errors,
     formAction: `/${uploadType.detailsRoute}`,
     detailsSectionHeading: uploadType.detailsSectionHeading,
+    // Carried through the form so a refused save keeps Back and Cancel.
+    returnUrl: piBackHref ?? '',
     backHref: piBackHref ?? viewModel.backHref,
     cancelHref: piBackHref ?? viewModel.cancelHref
   })
@@ -308,7 +351,13 @@ function createGetController(uploadType) {
     },
     handler(request, h) {
       const { featureId, projectId } = request.query
-      return renderDetailsPage(request, h, uploadType, { projectId, featureId })
+      return renderDetailsPage(request, h, uploadType, {
+        projectId,
+        featureId,
+        piBackHref: uploadType.isPostIntervention
+          ? null
+          : postInterventionBackHref(request, projectId)
+      })
     }
   }
 }
@@ -326,6 +375,7 @@ function createPostController(uploadType) {
           condition: Joi.string().allow('').optional(),
           watercourseEncroachment: Joi.string().allow('').optional(),
           riparianEncroachment: Joi.string().allow('').optional(),
+          returnUrl: Joi.string().allow('').optional(),
           crumb: Joi.string().optional()
         })
       }
@@ -351,6 +401,10 @@ function createPostController(uploadType) {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
+          piBackHref: returnedPostInterventionHref(
+            request.payload.returnUrl,
+            projectId
+          ),
           submitted: request.payload,
           errors: [
             {
@@ -385,10 +439,7 @@ function createPostController(uploadType) {
         )
         payload = result.payload
       } catch (err) {
-        if (err?.output?.statusCode === statusCodes.conflict) {
-          throw Boom.conflict('Another user is editing this project')
-        }
-        throw Boom.badGateway('Failed to save habitat')
+        throw backendSaveError(err, featureId)
       }
 
       return h.redirect(
