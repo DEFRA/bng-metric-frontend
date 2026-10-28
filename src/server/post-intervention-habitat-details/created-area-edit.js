@@ -217,8 +217,16 @@ function createdAreaFields(reference, values, type, initialLoad) {
         text: `${s.value} (${s.score})`
       }))
     ],
-    ['advanceYears', 'Habitat created in advance', options(YEAR_OPTIONS)],
-    ['delayYears', 'Delay in starting habitat creation', options(YEAR_OPTIONS)]
+    [
+      'advanceYears',
+      'Habitat created in advance (years)',
+      options(YEAR_OPTIONS)
+    ],
+    [
+      'delayYears',
+      'Delay in starting habitat creation (years)',
+      options(YEAR_OPTIONS)
+    ]
   ]
   const placeholders = {
     advanceYears: 'advance',
