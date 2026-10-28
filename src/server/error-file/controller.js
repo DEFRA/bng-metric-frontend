@@ -244,11 +244,34 @@ const SINGLE_VALIDATION_ERROR = 1
 // A lineage error is its list of habitats: which rows, and which parents, the
 // user has to put right. The backend's heading already says what the Metric
 // guide asks for, so even on its own it is shown as a list, never reduced to
-// single-error copy. Interim layout until UCD's copy (BMD-1086).
+// single-error copy.
+//
+// A BNG Service template file the service cannot read as one has no copy of
+// its own yet either. Shown alone through single-error copy it would carry
+// the "PLACEHOLDER (AWAITING UCD)" title, and a legacy file refused once the
+// flag is on is the refusal users will meet most, so it is shown the same
+// way: under the backend's message, which says what to do.
+//
+// Both are interim layouts until UCD's copy (BMD-1086).
+const TEMPLATE_FILE_ERROR_CODES = new Set([
+  'TEMPLATE_VERSION_MISSING',
+  'TEMPLATE_VERSION_DUPLICATED',
+  'TEMPLATE_VERSION_INVALID',
+  'TEMPLATE_VERSION_UNSUPPORTED',
+  'LEGACY_TEMPLATE_NOT_ACCEPTED',
+  'POST_INTERVENTION_TABLES_EMPTY'
+])
+
+function isShownAsList(code) {
+  return (
+    Object.hasOwn(LINEAGE_DESCRIBERS, code) ||
+    TEMPLATE_FILE_ERROR_CODES.has(code)
+  )
+}
+
 function isShownAsSingleError(errors) {
   return (
-    errors.length === SINGLE_VALIDATION_ERROR &&
-    !Object.hasOwn(LINEAGE_DESCRIBERS, errors[0].code)
+    errors.length === SINGLE_VALIDATION_ERROR && !isShownAsList(errors[0].code)
   )
 }
 

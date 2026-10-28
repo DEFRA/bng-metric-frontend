@@ -22,18 +22,7 @@ const PLACEHOLDER_ERROR_CODES = new Set([
   'AREA_SUM_MISMATCH',
   // BMD-1182 — an enhanced habitat whose baseline cannot be enhanced. The
   // dropout copy is to come from UCD (Figma).
-  'BASELINE_NOT_ENHANCEABLE',
-  // BMD-1086 — a BNG Service template file the service cannot read as one:
-  // no version record, more than one, one it cannot read, or a version it
-  // does not take; a legacy file while the service takes the new template;
-  // and a baseline + post-intervention upload with no post-intervention
-  // habitats. The backend's message says what to do until UCD's copy.
-  'TEMPLATE_VERSION_MISSING',
-  'TEMPLATE_VERSION_DUPLICATED',
-  'TEMPLATE_VERSION_INVALID',
-  'TEMPLATE_VERSION_UNSUPPORTED',
-  'LEGACY_TEMPLATE_NOT_ACCEPTED',
-  'POST_INTERVENTION_TABLES_EMPTY'
+  'BASELINE_NOT_ENHANCEABLE'
 ])
 
 function describeRef(sample, suffix = '') {

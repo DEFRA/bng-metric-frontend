@@ -1169,18 +1169,80 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('still resolves single-error copy for a lone template error that is not a lineage error', async () => {
+  test('shows a lone lineage error that collates several habitats as its whole list, keeping the count beyond the sample', async () => {
+    const sample = ['H001', 'H002', 'H003'].map((ref, index) => ({
+      layer: 'areas',
+      table: POST_INTERVENTION_AREAS,
+      fid: index + 1,
+      ref,
+      habitatType: 'Grassland - Modified grassland',
+      parentUuid: null
+    }))
     const view = await viewFor([
-      {
-        code: 'POST_INTERVENTION_TABLES_EMPTY',
-        message:
-          'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.',
-        details: { template: { name: 'bng-service', version: '1.0' } }
-      }
+      lineageError(
+        'STAGED_PARENT_LINK_MISSING',
+        'One or more Retained or Enhanced post-intervention habitats do not name the baseline habitat they continue',
+        sample,
+        53
+      )
     ])
 
-    expect(view.singleError).toEqual(
-      expect.objectContaining({ variant: 'placeholder' })
-    )
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more Retained or Enhanced post-intervention habitats do not name the baseline habitat they continue',
+        items: [
+          'Area Habitats Post-Intervention H001 — Grassland - Modified grassland',
+          'Area Habitats Post-Intervention H002 — Grassland - Modified grassland',
+          'Area Habitats Post-Intervention H003 — Grassland - Modified grassland'
+        ],
+        more: 50
+      }
+    ])
   })
+
+  test.each([
+    [
+      'TEMPLATE_VERSION_MISSING',
+      'The file has no template version record, so it is not a BNG Service template file.',
+      []
+    ],
+    [
+      'TEMPLATE_VERSION_DUPLICATED',
+      'The file has 2 template version records, so its template version is unclear. It should have one.',
+      []
+    ],
+    [
+      'TEMPLATE_VERSION_INVALID',
+      "The file's template version record cannot be read, so its template version is unknown.",
+      []
+    ],
+    [
+      'TEMPLATE_VERSION_UNSUPPORTED',
+      'The file is in version 2.0 of the BNG Service template, which the service does not read. It reads version 1.0.',
+      []
+    ],
+    [
+      'POST_INTERVENTION_TABLES_EMPTY',
+      'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.',
+      []
+    ],
+    [
+      'LEGACY_TEMPLATE_NOT_ACCEPTED',
+      'This file is in the legacy Natural England template. The service now takes the BNG Service template: convert the file with the QGIS plugin, then upload it again.',
+      ['convert the file with the QGIS plugin, then upload it again.']
+    ]
+  ])(
+    'shows a lone %s under the backend’s message, with no placeholder title',
+    async (code, message, items) => {
+      const view = await viewFor([{ code, message }])
+
+      expect(view.singleError).toBeNull()
+      expect(view.pageTitle).toBe('There is a problem with your file')
+      expect(view.errorBlocks).toEqual([
+        { heading: message.split(': ')[0], items, more: 0 }
+      ])
+    }
+  )
 })

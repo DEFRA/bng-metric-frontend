@@ -441,13 +441,7 @@ describe('#resolveSingleErrorCopy', () => {
     'IGGIS_OUTSIDE_REDLINE',
     'TREES_OUTSIDE_REDLINE',
     'AREA_SUM_MISMATCH',
-    'BASELINE_NOT_ENHANCEABLE',
-    'TEMPLATE_VERSION_MISSING',
-    'TEMPLATE_VERSION_DUPLICATED',
-    'TEMPLATE_VERSION_INVALID',
-    'TEMPLATE_VERSION_UNSUPPORTED',
-    'LEGACY_TEMPLATE_NOT_ACCEPTED',
-    'POST_INTERVENTION_TABLES_EMPTY'
+    'BASELINE_NOT_ENHANCEABLE'
   ])('AC14: %s renders the UCD placeholder variant', (code) => {
     const result = resolveSingleErrorCopy(
       { code, message: 'backend message for ' + code },
