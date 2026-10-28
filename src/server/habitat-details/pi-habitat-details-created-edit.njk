@@ -1,0 +1,103 @@
+{% extends 'layouts/page.njk' %}
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/fieldset/macro.njk" import govukFieldset %}
+{% from "govuk/components/error-message/macro.njk" import govukErrorMessage %}
+
+{% block beforeContent %}
+  {{ super() }}
+  {{ govukBackLink({ text: "Back", href: backHref }) }}
+{% endblock %}
+
+{% macro derived(label, id, value) %}
+  <div class="app-stacked-fields__item">
+    <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ label }}</h3>
+    <p class="govuk-body" id="{{ id }}">{{ value }}</p>
+  </div>
+{% endmacro %}
+
+{% macro select(field, timing=false) %}
+  {{ govukSelect({
+    id: field.id,
+    name: field.id,
+    label: { text: field.label, classes: "govuk-label--s" if not timing else "" },
+    hint: { text: field.hint } if field.hint else null,
+    items: field.items,
+    describedBy: "timing-error" if timing and errors.advanceYears else null,
+    classes: "govuk-select--error" if timing and errors.advanceYears else "",
+    errorMessage: { text: errors[field.id] } if errors[field.id] and not timing else null
+  }) }}
+{% endmacro %}
+
+{% block content %}
+  {% if errorList.length %}
+    {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+  {% endif %}
+  <div class="govuk-grid-row app-pi-edit-heading">
+    <div class="govuk-grid-column-two-thirds">
+      <span class="govuk-caption-m" data-testid="app-heading-caption">{{ caption }}</span>
+      <h1 class="govuk-heading-l govuk-!-margin-bottom-2 govuk-!-text-break-word" data-testid="app-heading-title">{{ heading }}</h1>
+    </div>
+    <div class="govuk-grid-column-one-third app-pi-edit-heading__actions">
+      {{ govukButton({ text: "Upload file", href: uploadHref }) }}
+    </div>
+  </div>
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {% call appForm({ action: formAction, id: "created-area-details-form" }) %}
+        <input type="hidden" name="projectId" value="{{ projectId }}">
+        <input type="hidden" name="featureId" value="{{ featureId }}">
+        <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
+        <script type="application/json" id="created-area-reference-data" data-baseline-condition="{{ baselineCondition }}">{{ referenceJson | safe }}</script>
+        <h2 class="govuk-heading-m">{{ habitatDetailsSectionHeading }}</h2>
+        {{ govukInput({
+          id: "ref", name: "ref", value: values.ref,
+          classes: "app-pi-edit-reference",
+          label: { text: "Habitat reference", classes: "govuk-label--s" },
+          hint: { text: referenceHint } if referenceHint else null,
+          errorMessage: { text: errors.ref } if errors.ref else null
+        }) }}
+        {% if viewBaselineHref %}
+          <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
+        {% endif %}
+        {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
+        {{ derived("Size (hectares)", "sizeDisplay", sizeDisplay) }}
+        {{ select(fields.broadHabitat) }}
+        {{ select(fields.habitatType) }}
+        {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
+        {{ select(fields.strategicSignificance) }}
+        <h2 class="govuk-heading-m">{{ timeDifficultySectionHeading }}</h2>
+        {{ select(fields.condition) }}
+        {{ derived("Standard time to target condition", "standardTimeToTargetDisplay", standardTimeToTargetDisplay) }}
+        {{ derived("Standard difficulty", "standardDifficultyDisplay", standardDifficultyDisplay) }}
+        <div class="govuk-form-group{% if errors.advanceYears %} govuk-form-group--error{% endif %}">
+          {% call govukFieldset({
+            legend: { text: "Advance or delay?", classes: "govuk-fieldset__legend--s" },
+            describedBy: "timing-error" if errors.advanceYears else null
+          }) %}
+            {% if errors.advanceYears %}
+              {{ govukErrorMessage({ id: "timing-error", text: errors.advanceYears }) }}
+            {% endif %}
+            {{ select(fields.advanceYears, true) }}
+            <p class="govuk-body">or</p>
+            {{ select(fields.delayYears, true) }}
+          {% endcall %}
+        </div>
+        <p class="govuk-visually-hidden" id="created-area-results-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        {{ derived("Final time to target condition (multiplier)", "finalTimeToTargetDisplay", finalTimeToTargetDisplay) }}
+        {{ derived("Applied difficulty multiplier", "appliedDifficultyMultiplierDisplay", appliedDifficultyMultiplierDisplay) }}
+        {{ govukSummaryList({ classes: "app-units-delivered app-pi-edit-units govuk-!-margin-top-6", rows: [
+          { key: { text: habitatUnitsLabel }, value: { text: habitatUnitsDisplay } }
+        ] }) }}
+        <div class="govuk-button-group">
+          {{ govukButton({ text: "Save" }) }}
+          <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>
+        </div>
+      {% endcall %}
+    </div>
+  </div>
+{% endblock %}
