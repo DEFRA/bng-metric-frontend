@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { serviceTemplateProject } from '../common/test-helpers/service-template-projects/index.js'
 import {
@@ -18,7 +18,9 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
   }
 }))
 
-const { getController } = await import('./controller.js')
+const { getController, postController } = await import('./controller.js')
+const { _resetCreatedAreaReferenceCache, createdAreaValues } =
+  await import('./created-area-edit.js')
 
 // BMD-1086: on a BNG Service template project, "View baseline details" goes
 // to the baseline feature a post-intervention feature names as its parent
@@ -70,14 +72,18 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
     ['an Enhanced hedgerow', 'hedgerows', 'HG002'],
     ['a Created watercourse that degrades its parent', 'watercourses', 'R004']
   ])(
-    'links %s to the baseline feature it names as its parent',
+    'links %s to the baseline feature it names as its parent, whatever its ref',
     async (_, layer, ref) => {
       const body = serviceTemplateProject('twoStages')
+      const parentId = baselineIdOf(body, layer, ref)
 
-      const { feature, view } = await render(body, layer, ref)
+      // Renamed, so that no baseline feature shares its ref: only the parent
+      // link can find the baseline feature.
+      const { view } = await render(body, layer, ref, (renamed) => {
+        renamed.ref = `${ref} renamed`
+      })
 
-      expect(feature.parentFeatureId).toBe(baselineIdOf(body, layer, ref))
-      expect(view.viewBaselineHref).toBe(baselineHref(feature.parentFeatureId))
+      expect(view.viewBaselineHref).toBe(baselineHref(parentId))
     }
   )
 
@@ -105,6 +111,58 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
 
     expect(feature).not.toHaveProperty('parentFeatureId')
     expect(view.viewBaselineHref).toBeNull()
+  })
+
+  describe('a Created area habitat, on its edit page and when a validation error redisplays it', () => {
+    beforeEach(() => _resetCreatedAreaReferenceCache())
+
+    /** The view models GET and an invalid POST render for H043. */
+    async function renderGetAndRedisplay(change) {
+      const body = serviceTemplateProject('twoStages')
+      const feature = structuredClone(
+        body.project.postIntervention.habitats.find((f) => f.ref === 'H043')
+      )
+      change(feature)
+      mockFeature({ type: 'habitat', feature }, { payload: body })
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+      await postController.handler(
+        {
+          payload: {
+            projectId,
+            featureId,
+            ...createdAreaValues(feature),
+            ref: ' '
+          }
+        },
+        h
+      )
+      return { body, views: h.view.mock.calls.map(([, vm]) => vm) }
+    }
+
+    test('links to its parent', async () => {
+      const { body, views } = await renderGetAndRedisplay((renamed) => {
+        renamed.ref = 'H043 renamed'
+      })
+
+      expect(views).toHaveLength(2)
+      for (const vm of views) {
+        expect(vm.viewBaselineHref).toBe(
+          baselineHref(baselineIdOf(body, 'habitats', 'H043'))
+        )
+      }
+    })
+
+    test('shows no link when it names no parent, even though a baseline feature shares its ref', async () => {
+      const { views } = await renderGetAndRedisplay((unlinked) => {
+        delete unlinked.parentFeatureId
+      })
+
+      expect(views).toHaveLength(2)
+      for (const vm of views) {
+        expect(vm.viewBaselineHref).toBeNull()
+      }
+    })
   })
 
   test('shows no link for a Created area habitat whose edited reference cleared its parent', async () => {
