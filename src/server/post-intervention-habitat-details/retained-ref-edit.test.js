@@ -42,44 +42,66 @@ describe('retainedRefEditFields', () => {
   }
 
   test('names the page by its saved reference, with no error', () => {
-    expect(retainedRefEditFields(base)).toMatchObject({
+    expect(retainedRefEditFields(base)).toEqual({
       heading: 'Hedgerow H1',
       pageTitle: 'Hedgerow H1',
       errors: [],
-      refForm: { value: 'H1', error: undefined, returnUrl: '' }
+      habitatRefInput: {
+        id: 'habitatRef',
+        value: 'H1',
+        error: undefined,
+        maxLength: 100
+      },
+      refForm: {
+        action: '/post-intervention-habitat-details',
+        projectId,
+        featureId,
+        returnUrl: '',
+        cancelHref: '/back'
+      }
     })
   })
 
   test('keeps the saved reference in the heading when a typed one is refused', () => {
     expect(
-      retainedRefEditFields({ ...base, submittedRef: '  ', returnUrl: '/r' })
+      retainedRefEditFields({
+        ...base,
+        submittedRef: '  ',
+        returnUrl: '/r',
+        refusal: { summary: 'Summary.', inline: 'Inline.' }
+      })
     ).toMatchObject({
       heading: 'Hedgerow H1',
       pageTitle: 'Error: Hedgerow H1',
-      errors: [
-        {
-          text: 'You have entered an invalid habitat reference.',
-          href: '#ref'
-        }
-      ],
-      refForm: {
-        value: '  ',
-        error: { text: 'Enter a valid habitat reference.' },
-        returnUrl: '/r'
-      }
+      errors: [{ text: 'Summary.', href: '#habitatRef' }],
+      habitatRefInput: { value: '  ', error: { text: 'Inline.' } },
+      refForm: { returnUrl: '/r' }
     })
   })
 
   test('copes with a habitat that has no reference', () => {
     expect(
       retainedRefEditFields({ ...base, type: 'habitat', feature: {} })
-    ).toMatchObject({ heading: 'Habitat', refForm: { value: '' } })
+    ).toMatchObject({ heading: 'Habitat', habitatRefInput: { value: '' } })
   })
 })
 
 describe('saveRetainedRef', () => {
   afterEach(() => {
     vi.mocked(backendRequest).mockReset()
+  })
+
+  test('says the reference is in use when the backend refuses it as such', async () => {
+    vi.mocked(backendRequest).mockRejectedValue({
+      data: {
+        res: { statusCode: 422 },
+        payload: { code: 'HABITAT_REF_IN_USE' }
+      }
+    })
+
+    await expect(
+      saveRetainedRef({}, { projectId, featureId, ref: 'A2' })
+    ).resolves.toEqual({ refInUse: true })
   })
 
   test('passes an expired session through untouched', async () => {
@@ -92,7 +114,7 @@ describe('saveRetainedRef', () => {
     ).rejects.toBe(expired)
   })
 
-  test('reads the status of a backend error wreck reports on its response', async () => {
+  test('maps any other refusal through backendSaveError', async () => {
     const error = new Error('Response Error: 409 Conflict')
     error.data = { res: { statusCode: 409 } }
     vi.mocked(backendRequest).mockRejectedValue(error)

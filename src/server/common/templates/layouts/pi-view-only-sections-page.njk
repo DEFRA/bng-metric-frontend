@@ -15,13 +15,13 @@
    Every value is read-only, except on a Retained habitat, whose view model
    carries `refForm` (BMD-1180): the page is then a form, with the "Habitat
    reference" input first in the first section and Save / Cancel below the
-   units. A refused save sets `errors` for the error summary and
-   `refForm.error` for the inline message. #}
+   units. The input is the shared habitat-ref-input component, fed by
+   `habitatRefInput`; a refused save sets `errors` for the error summary. #}
 
 {% from "govuk/components/back-link/macro.njk" import govukBackLink %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
-{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "habitat-ref-input/macro.njk" import appHabitatRefInput %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 
 {% block beforeContent %}
@@ -51,17 +51,7 @@
 
       <div class="app-stacked-fields">
         {% if loop.first and refForm %}
-          {{ govukInput({
-            id: refForm.fieldId,
-            name: refForm.fieldId,
-            label: { text: "Habitat reference", classes: "govuk-label--s" },
-            value: refForm.value,
-            classes: "govuk-input--width-20",
-            spellcheck: false,
-            attributes: { maxlength: refForm.maxLength },
-            errorMessage: refForm.error,
-            formGroup: { classes: "app-stacked-fields__item" }
-          }) }}
+          {{ appHabitatRefInput(habitatRefInput) }}
         {% endif %}
 
         {% for row in section.rows %}

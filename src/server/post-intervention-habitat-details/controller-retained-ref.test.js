@@ -169,7 +169,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
         expect(result).toContain('Habitat reference')
         expect(result).toMatch(
           new RegExp(
-            `<input[^>]*id="ref"[^>]*name="ref"[^>]*value="${ref}"[^>]*maxlength="${MAX_REF_LENGTH}"`,
+            `<input[^>]*id="habitatRef"[^>]*name="habitatRef"[^>]*value="${ref}"[^>]*maxlength="${MAX_REF_LENGTH}"`,
             's'
           )
         )
@@ -224,7 +224,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       })
 
       expect(statusCode).toBe(statusCodes.ok)
-      expect(result).not.toContain('id="ref"')
+      expect(result).not.toContain('id="habitatRef"')
       expect(result).not.toContain('habitat-details-form')
     })
 
@@ -239,7 +239,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
         auth: authedAuth
       })
 
-      expect(result).not.toContain('id="ref"')
+      expect(result).not.toContain('id="habitatRef"')
     })
   })
 
@@ -250,7 +250,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
         mockBackend({ type })
         vi.mocked(wreck.put).mockImplementation(() => savedAs(type, 'P-1'))
 
-        const { statusCode, headers } = await post({ ref: '  P-1  ' })
+        const { statusCode, headers } = await post({ habitatRef: '  P-1  ' })
 
         expect(statusCode).toBe(statusCodes.redirect)
         expect(headers.location).toBe(
@@ -267,7 +267,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       vi.mocked(wreck.put).mockImplementation(() => savedAs('habitat', 'P-1'))
       const returnUrl = `/projects/${projectId}/area-post-intervention#row-3`
 
-      const { headers } = await post({ ref: 'P-1', returnUrl })
+      const { headers } = await post({ habitatRef: 'P-1', returnUrl })
 
       expect(headers.location).toBe(returnUrl)
     })
@@ -277,7 +277,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       vi.mocked(wreck.put).mockImplementation(() => savedAs('habitat', 'P-1'))
 
       const { headers } = await post({
-        ref: 'P-1',
+        habitatRef: 'P-1',
         returnUrl: 'https://example.com/elsewhere'
       })
 
@@ -295,18 +295,18 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       async (_label, ref) => {
         mockBackend()
 
-        const { statusCode, result } = await post({ ref })
+        const { statusCode, result } = await post({ habitatRef: ref })
 
         expect(statusCode).toBe(statusCodes.badRequest)
         expect(wreck.put).not.toHaveBeenCalled()
         expect(result).toMatch(/<title>\s*Error: Habitat A1 -/)
         expect(result).toContain('There is a problem')
         expect(result).toContain(
-          '<a href="#ref">You have entered an invalid habitat reference.</a>'
+          '<a href="#habitatRef">You have entered an invalid habitat reference.</a>'
         )
         expect(result).toContain('Enter a valid habitat reference.')
         expect(result).toMatch(
-          new RegExp(`<input[^>]*id="ref"[^>]*value="${ref}"`, 's')
+          new RegExp(`<input[^>]*id="habitatRef"[^>]*value="${ref}"`, 's')
         )
       }
     )
@@ -314,7 +314,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
     test('keeps the heading on the saved reference when a save is refused', async () => {
       mockBackend()
 
-      const { result } = await post({ ref: ' ' })
+      const { result } = await post({ habitatRef: ' ' })
 
       expect(result).toMatch(/<h1[^>]*>\s*Habitat A1\s*<\/h1>/)
     })
@@ -322,7 +322,10 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
     test('refuses a POST without a CSRF token', async () => {
       mockBackend()
 
-      const { statusCode } = await post({ ref: 'P-1' }, { withCrumb: false })
+      const { statusCode } = await post(
+        { habitatRef: 'P-1' },
+        { withCrumb: false }
+      )
 
       expect(statusCode).toBe(statusCodes.forbidden)
       expect(wreck.put).not.toHaveBeenCalled()
@@ -335,6 +338,37 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(wreck.put).not.toHaveBeenCalled()
     })
 
+    test('refuses a reference another habitat already uses, showing the error and what was typed', async () => {
+      mockBackend()
+      const inUse = Boom.badData('in use')
+      inUse.data = {
+        res: { statusCode: 422 },
+        payload: { code: 'HABITAT_REF_IN_USE' }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(inUse)
+
+      const { statusCode, result } = await post({ habitatRef: 'A2' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title>\s*Error: Habitat A1 -/)
+      expect(result).toContain(
+        '<a href="#habitatRef">You have entered a habitat reference that is already in use.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference that is not already in use.'
+      )
+      expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
+    })
+
+    test('answers any other 422 from the backend as an upstream failure', async () => {
+      mockBackend()
+      vi.mocked(wreck.put).mockRejectedValue(Boom.badData('something else'))
+
+      const { statusCode } = await post({ habitatRef: 'A2' })
+
+      expect(statusCode).toBe(statusCodes.badGateway)
+    })
+
     test.each([
       [Boom.conflict('locked'), statusCodes.conflict],
       [Boom.notFound('gone'), statusCodes.notFound],
@@ -344,7 +378,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       mockBackend()
       vi.mocked(wreck.put).mockRejectedValue(backendError)
 
-      const { statusCode } = await post({ ref: 'P-1' })
+      const { statusCode } = await post({ habitatRef: 'P-1' })
 
       expect(statusCode).toBe(expectedStatus)
     })

@@ -1,0 +1,16 @@
+{#- The "Habitat reference" input on the baseline (BMD-1061) and retained
+    post-intervention (BMD-1180) details pages. `params` is the
+    habitatRefInput built by habitatRefFormFields (common/helpers/habitat-ref.js):
+    { id, value, error?, maxLength }. It sits in a stacked-fields list. -#}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{{ govukInput({
+  id: params.id,
+  name: params.id,
+  label: { text: "Habitat reference", classes: "govuk-label--s" },
+  value: params.value,
+  classes: "govuk-input--width-20",
+  spellcheck: false,
+  attributes: { maxlength: params.maxLength },
+  errorMessage: params.error,
+  formGroup: { classes: "app-stacked-fields__item" }
+}) }}

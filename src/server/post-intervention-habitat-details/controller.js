@@ -21,7 +21,11 @@ import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import { PI_DETAILS_HEADING } from './constants.js'
 import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
-import { isValidHabitatRef } from '../common/helpers/habitat-ref.js'
+import {
+  HABITAT_REF_ERROR,
+  HABITAT_REF_IN_USE_ERROR,
+  isValidHabitatRef
+} from '../common/helpers/habitat-ref.js'
 import {
   isRefEditable,
   retainedRefEditFields,
@@ -219,16 +223,16 @@ function renderUnsupportedFeature(
 /**
  * Render the details page for one post-intervention feature. A Retained area
  * habitat, hedgerow or watercourse gets the reference form (BMD-1180);
- * `submittedRef` is set when a save of it was refused.
+ * `submittedRef` and `refusal` are set when a save of it was refused.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {import('@hapi/hapi').ResponseToolkit} h
- * @param {{ projectId: string, featureId: string, returnUrl?: string, submittedRef?: string }} params
+ * @param {{ projectId: string, featureId: string, returnUrl?: string, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
  */
 async function renderDetailsPage(
   request,
   h,
-  { projectId, featureId, returnUrl, submittedRef }
+  { projectId, featureId, returnUrl, submittedRef, refusal }
 ) {
   const [{ type, feature }, project] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
@@ -268,7 +272,8 @@ async function renderDetailsPage(
         featureId,
         returnUrl,
         cancelHref: backHref,
-        submittedRef
+        submittedRef,
+        refusal
       })
     : {}
   return h.view(page.template, { ...viewModel, ...refEditFields, backHref })
@@ -299,31 +304,40 @@ const postController = {
       payload: Joi.object({
         projectId: Joi.string().uuid().required(),
         featureId: Joi.string().uuid().required(),
-        ref: Joi.string().allow('').required(),
+        habitatRef: Joi.string().allow('').required(),
         returnUrl: Joi.string().allow('').optional(),
         crumb: Joi.string().optional()
       })
     }
   },
   async handler(request, h) {
-    const { projectId, featureId, ref, returnUrl } = request.payload
-
-    if (!isValidHabitatRef(ref)) {
+    const { projectId, featureId, habitatRef, returnUrl } = request.payload
+    const showRefused = async (refusal) => {
       const response = await renderDetailsPage(request, h, {
         projectId,
         featureId,
         returnUrl,
-        submittedRef: ref
+        submittedRef: habitatRef,
+        refusal
       })
       return response.code(statusCodes.badRequest)
     }
 
-    const { type } = await saveRetainedRef(request, {
+    if (!isValidHabitatRef(habitatRef)) {
+      return showRefused(HABITAT_REF_ERROR)
+    }
+
+    const saved = await saveRetainedRef(request, {
       projectId,
       featureId,
-      ref
+      ref: habitatRef
     })
-    return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
+    if (saved.refInUse) {
+      return showRefused(HABITAT_REF_IN_USE_ERROR)
+    }
+    return h.redirect(
+      postInterventionBackHref(projectId, saved.type, returnUrl)
+    )
   }
 }
 

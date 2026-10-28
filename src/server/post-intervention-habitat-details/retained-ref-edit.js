@@ -10,23 +10,18 @@
 // and carries it onto every post-intervention row joined to that parcel, so
 // the two stay linked.
 
-import Boom from '@hapi/boom'
-
 import { config } from '../../config/config.js'
-import { statusCodes } from '../common/constants.js'
 import { backendRequest } from '../common/helpers/auth/backend-request.js'
+import { backendSaveError } from '../common/helpers/backend-save-error.js'
 import {
-  HABITAT_REF_ERROR,
-  MAX_HABITAT_REF_LENGTH
+  habitatRefFormFields,
+  isRefInUseError
 } from '../common/helpers/habitat-ref.js'
 import { RETENTION_RETAINED } from './retention.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
 export const DETAILS_ROUTE = '/post-intervention-habitat-details'
-
-// The input's id, which the error summary links to.
-export const REF_FIELD_ID = 'ref'
 
 // The page heading names the habitat by its saved reference, as the baseline
 // details pages do (BMD-1061).
@@ -52,10 +47,11 @@ export function isRefEditable(type, retentionCategory) {
 
 /**
  * The view-model fields that turn a retained details page into the reference
- * form. `submittedRef` is set when a save was refused: the input shows what was
- * typed, and the page carries the error.
+ * form: the heading, the shared reference input and error summary
+ * (habitatRefFormFields), and what the form posts. `refusal` and
+ * `submittedRef` are set when a save was refused.
  *
- * @param {{ type: string, feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string }} params
+ * @param {{ type: string, feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
  * @returns {object}
  */
 export function retainedRefEditFields({
@@ -65,38 +61,38 @@ export function retainedRefEditFields({
   featureId,
   returnUrl,
   cancelHref,
-  submittedRef
+  submittedRef,
+  refusal
 }) {
-  const refused = submittedRef !== undefined
   const heading =
     `${HEADING_PREFIX_BY_TYPE.get(type)} ${feature.ref ?? ''}`.trimEnd()
   return {
     heading,
-    pageTitle: refused ? `Error: ${heading}` : heading,
-    errors: refused
-      ? [{ text: HABITAT_REF_ERROR.summary, href: `#${REF_FIELD_ID}` }]
-      : [],
+    ...habitatRefFormFields({
+      heading,
+      savedRef: feature.ref,
+      submittedRef,
+      refusal
+    }),
     refForm: {
       action: DETAILS_ROUTE,
       projectId,
       featureId,
       returnUrl: returnUrl ?? '',
-      fieldId: REF_FIELD_ID,
-      value: refused ? submittedRef : (feature.ref ?? ''),
-      error: refused ? { text: HABITAT_REF_ERROR.inline } : undefined,
-      maxLength: MAX_HABITAT_REF_LENGTH,
       cancelHref
     }
   }
 }
 
 /**
- * Save the reference. Resolves to the backend's `{ type, feature }`.
+ * Save the reference. Resolves to the backend's `{ type, feature }`, or to
+ * `{ refInUse: true }` when the backend refuses a reference another habitat
+ * already carries. Any other failure throws (backendSaveError).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
  *   `ref` has passed isValidHabitatRef; it is sent trimmed
- * @returns {Promise<{ type: string, feature: object }>}
+ * @returns {Promise<{ type: string, feature: object } | { refInUse: true }>}
  */
 export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   try {
@@ -111,20 +107,9 @@ export async function saveRetainedRef(request, { projectId, featureId, ref }) {
     )
     return payload
   } catch (err) {
-    // An expired session is handled by catchAll (a redirect to sign in again).
-    if (err?.data?.sessionExpired) {
-      throw err
+    if (isRefInUseError(err)) {
+      return { refInUse: true }
     }
-    const statusCode = err?.data?.res?.statusCode ?? err?.output?.statusCode
-    if (statusCode === statusCodes.conflict) {
-      throw Boom.conflict('Another user is editing this project')
-    }
-    if (statusCode === statusCodes.notFound) {
-      throw Boom.notFound(`Feature ${featureId} not found`)
-    }
-    if (statusCode === statusCodes.badRequest) {
-      throw Boom.badRequest("This habitat's reference cannot be edited")
-    }
-    throw Boom.badGateway('Failed to save habitat')
+    throw backendSaveError(err, featureId)
   }
 }

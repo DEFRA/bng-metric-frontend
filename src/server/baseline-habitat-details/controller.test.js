@@ -1426,6 +1426,39 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     })
   })
 
+  describe('on Save with a reference another habitat already uses', () => {
+    beforeEach(() => {
+      vi.mocked(wreck.put).mockRejectedValue({
+        isBoom: true,
+        output: { statusCode: 422 },
+        data: {
+          res: { statusCode: 422 },
+          payload: { code: 'HABITAT_REF_IN_USE' }
+        }
+      })
+    })
+
+    test('Shows the page again with the in-use error, keeping what was typed and chosen', async () => {
+      const { statusCode, result } = await postRef({
+        habitatRef: 'A2',
+        habitatType: 'Bracken',
+        condition: 'Poor'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+      expect(result).toContain(
+        '<a href="#habitatRef">You have entered a habitat reference that is already in use.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference that is not already in use.'
+      )
+      expect(result).toMatch(/id="habitatRef" name="habitatRef"[^>]*value="A2"/)
+      expect(result).toMatch(/<option value="Bracken" selected>/)
+      expect(result).toMatch(/<option value="Poor" selected>/)
+    })
+  })
+
   describe('when opened from a post-intervention details page', () => {
     const piHref = `/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
     const piHrefInHtml = piHref.replace('&', '&amp;')

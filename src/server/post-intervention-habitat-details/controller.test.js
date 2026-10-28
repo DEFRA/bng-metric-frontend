@@ -84,15 +84,17 @@ describe('#postInterventionHabitatDetailsController', () => {
         backHref: `/projects/${projectId}/area-post-intervention`,
         // Retained, so the reference is editable (BMD-1180).
         errors: [],
+        habitatRefInput: {
+          id: 'habitatRef',
+          value: 'P-1',
+          error: undefined,
+          maxLength: 100
+        },
         refForm: {
           action: '/post-intervention-habitat-details',
           projectId,
           featureId,
           returnUrl: '',
-          fieldId: 'ref',
-          value: 'P-1',
-          error: undefined,
-          maxLength: 100,
           cancelHref: `/projects/${projectId}/area-post-intervention`
         }
       })
@@ -317,8 +319,8 @@ describe('#postInterventionHabitatDetailsController', () => {
         // Baseline hedgerow resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
         backHref: `/projects/${projectId}/hedgerows-post-intervention`,
+        habitatRefInput: expect.objectContaining({ value: 'HG-2' }),
         refForm: expect.objectContaining({
-          value: 'HG-2',
           cancelHref: `/projects/${projectId}/hedgerows-post-intervention`
         })
       })
@@ -432,8 +434,8 @@ describe('#postInterventionHabitatDetailsController', () => {
         // Baseline watercourse resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
         backHref: `/projects/${projectId}/watercourses-post-intervention`,
+        habitatRefInput: expect.objectContaining({ value: 'W-1' }),
         refForm: expect.objectContaining({
-          value: 'W-1',
           cancelHref: `/projects/${projectId}/watercourses-post-intervention`
         })
       })

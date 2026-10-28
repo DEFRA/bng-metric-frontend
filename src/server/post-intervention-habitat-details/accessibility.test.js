@@ -124,7 +124,7 @@ describe('Post-intervention habitat details page accessibility checks', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/post-intervention-habitat-details',
-      payload: { projectId, featureId, ref: ' ', crumb: crumb.token },
+      payload: { projectId, featureId, habitatRef: ' ', crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
