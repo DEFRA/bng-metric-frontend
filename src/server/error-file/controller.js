@@ -100,6 +100,66 @@ function describeUnenhanceableBaseline(s) {
     : `${base} — ${type}`
 }
 
+// BMD-1083/BMD-1086: the lineage checks of a BNG Service template file name a
+// post-intervention row or a baseline parent by its template table, Habitat
+// Ref and habitat type, as the backend's message does. A row's parent, or a
+// parent's post-intervention rows, follow it, so the user can find both.
+
+function lineageName(s) {
+  if (s?.ref) {
+    return s.ref
+  }
+  return s?.fid == null ? 'a habitat' : `fid ${s.fid}`
+}
+
+function joinRefs(refs) {
+  return (refs ?? []).filter(Boolean).join(', ')
+}
+
+function describeLineageFeature(s) {
+  const table = s?.table ? `${s.table} ` : ''
+  const type = s?.habitatType ? ` — ${s.habitatType}` : ''
+  return `${table}${lineageName(s)}${type}`
+}
+
+function describeLineageRow(s) {
+  const base = describeLineageFeature(s)
+  return s?.parentRef ? `${base}, copied from ${s.parentRef}` : base
+}
+
+function describeLineageParent(s) {
+  const base = describeLineageFeature(s)
+  const rows = joinRefs(s?.childRefs)
+  return rows ? `${base}, copied to ${rows}` : base
+}
+
+function describeAmbiguousParent(s) {
+  const base = describeLineageFeature({ ...s, ref: joinRefs(s?.refs) })
+  const rows = joinRefs(s?.childRefs)
+  return rows ? `${base}, named by ${rows}` : base
+}
+
+function describeHedgerowChildrenTooLong(s) {
+  const base = describeLineageParent(s)
+  if (s?.lengthMetres == null || s?.childLengthMetres == null) {
+    return base
+  }
+  return `${base} (${s.lengthMetres} m, linked ${s.childLengthMetres} m)`
+}
+
+const LINEAGE_DESCRIBERS = {
+  STAGED_PARENT_LINK_MISSING: describeLineageFeature,
+  STAGED_UNKNOWN_PARENT_REF: describeLineageFeature,
+  STAGED_AMBIGUOUS_PARENT: describeAmbiguousParent,
+  STAGED_BASELINE_DRIFTED: describeLineageParent,
+  STAGED_HEDGEROW_CHILDREN_TOO_LONG: describeHedgerowChildrenTooLong,
+  STAGED_WATERCOURSE_RETAINED_AND_CREATED: describeLineageParent,
+  STAGED_NATURAL_WATERCOURSE_LOST: describeLineageParent,
+  STAGED_DEGRADE_NOT_WORSE: describeLineageRow,
+  STAGED_DEGRADE_ADVANCE_NOT_30_PLUS: describeLineageRow,
+  STAGED_WATERCOURSE_NO_INTERVENTION: describeLineageRow
+}
+
 function describeFeatureWithReason(s) {
   const base = describeFeature(s)
   return s?.reason ? `${base} (${s.reason})` : base
@@ -114,7 +174,8 @@ const SAMPLE_DESCRIBERS = {
   AREA_PARCELS_INVALID_GEOMETRY: describeFeatureWithReason,
   AREA_PARCELS_OUTSIDE_REDLINE: describeFeatureWithEscape,
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: describeDistinctivenessOffender,
-  BASELINE_NOT_ENHANCEABLE: describeUnenhanceableBaseline
+  BASELINE_NOT_ENHANCEABLE: describeUnenhanceableBaseline,
+  ...LINEAGE_DESCRIBERS
 }
 
 function buildItems(err) {
@@ -180,6 +241,40 @@ function buildBlock(err) {
 
 const SINGLE_VALIDATION_ERROR = 1
 
+// A lineage error is its list of habitats: which rows, and which parents, the
+// user has to put right. The backend's heading already says what the Metric
+// guide asks for, so even on its own it is shown as a list, never reduced to
+// single-error copy.
+//
+// A BNG Service template file the service cannot read as one has no copy of
+// its own yet either. Shown alone through single-error copy it would carry
+// the "PLACEHOLDER (AWAITING UCD)" title, and a legacy file refused once the
+// flag is on is the refusal users will meet most, so it is shown the same
+// way: under the backend's message, which says what to do.
+//
+// Both are interim layouts until UCD's copy (BMD-1086).
+const TEMPLATE_FILE_ERROR_CODES = new Set([
+  'TEMPLATE_VERSION_MISSING',
+  'TEMPLATE_VERSION_DUPLICATED',
+  'TEMPLATE_VERSION_INVALID',
+  'TEMPLATE_VERSION_UNSUPPORTED',
+  'LEGACY_TEMPLATE_NOT_ACCEPTED',
+  'POST_INTERVENTION_TABLES_EMPTY'
+])
+
+function isShownAsList(code) {
+  return (
+    Object.hasOwn(LINEAGE_DESCRIBERS, code) ||
+    TEMPLATE_FILE_ERROR_CODES.has(code)
+  )
+}
+
+function isShownAsSingleError(errors) {
+  return (
+    errors.length === SINGLE_VALIDATION_ERROR && !isShownAsList(errors[0].code)
+  )
+}
+
 function resolveUploadContext(request) {
   const requestedUploadType = request.yar.get('validationUploadType')
   const uploadType =
@@ -227,10 +322,9 @@ export const invalidFileController = {
     // from both the per-parcel and union-of-parcels angle), so "exactly one" has to
     // be judged against visibleErrors — the same de-duplicated list the multi-error
     // view already renders — or AC10's personalised copy could never be reached.
-    const singleError =
-      visibleErrors.length === SINGLE_VALIDATION_ERROR
-        ? resolveSingleErrorCopy(visibleErrors[0], uploadHref)
-        : null
+    const singleError = isShownAsSingleError(visibleErrors)
+      ? resolveSingleErrorCopy(visibleErrors[0], uploadHref)
+      : null
 
     return h.view('error-file/index', {
       pageTitle: singleError?.h1 ?? 'There is a problem with your file',

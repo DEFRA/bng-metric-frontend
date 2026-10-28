@@ -1,5 +1,6 @@
-import { describe, test, expect } from 'vitest'
+import { afterEach, describe, test, expect } from 'vitest'
 
+import { config } from '../../config/config.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 
 const UPLOAD_HREF = '/projects/proj-1/upload-baseline-file'
@@ -473,5 +474,27 @@ describe('#resolveSingleErrorCopy', () => {
     )
     expect(result.variant).toBe('placeholder')
     expect(result.helpText).toBe('PLACEHOLDER - undefined')
+  })
+})
+
+describe('#resolveSingleErrorCopy with the service-template flag on', () => {
+  const originalEnabled = config.get('serviceTemplate.enabled')
+
+  afterEach(() => {
+    config.set('serviceTemplate.enabled', originalEnabled)
+  })
+
+  test('BMD-1086: the catch-all names the BNG Service template, not Natural England', () => {
+    config.set('serviceTemplate.enabled', true)
+
+    const result = resolveSingleErrorCopy(
+      { code: 'GPKG_BASELINE_MISSING_COLUMN', message: 'x' },
+      UPLOAD_HREF
+    )
+
+    expect(result.messageBefore).toBe(
+      'The layer names and column names do not match the BNG Service template. Rename the layers and columns and '
+    )
+    expect(result.messageBefore).not.toContain('Natural England')
   })
 })

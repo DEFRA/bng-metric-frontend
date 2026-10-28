@@ -1,3 +1,5 @@
+import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
+
 // BMD-405 — exact GOV.UK copy for the "exactly one validation error" dropout
 // page, keyed by the backend's ERROR_CODES (backend/src/validation/geopackage/errors.js).
 // Copy is taken verbatim from the BMD-405 acceptance criteria; the Figma linked
@@ -287,11 +289,20 @@ const CODE_ENTRIES = {
 // AC1 — Invalid Natural England columns/layers (BMD-339) is the catch-all:
 // every GeoPackage structural/schema error not covered by a more specific AC
 // above lands here, so an error code we haven't seen yet still degrades to a
-// sensible message rather than a blank page.
+// sensible message rather than a blank page. With the service-template flag
+// on, the service takes the BNG Service template instead, so the copy names
+// it (BMD-1086).
+const LEGACY_LAYERS_AND_COLUMNS_TEXT =
+  'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
+const SERVICE_TEMPLATE_LAYERS_AND_COLUMNS_TEXT =
+  'The layer names and column names do not match the BNG Service template. Rename the layers and columns and '
+
 function defaultEntry() {
   return standard(
     GEOPACKAGE_ERROR_H1,
-    'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
+    isServiceTemplateEnabled()
+      ? SERVICE_TEMPLATE_LAYERS_AND_COLUMNS_TEXT
+      : LEGACY_LAYERS_AND_COLUMNS_TEXT
   )
 }
 

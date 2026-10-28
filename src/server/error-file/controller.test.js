@@ -887,3 +887,362 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
     )
   })
 })
+
+describe('invalidFileController.handler — BMD-1086 BNG Service template lineage errors', () => {
+  const makeRequest = (errors) => {
+    const store = {
+      postInterventionValidationErrors: errors,
+      postInterventionValidationErrorsProjectId: 'proj-1086',
+      validationUploadType: 'postIntervention'
+    }
+    return {
+      yar: {
+        get: vi.fn((key) => store[key] ?? null),
+        set: vi.fn(),
+        clear: vi.fn((key) => {
+          delete store[key]
+        })
+      }
+    }
+  }
+
+  const makeH = () => ({ view: vi.fn().mockReturnThis() })
+
+  async function viewFor(errors) {
+    const h = makeH()
+    await invalidFileController.handler(makeRequest(errors), h)
+    return h.view.mock.calls[0][1]
+  }
+
+  // The backend's message: its heading, then each offender as it names it.
+  function lineageError(code, heading, sample, count = sample.length) {
+    return {
+      code,
+      message: `${heading}: ${sample.map((s) => s.ref).join('; ')}`,
+      stage: 'post-intervention',
+      details: { count, sample }
+    }
+  }
+
+  const POST_INTERVENTION_AREAS = 'Area Habitats Post-Intervention'
+  const BASELINE_AREAS = 'Area Habitats Baseline'
+
+  test('lists each row with no parent link or an unknown parent by its table, Habitat Ref and habitat type', async () => {
+    const view = await viewFor([
+      lineageError(
+        'STAGED_PARENT_LINK_MISSING',
+        'One or more Retained or Enhanced post-intervention habitats do not name the baseline habitat they continue',
+        [
+          {
+            layer: 'areas',
+            table: POST_INTERVENTION_AREAS,
+            fid: 3,
+            ref: 'H003',
+            habitatType: 'Grassland - Other neutral grassland',
+            parentUuid: null
+          },
+          { layer: 'hedgerows', table: 'Hedgerows Post-Intervention', fid: 7 }
+        ],
+        3
+      ),
+      lineageError(
+        'STAGED_UNKNOWN_PARENT_REF',
+        'One or more post-intervention habitats name a baseline habitat that is not in the file',
+        [
+          {
+            layer: 'watercourses',
+            table: 'Watercourses Post-Intervention',
+            fid: 2,
+            ref: 'R002',
+            habitatType: 'Ditches',
+            parentUuid: 'not-a-baseline-uuid'
+          }
+        ]
+      )
+    ])
+
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more Retained or Enhanced post-intervention habitats do not name the baseline habitat they continue',
+        items: [
+          'Area Habitats Post-Intervention H003 — Grassland - Other neutral grassland',
+          'Hedgerows Post-Intervention fid 7'
+        ],
+        more: 1
+      },
+      {
+        heading:
+          'One or more post-intervention habitats name a baseline habitat that is not in the file',
+        items: ['Watercourses Post-Intervention R002 — Ditches'],
+        more: 0
+      }
+    ])
+  })
+
+  test('lists each changed or ambiguous parent with the post-intervention rows that name it', async () => {
+    const view = await viewFor([
+      lineageError(
+        'STAGED_BASELINE_DRIFTED',
+        'One or more baseline habitats do not have the shape their post-intervention habitats were copied from',
+        [
+          {
+            layer: 'areas',
+            table: BASELINE_AREAS,
+            fid: 4,
+            ref: 'H004',
+            habitatType: 'Woodland and forest - Other woodland; broadleaved',
+            childRefs: ['H004', 'H004b']
+          }
+        ]
+      ),
+      lineageError(
+        'STAGED_AMBIGUOUS_PARENT',
+        'One or more post-intervention habitats name a baseline habitat whose feature_uuid more than one baseline habitat has',
+        [
+          {
+            layer: 'areas',
+            table: BASELINE_AREAS,
+            parentUuid: 'shared-uuid',
+            refs: ['H010', 'H011'],
+            habitatType: 'Grassland - Modified grassland',
+            childRefs: ['H010']
+          }
+        ]
+      )
+    ])
+
+    expect(view.errorBlocks.map(({ items }) => items)).toEqual([
+      [
+        'Area Habitats Baseline H004 — Woodland and forest - Other woodland; broadleaved, copied to H004, H004b'
+      ],
+      [
+        'Area Habitats Baseline H010, H011 — Grassland - Modified grassland, named by H010'
+      ]
+    ])
+  })
+
+  test('lists each watercourse or hedgerow parent the Metric guide refuses, with its lengths where they are the reason', async () => {
+    const view = await viewFor([
+      lineageError(
+        'STAGED_HEDGEROW_CHILDREN_TOO_LONG',
+        'One or more baseline hedgerows are shorter than the post-intervention hedgerows linked to them together',
+        [
+          {
+            layer: 'hedgerows',
+            table: 'Hedgerows Baseline',
+            fid: 1,
+            ref: 'HG001',
+            habitatType: 'Native hedgerow',
+            childRefs: ['HG001', 'HG001b'],
+            lengthMetres: 120.5,
+            childLengthMetres: 131.25
+          }
+        ]
+      ),
+      lineageError(
+        'STAGED_WATERCOURSE_RETAINED_AND_CREATED',
+        'One or more baseline watercourses have both a Retained or Enhanced part and a Created part, so their length cannot be split between what continues and what is lost. Draw each as two baseline watercourses, one for each part',
+        [
+          {
+            layer: 'watercourses',
+            table: 'Watercourses Baseline',
+            fid: 1,
+            ref: 'R001',
+            habitatType: 'Other rivers and streams',
+            childRefs: ['R001', 'R001b']
+          }
+        ]
+      ),
+      lineageError(
+        'STAGED_NATURAL_WATERCOURSE_LOST',
+        'One or more baseline watercourses have no post-intervention habitat, but only a canal or a ditch can be permanently lost. Record each as Retained, Enhanced or Created',
+        [
+          {
+            layer: 'watercourses',
+            table: 'Watercourses Baseline',
+            fid: 3,
+            ref: 'R003',
+            habitatType: 'Priority habitat',
+            childRefs: []
+          }
+        ]
+      )
+    ])
+
+    expect(
+      view.errorBlocks.map(({ heading, items }) => [heading, items])
+    ).toEqual([
+      [
+        'One or more baseline hedgerows are shorter than the post-intervention hedgerows linked to them together',
+        [
+          'Hedgerows Baseline HG001 — Native hedgerow, copied to HG001, HG001b (120.5 m, linked 131.25 m)'
+        ]
+      ],
+      [
+        'One or more baseline watercourses have both a Retained or Enhanced part and a Created part, so their length cannot be split between what continues and what is lost. Draw each as two baseline watercourses, one for each part',
+        [
+          'Watercourses Baseline R001 — Other rivers and streams, copied to R001, R001b'
+        ]
+      ],
+      [
+        'One or more baseline watercourses have no post-intervention habitat, but only a canal or a ditch can be permanently lost. Record each as Retained, Enhanced or Created',
+        ['Watercourses Baseline R003 — Priority habitat']
+      ]
+    ])
+  })
+
+  test('lists each degraded row with the parent it was copied from', async () => {
+    const row = (code, ref, habitatType, parentRef) =>
+      lineageError(code, `Heading for ${code}`, [
+        {
+          layer: 'hedgerows',
+          table: 'Hedgerows Post-Intervention',
+          fid: 9,
+          ref,
+          habitatType,
+          parentRef
+        }
+      ])
+
+    const view = await viewFor([
+      row('STAGED_DEGRADE_NOT_WORSE', 'HG009', 'Native hedgerow', 'HG002'),
+      row(
+        'STAGED_DEGRADE_ADVANCE_NOT_30_PLUS',
+        'HG010',
+        'Native hedgerow with trees',
+        'HG003'
+      ),
+      row('STAGED_WATERCOURSE_NO_INTERVENTION', 'R004', 'Ditches', null)
+    ])
+
+    expect(view.errorBlocks.map(({ items }) => items)).toEqual([
+      [
+        'Hedgerows Post-Intervention HG009 — Native hedgerow, copied from HG002'
+      ],
+      [
+        'Hedgerows Post-Intervention HG010 — Native hedgerow with trees, copied from HG003'
+      ],
+      ['Hedgerows Post-Intervention R004 — Ditches']
+    ])
+  })
+
+  test('falls back to "a habitat" when a sample names neither a ref nor a fid', async () => {
+    const view = await viewFor([
+      lineageError('STAGED_AMBIGUOUS_PARENT', 'Ambiguous', [
+        { layer: 'areas', refs: [null], childRefs: [] }
+      ])
+    ])
+
+    expect(view.errorBlocks[0].items).toEqual(['a habitat'])
+  })
+
+  test('shows a lone lineage error as its list of habitats, not as single-error copy', async () => {
+    const view = await viewFor([
+      lineageError(
+        'STAGED_DEGRADE_ADVANCE_NOT_30_PLUS',
+        'One or more habitats recorded as lost and created again in a lower condition are not created 30+ years in advance, as the Metric guide asks',
+        [
+          {
+            layer: 'areas',
+            table: POST_INTERVENTION_AREAS,
+            fid: 12,
+            ref: 'H012',
+            habitatType: 'Grassland - Other neutral grassland',
+            parentRef: 'H012'
+          }
+        ]
+      )
+    ])
+
+    expect(view.singleError).toBeNull()
+    expect(view.pageTitle).toBe('There is a problem with your file')
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more habitats recorded as lost and created again in a lower condition are not created 30+ years in advance, as the Metric guide asks',
+        items: [
+          'Area Habitats Post-Intervention H012 — Grassland - Other neutral grassland, copied from H012'
+        ],
+        more: 0
+      }
+    ])
+  })
+
+  test('shows a lone lineage error that collates several habitats as its whole list, keeping the count beyond the sample', async () => {
+    const sample = ['H001', 'H002', 'H003'].map((ref, index) => ({
+      layer: 'areas',
+      table: POST_INTERVENTION_AREAS,
+      fid: index + 1,
+      ref,
+      habitatType: 'Grassland - Modified grassland',
+      parentUuid: null
+    }))
+    const view = await viewFor([
+      lineageError(
+        'STAGED_PARENT_LINK_MISSING',
+        'One or more Retained or Enhanced post-intervention habitats do not name the baseline habitat they continue',
+        sample,
+        53
+      )
+    ])
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more Retained or Enhanced post-intervention habitats do not name the baseline habitat they continue',
+        items: [
+          'Area Habitats Post-Intervention H001 — Grassland - Modified grassland',
+          'Area Habitats Post-Intervention H002 — Grassland - Modified grassland',
+          'Area Habitats Post-Intervention H003 — Grassland - Modified grassland'
+        ],
+        more: 50
+      }
+    ])
+  })
+
+  test.each([
+    [
+      'TEMPLATE_VERSION_MISSING',
+      'The file has no template version record, so it is not a BNG Service template file.',
+      []
+    ],
+    [
+      'TEMPLATE_VERSION_DUPLICATED',
+      'The file has 2 template version records, so its template version is unclear. It should have one.',
+      []
+    ],
+    [
+      'TEMPLATE_VERSION_INVALID',
+      "The file's template version record cannot be read, so its template version is unknown.",
+      []
+    ],
+    [
+      'TEMPLATE_VERSION_UNSUPPORTED',
+      'The file is in version 2.0 of the BNG Service template, which the service does not read. It reads version 1.0.',
+      []
+    ],
+    [
+      'POST_INTERVENTION_TABLES_EMPTY',
+      'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.',
+      []
+    ],
+    [
+      'LEGACY_TEMPLATE_NOT_ACCEPTED',
+      'This file is in the legacy Natural England template. The service now takes the BNG Service template: convert the file with the QGIS plugin, then upload it again.',
+      ['convert the file with the QGIS plugin, then upload it again.']
+    ]
+  ])(
+    'shows a lone %s under the backend’s message, with no placeholder title',
+    async (code, message, items) => {
+      const view = await viewFor([{ code, message }])
+
+      expect(view.singleError).toBeNull()
+      expect(view.pageTitle).toBe('There is a problem with your file')
+      expect(view.errorBlocks).toEqual([
+        { heading: message.split(': ')[0], items, more: 0 }
+      ])
+    }
+  )
+})
