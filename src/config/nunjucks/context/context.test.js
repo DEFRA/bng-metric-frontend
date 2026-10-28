@@ -62,6 +62,7 @@ describe('context and cache', () => {
             ),
             script: expect.stringContaining('GTM-K5LRK3HR')
           },
+          serviceTemplate: { enabled: false },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
@@ -156,6 +157,7 @@ describe('context and cache', () => {
             ),
             script: expect.stringContaining('GTM-K5LRK3HR')
           },
+          serviceTemplate: { enabled: false },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
