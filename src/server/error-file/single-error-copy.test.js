@@ -1,7 +1,11 @@
 import { afterEach, describe, test, expect } from 'vitest'
 
 import { config } from '../../config/config.js'
-import { resolveSingleErrorCopy } from './single-error-copy.js'
+import {
+  UNENHANCEABLE_BASELINE_MAX_ROWS,
+  resolveSingleErrorCopy
+} from './single-error-copy.js'
+import { renderTemplate } from '../test-helpers/render-template.js'
 
 const UPLOAD_HREF = '/projects/proj-1/upload-baseline-file'
 
@@ -440,8 +444,7 @@ describe('#resolveSingleErrorCopy', () => {
     'REDLINE_AREA_TOO_LARGE',
     'IGGIS_OUTSIDE_REDLINE',
     'TREES_OUTSIDE_REDLINE',
-    'AREA_SUM_MISMATCH',
-    'BASELINE_NOT_ENHANCEABLE'
+    'AREA_SUM_MISMATCH'
   ])('AC14: %s renders the UCD placeholder variant', (code) => {
     const result = resolveSingleErrorCopy(
       { code, message: 'backend message for ' + code },
@@ -496,5 +499,148 @@ describe('#resolveSingleErrorCopy with the service-template flag on', () => {
       'The layer names and column names do not match the BNG Service template. Rename the layers and columns and '
     )
     expect(result.messageBefore).not.toContain('Natural England')
+  })
+})
+
+describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => {
+  const offender = (fields) => ({
+    layer: 'habitats',
+    feature_ref: 'H001',
+    habitat_type: 'Grassland - Other neutral grassland',
+    condition: 'Good',
+    distinctiveness: 'Medium',
+    rule: 'medium-area-good',
+    mvsOnly: true,
+    ...fields
+  })
+  const error = (sample, count = sample.length) => ({
+    code: 'BASELINE_NOT_ENHANCEABLE',
+    message: 'backend message',
+    details: { count, sample }
+  })
+
+  test('replaces the placeholder with interim copy and a table of the habitats', () => {
+    const result = resolveSingleErrorCopy(
+      error([
+        offender(),
+        offender({
+          layer: 'hedgerows',
+          feature_ref: 'HG011',
+          habitat_type: 'Ecologically valuable line of trees'
+        }),
+        offender({
+          layer: 'watercourses',
+          feature_ref: 'R001',
+          habitat_type: 'Ditches'
+        }),
+        offender({
+          layer: 'trees',
+          feature_ref: 'T018',
+          habitat_type: 'Individual trees - Rural tree'
+        })
+      ]),
+      UPLOAD_HREF
+    )
+
+    expect(result.variant).toBe('standard')
+    expect(result.h1).toBe(
+      'Some habitats in your file cannot be enhanced in this service'
+    )
+    expect(result.h1).not.toContain('PLACEHOLDER')
+    expect(result.intro).toContain('already in good condition')
+    expect(result.messageBefore).toBe(
+      'Change the retention category of each habitat listed to Retained and '
+    )
+    expect(result.uploadHref).toBe(UPLOAD_HREF)
+    expect(result.table.head.map((h) => h.text)).toEqual([
+      'Reference',
+      'Feature',
+      'Baseline habitat',
+      'Baseline condition'
+    ])
+    expect(result.table.rows.map((row) => row.map((c) => c.text))).toEqual([
+      ['H001', 'Area habitat', 'Grassland - Other neutral grassland', 'Good'],
+      ['HG011', 'Hedgerow', 'Ecologically valuable line of trees', 'Good'],
+      ['R001', 'Watercourse', 'Ditches', 'Good'],
+      ['T018', 'Individual tree', 'Individual trees - Rural tree', 'Good']
+    ])
+    expect(result.table).toMatchObject({ shown: 4, total: 4 })
+  })
+
+  test('says what is missing rather than leaving a cell blank', () => {
+    const result = resolveSingleErrorCopy(
+      error([
+        offender({
+          layer: 'hedgerows',
+          feature_ref: null,
+          habitat_type: 'Non-native and ornamental hedgerow',
+          condition: ''
+        })
+      ]),
+      UPLOAD_HREF
+    )
+
+    expect(result.table.rows[0].map((c) => c.text)).toEqual([
+      'No reference',
+      'Hedgerow',
+      'Non-native and ornamental hedgerow',
+      'Not recorded'
+    ])
+  })
+
+  test(`shows at most ${UNENHANCEABLE_BASELINE_MAX_ROWS} rows, and the count of all of them`, () => {
+    const sample = Array.from({ length: 60 }, (_, i) =>
+      offender({ feature_ref: `H${String(i + 1).padStart(3, '0')}` })
+    )
+    const result = resolveSingleErrorCopy(error(sample, 75), UPLOAD_HREF)
+
+    expect(result.table.rows).toHaveLength(UNENHANCEABLE_BASELINE_MAX_ROWS)
+    expect(result.table.rows.at(-1)[0].text).toBe('H050')
+    expect(result.table).toMatchObject({ shown: 50, total: 75 })
+  })
+
+  test('reads the count from the sample when the backend sends none', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'BASELINE_NOT_ENHANCEABLE', details: { sample: [offender()] } },
+      UPLOAD_HREF
+    )
+
+    expect(result.table).toMatchObject({ shown: 1, total: 1 })
+  })
+
+  test('still reads as a sentence with no upload link', () => {
+    const result = resolveSingleErrorCopy(error([offender()]), null)
+
+    expect(result.messageBefore).toBe(
+      'Change the retention category of each habitat listed to Retained.'
+    )
+    expect(result.linkText).toBeNull()
+  })
+
+  test('renders the copy and the table on the page', () => {
+    const sample = Array.from({ length: 50 }, (_, i) =>
+      offender({ feature_ref: `H${String(i + 1).padStart(3, '0')}` })
+    )
+    const html = renderTemplate('error-file/index.njk', {
+      singleError: resolveSingleErrorCopy(error(sample, 52), UPLOAD_HREF)
+    })
+
+    expect(html).not.toContain('PLACEHOLDER')
+    expect(html).toContain(
+      'Some habitats in your file cannot be enhanced in this service'
+    )
+    expect(html).toContain('data-testid="unenhanceable-habitats"')
+    expect(html).toContain('Habitats that cannot be enhanced')
+    expect(html).toContain(`href="${UPLOAD_HREF}"`)
+    expect(html.match(/<tr class="govuk-table__row">/g)).toHaveLength(51)
+    expect(html).toContain('Showing the first 50 of 52 habitats.')
+  })
+
+  test('says nothing about others when every habitat is shown', () => {
+    const html = renderTemplate('error-file/index.njk', {
+      singleError: resolveSingleErrorCopy(error([offender()]), UPLOAD_HREF)
+    })
+
+    expect(html).not.toContain('data-testid="unenhanceable-habitats-more"')
   })
 })

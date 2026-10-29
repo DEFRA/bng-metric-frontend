@@ -19,10 +19,7 @@ const PLACEHOLDER_ERROR_CODES = new Set([
   'REDLINE_AREA_TOO_LARGE',
   'IGGIS_OUTSIDE_REDLINE',
   'TREES_OUTSIDE_REDLINE',
-  'AREA_SUM_MISMATCH',
-  // BMD-1182 — an enhanced habitat whose baseline cannot be enhanced. The
-  // dropout copy is to come from UCD (Figma).
-  'BASELINE_NOT_ENHANCEABLE'
+  'AREA_SUM_MISMATCH'
 ])
 
 function describeRef(sample, suffix = '') {
@@ -185,6 +182,68 @@ const habitatRefInvalidCharactersEntry = () =>
     `${HABITAT_REF_INVALID_CHARACTERS_TEXT}. Change the references to use only letters, numbers and standard punctuation and `
   )
 
+// BMD-1182: enhanced habitats whose baseline the service cannot enhance at
+// all. The file is refused rather than the enhancements nulled, as there is
+// nothing the user can fix in the service. Interim copy, pending UCD (Figma):
+// replace the h1, intro and instruction here.
+const UNENHANCEABLE_BASELINE_H1 =
+  'Some habitats in your file cannot be enhanced in this service'
+const UNENHANCEABLE_BASELINE_INTRO =
+  'Your file marks the habitats below as enhanced, but this service cannot enhance them. A medium distinctiveness habitat, hedgerow, watercourse or tree that is already in good condition can only be enhanced into a higher distinctiveness habitat, which this service does not include yet. A very low distinctiveness hedgerow cannot be enhanced at all, and some low distinctiveness hedgerows in good condition have no hedgerow they can be enhanced into.'
+const UNENHANCEABLE_BASELINE_INSTRUCTION =
+  'Change the retention category of each habitat listed to Retained and '
+
+// The backend sends at most 50 offenders in details.sample, and the count of
+// all of them in details.count. The table never shows more than this.
+export const UNENHANCEABLE_BASELINE_MAX_ROWS = 50
+
+// The backend's document layer names, as the table labels a feature.
+const UNENHANCEABLE_FEATURE_LABELS = {
+  habitats: 'Area habitat',
+  hedgerows: 'Hedgerow',
+  watercourses: 'Watercourse',
+  trees: 'Individual tree'
+}
+
+function textOr(value, fallback) {
+  return value == null || value === '' ? fallback : String(value)
+}
+
+function unenhanceableRow(sample) {
+  return [
+    { text: textOr(sample?.feature_ref, 'No reference') },
+    {
+      text: UNENHANCEABLE_FEATURE_LABELS[sample?.layer] ?? 'Habitat'
+    },
+    { text: textOr(sample?.habitat_type, 'Not recorded') },
+    { text: textOr(sample?.condition, 'Not recorded') }
+  ]
+}
+
+const unenhanceableBaselineEntry = (error) => {
+  const sample = error?.details?.sample ?? []
+  const rows = sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
+  const count = Number(error?.details?.count)
+  const total = Number.isFinite(count)
+    ? Math.max(count, rows.length)
+    : rows.length
+  return {
+    ...standard(UNENHANCEABLE_BASELINE_H1, UNENHANCEABLE_BASELINE_INSTRUCTION),
+    intro: UNENHANCEABLE_BASELINE_INTRO,
+    table: {
+      head: [
+        { text: 'Reference' },
+        { text: 'Feature' },
+        { text: 'Baseline habitat' },
+        { text: 'Baseline condition' }
+      ],
+      rows: rows.map(unenhanceableRow),
+      shown: rows.length,
+      total
+    }
+  }
+}
+
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
   GPKG_RLB_NO_POLYGON: noRedlineEntry,
@@ -257,6 +316,7 @@ const CODE_ENTRIES = {
   TREE_COUNT_NOT_WHOLE: treeCountEntry,
   INVALID_FILENAME: invalidFilenameEntry,
   GPKG_TOO_MANY_FEATURES: tooManyFeaturesEntry,
+  BASELINE_NOT_ENHANCEABLE: unenhanceableBaselineEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
