@@ -1,5 +1,5 @@
 {
-  "id": "e7569166-1a51-4e06-b765-c610c150c8b8",
+  "id": "e42e2eb5-cb49-4761-8661-2189747ae640",
   "project": {
     "name": "BMD-1086 watercourse-advance-incomplete",
     "baseline": {
@@ -16,7 +16,7 @@
       "redLine": {
         "area": null,
         "siteName": null,
-        "featureId": "fdf3a4ab-3e82-4b58-989b-1ad4efe571d8",
+        "featureId": "f09c11e9-6f88-4fda-a4df-f7e2a246b45c",
         "properties": {
           "fid": 1
         }
@@ -38,7 +38,7 @@
           "siteName": null,
           "broadType": "Grassland",
           "condition": "Fairly Poor",
-          "featureId": "7c4b5b37-9853-4bb6-95c5-e9a0fee60a78",
+          "featureId": "fa481e7f-20c6-4879-a35d-b919d7f04411",
           "properties": {
             "fid": 1,
             "Comment": null,
@@ -46,10 +46,12 @@
             "feature_uuid": "de9d1450-90f7-584a-9710-edf7ec189de4",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Other lowland acid grassland",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Grassland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Medium",
@@ -76,7 +78,7 @@
           "siteName": null,
           "broadType": "Woodland and forest",
           "condition": "Fairly Good",
-          "featureId": "102e1cdc-65f2-4dcf-a46e-0132395a0b07",
+          "featureId": "1967f4ac-3ca8-48d8-97d0-ca15add39953",
           "properties": {
             "fid": 2,
             "Comment": null,
@@ -84,10 +86,12 @@
             "feature_uuid": "80c8af52-2690-5a0a-ae4c-0666ba97f429",
             "Baseline Condition": "Fairly Good",
             "Baseline Habitat Type": "Other woodland; broadleaved",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2.5,
           "distinctiveness": "Medium",
@@ -114,7 +118,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Good",
-          "featureId": "15a32a50-1072-4a74-a8ad-a1e8241b021f",
+          "featureId": "1e412791-7c69-4f05-9f03-2046b23f100b",
           "properties": {
             "fid": 3,
             "Comment": "Grazed by sheep",
@@ -122,10 +126,12 @@
             "feature_uuid": "6be1a220-acdf-57ae-aae6-5fe7671c6f97",
             "Baseline Condition": "Good",
             "Baseline Habitat Type": "Mixed scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 3,
           "distinctiveness": "Medium",
@@ -152,7 +158,7 @@
           "siteName": null,
           "broadType": "Sparsely vegetated land",
           "condition": "Poor",
-          "featureId": "db151883-0aed-45fa-899b-63730dba8cf9",
+          "featureId": "04e40637-0ec2-40fe-acab-6df8c1d93ccc",
           "properties": {
             "fid": 4,
             "Comment": null,
@@ -160,10 +166,12 @@
             "feature_uuid": "9b51e5a4-f999-540b-8d43-5c5749f149f1",
             "Baseline Condition": "Poor",
             "Baseline Habitat Type": "Ruderal/Ephemeral",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -190,7 +198,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Fairly Good",
-          "featureId": "9a89070f-be48-4fb3-867f-08dac689827e",
+          "featureId": "44842f94-742a-48c6-a7e3-cd6f5596e2c4",
           "properties": {
             "fid": 5,
             "Comment": "Boundary follows the field edge",
@@ -198,10 +206,12 @@
             "feature_uuid": "5c3f0af6-96b6-54a8-b44f-dd7644d9237b",
             "Baseline Condition": "Fairly Good",
             "Baseline Habitat Type": "Biodiverse green roof",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2.5,
           "distinctiveness": "Medium",
@@ -228,7 +238,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Fairly Poor",
-          "featureId": "e816f1d4-0603-4fcd-84db-0501d31ca33c",
+          "featureId": "125d26d9-bf8b-4b2b-947c-50fa17b4bb14",
           "properties": {
             "fid": 6,
             "Comment": null,
@@ -236,10 +246,12 @@
             "feature_uuid": "ecc17d39-3751-57c2-8e81-580fa4835469",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Low",
@@ -266,7 +278,7 @@
           "siteName": null,
           "broadType": "Sparsely vegetated land",
           "condition": "Good",
-          "featureId": "a750b8cb-d0fd-4cc1-bfd5-05934cdc3743",
+          "featureId": "2329cda7-0bc2-4518-8d28-df00c92d5788",
           "properties": {
             "fid": 7,
             "Comment": null,
@@ -274,10 +286,12 @@
             "feature_uuid": "242729c0-40e1-5a45-a93c-f249167d2ce9",
             "Baseline Condition": "Good",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 3,
           "distinctiveness": "Low",
@@ -304,7 +318,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Fairly Poor",
-          "featureId": "b11eac4e-2bd6-48a7-930a-85720afb8636",
+          "featureId": "0f651e60-af17-452b-a838-97dddc9fb1dc",
           "properties": {
             "fid": 8,
             "Comment": null,
@@ -312,10 +326,12 @@
             "feature_uuid": "daf05021-dc71-5d65-b387-0572c840db58",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Low",
@@ -342,7 +358,7 @@
           "siteName": null,
           "broadType": "Cropland",
           "condition": "Condition Assessment N/A",
-          "featureId": "445c31f0-8dc0-46e2-8c3b-0783d30b510e",
+          "featureId": "d51f8a87-3773-4e6a-b074-5383aa189ef2",
           "properties": {
             "fid": 9,
             "Comment": "Boundary follows the field edge",
@@ -350,10 +366,12 @@
             "feature_uuid": "03b96ecc-f169-5866-a979-fa3e03f34a87",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Temporary grass and clover leys",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Cropland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -380,7 +398,7 @@
           "siteName": null,
           "broadType": "Cropland",
           "condition": "Condition Assessment N/A",
-          "featureId": "1b9ef6be-63c8-4bf6-a4db-1074f09f59be",
+          "featureId": "d1d43268-35e9-4b93-b2f9-7b01c84ac78f",
           "properties": {
             "fid": 10,
             "Comment": null,
@@ -388,10 +406,12 @@
             "feature_uuid": "8b2be4c5-9d6c-5831-9f04-1403dd3d3c19",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Arable field margins cultivated annually",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Cropland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -418,7 +438,7 @@
           "siteName": null,
           "broadType": "Woodland and forest",
           "condition": "Good",
-          "featureId": "ec825216-a6a4-4d6d-8feb-8745cf10011c",
+          "featureId": "7caa2677-b3f2-4e06-a5a4-debc13d5906e",
           "properties": {
             "fid": 11,
             "Comment": "Boundary follows the field edge",
@@ -426,10 +446,12 @@
             "feature_uuid": "6e3bafd7-e28f-5b2e-87c0-5254f3e461e3",
             "Baseline Condition": "Good",
             "Baseline Habitat Type": "Other woodland; broadleaved",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 3,
           "distinctiveness": "Medium",
@@ -456,7 +478,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "N/A - Other",
-          "featureId": "2bf9684f-9cd4-42ac-9990-f6410d120dca",
+          "featureId": "e21e530e-39ed-4331-a12e-cba7a57c805d",
           "properties": {
             "fid": 12,
             "Comment": null,
@@ -464,10 +486,12 @@
             "feature_uuid": "dab3b01a-33b6-534c-af36-0e62482eb95f",
             "Baseline Condition": "N/A - Other",
             "Baseline Habitat Type": "Artificial unvegetated, unsealed surface",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 0,
           "distinctiveness": "V.Low",
@@ -494,7 +518,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Fairly Poor",
-          "featureId": "8c44cd2e-e1e2-43ea-8025-734a2ff8b754",
+          "featureId": "956adb21-6bb7-4d99-8c8e-6eabdc0f1da2",
           "properties": {
             "fid": 13,
             "Comment": "Surveyed in June",
@@ -502,10 +526,12 @@
             "feature_uuid": "b68b582e-8a4d-51ec-b4e4-b21466d9ee7b",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Low",
@@ -532,7 +558,7 @@
           "siteName": null,
           "broadType": "Sparsely vegetated land",
           "condition": "Good",
-          "featureId": "bc7eba80-ad78-43f2-83d0-ecdb15278df0",
+          "featureId": "2c7e1dde-792d-4a74-84f9-7cb283573646",
           "properties": {
             "fid": 14,
             "Comment": null,
@@ -540,10 +566,12 @@
             "feature_uuid": "def51ac7-f59e-504c-a1ae-034a8ba6331a",
             "Baseline Condition": "Good",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 3,
           "distinctiveness": "Low",
@@ -570,7 +598,7 @@
           "siteName": null,
           "broadType": "Sparsely vegetated land",
           "condition": "Fairly Poor",
-          "featureId": "5482fa14-721d-4d76-a250-68405af77445",
+          "featureId": "21c61a5c-c60d-4856-a7c8-3394018dd369",
           "properties": {
             "fid": 15,
             "Comment": null,
@@ -578,10 +606,12 @@
             "feature_uuid": "d80ef185-69c5-5114-965b-e24390f98d92",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Low",
@@ -608,7 +638,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Good",
-          "featureId": "fe68cc99-811e-4123-a214-f318392811be",
+          "featureId": "1eb8f7ad-c028-4bec-8c3a-0a915770657f",
           "properties": {
             "fid": 16,
             "Comment": null,
@@ -616,10 +646,12 @@
             "feature_uuid": "b730ee96-1df9-5d34-8c07-2e657fa1e5b9",
             "Baseline Condition": "Good",
             "Baseline Habitat Type": "Vacant or derelict land",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 3,
           "distinctiveness": "Low",
@@ -646,7 +678,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "N/A - Other",
-          "featureId": "a3531d33-bfe9-4a46-8605-7cbbde40a1db",
+          "featureId": "658b9f97-17a0-4ac8-b0ff-0c5d999164de",
           "properties": {
             "fid": 17,
             "Comment": null,
@@ -654,10 +686,12 @@
             "feature_uuid": "e2f3cb27-c665-55f5-8137-582e01b276fe",
             "Baseline Condition": "N/A - Other",
             "Baseline Habitat Type": "Unvegetated garden",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 0,
           "distinctiveness": "V.Low",
@@ -684,7 +718,7 @@
           "siteName": null,
           "broadType": "Cropland",
           "condition": "Condition Assessment N/A",
-          "featureId": "bd95c0b0-af74-40a6-8fd8-77b6cf74b25b",
+          "featureId": "73f99799-dc3e-4cc6-8146-f1b279137c63",
           "properties": {
             "fid": 18,
             "Comment": null,
@@ -692,10 +726,12 @@
             "feature_uuid": "fa5d7146-fca6-597e-b4ac-283a7dc50c54",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Arable field margins pollen and nectar",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Cropland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -722,7 +758,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Moderate",
-          "featureId": "dee648e3-50d5-4c4e-9da6-e516f3ca1e88",
+          "featureId": "450e82be-d94e-4ee5-ad6c-9900b7c8fe75",
           "properties": {
             "fid": 19,
             "Comment": null,
@@ -730,10 +766,12 @@
             "feature_uuid": "d821cac5-bc28-5867-8ab5-cc453d772456",
             "Baseline Condition": "Moderate",
             "Baseline Habitat Type": "Gorse scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2,
           "distinctiveness": "Medium",
@@ -760,7 +798,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Moderate",
-          "featureId": "39364b27-11e7-4bc7-8625-c068e541a511",
+          "featureId": "420a1edb-3b4e-4238-adbe-31b0bdb3f303",
           "properties": {
             "fid": 20,
             "Comment": null,
@@ -768,10 +806,12 @@
             "feature_uuid": "2b7babe4-fe16-523d-8976-315a9c2a618c",
             "Baseline Condition": "Moderate",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2,
           "distinctiveness": "Low",
@@ -798,7 +838,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Poor",
-          "featureId": "1fee503a-8323-4626-95ba-e064a7fa0ab2",
+          "featureId": "304f491d-d020-4def-a949-2faf6008daec",
           "properties": {
             "fid": 21,
             "Comment": null,
@@ -806,10 +846,12 @@
             "feature_uuid": "2d1531ca-d1bc-50f6-9027-7796da057f92",
             "Baseline Condition": "Poor",
             "Baseline Habitat Type": "Biodiverse green roof",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -836,7 +878,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Condition Assessment N/A",
-          "featureId": "40d7a7df-8188-483d-bba9-d18a14c66f26",
+          "featureId": "4c1ff932-1532-423f-bca9-bf81a83f5a59",
           "properties": {
             "fid": 22,
             "Comment": null,
@@ -844,10 +886,12 @@
             "feature_uuid": "2ea61192-a073-5b09-aa10-ad9180cb204c",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Other sea buckthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -874,7 +918,7 @@
           "siteName": null,
           "broadType": "Cropland",
           "condition": "Condition Assessment N/A",
-          "featureId": "43079ca1-af65-4160-bf15-938dbe9c1e95",
+          "featureId": "8595f376-af69-482b-b576-49ece7571f3a",
           "properties": {
             "fid": 23,
             "Comment": null,
@@ -882,10 +926,12 @@
             "feature_uuid": "3323a9d0-d08d-550a-935f-e01821f5cbd2",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Arable field margins cultivated annually",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Cropland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -912,7 +958,7 @@
           "siteName": null,
           "broadType": "Woodland and forest",
           "condition": "Fairly Poor",
-          "featureId": "74b2757c-5982-45f4-aba9-6f2cafbd2d16",
+          "featureId": "e6adf49b-b016-44c8-a5a6-d7e741c3ae50",
           "properties": {
             "fid": 24,
             "Comment": null,
@@ -920,10 +966,12 @@
             "feature_uuid": "9aae42d5-11ed-59be-8c3d-fbc32a72e4b6",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Other coniferous woodland",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Low",
@@ -950,7 +998,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Moderate",
-          "featureId": "80027e1b-73dc-445f-8eb5-7471ccec3588",
+          "featureId": "7ae97f17-1730-424e-b8cd-a7c239bdf602",
           "properties": {
             "fid": 25,
             "Comment": null,
@@ -958,10 +1006,12 @@
             "feature_uuid": "171b4e98-1ef6-5e86-b7a4-29ae68465b5d",
             "Baseline Condition": "Moderate",
             "Baseline Habitat Type": "Rain garden",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2,
           "distinctiveness": "Low",
@@ -988,7 +1038,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "N/A - Other",
-          "featureId": "e8eda3ea-1027-42c8-82ba-4f7c380d88e2",
+          "featureId": "728aa564-46cb-4583-9794-3d5c44b91cbb",
           "properties": {
             "fid": 26,
             "Comment": null,
@@ -996,10 +1046,12 @@
             "feature_uuid": "50c1c453-3bac-55ca-ab4f-96080a18977b",
             "Baseline Condition": "N/A - Other",
             "Baseline Habitat Type": "Artificial unvegetated, unsealed surface",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 0,
           "distinctiveness": "V.Low",
@@ -1026,7 +1078,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Moderate",
-          "featureId": "83e6c51e-97ca-4cc4-a8b5-9613863b862c",
+          "featureId": "278b7a8e-ea87-47f1-af86-668b1586e1fe",
           "properties": {
             "fid": 27,
             "Comment": "Surveyed in June",
@@ -1034,10 +1086,12 @@
             "feature_uuid": "40965993-85c8-540c-96de-06fb329db9f1",
             "Baseline Condition": "Moderate",
             "Baseline Habitat Type": "Hazel scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2,
           "distinctiveness": "Medium",
@@ -1064,7 +1118,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Condition Assessment N/A",
-          "featureId": "8036600a-a5b4-4521-9edd-14bde1e4d2a5",
+          "featureId": "58d26a8d-bab6-4d11-acc3-b27e7a38464d",
           "properties": {
             "fid": 28,
             "Comment": "Grazed by sheep",
@@ -1072,10 +1126,12 @@
             "feature_uuid": "bcbd6a24-ceb3-51a6-846b-fb2a7fe5e945",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Actively worked sand pit quarry or open cast mine",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -1102,7 +1158,7 @@
           "siteName": null,
           "broadType": "Lakes",
           "condition": "Moderate",
-          "featureId": "d071f209-9414-49ab-b824-36829a3845e7",
+          "featureId": "3dd8f335-f7bd-4ccf-975f-1deb939c32ea",
           "properties": {
             "fid": 29,
             "Comment": null,
@@ -1110,10 +1166,12 @@
             "feature_uuid": "3af8e8ba-8a30-513a-8926-fbc639732ce3",
             "Baseline Condition": "Moderate",
             "Baseline Habitat Type": "Ponds (non-priority habitat)",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Lakes",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2,
           "distinctiveness": "Medium",
@@ -1140,7 +1198,7 @@
           "siteName": null,
           "broadType": "Sparsely vegetated land",
           "condition": "Fairly Poor",
-          "featureId": "300c793e-da91-44ab-bf20-0009d301d346",
+          "featureId": "86af70cf-dc7a-4365-a323-669681f0722a",
           "properties": {
             "fid": 30,
             "Comment": "Grazed by sheep",
@@ -1148,10 +1206,12 @@
             "feature_uuid": "624021f5-1387-5eaa-898e-71ea557bc1aa",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Low",
@@ -1178,7 +1238,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Poor",
-          "featureId": "8af7060c-c8da-4851-8f70-7cd0a7b90df2",
+          "featureId": "3cf627b5-d2df-427d-b6f7-a5fca6295df4",
           "properties": {
             "fid": 31,
             "Comment": null,
@@ -1186,10 +1246,12 @@
             "feature_uuid": "e25023b0-551f-5fb1-b2a8-8a9086f8828c",
             "Baseline Condition": "Poor",
             "Baseline Habitat Type": "Blackthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -1216,7 +1278,7 @@
           "siteName": null,
           "broadType": "Cropland",
           "condition": "Condition Assessment N/A",
-          "featureId": "d33e0d97-ad35-4e5f-a951-2d8e6ee7edbf",
+          "featureId": "afda8cc1-7a2f-4621-bb49-08d6be9d405e",
           "properties": {
             "fid": 32,
             "Comment": null,
@@ -1224,10 +1286,12 @@
             "feature_uuid": "9cc2dfb9-e78e-5bde-99ac-eaba62e16e77",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Non-cereal crops",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Cropland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -1254,7 +1318,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Fairly Good",
-          "featureId": "2d6df41f-fbbd-4d89-ac59-5788b5b4a271",
+          "featureId": "28c4dc7e-61f4-4106-97a0-1375b01f3807",
           "properties": {
             "fid": 33,
             "Comment": null,
@@ -1262,10 +1326,12 @@
             "feature_uuid": "424ba37c-9d26-51a3-9521-76f1fcd6f4d4",
             "Baseline Condition": "Fairly Good",
             "Baseline Habitat Type": "Hazel scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2.5,
           "distinctiveness": "Medium",
@@ -1292,7 +1358,7 @@
           "siteName": null,
           "broadType": "Cropland",
           "condition": "Condition Assessment N/A",
-          "featureId": "669f9b58-9726-46e6-a2a1-de75397bb2ca",
+          "featureId": "2a274604-4e03-4de4-ada6-8f090e4d0d33",
           "properties": {
             "fid": 34,
             "Comment": null,
@@ -1300,10 +1366,12 @@
             "feature_uuid": "d355a8ba-24db-5dad-8c0e-be78949943cd",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Arable field margins game bird mix",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Cropland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -1330,7 +1398,7 @@
           "siteName": null,
           "broadType": "Lakes",
           "condition": "Good",
-          "featureId": "3f212eee-b587-4732-a505-f8348ce1a868",
+          "featureId": "f984e2bd-843b-443d-b477-571f4007926b",
           "properties": {
             "fid": 35,
             "Comment": null,
@@ -1338,10 +1406,12 @@
             "feature_uuid": "197061ef-75be-5f5c-baf9-cac7f2fa790d",
             "Baseline Condition": "Good",
             "Baseline Habitat Type": "Ponds (non-priority habitat)",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Lakes",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 3,
           "distinctiveness": "Medium",
@@ -1368,7 +1438,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Fairly Poor",
-          "featureId": "5fae6600-d070-4179-be75-fdd510477ab2",
+          "featureId": "df4743dc-b390-462b-9b0e-bade5b37b85a",
           "properties": {
             "fid": 36,
             "Comment": "Boundary follows the field edge",
@@ -1376,10 +1446,12 @@
             "feature_uuid": "f57a2603-4f7c-5e7d-877d-016678467cc3",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Mixed scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Medium",
@@ -1406,7 +1478,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Poor",
-          "featureId": "d31d7258-6496-4dd2-8af9-2d5c192c6caa",
+          "featureId": "cea3c4aa-6f06-4b50-9fcb-bfabac70a115",
           "properties": {
             "fid": 37,
             "Comment": null,
@@ -1414,10 +1486,12 @@
             "feature_uuid": "2df0a13d-d5e1-55c8-9eb7-3abe65250b49",
             "Baseline Condition": "Poor",
             "Baseline Habitat Type": "Willow scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -1444,7 +1518,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Moderate",
-          "featureId": "977e9cba-fcc6-45c2-ab73-dc3ead7b72ea",
+          "featureId": "2a1d19ac-f794-4126-bef3-a92e2f146487",
           "properties": {
             "fid": 38,
             "Comment": null,
@@ -1452,10 +1526,12 @@
             "feature_uuid": "b54e6e7a-73e4-5931-97c9-6d6d43e32d85",
             "Baseline Condition": "Moderate",
             "Baseline Habitat Type": "Vacant or derelict land",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2,
           "distinctiveness": "Low",
@@ -1482,7 +1558,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "N/A - Other",
-          "featureId": "4234e2a9-64e8-4739-a637-0e0a4079e354",
+          "featureId": "7d3e0da2-08ac-4cc3-9e98-bdf73a44a3d7",
           "properties": {
             "fid": 39,
             "Comment": null,
@@ -1490,10 +1566,12 @@
             "feature_uuid": "a2a87f57-8bef-5d2a-99b7-ad1de3febd6c",
             "Baseline Condition": "N/A - Other",
             "Baseline Habitat Type": "Unvegetated garden",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 0,
           "distinctiveness": "V.Low",
@@ -1520,7 +1598,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Poor",
-          "featureId": "6dc6653b-4f9e-4f42-b39a-f6d9758addfb",
+          "featureId": "35adc334-f06d-482b-95d4-487e353a6a8f",
           "properties": {
             "fid": 40,
             "Comment": null,
@@ -1528,10 +1606,12 @@
             "feature_uuid": "c39b7d6a-4b5b-5d43-9555-8ab4a3662f91",
             "Baseline Condition": "Poor",
             "Baseline Habitat Type": "Blackthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Medium",
@@ -1558,7 +1638,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Good",
-          "featureId": "852bb7a8-5dec-49db-b0e3-3e2c2acd639e",
+          "featureId": "d0eb7149-9df8-46b4-8e51-9f22272b6f12",
           "properties": {
             "fid": 41,
             "Comment": null,
@@ -1566,10 +1646,12 @@
             "feature_uuid": "84897805-f9c4-5d84-8105-ff4ffdc3dbd9",
             "Baseline Condition": "Good",
             "Baseline Habitat Type": "Gorse scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 3,
           "distinctiveness": "Medium",
@@ -1596,7 +1678,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "N/A - Other",
-          "featureId": "cf214ca8-7e58-454d-b2e2-7e8e67bb6672",
+          "featureId": "a07eb23e-ced3-4674-9b67-7cabf2c27bc3",
           "properties": {
             "fid": 42,
             "Comment": null,
@@ -1604,10 +1686,12 @@
             "feature_uuid": "be517809-11ab-59a0-a4c1-8077625e7fe3",
             "Baseline Condition": "N/A - Other",
             "Baseline Habitat Type": "Built linear features",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 0,
           "distinctiveness": "V.Low",
@@ -1634,7 +1718,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Moderate",
-          "featureId": "b68d2d44-b052-4f83-9400-4503b5fa05dc",
+          "featureId": "b88f9933-4f1c-4b56-8ce4-e88ec40e2573",
           "properties": {
             "fid": 43,
             "Comment": null,
@@ -1642,10 +1726,12 @@
             "feature_uuid": "5b30fcb0-cd5c-5f7a-a8d0-701fe48e8fd7",
             "Baseline Condition": "Moderate",
             "Baseline Habitat Type": "Blackthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2,
           "distinctiveness": "Medium",
@@ -1672,7 +1758,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Condition Assessment N/A",
-          "featureId": "8092b1a0-133e-442e-83ed-2025d924f7d7",
+          "featureId": "55252917-0ea3-4fdf-9e52-d93ec6567aae",
           "properties": {
             "fid": 44,
             "Comment": null,
@@ -1680,10 +1766,12 @@
             "feature_uuid": "4cbfbf79-bdf0-592e-a251-7c501671b60c",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Rhododendron scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -1710,7 +1798,7 @@
           "siteName": null,
           "broadType": "Sparsely vegetated land",
           "condition": "Fairly Good",
-          "featureId": "be3f1c66-ca58-4d6e-949f-c3e3c11af2fd",
+          "featureId": "e5f9febf-299c-46ac-8f97-52180181c766",
           "properties": {
             "fid": 45,
             "Comment": null,
@@ -1718,10 +1806,12 @@
             "feature_uuid": "a6a67062-a160-5480-a554-298328e20613",
             "Baseline Condition": "Fairly Good",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2.5,
           "distinctiveness": "Low",
@@ -1748,7 +1838,7 @@
           "siteName": null,
           "broadType": "Grassland",
           "condition": "Fairly Good",
-          "featureId": "0418dac2-c8b9-4533-a9fe-5f2c79afeb53",
+          "featureId": "ba45e272-2150-4cf7-99ea-655f6e5f64a1",
           "properties": {
             "fid": 46,
             "Comment": "Surveyed in June",
@@ -1756,10 +1846,12 @@
             "feature_uuid": "fdf7a632-9ff9-5793-bfe8-73d5290c4850",
             "Baseline Condition": "Fairly Good",
             "Baseline Habitat Type": "Other neutral grassland",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Grassland",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 2.5,
           "distinctiveness": "Medium",
@@ -1786,7 +1878,7 @@
           "siteName": null,
           "broadType": "Heathland and shrub",
           "condition": "Condition Assessment N/A",
-          "featureId": "d31270c8-5d6c-4e09-9160-531bdaa4c24d",
+          "featureId": "dad27b22-cc85-4f00-919a-2809df27ab36",
           "properties": {
             "fid": 47,
             "Comment": null,
@@ -1794,10 +1886,12 @@
             "feature_uuid": "56e47182-c73f-5079-81d8-a2c8e3f166fe",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Rhododendron scrub",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -1824,7 +1918,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Fairly Poor",
-          "featureId": "03570d25-6ca0-4f73-aab0-15855b28b22e",
+          "featureId": "3113aa70-a9b2-4a66-8ffd-a8c44d92f8d0",
           "properties": {
             "fid": 48,
             "Comment": null,
@@ -1832,10 +1926,12 @@
             "feature_uuid": "4d7af050-5abf-5a51-8c8d-652d94ef8351",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Sustainable drainage system",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Low",
@@ -1862,7 +1958,7 @@
           "siteName": null,
           "broadType": "Urban",
           "condition": "Condition Assessment N/A",
-          "featureId": "e94e0bc1-511f-4d9d-91c0-3398d2534519",
+          "featureId": "1bc4b194-8410-4986-a5ca-4a9db665896f",
           "properties": {
             "fid": 49,
             "Comment": null,
@@ -1870,10 +1966,12 @@
             "feature_uuid": "531671f9-a318-56d1-b14f-86f6b4776286",
             "Baseline Condition": "Condition Assessment N/A",
             "Baseline Habitat Type": "Other green roof",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Urban",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1,
           "distinctiveness": "Low",
@@ -1900,7 +1998,7 @@
           "siteName": null,
           "broadType": "Woodland and forest",
           "condition": "Fairly Poor",
-          "featureId": "7390ea87-60d7-45ae-a01f-72979ece9059",
+          "featureId": "f7db48db-e6a6-4236-aa27-0390f0fdc5e5",
           "properties": {
             "fid": 50,
             "Comment": null,
@@ -1908,10 +2006,12 @@
             "feature_uuid": "79c76003-eaa0-53d7-9c07-0282355e469e",
             "Baseline Condition": "Fairly Poor",
             "Baseline Habitat Type": "Other woodland; broadleaved",
+            "Irreplaceable Habitat": "No",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Baseline Strategic Significance": "Low"
           },
           "surveyDate": null,
+          "irreplaceable": false,
           "surveyDetails": null,
           "conditionScore": 1.5,
           "distinctiveness": "Medium",
@@ -1929,7 +2029,7 @@
         "name": "bng-service",
         "version": "1.0"
       },
-      "uploadId": "2262a069-132f-4a74-9494-0d319dd79719",
+      "uploadId": "ef79981e-5b01-4f21-96eb-73b0e8b337d6",
       "hedgerows": [
         {
           "ref": "HG001",
@@ -1944,7 +2044,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Poor",
-          "featureId": "6deb085d-dc81-4cf3-8013-2d632b0bcccf",
+          "featureId": "f5c5ad32-cf63-4f04-bfdb-fe4f40a6967e",
           "properties": {
             "fid": 1,
             "Comment": null,
@@ -1980,7 +2080,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Poor",
-          "featureId": "22c4d2b5-4921-4145-a65a-afbfb6ab6f90",
+          "featureId": "ae42cc96-a8f7-487f-90c4-a4d931423bdc",
           "properties": {
             "fid": 2,
             "Comment": "Gappy at the eastern end",
@@ -2016,7 +2116,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Good",
-          "featureId": "d45e8cce-d096-4e11-a84d-c96772e5a181",
+          "featureId": "054918a1-a3ea-4424-b65d-e8013b00b5a3",
           "properties": {
             "fid": 3,
             "Comment": null,
@@ -2052,7 +2152,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "69a042b1-8193-41a1-8913-1ed0ccde2929",
+          "featureId": "e01b19d8-b577-497b-a738-7d1dee960651",
           "properties": {
             "fid": 4,
             "Comment": "Cut annually",
@@ -2088,7 +2188,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "67925afe-9b2e-4e86-9300-d1a6f1140cf5",
+          "featureId": "e802a975-e1d1-4671-9dbf-e7453c42317f",
           "properties": {
             "fid": 5,
             "Comment": null,
@@ -2124,7 +2224,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "6ec022b4-14d2-47eb-af18-1e7462062066",
+          "featureId": "f8d09ca9-aeae-481a-962e-81cf376499bb",
           "properties": {
             "fid": 6,
             "Comment": null,
@@ -2160,7 +2260,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "dbe15cc4-dbae-456f-a1f3-14f0b5b1ed04",
+          "featureId": "0fc25530-bc44-47ad-a733-c011201a84d0",
           "properties": {
             "fid": 7,
             "Comment": "Cut annually",
@@ -2196,7 +2296,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "e6bebb60-649c-4211-8b92-b6255fbfe962",
+          "featureId": "93646fda-7f48-4b7b-9411-b43cbf985089",
           "properties": {
             "fid": 8,
             "Comment": "Cut annually",
@@ -2232,7 +2332,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "e48ef244-b7c6-441c-99e4-d3f599c32adb",
+          "featureId": "e37a208a-e7e0-4175-89f1-c2f2c4bba0be",
           "properties": {
             "fid": 9,
             "Comment": null,
@@ -2268,7 +2368,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Poor",
-          "featureId": "6f23e85c-f1dc-44c6-8804-7ff1c652323b",
+          "featureId": "901ad1a5-0f2e-4e01-867e-af4e9bf41bde",
           "properties": {
             "fid": 10,
             "Comment": null,
@@ -2304,7 +2404,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "fcd6d8de-80f0-44fa-b8e6-e3576d49f5fe",
+          "featureId": "ef0947a4-f98c-4e02-97dd-6d78c9089141",
           "properties": {
             "fid": 11,
             "Comment": null,
@@ -2340,7 +2440,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "006594e2-f083-4025-839d-416b79811768",
+          "featureId": "561c41dc-56ed-4593-bcbf-b765fc1bb51e",
           "properties": {
             "fid": 12,
             "Comment": null,
@@ -2376,7 +2476,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Good",
-          "featureId": "09245e9d-4a4e-4391-9859-d9c7addfcc48",
+          "featureId": "ead13125-eba7-4bdf-befe-120f5db30817",
           "properties": {
             "fid": 13,
             "Comment": "Gappy at the eastern end",
@@ -2400,7 +2500,7 @@
           "delayInStartingHabitatCreationYears": null
         }
       ],
-      "importedAt": "2026-10-28T14:31:46.969Z",
+      "importedAt": "2026-10-28T16:12:53.778Z",
       "habitatSizes": {
         "site": {
           "totalSquareMetres": 529779.5710370525
@@ -2434,7 +2534,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Poor",
-          "featureId": "6b9cfc87-2ec7-4613-bb99-e02ec9b8edd4",
+          "featureId": "f7b77eb7-d49c-4b00-bafd-2764489960b7",
           "properties": {
             "fid": 1,
             "Comment": null,
@@ -2477,7 +2577,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Fairly Good",
-          "featureId": "8c6481ea-7460-4eb7-addd-1ce685fab8f3",
+          "featureId": "35b01337-7168-4883-9abf-a2bc9271feab",
           "properties": {
             "fid": 2,
             "Comment": null,
@@ -2520,7 +2620,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Fairly Poor",
-          "featureId": "669b201c-b43b-4c62-9b08-5a1508939533",
+          "featureId": "a985f120-e0ae-44a7-bdf1-2dfc13626271",
           "properties": {
             "fid": 3,
             "Comment": null,
@@ -2563,7 +2663,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Moderate",
-          "featureId": "24496ad5-5f1a-44ab-b7cb-ef911bf49a86",
+          "featureId": "df6369c0-0c37-4dc3-b383-6931f0218a40",
           "properties": {
             "fid": 4,
             "Comment": null,
@@ -2606,7 +2706,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Fairly Poor",
-          "featureId": "49eada22-cfe5-4a1b-8594-85173c8bcc64",
+          "featureId": "b318825b-74e3-499a-89d6-01680e806bdb",
           "properties": {
             "fid": 5,
             "Comment": null,
@@ -2649,7 +2749,7 @@
           "mappedBy": null,
           "siteName": null,
           "condition": "Poor",
-          "featureId": "16019b3b-b9d7-4e6a-a359-bf8f4fb6c4c6",
+          "featureId": "8a7afebd-6b86-46fb-82ff-b36aaee4a742",
           "properties": {
             "fid": 6,
             "Comment": null,
@@ -2699,7 +2799,7 @@
         "watercoursesNetUnitChangePercentage": -67.95060348048236
       },
       "redLine": {
-        "featureId": "04d87ea6-3c04-4b1a-8a27-9f7c4fd90969",
+        "featureId": "7b63dce2-1fd4-4c7b-86f6-405bf5e9002e",
         "properties": {
           "fid": 1
         }
@@ -2740,7 +2840,7 @@
             "standardTimeToTargetCondition": "8",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "1c5f929c-1b50-440c-bfed-af83c735049f",
+          "featureId": "a4750eeb-38f6-4169-973c-429936951271",
           "properties": {
             "fid": 1,
             "Comment": null,
@@ -2752,6 +2852,7 @@
             "Proposed Condition": "Moderate",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Other lowland acid grassland",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other lowland acid grassland",
             "Baseline Broad Habitat Type": "Grassland",
             "Proposed Broad Habitat Type": "Grassland",
@@ -2760,7 +2861,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "7c4b5b37-9853-4bb6-95c5-e9a0fee60a78",
+          "irreplaceable": false,
+          "parentFeatureId": "fa481e7f-20c6-4879-a35d-b919d7f04411",
           "sizeSquareMetres": 15776.721575367075,
           "retentionCategory": "Enhanced"
         },
@@ -2791,7 +2893,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "c6910908-d4b8-467f-9b19-0492503a5565",
+          "featureId": "78c5659d-74e9-4d6e-a069-3f987ce90fdc",
           "properties": {
             "fid": 2,
             "Comment": null,
@@ -2803,6 +2905,7 @@
             "Proposed Condition": "Fairly Good",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Other woodland; broadleaved",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other woodland; broadleaved",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Proposed Broad Habitat Type": "Woodland and forest",
@@ -2811,7 +2914,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "102e1cdc-65f2-4dcf-a46e-0132395a0b07",
+          "irreplaceable": false,
+          "parentFeatureId": "1967f4ac-3ca8-48d8-97d0-ca15add39953",
           "sizeSquareMetres": 15715.608449027317,
           "retentionCategory": "Retained"
         },
@@ -2842,7 +2946,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "8438aa84-add9-4cdc-a14c-5f87dc8eff97",
+          "featureId": "6e3699d5-1a48-4c8f-97fb-b92233c9eaab",
           "properties": {
             "fid": 3,
             "Comment": null,
@@ -2854,6 +2958,7 @@
             "Proposed Condition": "Good",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Mixed scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Mixed scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -2862,7 +2967,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "15a32a50-1072-4a74-a8ad-a1e8241b021f",
+          "irreplaceable": false,
+          "parentFeatureId": "1e412791-7c69-4f05-9f03-2046b23f100b",
           "sizeSquareMetres": 6907.400133655186,
           "retentionCategory": "Retained"
         },
@@ -2893,7 +2999,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "941bd59f-fb11-48df-8a33-2d253528564d",
+          "featureId": "2204d3d7-e29b-49e5-9b32-06ab654fac0d",
           "properties": {
             "fid": 4,
             "Comment": null,
@@ -2905,6 +3011,7 @@
             "Proposed Condition": "Good",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Mixed scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Mixed scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -2913,7 +3020,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "15a32a50-1072-4a74-a8ad-a1e8241b021f",
+          "irreplaceable": false,
+          "parentFeatureId": "1e412791-7c69-4f05-9f03-2046b23f100b",
           "sizeSquareMetres": 8445.75069476689,
           "retentionCategory": "Retained"
         },
@@ -2950,7 +3058,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "81dfc645-d004-4c1b-8c8e-fa48c65132c8",
+          "featureId": "38b81687-2560-474c-9e55-9ed06177430f",
           "properties": {
             "fid": 5,
             "Comment": null,
@@ -2962,6 +3070,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Ruderal/Ephemeral",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ruderal/Ephemeral",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Proposed Broad Habitat Type": "Sparsely vegetated land",
@@ -2970,7 +3079,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "db151883-0aed-45fa-899b-63730dba8cf9",
+          "irreplaceable": false,
+          "parentFeatureId": "04e40637-0ec2-40fe-acab-6df8c1d93ccc",
           "sizeSquareMetres": 15205.356884398618,
           "retentionCategory": "Enhanced"
         },
@@ -3007,7 +3117,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "1832beea-fafa-4045-a802-6691ed58f53f",
+          "featureId": "bde98c04-a2d9-4fb6-987c-04855642e92f",
           "properties": {
             "fid": 6,
             "Comment": "Seeded with a local mix",
@@ -3019,6 +3129,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Biodiverse green roof",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Allotments",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -3027,7 +3138,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "9a89070f-be48-4fb3-867f-08dac689827e",
+          "irreplaceable": false,
+          "parentFeatureId": "44842f94-742a-48c6-a7e3-cd6f5596e2c4",
           "sizeSquareMetres": 14987.848348584706,
           "retentionCategory": "Created"
         },
@@ -3064,7 +3176,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "5ae8d8c8-1be1-424c-9fc8-cc3164acd155",
+          "featureId": "f3f65e45-8434-4884-b22c-ebb87cfb377d",
           "properties": {
             "fid": 7,
             "Comment": null,
@@ -3076,6 +3188,7 @@
             "Proposed Condition": "Moderate",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Intensive green roof",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -3084,7 +3197,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "e816f1d4-0603-4fcd-84db-0501d31ca33c",
+          "irreplaceable": false,
+          "parentFeatureId": "125d26d9-bf8b-4b2b-947c-50fa17b4bb14",
           "sizeSquareMetres": 14827.956513812867,
           "retentionCategory": "Enhanced"
         },
@@ -3121,7 +3235,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "babfcef4-58c6-4104-a804-b438986618e2",
+          "featureId": "4cbea527-0035-4aa1-aaae-ce05cdc6ff37",
           "properties": {
             "fid": 8,
             "Comment": null,
@@ -3133,6 +3247,7 @@
             "Proposed Condition": "Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ruderal/Ephemeral",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Proposed Broad Habitat Type": "Sparsely vegetated land",
@@ -3141,7 +3256,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "a750b8cb-d0fd-4cc1-bfd5-05934cdc3743",
+          "irreplaceable": false,
+          "parentFeatureId": "2329cda7-0bc2-4518-8d28-df00c92d5788",
           "sizeSquareMetres": 14576.453592486705,
           "retentionCategory": "Created"
         },
@@ -3178,7 +3294,7 @@
             "standardTimeToTargetCondition": "3",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "9275c605-2a29-410d-8790-aa4c78559bc2",
+          "featureId": "bdb70721-cc9a-48f3-97be-501b3ff60cd6",
           "properties": {
             "fid": 9,
             "Comment": null,
@@ -3190,6 +3306,7 @@
             "Proposed Condition": "Good",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Intensive green roof",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -3198,7 +3315,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "b11eac4e-2bd6-48a7-930a-85720afb8636",
+          "irreplaceable": false,
+          "parentFeatureId": "0f651e60-af17-452b-a838-97dddc9fb1dc",
           "sizeSquareMetres": 14479.503536780288,
           "retentionCategory": "Enhanced"
         },
@@ -3235,7 +3353,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "f066b9c8-269f-4b1f-ae1c-d30b0306d943",
+          "featureId": "ae157ff6-2b82-48e7-aaee-a3f06af488f5",
           "properties": {
             "fid": 10,
             "Comment": null,
@@ -3247,6 +3365,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Temporary grass and clover leys",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Arable field margins cultivated annually",
             "Baseline Broad Habitat Type": "Cropland",
             "Proposed Broad Habitat Type": "Cropland",
@@ -3255,7 +3374,8 @@
             "Habitat created in advance/years": "1",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "445c31f0-8dc0-46e2-8c3b-0783d30b510e",
+          "irreplaceable": false,
+          "parentFeatureId": "d51f8a87-3773-4e6a-b074-5383aa189ef2",
           "sizeSquareMetres": 14168.936982087225,
           "retentionCategory": "Created"
         },
@@ -3292,7 +3412,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "17ab2624-d0f6-408d-8ae0-9e6b8c4b807f",
+          "featureId": "aba6665e-fa7a-4877-8184-9a8e0ac11803",
           "properties": {
             "fid": 11,
             "Comment": null,
@@ -3304,6 +3424,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Arable field margins cultivated annually",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Arable field margins pollen and nectar",
             "Baseline Broad Habitat Type": "Cropland",
             "Proposed Broad Habitat Type": "Cropland",
@@ -3312,7 +3433,8 @@
             "Habitat created in advance/years": "1",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "1b9ef6be-63c8-4bf6-a4db-1074f09f59be",
+          "irreplaceable": false,
+          "parentFeatureId": "d1d43268-35e9-4b93-b2f9-7b01c84ac78f",
           "sizeSquareMetres": 14132.813084343086,
           "retentionCategory": "Created"
         },
@@ -3349,7 +3471,7 @@
             "standardTimeToTargetCondition": "2",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "9f076818-7b9f-41e2-b956-3854813f811a",
+          "featureId": "4dacbb6c-8a60-482a-b346-3424bc2bb945",
           "properties": {
             "fid": 12,
             "Comment": "Seeded with a local mix",
@@ -3361,6 +3483,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Other woodland; broadleaved",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ornamental lake or pond",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Proposed Broad Habitat Type": "Lakes",
@@ -3369,7 +3492,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "ec825216-a6a4-4d6d-8feb-8745cf10011c",
+          "irreplaceable": false,
+          "parentFeatureId": "7caa2677-b3f2-4e06-a5a4-debc13d5906e",
           "sizeSquareMetres": 14051.645396286054,
           "retentionCategory": "Created"
         },
@@ -3400,7 +3524,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "b8381ceb-3543-4d70-b338-05d5985c57c6",
+          "featureId": "968f224d-ad82-49e6-884d-a2c70994712a",
           "properties": {
             "fid": 13,
             "Comment": null,
@@ -3412,6 +3536,7 @@
             "Proposed Condition": "N/A - Other",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Artificial unvegetated, unsealed surface",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Artificial unvegetated, unsealed surface",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -3420,7 +3545,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "2bf9684f-9cd4-42ac-9990-f6410d120dca",
+          "irreplaceable": false,
+          "parentFeatureId": "e21e530e-39ed-4331-a12e-cba7a57c805d",
           "sizeSquareMetres": 13697.350836652524,
           "retentionCategory": "Retained"
         },
@@ -3457,7 +3583,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "3ab33d2a-8c05-446d-a41f-b1e80e3e00c8",
+          "featureId": "dbad3c49-ab3d-4bfb-8290-41f01d5d6718",
           "properties": {
             "fid": 14,
             "Comment": null,
@@ -3469,6 +3595,7 @@
             "Proposed Condition": "Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Rain garden",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -3477,7 +3604,8 @@
             "Habitat created in advance/years": "4",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "8c44cd2e-e1e2-43ea-8025-734a2ff8b754",
+          "irreplaceable": false,
+          "parentFeatureId": "956adb21-6bb7-4d99-8c8e-6eabdc0f1da2",
           "sizeSquareMetres": 13500.685873932896,
           "retentionCategory": "Created"
         },
@@ -3514,7 +3642,7 @@
             "standardTimeToTargetCondition": "3",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "745a62de-12a4-4f25-b761-94513d21d4db",
+          "featureId": "df00f152-36ac-41b3-bdc4-73009a4241d9",
           "properties": {
             "fid": 15,
             "Comment": "Managed under the landscape plan",
@@ -3526,6 +3654,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Blackthorn scrub",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -3534,7 +3663,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "bc7eba80-ad78-43f2-83d0-ecdb15278df0",
+          "irreplaceable": false,
+          "parentFeatureId": "2c7e1dde-792d-4a74-84f9-7cb283573646",
           "sizeSquareMetres": 13225.196326852789,
           "retentionCategory": "Created"
         },
@@ -3571,7 +3701,7 @@
             "standardTimeToTargetCondition": ">30",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "5ae1f70a-df2b-4f09-bc26-9a93b96733f1",
+          "featureId": "46ee6ae2-9756-42ac-a686-88e26c74b561",
           "properties": {
             "fid": 16,
             "Comment": null,
@@ -3583,6 +3713,7 @@
             "Proposed Condition": "Good",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other Scot's pine woodland",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Proposed Broad Habitat Type": "Woodland and forest",
@@ -3591,7 +3722,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "5482fa14-721d-4d76-a250-68405af77445",
+          "irreplaceable": false,
+          "parentFeatureId": "21c61a5c-c60d-4856-a7c8-3394018dd369",
           "sizeSquareMetres": 12493.550781754631,
           "retentionCategory": "Created"
         },
@@ -3628,7 +3760,7 @@
             "standardTimeToTargetCondition": "0",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "647f0ec6-7034-4d81-ad7d-f55e9eaf634a",
+          "featureId": "eca14a15-f60a-4fc2-9203-5eb8a95e4b47",
           "properties": {
             "fid": 17,
             "Comment": null,
@@ -3640,6 +3772,7 @@
             "Proposed Condition": "N/A - Other",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Vacant or derelict land",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Artificial unvegetated, unsealed surface",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -3648,7 +3781,8 @@
             "Habitat created in advance/years": "4",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "fe68cc99-811e-4123-a214-f318392811be",
+          "irreplaceable": false,
+          "parentFeatureId": "1eb8f7ad-c028-4bec-8c3a-0a915770657f",
           "sizeSquareMetres": 12359.610329276813,
           "retentionCategory": "Created"
         },
@@ -3685,7 +3819,7 @@
             "standardTimeToTargetCondition": "4",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "b4c66f44-3268-4293-bc6d-32158c6581f2",
+          "featureId": "7d1ae7bb-367a-41e3-852e-332f579f45b6",
           "properties": {
             "fid": 18,
             "Comment": null,
@@ -3697,6 +3831,7 @@
             "Proposed Condition": "Fairly Good",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Unvegetated garden",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ponds (non-priority habitat)",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Lakes",
@@ -3705,7 +3840,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "a3531d33-bfe9-4a46-8605-7cbbde40a1db",
+          "irreplaceable": false,
+          "parentFeatureId": "658b9f97-17a0-4ac8-b0ff-0c5d999164de",
           "sizeSquareMetres": 12334.822331553236,
           "retentionCategory": "Created"
         },
@@ -3742,7 +3878,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "893944b5-6db3-4fc7-bb0d-174d6ddcdee8",
+          "featureId": "73552cf7-6634-4b08-8f07-fe6cc0fcb5f9",
           "properties": {
             "fid": 19,
             "Comment": null,
@@ -3754,6 +3890,7 @@
             "Proposed Condition": "Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Arable field margins pollen and nectar",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ruderal/Ephemeral",
             "Baseline Broad Habitat Type": "Cropland",
             "Proposed Broad Habitat Type": "Sparsely vegetated land",
@@ -3762,7 +3899,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "bd95c0b0-af74-40a6-8fd8-77b6cf74b25b",
+          "irreplaceable": false,
+          "parentFeatureId": "73f99799-dc3e-4cc6-8146-f1b279137c63",
           "sizeSquareMetres": 12292.200607184897,
           "retentionCategory": "Created"
         },
@@ -3799,7 +3937,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "4a47604c-d904-401d-91e3-2f57bcfc55ee",
+          "featureId": "5200dd84-bcbc-4248-8b5d-82e398041336",
           "properties": {
             "fid": 20,
             "Comment": null,
@@ -3811,6 +3949,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Gorse scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Rhododendron scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -3819,7 +3958,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "dee648e3-50d5-4c4e-9da6-e516f3ca1e88",
+          "irreplaceable": false,
+          "parentFeatureId": "450e82be-d94e-4ee5-ad6c-9900b7c8fe75",
           "sizeSquareMetres": 12149.234429844739,
           "retentionCategory": "Created"
         },
@@ -3856,7 +3996,7 @@
             "standardTimeToTargetCondition": "3",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "509f7d09-d2f2-4512-a1dc-1e029af640d8",
+          "featureId": "0e1e8d23-88e8-4099-8688-80ff0a3b67b7",
           "properties": {
             "fid": 21,
             "Comment": null,
@@ -3868,6 +4008,7 @@
             "Proposed Condition": "Moderate",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Intensive green roof",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Rain garden",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -3876,7 +4017,8 @@
             "Habitat created in advance/years": "2",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "39364b27-11e7-4bc7-8625-c068e541a511",
+          "irreplaceable": false,
+          "parentFeatureId": "420a1edb-3b4e-4238-adbe-31b0bdb3f303",
           "sizeSquareMetres": 12012.076435942232,
           "retentionCategory": "Created"
         },
@@ -3913,7 +4055,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "94a5430d-4928-462b-be4f-0eaf949cc783",
+          "featureId": "7c42b30c-d124-4763-adc1-c2ee9f47e4fc",
           "properties": {
             "fid": 22,
             "Comment": null,
@@ -3925,6 +4067,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Biodiverse green roof",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Bracken",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Grassland",
@@ -3933,7 +4076,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "1fee503a-8323-4626-95ba-e064a7fa0ab2",
+          "irreplaceable": false,
+          "parentFeatureId": "304f491d-d020-4def-a949-2faf6008daec",
           "sizeSquareMetres": 11827.855584858951,
           "retentionCategory": "Created"
         },
@@ -3964,7 +4108,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "4b88790e-6e62-44b7-b856-0d89ee0e6bfa",
+          "featureId": "cfd29ed5-0e13-4a55-b1ad-4f854a254f0b",
           "properties": {
             "fid": 23,
             "Comment": null,
@@ -3976,6 +4120,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Other sea buckthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other sea buckthorn scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -3984,7 +4129,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "40d7a7df-8188-483d-bba9-d18a14c66f26",
+          "irreplaceable": false,
+          "parentFeatureId": "4c1ff932-1532-423f-bca9-bf81a83f5a59",
           "sizeSquareMetres": 11792.633328625136,
           "retentionCategory": "Retained"
         },
@@ -4021,7 +4167,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "c7094f38-82ec-419e-b1b2-45a9a2d02cb7",
+          "featureId": "03b5241f-c40d-49a4-8805-6d5822417ab7",
           "properties": {
             "fid": 24,
             "Comment": "Seeded with a local mix",
@@ -4033,6 +4179,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Arable field margins cultivated annually",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Non-cereal crops",
             "Baseline Broad Habitat Type": "Cropland",
             "Proposed Broad Habitat Type": "Cropland",
@@ -4041,7 +4188,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "43079ca1-af65-4160-bf15-938dbe9c1e95",
+          "irreplaceable": false,
+          "parentFeatureId": "8595f376-af69-482b-b576-49ece7571f3a",
           "sizeSquareMetres": 11425.258088501281,
           "retentionCategory": "Created"
         },
@@ -4078,7 +4226,7 @@
             "standardTimeToTargetCondition": ">30",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "bdc34fc7-0660-419a-be05-0e335a3057a3",
+          "featureId": "68d72b1b-82c2-40dd-9723-fa2f99a95bfa",
           "properties": {
             "fid": 25,
             "Comment": null,
@@ -4090,6 +4238,7 @@
             "Proposed Condition": "Fairly Good",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Other coniferous woodland",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other coniferous woodland",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Proposed Broad Habitat Type": "Woodland and forest",
@@ -4098,7 +4247,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "74b2757c-5982-45f4-aba9-6f2cafbd2d16",
+          "irreplaceable": false,
+          "parentFeatureId": "e6adf49b-b016-44c8-a5a6-d7e741c3ae50",
           "sizeSquareMetres": 11148.766850569787,
           "retentionCategory": "Enhanced"
         },
@@ -4135,7 +4285,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "d3a0ad37-1891-4bf7-a12b-2ec026ddb6e2",
+          "featureId": "25c48eaa-fc6a-4fe8-a73b-d024acf8d1bc",
           "properties": {
             "fid": 26,
             "Comment": null,
@@ -4147,6 +4297,7 @@
             "Proposed Condition": "Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Rain garden",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ornamental lake or pond",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Lakes",
@@ -4155,7 +4306,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "80027e1b-73dc-445f-8eb5-7471ccec3588",
+          "irreplaceable": false,
+          "parentFeatureId": "7ae97f17-1730-424e-b8cd-a7c239bdf602",
           "sizeSquareMetres": 10304.65727398614,
           "retentionCategory": "Created"
         },
@@ -4186,7 +4338,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "d03f44b3-d966-4df4-a132-ea9f1a04c495",
+          "featureId": "26a4403d-7fc3-450d-8450-85d51802fea6",
           "properties": {
             "fid": 27,
             "Comment": null,
@@ -4198,6 +4350,7 @@
             "Proposed Condition": "N/A - Other",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Artificial unvegetated, unsealed surface",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Artificial unvegetated, unsealed surface",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -4206,7 +4359,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "e8eda3ea-1027-42c8-82ba-4f7c380d88e2",
+          "irreplaceable": false,
+          "parentFeatureId": "728aa564-46cb-4583-9794-3d5c44b91cbb",
           "sizeSquareMetres": 10116.540571641739,
           "retentionCategory": "Retained"
         },
@@ -4243,7 +4397,7 @@
             "standardTimeToTargetCondition": "7",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "ea3c4a38-f507-4210-8b37-9cef45ca81aa",
+          "featureId": "77f96d95-5e31-478f-981d-94f36311931e",
           "properties": {
             "fid": 28,
             "Comment": null,
@@ -4255,6 +4409,7 @@
             "Proposed Condition": "Fairly Good",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Hazel scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Blackthorn scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -4263,7 +4418,8 @@
             "Habitat created in advance/years": "2",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "83e6c51e-97ca-4cc4-a8b5-9613863b862c",
+          "irreplaceable": false,
+          "parentFeatureId": "278b7a8e-ea87-47f1-af86-668b1586e1fe",
           "sizeSquareMetres": 10052.034095615512,
           "retentionCategory": "Created"
         },
@@ -4300,7 +4456,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "2b3566ab-70cb-45bf-af76-4c225fde5858",
+          "featureId": "d8ca9557-c573-4b0f-8999-d1ec42c603d9",
           "properties": {
             "fid": 29,
             "Comment": null,
@@ -4312,6 +4468,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Actively worked sand pit quarry or open cast mine",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other green roof",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -4320,7 +4477,8 @@
             "Habitat created in advance/years": "1",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "8036600a-a5b4-4521-9edd-14bde1e4d2a5",
+          "irreplaceable": false,
+          "parentFeatureId": "58d26a8d-bab6-4d11-acc3-b27e7a38464d",
           "sizeSquareMetres": 9760.133796269914,
           "retentionCategory": "Created"
         },
@@ -4351,7 +4509,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "eedf5429-d071-4ec9-a15c-aa2f43c659b4",
+          "featureId": "e4c9f108-4e6c-4400-8bae-fedbe109d02c",
           "properties": {
             "fid": 30,
             "Comment": null,
@@ -4363,6 +4521,7 @@
             "Proposed Condition": "Moderate",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Ponds (non-priority habitat)",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ponds (non-priority habitat)",
             "Baseline Broad Habitat Type": "Lakes",
             "Proposed Broad Habitat Type": "Lakes",
@@ -4371,7 +4530,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "d071f209-9414-49ab-b824-36829a3845e7",
+          "irreplaceable": false,
+          "parentFeatureId": "3dd8f335-f7bd-4ccf-975f-1deb939c32ea",
           "sizeSquareMetres": 9402.384791497363,
           "retentionCategory": "Retained"
         },
@@ -4408,7 +4568,7 @@
             "standardTimeToTargetCondition": "3",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "0a23dc21-3130-410e-b4cf-111d463a7dea",
+          "featureId": "91f7394c-2ad7-4f95-9c3d-6e09250a5220",
           "properties": {
             "fid": 31,
             "Comment": null,
@@ -4420,6 +4580,7 @@
             "Proposed Condition": "Good",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Tall forbs",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Proposed Broad Habitat Type": "Sparsely vegetated land",
@@ -4428,7 +4589,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "300c793e-da91-44ab-bf20-0009d301d346",
+          "irreplaceable": false,
+          "parentFeatureId": "86af70cf-dc7a-4365-a323-669681f0722a",
           "sizeSquareMetres": 9380.296672358147,
           "retentionCategory": "Enhanced"
         },
@@ -4465,7 +4627,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "5aac6927-a9a3-4511-94be-d10f906420b0",
+          "featureId": "4d3253de-d3c3-45b3-8fa4-b98d393943f1",
           "properties": {
             "fid": 32,
             "Comment": null,
@@ -4477,6 +4639,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Blackthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Blackthorn scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -4485,7 +4648,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "8af7060c-c8da-4851-8f70-7cd0a7b90df2",
+          "irreplaceable": false,
+          "parentFeatureId": "3cf627b5-d2df-427d-b6f7-a5fca6295df4",
           "sizeSquareMetres": 9264.308340614556,
           "retentionCategory": "Enhanced"
         },
@@ -4522,7 +4686,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "24c36fa6-7bea-4eeb-a93d-d2c05520e3d3",
+          "featureId": "9b410fb2-ff8c-4328-b7ac-722ed28ba4f0",
           "properties": {
             "fid": 33,
             "Comment": null,
@@ -4534,6 +4698,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Non-cereal crops",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Cereal crops",
             "Baseline Broad Habitat Type": "Cropland",
             "Proposed Broad Habitat Type": "Cropland",
@@ -4542,7 +4707,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "d33e0d97-ad35-4e5f-a951-2d8e6ee7edbf",
+          "irreplaceable": false,
+          "parentFeatureId": "afda8cc1-7a2f-4621-bb49-08d6be9d405e",
           "sizeSquareMetres": 9150.246039866885,
           "retentionCategory": "Created"
         },
@@ -4579,7 +4745,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "ab0e6b2f-e7dd-41e1-8c57-f91f30861d4b",
+          "featureId": "f2f59843-e20f-402a-a565-b1fe1de97a5a",
           "properties": {
             "fid": 34,
             "Comment": null,
@@ -4591,6 +4757,7 @@
             "Proposed Condition": "Good",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Hazel scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ponds (non-priority habitat)",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Lakes",
@@ -4599,7 +4766,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "2d6df41f-fbbd-4d89-ac59-5788b5b4a271",
+          "irreplaceable": false,
+          "parentFeatureId": "28c4dc7e-61f4-4106-97a0-1375b01f3807",
           "sizeSquareMetres": 9118.704467267311,
           "retentionCategory": "Created"
         },
@@ -4630,7 +4798,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "662fa5e1-8902-4a4c-9bbd-6727456ea25b",
+          "featureId": "b297994b-1468-4f8a-8d16-2bdd514ed12d",
           "properties": {
             "fid": 35,
             "Comment": null,
@@ -4642,6 +4810,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Arable field margins game bird mix",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Arable field margins game bird mix",
             "Baseline Broad Habitat Type": "Cropland",
             "Proposed Broad Habitat Type": "Cropland",
@@ -4650,7 +4819,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "669f9b58-9726-46e6-a2a1-de75397bb2ca",
+          "irreplaceable": false,
+          "parentFeatureId": "2a274604-4e03-4de4-ada6-8f090e4d0d33",
           "sizeSquareMetres": 8579.99532490373,
           "retentionCategory": "Retained"
         },
@@ -4687,7 +4857,7 @@
             "standardTimeToTargetCondition": "4",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "3acf219f-f06a-45a5-a417-62d141951534",
+          "featureId": "7ae49838-6ec3-4638-ac1a-f5e4e3a2937c",
           "properties": {
             "fid": 36,
             "Comment": null,
@@ -4699,6 +4869,7 @@
             "Proposed Condition": "Fairly Good",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Ponds (non-priority habitat)",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ornamental lake or pond",
             "Baseline Broad Habitat Type": "Lakes",
             "Proposed Broad Habitat Type": "Lakes",
@@ -4707,7 +4878,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "3f212eee-b587-4732-a505-f8348ce1a868",
+          "irreplaceable": false,
+          "parentFeatureId": "f984e2bd-843b-443d-b477-571f4007926b",
           "sizeSquareMetres": 8075.049201287137,
           "retentionCategory": "Created"
         },
@@ -4744,7 +4916,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "c8e70917-d295-4604-b9c1-b1a44b425783",
+          "featureId": "f49c68a0-00e1-4166-9bfa-523d604dfb45",
           "properties": {
             "fid": 37,
             "Comment": null,
@@ -4756,6 +4928,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Mixed scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other sea buckthorn scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -4764,7 +4937,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "5fae6600-d070-4179-be75-fdd510477ab2",
+          "irreplaceable": false,
+          "parentFeatureId": "df4743dc-b390-462b-9b0e-bade5b37b85a",
           "sizeSquareMetres": 7768.516790502812,
           "retentionCategory": "Created"
         },
@@ -4801,7 +4975,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "3c7fa83f-6abf-4df9-993f-b9bb46315131",
+          "featureId": "cda8f48c-da03-482e-ba61-427f545c263a",
           "properties": {
             "fid": 38,
             "Comment": null,
@@ -4813,6 +4987,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Willow scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Willow scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -4821,7 +4996,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "d31d7258-6496-4dd2-8af9-2d5c192c6caa",
+          "irreplaceable": false,
+          "parentFeatureId": "cea3c4aa-6f06-4b50-9fcb-bfabac70a115",
           "sizeSquareMetres": 7767.929886509147,
           "retentionCategory": "Enhanced"
         },
@@ -4858,7 +5034,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "b5fd5bc6-a806-4bfe-a517-0bbcc64ae2b7",
+          "featureId": "79cf1e8c-721e-4118-a80f-ca37a2cda8a2",
           "properties": {
             "fid": 39,
             "Comment": null,
@@ -4870,6 +5046,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Vacant or derelict land",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other sea buckthorn scrub",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -4878,7 +5055,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "977e9cba-fcc6-45c2-ab73-dc3ead7b72ea",
+          "irreplaceable": false,
+          "parentFeatureId": "2a1d19ac-f794-4126-bef3-a92e2f146487",
           "sizeSquareMetres": 7719.60243464377,
           "retentionCategory": "Created"
         },
@@ -4909,7 +5087,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "643f3917-cd36-4c26-8894-dfbe09232766",
+          "featureId": "e6fffc6d-b5ab-4c10-8532-09092114d13a",
           "properties": {
             "fid": 40,
             "Comment": "Seeded with a local mix",
@@ -4921,6 +5099,7 @@
             "Proposed Condition": "N/A - Other",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Unvegetated garden",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Unvegetated garden",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -4929,7 +5108,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "4234e2a9-64e8-4739-a637-0e0a4079e354",
+          "irreplaceable": false,
+          "parentFeatureId": "7d3e0da2-08ac-4cc3-9e98-bdf73a44a3d7",
           "sizeSquareMetres": 7644.42250994116,
           "retentionCategory": "Retained"
         },
@@ -4966,7 +5146,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "4b9b0335-1889-40f0-b28a-e43e414abe43",
+          "featureId": "28a372e8-c34e-4969-b377-4752a474e193",
           "properties": {
             "fid": 41,
             "Comment": null,
@@ -4978,6 +5158,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Enhanced",
             "Baseline Habitat Type": "Blackthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Blackthorn scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -4986,7 +5167,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "6dc6653b-4f9e-4f42-b39a-f6d9758addfb",
+          "irreplaceable": false,
+          "parentFeatureId": "35adc334-f06d-482b-95d4-487e353a6a8f",
           "sizeSquareMetres": 7396.555860124806,
           "retentionCategory": "Enhanced"
         },
@@ -5023,7 +5205,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "59b2ebed-d514-4970-899a-9f25ff423654",
+          "featureId": "6297db44-21fc-406c-b370-0fd5d4980add",
           "properties": {
             "fid": 42,
             "Comment": null,
@@ -5035,6 +5217,7 @@
             "Proposed Condition": "Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Gorse scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other inland rock and scree",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Sparsely vegetated land",
@@ -5043,7 +5226,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "852bb7a8-5dec-49db-b0e3-3e2c2acd639e",
+          "irreplaceable": false,
+          "parentFeatureId": "d0eb7149-9df8-46b4-8e51-9f22272b6f12",
           "sizeSquareMetres": 7080.258798007025,
           "retentionCategory": "Created"
         },
@@ -5080,7 +5264,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "88a677d9-2df0-4e7b-8f83-9cbf40f8bd7b",
+          "featureId": "c13c1bb8-3580-4e2c-857b-dd0b5d117111",
           "properties": {
             "fid": 43,
             "Comment": null,
@@ -5092,6 +5276,7 @@
             "Proposed Condition": "Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Built linear features",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Ponds (non-priority habitat)",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Lakes",
@@ -5100,7 +5285,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "cf214ca8-7e58-454d-b2e2-7e8e67bb6672",
+          "irreplaceable": false,
+          "parentFeatureId": "a07eb23e-ced3-4674-9b67-7cabf2c27bc3",
           "sizeSquareMetres": 6309.68871364507,
           "retentionCategory": "Created"
         },
@@ -5137,7 +5323,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "755bc88c-4dbf-44f1-aa89-4be023bb790b",
+          "featureId": "521f7f14-b6b5-43e8-8b11-6016787e3186",
           "properties": {
             "fid": 44,
             "Comment": "Condition cannot be kept: recorded as lost and created again in a lower condition",
@@ -5149,6 +5335,7 @@
             "Proposed Condition": "Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Blackthorn scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Blackthorn scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -5157,7 +5344,8 @@
             "Habitat created in advance/years": "30+",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "b68d2d44-b052-4f83-9400-4503b5fa05dc",
+          "irreplaceable": false,
+          "parentFeatureId": "b88f9933-4f1c-4b56-8ce4-e88ec40e2573",
           "sizeSquareMetres": 6215.334054082034,
           "retentionCategory": "Created"
         },
@@ -5188,7 +5376,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "fa546901-94e6-4b8c-8f31-6e23d74d7b03",
+          "featureId": "ba235000-b854-484d-9446-ae2f6faebaf4",
           "properties": {
             "fid": 45,
             "Comment": null,
@@ -5200,6 +5388,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Rhododendron scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Rhododendron scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -5208,7 +5397,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "8092b1a0-133e-442e-83ed-2025d924f7d7",
+          "irreplaceable": false,
+          "parentFeatureId": "55252917-0ea3-4fdf-9e52-d93ec6567aae",
           "sizeSquareMetres": 5920.742762176512,
           "retentionCategory": "Retained"
         },
@@ -5245,7 +5435,7 @@
             "standardTimeToTargetCondition": "10",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "ed033e4e-fe30-4977-ad58-7ca30093c231",
+          "featureId": "ce073cf1-5d11-4df1-8f3c-7162bbb9ef1c",
           "properties": {
             "fid": 46,
             "Comment": null,
@@ -5257,6 +5447,7 @@
             "Proposed Condition": "Moderate",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Tall forbs",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other inland rock and scree",
             "Baseline Broad Habitat Type": "Sparsely vegetated land",
             "Proposed Broad Habitat Type": "Sparsely vegetated land",
@@ -5265,7 +5456,8 @@
             "Habitat created in advance/years": "3",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "be3f1c66-ca58-4d6e-949f-c3e3c11af2fd",
+          "irreplaceable": false,
+          "parentFeatureId": "e5f9febf-299c-46ac-8f97-52180181c766",
           "sizeSquareMetres": 5741.720531008662,
           "retentionCategory": "Created"
         },
@@ -5302,7 +5494,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "326cfb64-5ba7-4536-9937-8facc646d96e",
+          "featureId": "afd43ca0-1d06-4cc8-b60f-bda0b74d9b32",
           "properties": {
             "fid": 47,
             "Comment": null,
@@ -5314,6 +5506,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Other neutral grassland",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Upland acid grassland",
             "Baseline Broad Habitat Type": "Grassland",
             "Proposed Broad Habitat Type": "Grassland",
@@ -5322,7 +5515,8 @@
             "Habitat created in advance/years": "4",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "0418dac2-c8b9-4533-a9fe-5f2c79afeb53",
+          "irreplaceable": false,
+          "parentFeatureId": "ba45e272-2150-4cf7-99ea-655f6e5f64a1",
           "sizeSquareMetres": 5711.515359484632,
           "retentionCategory": "Created"
         },
@@ -5353,7 +5547,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "bdf9660d-a4f4-4c03-9101-35788c50ea92",
+          "featureId": "8c962ece-1597-427f-a382-11e26b34d0fe",
           "properties": {
             "fid": 48,
             "Comment": null,
@@ -5365,6 +5559,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Rhododendron scrub",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Rhododendron scrub",
             "Baseline Broad Habitat Type": "Heathland and shrub",
             "Proposed Broad Habitat Type": "Heathland and shrub",
@@ -5373,7 +5568,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "d31270c8-5d6c-4e09-9160-531bdaa4c24d",
+          "irreplaceable": false,
+          "parentFeatureId": "dad27b22-cc85-4f00-919a-2809df27ab36",
           "sizeSquareMetres": 5612.208065910439,
           "retentionCategory": "Retained"
         },
@@ -5410,7 +5606,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "1a448318-de3a-40c6-be30-715103c2c266",
+          "featureId": "82cf8a4a-7d7b-4cc4-bfae-07b2c6c2f840",
           "properties": {
             "fid": 49,
             "Comment": "Delayed: work starts 30 or more years after the losses",
@@ -5422,6 +5618,7 @@
             "Proposed Condition": "Moderate",
             "Retention Category": "Created",
             "Baseline Habitat Type": "Sustainable drainage system",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Allotments",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -5430,7 +5627,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "30+"
           },
-          "parentFeatureId": "03570d25-6ca0-4f73-aab0-15855b28b22e",
+          "irreplaceable": false,
+          "parentFeatureId": "3113aa70-a9b2-4a66-8ffd-a8c44d92f8d0",
           "sizeSquareMetres": 5595.014886037492,
           "retentionCategory": "Created"
         },
@@ -5461,7 +5659,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "07ec2744-9930-4274-baca-2fecb2928c9a",
+          "featureId": "58f33862-a649-42b5-a69c-2be68df109bd",
           "properties": {
             "fid": 50,
             "Comment": null,
@@ -5473,6 +5671,7 @@
             "Proposed Condition": "Condition Assessment N/A",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Other green roof",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other green roof",
             "Baseline Broad Habitat Type": "Urban",
             "Proposed Broad Habitat Type": "Urban",
@@ -5481,7 +5680,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "e94e0bc1-511f-4d9d-91c0-3398d2534519",
+          "irreplaceable": false,
+          "parentFeatureId": "1bc4b194-8410-4986-a5ca-4a9db665896f",
           "sizeSquareMetres": 7983.502781445883,
           "retentionCategory": "Retained"
         },
@@ -5512,7 +5712,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "55cf15d6-8043-4c24-aa6f-eab3cbb8e881",
+          "featureId": "1499e687-cdd4-448d-af2f-50e675bce74f",
           "properties": {
             "fid": 51,
             "Comment": null,
@@ -5524,6 +5724,7 @@
             "Proposed Condition": "Fairly Poor",
             "Retention Category": "Retained",
             "Baseline Habitat Type": "Other woodland; broadleaved",
+            "Irreplaceable Habitat": "No",
             "Proposed Habitat Type": "Other woodland; broadleaved",
             "Baseline Broad Habitat Type": "Woodland and forest",
             "Proposed Broad Habitat Type": "Woodland and forest",
@@ -5532,7 +5733,8 @@
             "Habitat created in advance/years": "0",
             "Delay in starting habitat creation/years": "0"
           },
-          "parentFeatureId": "7390ea87-60d7-45ae-a01f-72979ece9059",
+          "irreplaceable": false,
+          "parentFeatureId": "f7db48db-e6a6-4236-aa27-0390f0fdc5e5",
           "sizeSquareMetres": 8572.970031081477,
           "retentionCategory": "Retained"
         }
@@ -5541,7 +5743,7 @@
         "name": "bng-service",
         "version": "1.0"
       },
-      "uploadId": "2262a069-132f-4a74-9494-0d319dd79719",
+      "uploadId": "ef79981e-5b01-4f21-96eb-73b0e8b337d6",
       "hedgerows": [
         {
           "ref": "HG001",
@@ -5568,7 +5770,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "71eadd0f-0f8b-46ea-bba4-1d2564ddc570",
+          "featureId": "22001f8f-ad42-4b63-8422-2f5cf96cc26e",
           "properties": {
             "fid": 1,
             "Comment": null,
@@ -5587,7 +5789,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 579.5168422350686,
-          "parentFeatureId": "6deb085d-dc81-4cf3-8013-2d632b0bcccf",
+          "parentFeatureId": "f5c5ad32-cf63-4f04-bfdb-fe4f40a6967e",
           "retentionCategory": "Retained"
         },
         {
@@ -5621,7 +5823,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "0e804ce1-5907-478a-85c4-709c76d96441",
+          "featureId": "cf77df77-4b59-4cdb-b4a2-806ae7431a59",
           "properties": {
             "fid": 2,
             "Comment": null,
@@ -5640,7 +5842,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 190.27263467658673,
-          "parentFeatureId": "22c4d2b5-4921-4145-a65a-afbfb6ab6f90",
+          "parentFeatureId": "ae42cc96-a8f7-487f-90c4-a4d931423bdc",
           "retentionCategory": "Enhanced"
         },
         {
@@ -5668,7 +5870,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "e085a6da-7da0-4776-a500-6ff041c7880c",
+          "featureId": "150d4ea5-61a3-43f0-87dd-e779d98be9aa",
           "properties": {
             "fid": 3,
             "Comment": null,
@@ -5687,7 +5889,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 387.3092233081198,
-          "parentFeatureId": "d45e8cce-d096-4e11-a84d-c96772e5a181",
+          "parentFeatureId": "054918a1-a3ea-4424-b65d-e8013b00b5a3",
           "retentionCategory": "Retained"
         },
         {
@@ -5721,7 +5923,7 @@
             "standardTimeToTargetCondition": "2",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "ba0c7504-c51a-4d08-9b28-ed42c5bf1ada",
+          "featureId": "e79d98b9-7134-438e-ba71-9ea1dc575b1f",
           "properties": {
             "fid": 4,
             "Comment": null,
@@ -5740,7 +5942,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 460.7966302309071,
-          "parentFeatureId": "67925afe-9b2e-4e86-9300-d1a6f1140cf5",
+          "parentFeatureId": "e802a975-e1d1-4671-9dbf-e7453c42317f",
           "retentionCategory": "Enhanced"
         },
         {
@@ -5774,7 +5976,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "97cf6ca7-84e0-426c-b251-a3549bb16d4c",
+          "featureId": "22be300e-885e-4033-a5b6-ee6fa66f6401",
           "properties": {
             "fid": 5,
             "Comment": null,
@@ -5826,7 +6028,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "e0473820-d2b2-429c-ac57-a585d830305f",
+          "featureId": "e4b28c25-1c56-4f14-b814-eebdf3ef5aec",
           "properties": {
             "fid": 6,
             "Comment": null,
@@ -5872,7 +6074,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "c03d418e-c03d-40df-a131-8380626c9fbd",
+          "featureId": "aca39b00-9522-4c22-882e-9be046b2516f",
           "properties": {
             "fid": 7,
             "Comment": "Gaps planted up",
@@ -5891,7 +6093,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 356.93329985500316,
-          "parentFeatureId": "e6bebb60-649c-4211-8b92-b6255fbfe962",
+          "parentFeatureId": "93646fda-7f48-4b7b-9411-b43cbf985089",
           "retentionCategory": "Retained"
         },
         {
@@ -5919,7 +6121,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "cc8a2307-6e47-4b15-9486-af2f9fb60652",
+          "featureId": "5274d58b-79b4-481d-8de1-c61a86cf5864",
           "properties": {
             "fid": 8,
             "Comment": null,
@@ -5938,7 +6140,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 55.67289961260003,
-          "parentFeatureId": "6f23e85c-f1dc-44c6-8804-7ff1c652323b",
+          "parentFeatureId": "901ad1a5-0f2e-4e01-867e-af4e9bf41bde",
           "retentionCategory": "Retained"
         },
         {
@@ -5972,7 +6174,7 @@
             "standardTimeToTargetCondition": "4",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "4ec4cb04-784f-41a0-8bf8-218b9c6e456e",
+          "featureId": "539b292a-d78e-4cf7-8c64-34d1652e10cc",
           "properties": {
             "fid": 9,
             "Comment": null,
@@ -5991,7 +6193,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 333.38737045051835,
-          "parentFeatureId": "fcd6d8de-80f0-44fa-b8e6-e3576d49f5fe",
+          "parentFeatureId": "ef0947a4-f98c-4e02-97dd-6d78c9089141",
           "retentionCategory": "Enhanced"
         },
         {
@@ -6025,7 +6227,7 @@
             "standardTimeToTargetCondition": "1",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "23273229-2fb3-459f-935a-2c13ea05dbef",
+          "featureId": "cac10c85-7d80-4910-bcfd-96068937ba86",
           "properties": {
             "fid": 10,
             "Comment": null,
@@ -6077,7 +6279,7 @@
             "standardTimeToTargetCondition": "20",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "f853d008-2f13-4437-acc9-0866b6976aee",
+          "featureId": "92f8d12a-28f8-4bc7-a5f1-41266e724c9a",
           "properties": {
             "fid": 11,
             "Comment": "Gaps planted up",
@@ -6129,7 +6331,7 @@
             "standardTimeToTargetCondition": "10",
             "strategicSignificanceCategory": "High"
           },
-          "featureId": "9d7a2a9f-feb1-466a-9e66-13e79da13ddb",
+          "featureId": "f70e7a9c-4277-433d-9ac0-1810311f4511",
           "properties": {
             "fid": 12,
             "Comment": "Delayed: work starts 30 or more years after the losses",
@@ -6181,7 +6383,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "418bf77f-f01d-4c60-a05a-879b711db7a4",
+          "featureId": "08a955d1-1001-4d2f-a37e-5f79d5497b84",
           "properties": {
             "fid": 13,
             "Comment": "Condition cannot be kept: recorded as lost and created again in a lower condition",
@@ -6200,7 +6402,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 59.12040885538707,
-          "parentFeatureId": "006594e2-f083-4025-839d-416b79811768",
+          "parentFeatureId": "561c41dc-56ed-4593-bcbf-b765fc1bb51e",
           "retentionCategory": "Created"
         },
         {
@@ -6228,7 +6430,7 @@
             "strategicSignificance": "Low",
             "strategicSignificanceScore": 1
           },
-          "featureId": "329c5f69-c137-4981-9813-9bf61d54a3d4",
+          "featureId": "a287df00-56e1-4895-b2a6-93741ff56e10",
           "properties": {
             "fid": 14,
             "Comment": null,
@@ -6247,7 +6449,7 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 26.832893054113296,
-          "parentFeatureId": "09245e9d-4a4e-4391-9859-d9c7addfcc48",
+          "parentFeatureId": "ead13125-eba7-4bdf-befe-120f5db30817",
           "retentionCategory": "Retained"
         },
         {
@@ -6281,7 +6483,7 @@
             "standardTimeToTargetCondition": "5",
             "strategicSignificanceCategory": "Low"
           },
-          "featureId": "57e07a7b-45e2-423f-ab4c-9a92ed12e4b8",
+          "featureId": "4424dced-ab71-4548-acb1-9ba4f4733cde",
           "properties": {
             "fid": 15,
             "Comment": "Condition cannot be kept: recorded as lost and created again in a lower condition",
@@ -6300,11 +6502,11 @@
             "Delay in starting habitat creation/years": "0"
           },
           "sizeMetres": 54.54061510865709,
-          "parentFeatureId": "09245e9d-4a4e-4391-9859-d9c7addfcc48",
+          "parentFeatureId": "ead13125-eba7-4bdf-befe-120f5db30817",
           "retentionCategory": "Created"
         }
       ],
-      "importedAt": "2026-10-28T14:31:46.982Z",
+      "importedAt": "2026-10-28T16:12:53.780Z",
       "habitatSizes": {
         "site": {
           "totalSquareMetres": 529779.5710370555
@@ -6330,7 +6532,7 @@
           "type": "Biodiverse green roof",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "9a89070f-be48-4fb3-867f-08dac689827e",
+          "featureId": "44842f94-742a-48c6-a7e3-cd6f5596e2c4",
           "recreatedAs": [],
           "lostSizeSquareMetres": 14987.848348584706
         },
@@ -6339,7 +6541,7 @@
           "type": "Tall forbs",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "a750b8cb-d0fd-4cc1-bfd5-05934cdc3743",
+          "featureId": "2329cda7-0bc2-4518-8d28-df00c92d5788",
           "recreatedAs": [],
           "lostSizeSquareMetres": 14576.453592486705
         },
@@ -6348,7 +6550,7 @@
           "type": "Temporary grass and clover leys",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "445c31f0-8dc0-46e2-8c3b-0783d30b510e",
+          "featureId": "d51f8a87-3773-4e6a-b074-5383aa189ef2",
           "recreatedAs": [],
           "lostSizeSquareMetres": 14168.936982087225
         },
@@ -6357,7 +6559,7 @@
           "type": "Arable field margins cultivated annually",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "1b9ef6be-63c8-4bf6-a4db-1074f09f59be",
+          "featureId": "d1d43268-35e9-4b93-b2f9-7b01c84ac78f",
           "recreatedAs": [],
           "lostSizeSquareMetres": 14132.813084343086
         },
@@ -6366,7 +6568,7 @@
           "type": "Other woodland; broadleaved",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "ec825216-a6a4-4d6d-8feb-8745cf10011c",
+          "featureId": "7caa2677-b3f2-4e06-a5a4-debc13d5906e",
           "recreatedAs": [],
           "lostSizeSquareMetres": 14051.645396286054
         },
@@ -6375,7 +6577,7 @@
           "type": "Intensive green roof",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "8c44cd2e-e1e2-43ea-8025-734a2ff8b754",
+          "featureId": "956adb21-6bb7-4d99-8c8e-6eabdc0f1da2",
           "recreatedAs": [],
           "lostSizeSquareMetres": 13500.685873932896
         },
@@ -6384,7 +6586,7 @@
           "type": "Tall forbs",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "bc7eba80-ad78-43f2-83d0-ecdb15278df0",
+          "featureId": "2c7e1dde-792d-4a74-84f9-7cb283573646",
           "recreatedAs": [],
           "lostSizeSquareMetres": 13225.196326852789
         },
@@ -6393,7 +6595,7 @@
           "type": "Tall forbs",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "5482fa14-721d-4d76-a250-68405af77445",
+          "featureId": "21c61a5c-c60d-4856-a7c8-3394018dd369",
           "recreatedAs": [],
           "lostSizeSquareMetres": 12493.550781754631
         },
@@ -6402,7 +6604,7 @@
           "type": "Vacant or derelict land",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "fe68cc99-811e-4123-a214-f318392811be",
+          "featureId": "1eb8f7ad-c028-4bec-8c3a-0a915770657f",
           "recreatedAs": [],
           "lostSizeSquareMetres": 12359.610329276813
         },
@@ -6411,7 +6613,7 @@
           "type": "Unvegetated garden",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "a3531d33-bfe9-4a46-8605-7cbbde40a1db",
+          "featureId": "658b9f97-17a0-4ac8-b0ff-0c5d999164de",
           "recreatedAs": [],
           "lostSizeSquareMetres": 12334.822331553236
         },
@@ -6420,7 +6622,7 @@
           "type": "Arable field margins pollen and nectar",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "bd95c0b0-af74-40a6-8fd8-77b6cf74b25b",
+          "featureId": "73f99799-dc3e-4cc6-8146-f1b279137c63",
           "recreatedAs": [],
           "lostSizeSquareMetres": 12292.200607184897
         },
@@ -6429,7 +6631,7 @@
           "type": "Gorse scrub",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "dee648e3-50d5-4c4e-9da6-e516f3ca1e88",
+          "featureId": "450e82be-d94e-4ee5-ad6c-9900b7c8fe75",
           "recreatedAs": [],
           "lostSizeSquareMetres": 12149.234429844739
         },
@@ -6438,7 +6640,7 @@
           "type": "Intensive green roof",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "39364b27-11e7-4bc7-8625-c068e541a511",
+          "featureId": "420a1edb-3b4e-4238-adbe-31b0bdb3f303",
           "recreatedAs": [],
           "lostSizeSquareMetres": 12012.076435942232
         },
@@ -6447,7 +6649,7 @@
           "type": "Biodiverse green roof",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "1fee503a-8323-4626-95ba-e064a7fa0ab2",
+          "featureId": "304f491d-d020-4def-a949-2faf6008daec",
           "recreatedAs": [],
           "lostSizeSquareMetres": 11827.855584858951
         },
@@ -6456,7 +6658,7 @@
           "type": "Arable field margins cultivated annually",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "43079ca1-af65-4160-bf15-938dbe9c1e95",
+          "featureId": "8595f376-af69-482b-b576-49ece7571f3a",
           "recreatedAs": [],
           "lostSizeSquareMetres": 11425.258088501281
         },
@@ -6465,7 +6667,7 @@
           "type": "Rain garden",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "80027e1b-73dc-445f-8eb5-7471ccec3588",
+          "featureId": "7ae97f17-1730-424e-b8cd-a7c239bdf602",
           "recreatedAs": [],
           "lostSizeSquareMetres": 10304.65727398614
         },
@@ -6474,7 +6676,7 @@
           "type": "Hazel scrub",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "83e6c51e-97ca-4cc4-a8b5-9613863b862c",
+          "featureId": "278b7a8e-ea87-47f1-af86-668b1586e1fe",
           "recreatedAs": [],
           "lostSizeSquareMetres": 10052.034095615512
         },
@@ -6483,7 +6685,7 @@
           "type": "Actively worked sand pit quarry or open cast mine",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "8036600a-a5b4-4521-9edd-14bde1e4d2a5",
+          "featureId": "58d26a8d-bab6-4d11-acc3-b27e7a38464d",
           "recreatedAs": [],
           "lostSizeSquareMetres": 9760.133796269914
         },
@@ -6492,7 +6694,7 @@
           "type": "Non-cereal crops",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "d33e0d97-ad35-4e5f-a951-2d8e6ee7edbf",
+          "featureId": "afda8cc1-7a2f-4621-bb49-08d6be9d405e",
           "recreatedAs": [],
           "lostSizeSquareMetres": 9150.246039866885
         },
@@ -6501,7 +6703,7 @@
           "type": "Hazel scrub",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "2d6df41f-fbbd-4d89-ac59-5788b5b4a271",
+          "featureId": "28c4dc7e-61f4-4106-97a0-1375b01f3807",
           "recreatedAs": [],
           "lostSizeSquareMetres": 9118.704467267311
         },
@@ -6510,7 +6712,7 @@
           "type": "Ponds (non-priority habitat)",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "3f212eee-b587-4732-a505-f8348ce1a868",
+          "featureId": "f984e2bd-843b-443d-b477-571f4007926b",
           "recreatedAs": [],
           "lostSizeSquareMetres": 8075.049201287137
         },
@@ -6519,7 +6721,7 @@
           "type": "Mixed scrub",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "5fae6600-d070-4179-be75-fdd510477ab2",
+          "featureId": "df4743dc-b390-462b-9b0e-bade5b37b85a",
           "recreatedAs": [],
           "lostSizeSquareMetres": 7768.516790502812
         },
@@ -6528,7 +6730,7 @@
           "type": "Vacant or derelict land",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "977e9cba-fcc6-45c2-ab73-dc3ead7b72ea",
+          "featureId": "2a1d19ac-f794-4126-bef3-a92e2f146487",
           "recreatedAs": [],
           "lostSizeSquareMetres": 7719.60243464377
         },
@@ -6537,7 +6739,7 @@
           "type": "Gorse scrub",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "852bb7a8-5dec-49db-b0e3-3e2c2acd639e",
+          "featureId": "d0eb7149-9df8-46b4-8e51-9f22272b6f12",
           "recreatedAs": [],
           "lostSizeSquareMetres": 7080.258798007025
         },
@@ -6546,7 +6748,7 @@
           "type": "Built linear features",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "cf214ca8-7e58-454d-b2e2-7e8e67bb6672",
+          "featureId": "a07eb23e-ced3-4674-9b67-7cabf2c27bc3",
           "recreatedAs": [],
           "lostSizeSquareMetres": 6309.68871364507
         },
@@ -6555,8 +6757,8 @@
           "type": "Blackthorn scrub",
           "layer": "habitats",
           "outcome": "lostAndRecreated",
-          "featureId": "b68d2d44-b052-4f83-9400-4503b5fa05dc",
-          "recreatedAs": ["755bc88c-4dbf-44f1-aa89-4be023bb790b"],
+          "featureId": "b88f9933-4f1c-4b56-8ce4-e88ec40e2573",
+          "recreatedAs": ["521f7f14-b6b5-43e8-8b11-6016787e3186"],
           "lostSizeSquareMetres": 6215.334054082034
         },
         {
@@ -6564,7 +6766,7 @@
           "type": "Tall forbs",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "be3f1c66-ca58-4d6e-949f-c3e3c11af2fd",
+          "featureId": "e5f9febf-299c-46ac-8f97-52180181c766",
           "recreatedAs": [],
           "lostSizeSquareMetres": 5741.720531008662
         },
@@ -6573,7 +6775,7 @@
           "type": "Other neutral grassland",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "0418dac2-c8b9-4533-a9fe-5f2c79afeb53",
+          "featureId": "ba45e272-2150-4cf7-99ea-655f6e5f64a1",
           "recreatedAs": [],
           "lostSizeSquareMetres": 5711.515359484632
         },
@@ -6582,7 +6784,7 @@
           "type": "Sustainable drainage system",
           "layer": "habitats",
           "outcome": "lost",
-          "featureId": "03570d25-6ca0-4f73-aab0-15855b28b22e",
+          "featureId": "3113aa70-a9b2-4a66-8ffd-a8c44d92f8d0",
           "recreatedAs": [],
           "lostSizeSquareMetres": 5595.014886037492
         },
@@ -6591,7 +6793,7 @@
           "type": "Line of trees",
           "layer": "hedgerows",
           "outcome": "removed",
-          "featureId": "69a042b1-8193-41a1-8913-1ed0ccde2929",
+          "featureId": "e01b19d8-b577-497b-a738-7d1dee960651",
           "recreatedAs": [],
           "lostSizeMetres": 141.68964142340062
         },
@@ -6600,7 +6802,7 @@
           "type": "Native hedgerow with trees",
           "layer": "hedgerows",
           "outcome": "removed",
-          "featureId": "6ec022b4-14d2-47eb-af18-1e7462062066",
+          "featureId": "f8d09ca9-aeae-481a-962e-81cf376499bb",
           "recreatedAs": [],
           "lostSizeMetres": 162.80601790077833
         },
@@ -6609,7 +6811,7 @@
           "type": "Native hedgerow",
           "layer": "hedgerows",
           "outcome": "removed",
-          "featureId": "dbe15cc4-dbae-456f-a1f3-14f0b5b1ed04",
+          "featureId": "0fc25530-bc44-47ad-a733-c011201a84d0",
           "recreatedAs": [],
           "lostSizeMetres": 326.8979481071027
         },
@@ -6618,7 +6820,7 @@
           "type": "Ecologically valuable line of trees",
           "layer": "hedgerows",
           "outcome": "removed",
-          "featureId": "e48ef244-b7c6-441c-99e4-d3f599c32adb",
+          "featureId": "e37a208a-e7e0-4175-89f1-c2f2c4bba0be",
           "recreatedAs": [],
           "lostSizeMetres": 408.16138623820814
         },
@@ -6627,8 +6829,8 @@
           "type": "Ecologically valuable line of trees - associated with bank or ditch",
           "layer": "hedgerows",
           "outcome": "lostAndRecreated",
-          "featureId": "006594e2-f083-4025-839d-416b79811768",
-          "recreatedAs": ["418bf77f-f01d-4c60-a05a-879b711db7a4"],
+          "featureId": "561c41dc-56ed-4593-bcbf-b765fc1bb51e",
+          "recreatedAs": ["08a955d1-1001-4d2f-a37e-5f79d5497b84"],
           "lostSizeMetres": 59.12040885538707
         },
         {
@@ -6636,8 +6838,8 @@
           "type": "Native hedgerow",
           "layer": "hedgerows",
           "outcome": "lostAndRecreated",
-          "featureId": "09245e9d-4a4e-4391-9859-d9c7addfcc48",
-          "recreatedAs": ["57e07a7b-45e2-423f-ab4c-9a92ed12e4b8"],
+          "featureId": "ead13125-eba7-4bdf-befe-120f5db30817",
+          "recreatedAs": ["4424dced-ab71-4548-acb1-9ba4f4733cde"],
           "lostSizeMetres": 54.54061510865709
         },
         {
@@ -6645,7 +6847,7 @@
           "type": "Ditches",
           "layer": "watercourses",
           "outcome": "removed",
-          "featureId": "8c6481ea-7460-4eb7-addd-1ce685fab8f3",
+          "featureId": "35b01337-7168-4883-9abf-a2bc9271feab",
           "recreatedAs": [],
           "lostSizeMetres": 503.9219025023917
         },
@@ -6654,8 +6856,8 @@
           "type": "Ditches",
           "layer": "watercourses",
           "outcome": "lostAndRecreated",
-          "featureId": "669b201c-b43b-4c62-9b08-5a1508939533",
-          "recreatedAs": ["2022222d-c2ca-43cf-96da-bb9c4f673e42"],
+          "featureId": "a985f120-e0ae-44a7-bdf1-2dfc13626271",
+          "recreatedAs": ["1f3ffa28-84b4-4aa6-a649-fdac6c569ff3"],
           "lostSizeMetres": 130.06474619730474
         },
         {
@@ -6663,8 +6865,8 @@
           "type": "Ditches",
           "layer": "watercourses",
           "outcome": "lostAndRecreated",
-          "featureId": "24496ad5-5f1a-44ab-b7cb-ef911bf49a86",
-          "recreatedAs": ["fbb7acd5-e07a-4773-90d1-7aaa0393ed1f"],
+          "featureId": "df6369c0-0c37-4dc3-b383-6931f0218a40",
+          "recreatedAs": ["be25e971-6a18-49e6-8740-e4112944b062"],
           "lostSizeMetres": 108.55448932855977
         },
         {
@@ -6672,7 +6874,7 @@
           "type": "Ditches",
           "layer": "watercourses",
           "outcome": "lost",
-          "featureId": "16019b3b-b9d7-4e6a-a359-bf8f4fb6c4c6",
+          "featureId": "8a7afebd-6b86-46fb-82ff-b36aaee4a742",
           "recreatedAs": [],
           "lostSizeMetres": 28.16351680100368
         }
@@ -7073,7 +7275,7 @@
             "waterEncroachmentMultiplier": 0.68,
             "riparianEncroachmentMultiplier": 1
           },
-          "featureId": "ab7c3381-9ffe-44af-a468-d1316cf29947",
+          "featureId": "c3f84ab1-561b-43e6-b03c-a5838429363c",
           "properties": {
             "fid": 1,
             "Comment": null,
@@ -7097,7 +7299,7 @@
             "Proposed Encroachment into riparian zone": "N/A - Culvert"
           },
           "sizeMetres": 537.384904096924,
-          "parentFeatureId": "6b9cfc87-2ec7-4613-bb99-e02ec9b8edd4",
+          "parentFeatureId": "f7b77eb7-d49c-4b00-bafd-2764489960b7",
           "retentionCategory": "Retained"
         },
         {
@@ -7137,7 +7339,7 @@
             "strategicSignificanceCategory": "High",
             "riparianEncroachmentMultiplier": 1
           },
-          "featureId": "7e643472-ebee-4fa4-a64d-5f19110e50bf",
+          "featureId": "41228644-5fd2-4fac-bb4d-9dc50e756c06",
           "properties": {
             "fid": 2,
             "Comment": "Delayed: work starts 30 or more years after the losses",
@@ -7202,7 +7404,7 @@
             "strategicSignificanceCategory": "Low",
             "riparianEncroachmentMultiplier": 0.84
           },
-          "featureId": "2022222d-c2ca-43cf-96da-bb9c4f673e42",
+          "featureId": "1f3ffa28-84b4-4aa6-a649-fdac6c569ff3",
           "properties": {
             "fid": 3,
             "Comment": "Encroachment increases, with no other impact",
@@ -7226,7 +7428,7 @@
             "Proposed Encroachment into riparian zone": "Major/Minor"
           },
           "sizeMetres": 130.06474619730474,
-          "parentFeatureId": "669b201c-b43b-4c62-9b08-5a1508939533",
+          "parentFeatureId": "a985f120-e0ae-44a7-bdf1-2dfc13626271",
           "retentionCategory": "Created"
         },
         {
@@ -7264,7 +7466,7 @@
             "finalTimeToTargetCondition": null,
             "standardTimeToTargetCondition": null
           },
-          "featureId": "fbb7acd5-e07a-4773-90d1-7aaa0393ed1f",
+          "featureId": "be25e971-6a18-49e6-8740-e4112944b062",
           "properties": {
             "fid": 4,
             "Comment": "Condition gets worse: recorded as lost and created again in a lower condition",
@@ -7288,7 +7490,7 @@
             "Proposed Encroachment into riparian zone": "Major/Major"
           },
           "sizeMetres": 108.55448932855977,
-          "parentFeatureId": "24496ad5-5f1a-44ab-b7cb-ef911bf49a86",
+          "parentFeatureId": "df6369c0-0c37-4dc3-b383-6931f0218a40",
           "retentionCategory": "Created"
         },
         {
@@ -7330,7 +7532,7 @@
             "strategicSignificanceCategory": "Low",
             "riparianEncroachmentMultiplier": 0.9
           },
-          "featureId": "51ab5829-7b6c-4340-8bca-9556e2d62b92",
+          "featureId": "ebc8e0de-4ca6-47aa-85ec-39291c361333",
           "properties": {
             "fid": 5,
             "Comment": "Re-meandered: the channel moves onto a longer route",
@@ -7354,7 +7556,7 @@
             "Proposed Encroachment into riparian zone": "Moderate/ Minor"
           },
           "sizeMetres": 143.94027647075023,
-          "parentFeatureId": "49eada22-cfe5-4a1b-8594-85173c8bcc64",
+          "parentFeatureId": "b318825b-74e3-499a-89d6-01680e806bdb",
           "retentionCategory": "Enhanced"
         },
         {
@@ -7390,7 +7592,7 @@
             "waterEncroachmentMultiplier": 1,
             "riparianEncroachmentMultiplier": 0.84
           },
-          "featureId": "b3de0715-d833-4d78-9945-9d86c854c3d6",
+          "featureId": "b9c0bf27-c45e-488b-8fa7-0bae2af9c561",
           "properties": {
             "fid": 6,
             "Comment": "Shorter: part of the stretch is culverted or filled",
@@ -7414,20 +7616,20 @@
             "Proposed Encroachment into riparian zone": "Major/Minor"
           },
           "sizeMetres": 106.74533403925719,
-          "parentFeatureId": "16019b3b-b9d7-4e6a-a359-bf8f4fb6c4c6",
+          "parentFeatureId": "8a7afebd-6b86-46fb-82ff-b36aaee4a742",
           "retentionCategory": "Retained"
         }
       ]
     }
   },
-  "userId": "it-7838be24-c2c9-4e16-b265-2b3827d717aa",
-  "lastModifiedBy": "it-7838be24-c2c9-4e16-b265-2b3827d717aa",
+  "userId": "it-dca3f985-fb2a-4aeb-a719-a56f91a7d8da",
+  "lastModifiedBy": "it-dca3f985-fb2a-4aeb-a719-a56f91a7d8da",
   "orgId": null,
   "relationshipId": null,
   "bngProjectVersion": 1,
-  "createdAt": "2026-10-28T14:31:44.209Z",
-  "updatedAt": "2026-10-28T14:31:46.995Z",
-  "projectId": "e7569166-1a51-4e06-b765-c610c150c8b8",
+  "createdAt": "2026-10-28T16:12:51.086Z",
+  "updatedAt": "2026-10-28T16:12:53.786Z",
+  "projectId": "e42e2eb5-cb49-4761-8661-2189747ae640",
   "tradingRuleStatuses": {
     "areaHabitats": {
       "medium": "Not met",

@@ -92,6 +92,14 @@ describe('service-template project fixtures', () => {
     expect(new Set(categories)).toEqual(new Set(SIGNIFICANCE_CATEGORIES))
   })
 
+  test('record whether each area habitat is irreplaceable, at both stages', () => {
+    for (const document of [baseline, postIntervention]) {
+      for (const habitat of document.habitats) {
+        expect(typeof habitat.irreplaceable, habitat.ref).toBe('boolean')
+      }
+    }
+  })
+
   test('read no individual trees yet (BMD-1172)', () => {
     expect(baseline.trees).toEqual([])
     expect(postIntervention.trees).toEqual([])
