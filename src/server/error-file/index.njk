@@ -25,17 +25,15 @@
           </p>
           {% if singleError.table %}
             {{ govukTable({
-              caption: "Habitats that cannot be enhanced",
+              caption: singleError.table.caption,
               captionClasses: "govuk-table__caption--m",
               firstCellIsHeader: true,
               head: singleError.table.head,
               rows: singleError.table.rows,
-              attributes: { "data-testid": "unenhanceable-habitats" }
+              attributes: { "data-testid": singleError.table.testId }
             }) }}
-            {% if singleError.table.total > singleError.table.shown %}
-              <p class="govuk-body" data-testid="unenhanceable-habitats-more">
-                Showing the first {{ singleError.table.shown }} of {{ singleError.table.total }} habitats. Fix these and upload the file again to see any others.
-              </p>
+            {% if singleError.table.moreText %}
+              <p class="govuk-body" data-testid="{{ singleError.table.testId }}-more">{{ singleError.table.moreText }}</p>
             {% endif %}
           {% endif %}
         {% endif %}

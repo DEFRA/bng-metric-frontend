@@ -185,7 +185,8 @@ const habitatRefInvalidCharactersEntry = () =>
 // BMD-1182: enhanced habitats whose baseline the service cannot enhance at
 // all. The file is refused rather than the enhancements nulled, as there is
 // nothing the user can fix in the service. Interim copy, pending UCD (Figma):
-// replace the h1, intro and instruction here.
+// replace the h1, intro, instruction and the table's caption and overflow
+// line here.
 const UNENHANCEABLE_BASELINE_H1 =
   'Some habitats in your file cannot be enhanced in this service'
 const UNENHANCEABLE_BASELINE_INTRO =
@@ -205,13 +206,31 @@ const UNENHANCEABLE_FEATURE_LABELS = {
   trees: 'Individual tree'
 }
 
+const UNENHANCEABLE_BASELINE_CAPTION = 'Habitats that cannot be enhanced'
+
 function textOr(value, fallback) {
   return value == null || value === '' ? fallback : String(value)
 }
 
+// The habitat's Feature Ref, or, without one, the same fid / feature number
+// the multi-error list falls back to (describeFeature, controller.js), so the
+// user can still find the row. A bare fid would read as a reference.
+function unenhanceableRef(sample) {
+  if (sample?.feature_ref != null && sample.feature_ref !== '') {
+    return String(sample.feature_ref)
+  }
+  if (sample?.fid != null && sample.fid !== '') {
+    return `fid ${sample.fid}`
+  }
+  if (sample?.idx != null) {
+    return `feature #${sample.idx}`
+  }
+  return 'No reference'
+}
+
 function unenhanceableRow(sample) {
   return [
-    { text: textOr(sample?.feature_ref, 'No reference') },
+    { text: unenhanceableRef(sample) },
     {
       text: UNENHANCEABLE_FEATURE_LABELS[sample?.layer] ?? 'Habitat'
     },
@@ -220,28 +239,47 @@ function unenhanceableRow(sample) {
   ]
 }
 
-const unenhanceableBaselineEntry = (error) => {
-  const sample = error?.details?.sample ?? []
-  const rows = sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
+function unenhanceableTable(error) {
+  const sample = error?.details?.sample
+  const rows = Array.isArray(sample)
+    ? sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
+    : []
+  // No habitats to list: the page keeps its explanation and instruction, and
+  // shows no empty table.
+  if (rows.length === 0) {
+    return null
+  }
   const count = Number(error?.details?.count)
   const total = Number.isFinite(count)
     ? Math.max(count, rows.length)
     : rows.length
   return {
-    ...standard(UNENHANCEABLE_BASELINE_H1, UNENHANCEABLE_BASELINE_INSTRUCTION),
-    intro: UNENHANCEABLE_BASELINE_INTRO,
-    table: {
-      head: [
-        { text: 'Reference' },
-        { text: 'Feature' },
-        { text: 'Baseline habitat' },
-        { text: 'Baseline condition' }
-      ],
-      rows: rows.map(unenhanceableRow),
-      shown: rows.length,
-      total
-    }
+    caption: UNENHANCEABLE_BASELINE_CAPTION,
+    testId: 'unenhanceable-habitats',
+    head: [
+      { text: 'Reference' },
+      { text: 'Feature' },
+      { text: 'Baseline habitat' },
+      { text: 'Baseline condition' }
+    ],
+    rows: rows.map(unenhanceableRow),
+    moreText:
+      total > rows.length
+        ? `Showing the first ${rows.length} of ${total} habitats. Fix these and upload the file again to see any others.`
+        : null
   }
+}
+
+const unenhanceableBaselineEntry = (error) => {
+  const entry = {
+    ...standard(UNENHANCEABLE_BASELINE_H1, UNENHANCEABLE_BASELINE_INSTRUCTION),
+    intro: UNENHANCEABLE_BASELINE_INTRO
+  }
+  const table = unenhanceableTable(error)
+  if (table) {
+    entry.table = table
+  }
+  return entry
 }
 
 const CODE_ENTRIES = {
