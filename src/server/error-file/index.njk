@@ -2,6 +2,7 @@
 
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/table/macro.njk" import govukTable %}
 
 {% block content %}
   <div class="govuk-grid-row">
@@ -16,9 +17,25 @@
         {% elif singleError.variant == 'placeholder' %}
           <p class="govuk-body">{{ singleError.helpText }}</p>
         {% else %}
+          {% if singleError.intro %}
+            <p class="govuk-body">{{ singleError.intro }}</p>
+          {% endif %}
           <p class="govuk-body">
             {{ singleError.messageBefore }}{% if singleError.uploadHref %}<a class="govuk-link" href="{{ singleError.uploadHref }}">{{ singleError.linkText }}</a>{{ singleError.messageAfter }}{% endif %}
           </p>
+          {% if singleError.table %}
+            {{ govukTable({
+              caption: singleError.table.caption,
+              captionClasses: "govuk-table__caption--m",
+              firstCellIsHeader: true,
+              head: singleError.table.head,
+              rows: singleError.table.rows,
+              attributes: { "data-testid": singleError.table.testId }
+            }) }}
+            {% if singleError.table.moreText %}
+              <p class="govuk-body" data-testid="{{ singleError.table.testId }}-more">{{ singleError.table.moreText }}</p>
+            {% endif %}
+          {% endif %}
         {% endif %}
       {% elif errorList and errorList.length > 0 %}
         {{ govukErrorSummary({
