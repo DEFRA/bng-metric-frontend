@@ -7,6 +7,7 @@ import {
   formatLengthKm
 } from '../../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../../common/helpers/strip-condition-prefix.js'
+import { buildConditionItems, buildSelectItems } from './select-items.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -60,18 +61,6 @@ async function loadReference(hedgerow) {
   }
 }
 
-function buildSelectItems(values, selectedValue, defaultText) {
-  const items = [{ value: '', text: defaultText, selected: !selectedValue }]
-  for (const value of values) {
-    items.push({
-      value,
-      text: value,
-      selected: value === selectedValue
-    })
-  }
-  return items
-}
-
 function buildViewModel(hedgerow, reference, { projectId, projectName }) {
   const habitatTypeNames = reference.habitatTypes.map((t) => t.name)
   const habitatRef = hedgerow.ref ?? ''
@@ -99,14 +88,7 @@ function buildViewModel(hedgerow, reference, { projectId, projectName }) {
       hedgerow.type,
       'Choose habitat type'
     ),
-    conditionOptions: [
-      { value: '', text: 'Choose condition', selected: !savedCondition },
-      ...reference.conditions.map((c) => ({
-        value: c.condition,
-        text: `${c.condition} (${c.score})`,
-        selected: c.condition === savedCondition
-      }))
-    ],
+    conditionOptions: buildConditionItems(reference.conditions, savedCondition),
     referenceJson: JSON.stringify({
       featureType: 'hedgerow',
       habitatTypes: reference.habitatTypes,

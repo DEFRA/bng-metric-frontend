@@ -1424,9 +1424,14 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(JSON.parse(payload).ref).toBe('x'.repeat(120))
     })
 
-    test('Saves a reference that another habitat already uses', async () => {
-      const { statusCode } = await postRef({ habitatRef: '12' })
+    test('Leaves a reference another habitat may use for the backend to judge', async () => {
+      // The frontend cannot see the other habitats; the backend refuses a
+      // reference in use (HABITAT_REF_IN_USE), shown below.
+      const { statusCode } = await postRef({ habitatRef: 'A2' })
+
       expect(statusCode).toBe(302)
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload).ref).toBe('A2')
     })
   })
 
@@ -1560,6 +1565,51 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
 
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('for a habitat saved with values the reference data no longer offers', () => {
+    const retiredHabitat = {
+      ...mockHabitat,
+      type: 'Retired grassland',
+      condition: 'Fairly Poor'
+    }
+
+    beforeEach(() => {
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.endsWith(`/projects/${projectId}/features/${habitatId}`)
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: { type: 'habitat', feature: retiredHabitat }
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+    })
+
+    test('Keeps them selected on the page and sends them back unchanged with a rename', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toMatch(/<option value="Retired grassland" selected>/)
+      expect(result).toMatch(/<option value="Fairly Poor" selected>/)
+
+      // What the browser posts back from that page, with only the reference changed.
+      await postRef({
+        habitatRef: 'B-A1',
+        broadHabitat: 'Grassland',
+        habitatType: 'Retired grassland',
+        condition: 'Fairly Poor'
+      })
+
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload)).toEqual({
+        ref: 'B-A1',
+        broadType: 'Grassland',
+        habitatType: 'Retired grassland',
+        condition: 'Fairly Poor'
+      })
     })
   })
 

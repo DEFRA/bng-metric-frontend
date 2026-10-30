@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 
-import { interventionDisplay, normaliseRetentionCategory } from './retention.js'
+import {
+  featureRetentionCategory,
+  interventionDisplay,
+  normaliseRetentionCategory
+} from './retention.js'
 
 describe('normaliseRetentionCategory', () => {
   it.each([
@@ -29,5 +33,38 @@ describe('interventionDisplay', () => {
 
   it('defaults to Retained when the feature carries no category', () => {
     expect(interventionDisplay(undefined)).toBe('Retained')
+  })
+})
+
+describe('featureRetentionCategory', () => {
+  test('reads the category at the feature root, normalised', () => {
+    expect(featureRetentionCategory({ retentionCategory: '1. Retained' })).toBe(
+      'Retained'
+    )
+  })
+
+  test('falls back to a category stored under baseline by an older import', () => {
+    expect(
+      featureRetentionCategory({
+        baseline: { retentionCategory: '2. Enhanced' }
+      })
+    ).toBe('Enhanced')
+  })
+
+  test('prefers the root over baseline', () => {
+    expect(
+      featureRetentionCategory({
+        retentionCategory: 'Created',
+        baseline: { retentionCategory: 'Retained' }
+      })
+    ).toBe('Created')
+  })
+
+  test.each([
+    ['a nested Lost row', { baseline: { retentionCategory: 'Lost' } }],
+    ['no category at all', { baseline: {} }],
+    ['no feature', undefined]
+  ])('is null for %s', (_label, feature) => {
+    expect(featureRetentionCategory(feature)).toBeNull()
   })
 })

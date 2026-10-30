@@ -229,6 +229,35 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(result).toContain('Enhanced')
     })
 
+    test('shows the reference form for a retained parcel whose category an older import stored under baseline', async () => {
+      const { retentionCategory: _root, ...legacy } = FEATURES.hedgerow
+      mockBackend({
+        type: 'hedgerow',
+        feature: { ...legacy, baseline: { retentionCategory: '1. Retained' } }
+      })
+
+      const { result } = await server.inject({
+        method: 'GET',
+        url: pageUrl,
+        auth: authedAuth
+      })
+
+      expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="H1"/s)
+    })
+
+    test('saves the reference of such a parcel', async () => {
+      const { retentionCategory: _root, ...legacy } = FEATURES.hedgerow
+      mockBackend({
+        type: 'hedgerow',
+        feature: { ...legacy, baseline: { retentionCategory: 'Retained' } }
+      })
+      vi.mocked(wreck.put).mockImplementation(() => savedAs('hedgerow', 'P-1'))
+
+      const { statusCode } = await post({ habitatRef: 'P-1' })
+
+      expect(statusCode).toBe(statusCodes.redirect)
+    })
+
     test('shows a habitat with no retention category read-only', async () => {
       mockBackend({
         feature: { ...FEATURES.habitat, retentionCategory: undefined }
