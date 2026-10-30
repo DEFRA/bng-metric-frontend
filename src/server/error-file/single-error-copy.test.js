@@ -529,7 +529,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
           layer: 'hedgerows',
           feature_ref: 'HG011',
           habitat_type: 'Ecologically valuable line of trees',
-          proposed_habitat_type: 'Ecologically valuable line of trees'
+          proposed_habitat_type: 'Native hedgerow with trees'
         }),
         offender({
           layer: 'watercourses',
@@ -580,7 +580,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
         'Hedgerow',
         'Ecologically valuable line of trees',
         'Good',
-        'Ecologically valuable line of trees',
+        'Native hedgerow with trees',
         'Good'
       ],
       ['R001', 'Watercourse', 'Ditches', 'Good', 'Ditches', 'Moderate'],
@@ -708,7 +708,8 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
             layer: 'hedgerows',
             feature_ref: 'HG011',
             habitat_type: 'Ecologically valuable line of trees',
-            proposed_habitat_type: 'Ecologically valuable line of trees'
+            proposed_habitat_type: 'Native hedgerow with trees',
+            proposed_condition: 'Moderate'
           })
         ]),
         UPLOAD_HREF
@@ -725,8 +726,8 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
       'Hedgerow',
       'Ecologically valuable line of trees',
       'Good',
-      'Ecologically valuable line of trees',
-      'Good'
+      'Native hedgerow with trees',
+      'Moderate'
     ])
   })
 
@@ -757,6 +758,10 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     )
 
     expect(singleError.table).toBeUndefined()
+    expect(singleError.messageBefore).toMatch(
+      /^Some baseline habitats in your file are already at the highest/
+    )
+    expect(singleError.messageBefore).not.toContain('below')
     expect(singleError.messageBefore).toContain('record it as Retained')
     const html = renderTemplate('error-file/index.njk', { singleError })
     expect(html).not.toContain('govuk-table')

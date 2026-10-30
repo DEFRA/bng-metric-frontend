@@ -189,8 +189,14 @@ const habitatRefInvalidCharactersEntry = () =>
 // the table's caption and overflow line here.
 const UNENHANCEABLE_BASELINE_H1 =
   'Some enhanced habitats cannot be enhanced from their baseline'
-const UNENHANCEABLE_BASELINE_MESSAGE =
-  'The baseline habitats below are already at the highest distinctiveness and condition they can be enhanced to in this service. If a habitat is not changing, record it as Retained. If it is being replaced, record it as lost and the new habitat as created. Make these changes in your file and '
+// What the habitats are, then what to do. The first part names the table,
+// so it has a second form for when there is no table to point at.
+const UNENHANCEABLE_BASELINE_PROBLEM_WITH_TABLE =
+  'The baseline habitats below are already at the highest distinctiveness and condition they can be enhanced to in this service.'
+const UNENHANCEABLE_BASELINE_PROBLEM_NO_TABLE =
+  'Some baseline habitats in your file are already at the highest distinctiveness and condition they can be enhanced to in this service.'
+const UNENHANCEABLE_BASELINE_INSTRUCTION =
+  'If a habitat is not changing, record it as Retained. If it is being replaced, record it as lost and the new habitat as created. Make these changes in your file and '
 
 // The backend sends at most 50 offenders in details.sample, and the count of
 // all of them in details.count. The table never shows more than this.
@@ -205,6 +211,8 @@ const UNENHANCEABLE_FEATURE_LABELS = {
 }
 
 const UNENHANCEABLE_BASELINE_CAPTION = 'Habitats that cannot be enhanced'
+
+const NOT_RECORDED = 'Not recorded'
 
 function textOr(value, fallback) {
   return value == null || value === '' ? fallback : String(value)
@@ -232,10 +240,10 @@ function unenhanceableRow(sample) {
     {
       text: UNENHANCEABLE_FEATURE_LABELS[sample?.layer] ?? 'Habitat'
     },
-    { text: textOr(sample?.habitat_type, 'Not recorded') },
-    { text: textOr(sample?.condition, 'Not recorded') },
-    { text: textOr(sample?.proposed_habitat_type, 'Not recorded') },
-    { text: textOr(sample?.proposed_condition, 'Not recorded') }
+    { text: textOr(sample?.habitat_type, NOT_RECORDED) },
+    { text: textOr(sample?.condition, NOT_RECORDED) },
+    { text: textOr(sample?.proposed_habitat_type, NOT_RECORDED) },
+    { text: textOr(sample?.proposed_condition, NOT_RECORDED) }
   ]
 }
 
@@ -244,8 +252,8 @@ function unenhanceableTable(error) {
   const rows = Array.isArray(sample)
     ? sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
     : []
-  // No habitats to list: the page keeps its message, and shows no empty
-  // table.
+  // No habitats to list: the page shows no empty table, and its message
+  // does not point at one.
   if (rows.length === 0) {
     return null
   }
@@ -273,11 +281,14 @@ function unenhanceableTable(error) {
 }
 
 const unenhanceableBaselineEntry = (error) => {
+  const table = unenhanceableTable(error)
+  const problem = table
+    ? UNENHANCEABLE_BASELINE_PROBLEM_WITH_TABLE
+    : UNENHANCEABLE_BASELINE_PROBLEM_NO_TABLE
   const entry = standard(
     UNENHANCEABLE_BASELINE_H1,
-    UNENHANCEABLE_BASELINE_MESSAGE
+    `${problem} ${UNENHANCEABLE_BASELINE_INSTRUCTION}`
   )
-  const table = unenhanceableTable(error)
   if (table) {
     entry.table = table
   }
