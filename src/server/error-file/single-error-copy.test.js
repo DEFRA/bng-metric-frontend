@@ -547,9 +547,9 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
       'Some habitats in your file cannot be enhanced in this service'
     )
     expect(result.h1).not.toContain('PLACEHOLDER')
-    expect(result.intro).toContain('already in good condition')
+    expect(result.intro).toBeUndefined()
     expect(result.messageBefore).toBe(
-      'Change the retention category of each habitat listed to Retained and '
+      'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file and '
     )
     expect(result.uploadHref).toBe(UPLOAD_HREF)
     expect(result.table.head.map((h) => h.text)).toEqual([
@@ -616,7 +616,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     const result = resolveSingleErrorCopy(error([offender()]), null)
 
     expect(result.messageBefore).toBe(
-      'Change the retention category of each habitat listed to Retained.'
+      'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file.'
     )
     expect(result.linkText).toBeNull()
   })
@@ -631,11 +631,9 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
 
     expect(html).not.toContain('PLACEHOLDER')
     expect(html).toContain(
-      'Your file marks the habitats below as enhanced, but this service cannot enhance them.'
+      'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file and'
     )
-    expect(html).toContain(
-      'Change the retention category of each habitat listed to Retained and'
-    )
+    expect(html).not.toContain('already in good condition')
     expect(html).toContain(
       'Some habitats in your file cannot be enhanced in this service'
     )
@@ -709,7 +707,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     )
 
     expect(singleError.table).toBeUndefined()
-    expect(singleError.intro).toContain('cannot enhance them')
+    expect(singleError.messageBefore).toContain('cannot enhance them')
     const html = renderTemplate('error-file/index.njk', { singleError })
     expect(html).not.toContain('govuk-table')
     expect(html).toContain(`href="${UPLOAD_HREF}"`)

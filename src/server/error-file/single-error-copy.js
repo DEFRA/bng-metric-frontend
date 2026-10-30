@@ -184,15 +184,13 @@ const habitatRefInvalidCharactersEntry = () =>
 
 // BMD-1182: enhanced habitats whose baseline the service cannot enhance at
 // all. The file is refused rather than the enhancements nulled, as there is
-// nothing the user can fix in the service. Interim copy, pending UCD (Figma):
-// replace the h1, intro, instruction and the table's caption and overflow
-// line here.
+// nothing the user can fix in the service. Interim copy, kept brief until
+// there are designs and content for it (BMD-1110): replace the h1, message and
+// the table's caption and overflow line here.
 const UNENHANCEABLE_BASELINE_H1 =
   'Some habitats in your file cannot be enhanced in this service'
-const UNENHANCEABLE_BASELINE_INTRO =
-  'Your file marks the habitats below as enhanced, but this service cannot enhance them. A medium distinctiveness habitat, hedgerow, watercourse or tree that is already in good condition can only be enhanced into a higher distinctiveness habitat, which this service does not include yet. A very low distinctiveness hedgerow cannot be enhanced at all, and some low distinctiveness hedgerows in good condition have no hedgerow they can be enhanced into.'
-const UNENHANCEABLE_BASELINE_INSTRUCTION =
-  'Change the retention category of each habitat listed to Retained and '
+const UNENHANCEABLE_BASELINE_MESSAGE =
+  'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file and '
 
 // The backend sends at most 50 offenders in details.sample, and the count of
 // all of them in details.count. The table never shows more than this.
@@ -244,8 +242,8 @@ function unenhanceableTable(error) {
   const rows = Array.isArray(sample)
     ? sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
     : []
-  // No habitats to list: the page keeps its explanation and instruction, and
-  // shows no empty table.
+  // No habitats to list: the page keeps its message, and shows no empty
+  // table.
   if (rows.length === 0) {
     return null
   }
@@ -271,10 +269,10 @@ function unenhanceableTable(error) {
 }
 
 const unenhanceableBaselineEntry = (error) => {
-  const entry = {
-    ...standard(UNENHANCEABLE_BASELINE_H1, UNENHANCEABLE_BASELINE_INSTRUCTION),
-    intro: UNENHANCEABLE_BASELINE_INTRO
-  }
+  const entry = standard(
+    UNENHANCEABLE_BASELINE_H1,
+    UNENHANCEABLE_BASELINE_MESSAGE
+  )
   const table = unenhanceableTable(error)
   if (table) {
     entry.table = table
