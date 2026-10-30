@@ -47,7 +47,8 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *       `ref`; a blank, whitespace-only or non-UTF-8 reference re-renders the
  *       page with an error summary and inline error and saves nothing. When the
  *       stored reference is blank and the field is left blank, the reference
- *       is not sent, so the other edits still save. Hedgerows and watercourses
+ *       is not sent, so the other edits still save. Only a reference the
+ *       user changed is checked and sent. Hedgerows and watercourses
  *       send no broad habitat; only watercourses send the encroachment fields.
  *     requestBody:
  *       required: true
@@ -83,7 +84,9 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *       302:
  *         description: Redirects to the matching baseline habitat list on success
  *       400:
- *         description: Re-renders the page with an error summary when the habitat reference is invalid
+ *         description: Re-renders the page with an error summary when a changed habitat reference is invalid, or when the backend refuses it. A backend 400 for a save that sent no reference is an error page.
+ *       404:
+ *         description: The habitat no longer exists
  *       409:
  *         description: Another user is editing this project
  *       502:

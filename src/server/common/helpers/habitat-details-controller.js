@@ -303,14 +303,27 @@ function isBlank(ref) {
 }
 
 /**
+ * The stored reference as the page shows it in the input.
+ *
+ * @param {unknown} ref
+ * @returns {string}
+ */
+function storedRefText(ref) {
+  return ref === null || ref === undefined ? '' : `${ref}`
+}
+
+/**
  * The habitat reference to send with a save, undefined to leave the stored one
  * alone, or REFUSED_REF when the submitted one is invalid.
  *
- * A habitat imported before the BMD-1058 import check can have no reference.
- * Its page shows the input empty, so a save that leaves it empty is not asking
- * to change the reference, only the dropdowns. That save goes ahead without a
- * reference rather than being refused until the user makes one up. Typing a
- * reference, or blanking one that was saved, is still checked.
+ * Only a reference the user changed is checked and sent. A habitat imported
+ * before the BMD-1058 import check may hold one that would not pass today: no
+ * reference at all, characters that are not UTF-8, surrounding spaces, or more
+ * than 100 characters. Its page shows it as stored, so a save that leaves it
+ * as it is only asks to change the dropdowns. Checking it would refuse that
+ * save until the user made a new one up, and sending it would have the
+ * backend trim or cut it, renaming the habitat unasked. Blanking the field
+ * where a reference was saved is still a change, and still refused.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {object} uploadType
@@ -322,21 +335,22 @@ async function submittedRefToSave(
   uploadType,
   { projectId, featureId, habitatRef }
 ) {
-  if (habitatRef === undefined || isValidHabitatRef(habitatRef)) {
-    return habitatRef
+  if (habitatRef === undefined) {
+    return undefined
   }
-  if (isBlank(habitatRef)) {
-    const { feature } = await fetchFeature(
-      request,
-      uploadType,
-      projectId,
-      featureId
-    )
-    if (isBlank(feature?.ref)) {
-      return undefined
-    }
+  const { feature } = await fetchFeature(
+    request,
+    uploadType,
+    projectId,
+    featureId
+  )
+  const unchanged =
+    habitatRef === storedRefText(feature?.ref) ||
+    (isBlank(habitatRef) && isBlank(feature?.ref))
+  if (unchanged) {
+    return undefined
   }
-  return REFUSED_REF
+  return isValidHabitatRef(habitatRef) ? habitatRef : REFUSED_REF
 }
 
 function createGetController(uploadType) {
@@ -431,7 +445,9 @@ function createPostController(uploadType) {
         featureId,
         habitatRef
       })
-      if (refToSave === REFUSED_REF) {
+      // A refused reference shows the page again with the error, keeping
+      // what the user typed and chose, and the way back they came in by.
+      const showRefusedRef = async () => {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
@@ -450,6 +466,9 @@ function createPostController(uploadType) {
         })
         return response.code(statusCodes.badRequest)
       }
+      if (refToSave === REFUSED_REF) {
+        return showRefusedRef()
+      }
 
       const body = buildSaveBody({
         habitatRef: refToSave,
@@ -460,12 +479,25 @@ function createPostController(uploadType) {
         riparianEncroachment
       })
 
-      const payload = await saveHabitat(
-        request,
-        uploadType.backendSavePath(projectId, featureId),
-        body,
-        featureId
-      )
+      let payload
+      try {
+        payload = await saveHabitat(
+          request,
+          uploadType.backendSavePath(projectId, featureId),
+          body,
+          featureId
+        )
+      } catch (err) {
+        // The backend checks a reference again; if it refuses one this side
+        // passed, say so at the field rather than on an error page.
+        if (
+          refToSave !== undefined &&
+          err.output?.statusCode === statusCodes.badRequest
+        ) {
+          return showRefusedRef()
+        }
+        throw err
+      }
 
       return h.redirect(
         habitatDetailsDestination(projectId, payload?.type, uploadType.key)

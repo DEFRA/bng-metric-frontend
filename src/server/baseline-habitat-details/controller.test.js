@@ -828,6 +828,10 @@ describe('#baselineHabitatDetails - POST', () => {
 
   beforeEach(async () => {
     _resetReferenceCache()
+    // A save that sends a reference reads the stored one first.
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeWreck(u))
+    )
     vi.mocked(wreck.put).mockResolvedValue({
       res: { statusCode: 200 },
       payload: {
@@ -1480,6 +1484,77 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     })
   })
 
+  describe('on Save for a habitat imported with a reference that would not pass today', () => {
+    function withStoredRef(ref) {
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.endsWith(`/projects/${projectId}/features/${habitatId}`)
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: { type: 'habitat', feature: { ...mockHabitat, ref } }
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+    }
+
+    test.each([
+      ['characters that are not UTF-8', 'A\uFFFD1'],
+      ['surrounding spaces', '  A1  '],
+      ['more than 100 characters', 'x'.repeat(120)]
+    ])(
+      'Saves the dropdowns without checking or sending a reference holding %s that was left as it is',
+      async (_label, storedRef) => {
+        withStoredRef(storedRef)
+
+        const { statusCode } = await postRef({
+          habitatRef: storedRef,
+          condition: 'Poor'
+        })
+
+        expect(statusCode).toBe(302)
+        const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+        expect(JSON.parse(payload)).toEqual({
+          broadType: 'Grassland',
+          habitatType: 'Modified grassland',
+          condition: 'Poor'
+        })
+      }
+    )
+
+    test('Checks a reference the user changed', async () => {
+      withStoredRef('A\uFFFD1')
+
+      const { statusCode } = await postRef({ habitatRef: 'B\uFFFD1' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('when the backend refuses the save', () => {
+    test('Shows a refused reference at the field, keeping what was typed', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(Boom.badRequest('invalid ref'))
+
+      const { statusCode, result } = await postRef({ habitatRef: 'B-A1' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(
+        '<a href="#habitatRef">You have entered an invalid habitat reference.</a>'
+      )
+      expect(result).toMatch(
+        /id="habitatRef" name="habitatRef"[^>]*value="B-A1"/
+      )
+    })
+
+    test('Answers a 400 for a save that sent no reference with the error page', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(Boom.badRequest('invalid'))
+
+      const { statusCode, result } = await postRef({ habitatRef: '12' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).not.toContain('govuk-error-summary')
+    })
+  })
+
   describe('on Save for a habitat imported with no reference', () => {
     // Imported before the BMD-1058 import check: the stored ref is blank.
     function withStoredRef(ref) {
@@ -1594,6 +1669,36 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(result).toMatch(
         /id="habitatRef" name="habitatRef"[^>]*value=" {2}"/
       )
+    })
+
+    test('Lists the conditions of the unsaved habitat type, not the saved one', async () => {
+      // Only the submitted type has "Condition Assessment N/A".
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.includes('/reference/conditions') &&
+        u.includes(encodeURIComponent('Urban - Developed land; sealed surface'))
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: [{ condition: 'Condition Assessment N/A', score: 0 }]
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+
+      const { result } = await postRef({
+        habitatRef: '  ',
+        broadHabitat: 'Urban',
+        habitatType: 'Developed land; sealed surface',
+        condition: 'Condition Assessment N/A'
+      })
+
+      expect(result).toMatch(/<option value="Urban" selected>/)
+      expect(result).toMatch(
+        /<option value="Developed land; sealed surface" selected>/
+      )
+      expect(result).toMatch(
+        /<option value="Condition Assessment N\/A" selected>/
+      )
+      // The saved type's conditions are not offered.
+      expect(result).not.toContain('<option value="Fairly Good"')
     })
 
     test('Rejects POST with 403 when crumb is missing', async () => {
