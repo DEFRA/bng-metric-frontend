@@ -509,6 +509,8 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     habitat_type: 'Grassland - Other neutral grassland',
     condition: 'Good',
     distinctiveness: 'Medium',
+    proposed_habitat_type: 'Grassland - Other neutral grassland',
+    proposed_condition: 'Good',
     rule: 'medium-area-good',
     mvsOnly: true,
     ...fields
@@ -526,17 +528,21 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
         offender({
           layer: 'hedgerows',
           feature_ref: 'HG011',
-          habitat_type: 'Ecologically valuable line of trees'
+          habitat_type: 'Ecologically valuable line of trees',
+          proposed_habitat_type: 'Ecologically valuable line of trees'
         }),
         offender({
           layer: 'watercourses',
           feature_ref: 'R001',
-          habitat_type: 'Ditches'
+          habitat_type: 'Ditches',
+          proposed_habitat_type: 'Ditches',
+          proposed_condition: 'Moderate'
         }),
         offender({
           layer: 'trees',
           feature_ref: 'T018',
-          habitat_type: 'Individual trees - Rural tree'
+          habitat_type: 'Individual trees - Rural tree',
+          proposed_habitat_type: 'Individual trees - Rural tree'
         })
       ]),
       UPLOAD_HREF
@@ -556,13 +562,36 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
       'Reference',
       'Feature',
       'Baseline habitat',
-      'Baseline condition'
+      'Baseline condition',
+      'Proposed habitat',
+      'Proposed condition'
     ])
     expect(result.table.rows.map((row) => row.map((c) => c.text))).toEqual([
-      ['H001', 'Area habitat', 'Grassland - Other neutral grassland', 'Good'],
-      ['HG011', 'Hedgerow', 'Ecologically valuable line of trees', 'Good'],
-      ['R001', 'Watercourse', 'Ditches', 'Good'],
-      ['T018', 'Individual tree', 'Individual trees - Rural tree', 'Good']
+      [
+        'H001',
+        'Area habitat',
+        'Grassland - Other neutral grassland',
+        'Good',
+        'Grassland - Other neutral grassland',
+        'Good'
+      ],
+      [
+        'HG011',
+        'Hedgerow',
+        'Ecologically valuable line of trees',
+        'Good',
+        'Ecologically valuable line of trees',
+        'Good'
+      ],
+      ['R001', 'Watercourse', 'Ditches', 'Good', 'Ditches', 'Moderate'],
+      [
+        'T018',
+        'Individual tree',
+        'Individual trees - Rural tree',
+        'Good',
+        'Individual trees - Rural tree',
+        'Good'
+      ]
     ])
     expect(result.table.caption).toBe('Habitats that cannot be enhanced')
     expect(result.table.moreText).toBeNull()
@@ -575,7 +604,9 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
           layer: 'hedgerows',
           feature_ref: null,
           habitat_type: 'Non-native and ornamental hedgerow',
-          condition: ''
+          condition: '',
+          proposed_habitat_type: null,
+          proposed_condition: ''
         })
       ]),
       UPLOAD_HREF
@@ -585,6 +616,22 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
       'No reference',
       'Hedgerow',
       'Non-native and ornamental hedgerow',
+      'Not recorded',
+      'Not recorded',
+      'Not recorded'
+    ])
+  })
+
+  test('still fills every column from a backend that sends no proposed side', () => {
+    const {
+      proposed_habitat_type: _habitat,
+      proposed_condition: _condition,
+      ...baselineOnly
+    } = offender()
+    const result = resolveSingleErrorCopy(error([baselineOnly]), UPLOAD_HREF)
+
+    expect(result.table.rows[0].slice(-2).map((c) => c.text)).toEqual([
+      'Not recorded',
       'Not recorded'
     ])
   })
@@ -660,7 +707,8 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
           offender({
             layer: 'hedgerows',
             feature_ref: 'HG011',
-            habitat_type: 'Ecologically valuable line of trees'
+            habitat_type: 'Ecologically valuable line of trees',
+            proposed_habitat_type: 'Ecologically valuable line of trees'
           })
         ]),
         UPLOAD_HREF
@@ -675,6 +723,8 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     expect(cells).toEqual([
       'HG011',
       'Hedgerow',
+      'Ecologically valuable line of trees',
+      'Good',
       'Ecologically valuable line of trees',
       'Good'
     ])

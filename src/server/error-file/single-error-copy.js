@@ -233,7 +233,9 @@ function unenhanceableRow(sample) {
       text: UNENHANCEABLE_FEATURE_LABELS[sample?.layer] ?? 'Habitat'
     },
     { text: textOr(sample?.habitat_type, 'Not recorded') },
-    { text: textOr(sample?.condition, 'Not recorded') }
+    { text: textOr(sample?.condition, 'Not recorded') },
+    { text: textOr(sample?.proposed_habitat_type, 'Not recorded') },
+    { text: textOr(sample?.proposed_condition, 'Not recorded') }
   ]
 }
 
@@ -258,7 +260,9 @@ function unenhanceableTable(error) {
       { text: 'Reference' },
       { text: 'Feature' },
       { text: 'Baseline habitat' },
-      { text: 'Baseline condition' }
+      { text: 'Baseline condition' },
+      { text: 'Proposed habitat' },
+      { text: 'Proposed condition' }
     ],
     rows: rows.map(unenhanceableRow),
     moreText:
