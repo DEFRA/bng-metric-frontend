@@ -299,6 +299,12 @@ const unenhanceableBaselineEntry = (error) => {
   return entry
 }
 
+const distinctivenessNotInScopeEntry = () =>
+  metricToolEntry(
+    'Very high and high distinctiveness habitats are not yet included in this service',
+    'Use the '
+  )
+
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
   GPKG_RLB_NO_POLYGON: noRedlineEntry,
@@ -325,11 +331,7 @@ const CODE_ENTRIES = {
     ),
 
   // AC6a — Ineligible distinctiveness (BMD-352)
-  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: () =>
-    metricToolEntry(
-      'Very high and high distinctiveness habitats are not yet included in this service',
-      'Use the '
-    ),
+  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: distinctivenessNotInScopeEntry,
 
   // AC7 — Self-intersecting parcel (BMD-300 AC5)
   AREA_PARCELS_INVALID_GEOMETRY: (error) => {
