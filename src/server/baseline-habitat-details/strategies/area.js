@@ -106,7 +106,7 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
     projectName,
     habitatRef,
     sizeDisplay: formatAreaHectares(habitat.sizeSquareMetres),
-    sizeLabel: 'Area (hectares)',
+    sizeLabel: 'Size (hectares)',
     showBroadHabitatRow: true,
     distinctivenessDisplay:
       habitat.distinctiveness &&
