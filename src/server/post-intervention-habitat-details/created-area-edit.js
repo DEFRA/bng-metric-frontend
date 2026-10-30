@@ -85,7 +85,7 @@ async function loadCreationReference(kind) {
           ) {
             throw new Error(`Invalid ${kind} creation reference response`)
           }
-          return structuredClone(payload)
+          return { ...structuredClone(payload), featureType: kind }
         })
         .catch((error) => {
           referencePromises.delete(kind)

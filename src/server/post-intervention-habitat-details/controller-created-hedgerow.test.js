@@ -2,6 +2,8 @@ import { wreck } from '../common/helpers/wreck-client.js'
 import { createServer } from '../server.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
 import {
+  baselineFeatureId,
+  mockFeature,
   createMockH,
   featureId,
   projectId,
@@ -12,6 +14,7 @@ import {
   hedgerowCreationReference as reference
 } from './created-hedgerow-test-fixtures.js'
 import {
+  loadCreatedHedgerowReference,
   createdAreaValues,
   _resetCreatedAreaReferenceCache
 } from './created-area-edit.js'
@@ -166,4 +169,39 @@ describe('authenticated hedgerow form', () => {
       `/projects/${projectId}/hedgerows-post-intervention`
     )
   })
+})
+
+test('uses the requested kind even when the reference response omits its discriminator', async () => {
+  const { featureType: _kind, ...payload } = reference
+  vi.mocked(wreck.get).mockResolvedValue({ payload })
+  expect((await loadCreatedHedgerowReference()).featureType).toBe('hedgerow')
+})
+
+test('retains a non-template hedgerow parent link on GET and validation redisplay', async () => {
+  mockFeature(
+    {
+      type: 'hedgerow',
+      feature: { ...feature, parentFeatureId: baselineFeatureId }
+    },
+    {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            hedgerows: [
+              { featureId: baselineFeatureId, ref: 'Different reference' }
+            ]
+          }
+        }
+      }
+    }
+  )
+  const h = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, h)
+  await postController.handler(request({ ref: '' }), h)
+  for (const [, vm] of h.view.mock.calls) {
+    expect(vm.viewBaselineHref).toBe(
+      `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+    )
+  }
 })

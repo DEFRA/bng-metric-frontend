@@ -153,3 +153,30 @@ test.each([false, true])(
     await runAxeChecks(document.documentElement)
   }
 )
+
+test('warns before an unavailable imported fractional timing is cleared on save', () => {
+  const imported = {
+    ...feature,
+    proposed: { ...feature.proposed, advanceYears: 2.5 }
+  }
+  renderTemplateIntoDocument(
+    'habitat-details/pi-habitat-details-created-edit.njk',
+    {
+      ...buildCreatedAreaEditViewModel(imported, reference, ctx),
+      crumb: 'test-token'
+    }
+  )
+  initCreatedAreaDetails()
+  expect(value('advanceYears')).toBe('')
+  expect(text('advanceYears-hint')).toContain('2.5')
+  expect(text('advanceYears-hint')).toContain(
+    'saving without a new selection will clear this value'
+  )
+  change('ref', 'Renamed hedge')
+  expect(text('advanceYears-hint')).toContain(
+    'saving without a new selection will clear this value'
+  )
+  expect(
+    document.getElementById('advanceYears').getAttribute('aria-describedby')
+  ).toContain('advanceYears-hint')
+})

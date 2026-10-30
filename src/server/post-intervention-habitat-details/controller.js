@@ -202,11 +202,7 @@ function createdBaselineFeatureId(project, feature) {
     return parentBaselineFeatureId(project, feature)
   }
   if (Object.hasOwn(feature, 'parentFeatureId')) {
-    const parentId = feature.parentFeatureId
-    const exists = project?.project?.baseline?.habitats?.some(
-      (f) => f.featureId === parentId
-    )
-    return exists ? parentId : null
+    return parentBaselineFeatureId(project, feature)
   }
   return resolveBaselineFeatureId(project, feature.ref)
 }
