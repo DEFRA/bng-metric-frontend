@@ -9,7 +9,9 @@ export const YEAR_OPTIONS = [
 export function selectedHabitat(reference, values) {
   return reference.habitatTypes.find(
     (type) =>
-      type.broad === values.broadHabitat && type.name === values.habitatType
+      (reference.featureType === 'hedgerow' ||
+        type.broad === values.broadHabitat) &&
+      type.name === values.habitatType
   )
 }
 

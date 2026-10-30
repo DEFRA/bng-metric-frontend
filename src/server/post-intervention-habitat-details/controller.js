@@ -10,10 +10,7 @@ import { isServiceTemplateDocument } from '../common/helpers/service-template.js
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
-import {
-  buildCreatedHedgerowViewOnlyViewModel,
-  buildEnhancedHedgerowViewOnlyViewModel
-} from './enhanced-hedgerow-view-only-view-model.js'
+import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
@@ -22,6 +19,8 @@ import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
+  createdHedgerowPayloadSchema,
+  loadCreatedHedgerowReference,
   loadCreatedAreaReference,
   saveCreatedArea,
   validateCreatedArea
@@ -58,13 +57,6 @@ const HEDGEROW_RETENTION_PAGES = new Map([
     {
       template: 'habitat-details/pi-hedgerow-details-enhanced',
       buildViewModel: buildEnhancedHedgerowViewOnlyViewModel
-    }
-  ],
-  [
-    RETENTION_CREATED,
-    {
-      template: 'habitat-details/pi-hedgerow-details-enhanced',
-      buildViewModel: buildCreatedHedgerowViewOnlyViewModel
     }
   ]
 ])
@@ -210,11 +202,7 @@ function createdBaselineFeatureId(project, feature) {
     return parentBaselineFeatureId(project, feature)
   }
   if (Object.hasOwn(feature, 'parentFeatureId')) {
-    const parentId = feature.parentFeatureId
-    const exists = project?.project?.baseline?.habitats?.some(
-      (f) => f.featureId === parentId
-    )
-    return exists ? parentId : null
+    return parentBaselineFeatureId(project, feature)
   }
   return resolveBaselineFeatureId(project, feature.ref)
 }
@@ -265,8 +253,13 @@ const getController = {
     const retentionCategory = normaliseRetentionCategory(
       feature.retentionCategory
     )
-    if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_CREATED) {
-      const reference = await loadCreatedAreaReference()
+    if (
+      [AREA_HABITAT_TYPE, HEDGEROW_TYPE].includes(type) &&
+      retentionCategory === RETENTION_CREATED
+    ) {
+      const reference = await (type === HEDGEROW_TYPE
+        ? loadCreatedHedgerowReference()
+        : loadCreatedAreaReference())
       return h.view(
         'habitat-details/pi-habitat-details-created-edit',
         buildCreatedAreaEditViewModel(feature, reference, {
@@ -306,7 +299,12 @@ const getController = {
 
 const postController = {
   options: {
-    validate: { payload: createdAreaPayloadSchema }
+    validate: {
+      payload: Joi.alternatives().try(
+        createdAreaPayloadSchema,
+        createdHedgerowPayloadSchema
+      )
+    }
   },
   async handler(request, h) {
     const { projectId, featureId, returnUrl, ...values } = request.payload
@@ -317,7 +315,7 @@ const postController = {
       featureId
     )
     if (
-      type !== AREA_HABITAT_TYPE ||
+      ![AREA_HABITAT_TYPE, HEDGEROW_TYPE].includes(type) ||
       normaliseRetentionCategory(feature.retentionCategory) !==
         RETENTION_CREATED
     ) {
@@ -325,7 +323,12 @@ const postController = {
         'Saving this post-intervention feature is not implemented'
       )
     }
-    const reference = await loadCreatedAreaReference()
+    const reference = await (type === HEDGEROW_TYPE
+      ? loadCreatedHedgerowReference()
+      : loadCreatedAreaReference())
+    if (type === AREA_HABITAT_TYPE && !Object.hasOwn(values, 'broadHabitat')) {
+      throw Boom.badRequest('Broad habitat field is required for area edits')
+    }
     const errors = validateCreatedArea(values, reference)
     if (Object.keys(errors).length) {
       const project = await fetchProject(request, projectId)
@@ -345,10 +348,8 @@ const postController = {
         )
       )
     }
-    await saveCreatedArea(request, values)
-    return h.redirect(
-      postInterventionBackHref(projectId, AREA_HABITAT_TYPE, returnUrl)
-    )
+    await saveCreatedArea(request, values, type === HEDGEROW_TYPE)
+    return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
   }
 }
 

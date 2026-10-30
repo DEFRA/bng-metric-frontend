@@ -1,4 +1,5 @@
 export const creationReference = {
+  featureType: 'area',
   habitatTypes: [
     {
       broad: 'Grassland',

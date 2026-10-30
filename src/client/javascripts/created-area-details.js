@@ -75,7 +75,7 @@ export function initCreatedAreaDetails() {
     )
     select.value = ''
   }
-  document.getElementById('broadHabitat').addEventListener('change', () => {
+  document.getElementById('broadHabitat')?.addEventListener('change', () => {
     const broad = values().broadHabitat
     reset(
       'habitatType',
