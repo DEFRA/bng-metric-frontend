@@ -5,7 +5,7 @@
 // habitat-specific rows, so the fields they share are built here once and each
 // habitat type contributes only its own slice (see the *-view-only-view-model
 // modules). The rows themselves stay in the per-habitat templates, which extend
-// layouts/pi-view-only-page.njk for the shared page chrome.
+// layouts/pi-view-only-sections-page.njk for the shared page chrome.
 
 import {
   formatHabitatUnits,

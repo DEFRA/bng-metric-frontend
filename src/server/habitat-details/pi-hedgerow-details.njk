@@ -1,13 +1,21 @@
-{% extends 'layouts/pi-view-only-page.njk' %}
+{% extends 'layouts/pi-view-only-sections-page.njk' %}
 
-{# View-only page (BMD-723): retained post-intervention hedgerow habitat. #}
-{% set detailRows = [
-  { key: { text: "Reference" }, value: { text: habitatRef } },
-  { key: { text: "Intervention" }, value: { text: interventionDisplay } },
-  { key: { text: "Length (km)" }, value: { text: sizeDisplay } },
-  { key: { text: "Habitat type" }, value: { text: habitatTypeDisplay } },
-  { key: { text: "Distinctiveness" }, value: { text: distinctivenessDisplay } },
-  { key: { text: "Condition" }, value: { text: conditionDisplay } },
-  { key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } },
-  { key: { text: "Units in this habitat" }, value: { text: habitatUnitsDisplay } }
+{# Retained post-intervention hedgerow (BMD-723) — stacked label-over-value
+   layout, as the retained area and watercourse pages. The parcel ref is the
+   H1; "Post-intervention habitat details" is the single section heading. The
+   sections layout renders the "View baseline details" link after the section,
+   the "Habitat units delivered" summary row below it, and the reference input
+   when the view model carries one (BMD-1180). #}
+{% set sections = [
+  {
+    heading: habitatDetailsSectionHeading,
+    rows: [
+      { label: "Intervention", value: interventionDisplay },
+      { label: "Size (kilometres)", value: sizeDisplay },
+      { label: "Habitat type", value: habitatTypeDisplay },
+      { label: "Distinctiveness", value: distinctivenessDisplay },
+      { label: "Condition", value: conditionDisplay },
+      { label: "Strategic significance", value: strategicSignificanceDisplay }
+    ]
+  }
 ] %}

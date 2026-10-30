@@ -318,7 +318,8 @@ describe('shared habitat save errors', () => {
 
   it.each([
     [409, 409],
-    [400, 502],
+    [400, 400],
+    [404, 404],
     [500, 502]
   ])('maps returned HTTP %s to %s', async (statusCode, expected) => {
     vi.mocked(backendRequest).mockResolvedValue({ res: { statusCode } })

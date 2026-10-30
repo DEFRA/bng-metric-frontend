@@ -30,6 +30,33 @@ export function normaliseRetentionCategory(value) {
   return normalised || null
 }
 
+const RETENTION_CATEGORIES = [
+  RETENTION_RETAINED,
+  RETENTION_ENHANCED,
+  RETENTION_CREATED
+]
+
+/**
+ * A feature's retention category, normalised. Read from the feature root, or
+ * for a project imported before the field moved there, from
+ * `baseline.retentionCategory` when that is Retained, Enhanced or Created, as
+ * the backend's `resolveRetentionCategory` reads it. Null when neither holds
+ * one.
+ *
+ * @param {{ retentionCategory?: unknown, baseline?: { retentionCategory?: unknown } }} feature
+ * @returns {string|null}
+ */
+export function featureRetentionCategory(feature) {
+  const root = normaliseRetentionCategory(feature?.retentionCategory)
+  if (root) {
+    return root
+  }
+  const nested = normaliseRetentionCategory(
+    feature?.baseline?.retentionCategory
+  )
+  return RETENTION_CATEGORIES.includes(nested) ? nested : null
+}
+
 /**
  * The display string for the "Intervention" row.
  *

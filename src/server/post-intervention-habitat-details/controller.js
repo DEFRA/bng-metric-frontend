@@ -17,6 +17,12 @@ import {
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
+import { statusCodes } from '../common/constants.js'
+import {
+  HABITAT_REF_ERROR,
+  HABITAT_REF_IN_USE_ERROR,
+  isValidHabitatRef
+} from '../common/helpers/habitat-ref.js'
 import { PI_DETAILS_HEADING, MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
@@ -27,7 +33,13 @@ import {
   validateCreatedArea
 } from './created-area-edit.js'
 import {
-  normaliseRetentionCategory,
+  isRefEditable,
+  retainedRefEditFields,
+  retainedRefPayloadSchema,
+  saveRetainedRef
+} from './retained-ref-edit.js'
+import {
+  featureRetentionCategory,
   RETENTION_CREATED,
   RETENTION_ENHANCED
 } from './retention.js'
@@ -147,29 +159,53 @@ function comparableRef(ref) {
   return cleaned === '' ? null : cleaned
 }
 
+// The baseline layer a post-intervention feature of each type is joined to.
+const BASELINE_LAYER_BY_TYPE = new Map([
+  [AREA_HABITAT_TYPE, 'habitats'],
+  ['tree', 'trees'],
+  [HEDGEROW_TYPE, 'hedgerows'],
+  [WATERCOURSE_TYPE, 'watercourses']
+])
+
+// The values a post-intervention row's `baseline` snapshot copies from its
+// parcel, which tell parcels sharing a ref apart (as the backend's re-sync does).
+const SNAPSHOT_FIELDS = ['type', 'broadType', 'condition']
+
+function matchesSnapshot(candidate, snapshot) {
+  return SNAPSHOT_FIELDS.every(
+    (field) =>
+      !Object.hasOwn(candidate, field) || candidate[field] === snapshot?.[field]
+  )
+}
+
 /**
  * Resolve the baseline feature that corresponds to a post-intervention parcel
  * of a legacy project. Baseline and PI are separate uploads with independent
- * featureIds, so the only stable join key is the parcel ref. Returns null when no baseline has
- * been uploaded or no baseline feature shares the ref.
+ * featureIds, so the only stable join key is the parcel ref, matched within
+ * the feature's own layer: a hedgerow and an area habitat may share a ref.
+ * Where an import left several parcels on the ref, the one the row's baseline
+ * snapshot describes wins, else the first. Returns null when no baseline has
+ * been uploaded or no baseline feature in the layer shares the ref.
+ *
+ * @param {object} project
+ * @param {string} type the feature type from the PI feature endpoint
+ * @param {object} feature the post-intervention feature
+ * @returns {string|null}
  */
-function resolveBaselineFeatureId(project, ref) {
-  const wanted = comparableRef(ref)
-  if (wanted) {
-    const baseline = project?.project?.baseline
-    const candidates = [
-      ...(baseline?.habitats ?? []),
-      ...(baseline?.trees ?? []),
-      ...(baseline?.hedgerows ?? []),
-      ...(baseline?.watercourses ?? [])
-    ]
-    const match = candidates.find(
-      (feature) => comparableRef(feature.ref) === wanted
-    )
-    return match?.featureId ?? null
-  } else {
+function resolveBaselineFeatureId(project, type, feature) {
+  const wanted = comparableRef(feature.ref)
+  const layer = BASELINE_LAYER_BY_TYPE.get(type)
+  if (!wanted || !layer) {
     return null
   }
+  const candidates = (project?.project?.baseline?.[layer] ?? []).filter(
+    (candidate) => comparableRef(candidate.ref) === wanted
+  )
+  const described = candidates.filter((candidate) =>
+    matchesSnapshot(candidate, feature.baseline)
+  )
+  const match = described.length === 1 ? described[0] : candidates[0]
+  return match?.featureId ?? null
 }
 
 const BASELINE_LAYERS = ['habitats', 'trees', 'hedgerows', 'watercourses']
@@ -198,14 +234,14 @@ function isServiceTemplateProject(project) {
   return isServiceTemplateDocument(project?.project?.postIntervention)
 }
 
-function viewOnlyBaselineFeatureId(project, feature) {
+function viewOnlyBaselineFeatureId(project, type, feature) {
   if (isServiceTemplateProject(project)) {
     return parentBaselineFeatureId(project, feature)
   }
-  return resolveBaselineFeatureId(project, feature.ref)
+  return resolveBaselineFeatureId(project, type, feature)
 }
 
-function createdBaselineFeatureId(project, feature) {
+function createdBaselineFeatureId(project, type, feature) {
   if (isServiceTemplateProject(project)) {
     return parentBaselineFeatureId(project, feature)
   }
@@ -216,7 +252,7 @@ function createdBaselineFeatureId(project, feature) {
     )
     return exists ? parentId : null
   }
-  return resolveBaselineFeatureId(project, feature.ref)
+  return resolveBaselineFeatureId(project, type, feature)
 }
 
 /**
@@ -242,6 +278,77 @@ function renderUnsupportedFeature(
   })
 }
 
+/**
+ * Render the details page for one post-intervention feature. A Created area
+ * habitat gets its edit page (BMD-1048); a Retained area habitat, hedgerow or
+ * watercourse gets the reference form (BMD-1180), with `submittedRef` and
+ * `refusal` set when a save of it was refused.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {import('@hapi/hapi').ResponseToolkit} h
+ * @param {{ projectId: string, featureId: string, returnUrl?: string, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
+ */
+async function renderDetailsPage(
+  request,
+  h,
+  { projectId, featureId, returnUrl, submittedRef, refusal }
+) {
+  const [{ type, feature }, project] = await Promise.all([
+    fetchFeature(request, uploadType, projectId, featureId),
+    fetchProject(request, projectId)
+  ])
+  const projectName = project?.project?.name ?? DEFAULT_PROJECT_NAME
+
+  // Normalise the retention category so a "1. Enhanced" list prefix, a
+  // category stored under `baseline`, or a missing value resolves consistently
+  // for every page.
+  const retentionCategory = featureRetentionCategory(feature)
+  if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_CREATED) {
+    const reference = await loadCreatedAreaReference()
+    return h.view(
+      'habitat-details/pi-habitat-details-created-edit',
+      buildCreatedAreaEditViewModel(feature, reference, {
+        projectId,
+        projectName,
+        baselineFeatureId: createdBaselineFeatureId(project, type, feature),
+        returnUrl
+      })
+    )
+  }
+  const page = resolveViewOnlyPage(type, retentionCategory)
+  if (!page) {
+    // Trees, IGGIs and any new feature type without a view-only page.
+    return renderUnsupportedFeature(h, {
+      projectId,
+      projectName,
+      type,
+      returnUrl
+    })
+  }
+  const viewModel = page.buildViewModel(
+    { ...feature, retentionCategory },
+    {
+      projectId,
+      projectName,
+      baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature)
+    }
+  )
+  const backHref = postInterventionBackHref(projectId, type, returnUrl)
+  const refEditFields = isRefEditable(type, retentionCategory)
+    ? retainedRefEditFields({
+        type,
+        feature,
+        projectId,
+        featureId,
+        returnUrl,
+        cancelHref: backHref,
+        submittedRef,
+        refusal
+      })
+    : {}
+  return h.view(page.template, { ...viewModel, ...refEditFields, backHref })
+}
+
 const getController = {
   options: {
     validate: {
@@ -252,102 +359,122 @@ const getController = {
       })
     }
   },
-  async handler(request, h) {
+  handler(request, h) {
     const { featureId, projectId, returnUrl } = request.query
-    const [{ type, feature }, project] = await Promise.all([
-      fetchFeature(request, uploadType, projectId, featureId),
-      fetchProject(request, projectId)
-    ])
-    const projectName = project?.project?.name ?? DEFAULT_PROJECT_NAME
-
-    // Normalise the feature-root retention category so a "1. Enhanced" list
-    // prefix or a missing value resolves consistently for every view-only page.
-    const retentionCategory = normaliseRetentionCategory(
-      feature.retentionCategory
-    )
-    if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_CREATED) {
-      const reference = await loadCreatedAreaReference()
-      return h.view(
-        'habitat-details/pi-habitat-details-created-edit',
-        buildCreatedAreaEditViewModel(feature, reference, {
-          projectId,
-          projectName,
-          baselineFeatureId: createdBaselineFeatureId(project, feature),
-          returnUrl
-        })
-      )
-    }
-    const page = resolveViewOnlyPage(type, retentionCategory)
-    if (page) {
-      const featureWithIntervention = {
-        ...feature,
-        retentionCategory
-      }
-      const viewModel = page.buildViewModel(featureWithIntervention, {
-        projectId,
-        projectName,
-        baselineFeatureId: viewOnlyBaselineFeatureId(project, feature)
-      })
-      return h.view(page.template, {
-        ...viewModel,
-        backHref: postInterventionBackHref(projectId, type, returnUrl)
-      })
-    } else {
-      // Trees, IGGIs and any new feature type without a view-only page.
-      return renderUnsupportedFeature(h, {
-        projectId,
-        projectName,
-        type,
-        returnUrl
-      })
-    }
+    return renderDetailsPage(request, h, { projectId, featureId, returnUrl })
   }
 }
 
+/**
+ * Check a form's payload against its own schema, as a route's validation
+ * would: an unexpected or missing field is a 400.
+ */
+function validatedPayload(schema, payload) {
+  const { error, value } = schema.validate(payload)
+  if (error) {
+    throw Boom.badRequest(error.message)
+  }
+  return value
+}
+
+/** Save a Created area habitat's details (BMD-1048). */
+async function saveCreatedAreaDetails(request, h, { type, feature, payload }) {
+  const { projectId, returnUrl, ...values } = validatedPayload(
+    createdAreaPayloadSchema,
+    payload
+  )
+  delete values.featureId
+  const reference = await loadCreatedAreaReference()
+  const errors = validateCreatedArea(values, reference)
+  if (Object.keys(errors).length) {
+    const project = await fetchProject(request, projectId)
+    return h.view(
+      'habitat-details/pi-habitat-details-created-edit',
+      buildCreatedAreaEditViewModel(
+        feature,
+        reference,
+        {
+          projectId,
+          projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
+          baselineFeatureId: createdBaselineFeatureId(project, type, feature),
+          returnUrl
+        },
+        values,
+        errors
+      )
+    )
+  }
+  await saveCreatedArea(request, values)
+  return h.redirect(
+    postInterventionBackHref(projectId, AREA_HABITAT_TYPE, returnUrl)
+  )
+}
+
+/** Save a Retained habitat's reference (BMD-1180). */
+async function saveRetainedReference(request, h, payload) {
+  const { projectId, featureId, habitatRef, returnUrl } = validatedPayload(
+    retainedRefPayloadSchema,
+    payload
+  )
+  const showRefused = async (refusal) => {
+    const response = await renderDetailsPage(request, h, {
+      projectId,
+      featureId,
+      returnUrl,
+      submittedRef: habitatRef,
+      refusal
+    })
+    return response.code(statusCodes.badRequest)
+  }
+
+  if (!isValidHabitatRef(habitatRef)) {
+    return showRefused(HABITAT_REF_ERROR)
+  }
+  const saved = await saveRetainedRef(request, {
+    projectId,
+    featureId,
+    ref: habitatRef
+  })
+  if (saved.refInUse) {
+    return showRefused(HABITAT_REF_IN_USE_ERROR)
+  }
+  return h.redirect(postInterventionBackHref(projectId, saved.type, returnUrl))
+}
+
+// Both editable post-intervention forms post here: the Created area details
+// (BMD-1048) and a Retained habitat's reference (BMD-1180). The habitat being
+// saved decides which, and each form's payload is checked against its own
+// schema. Every other details page is read-only.
 const postController = {
   options: {
-    validate: { payload: createdAreaPayloadSchema }
+    validate: {
+      payload: Joi.object({
+        projectId: Joi.string().uuid().required(),
+        featureId: Joi.string().uuid().required()
+      }).unknown(true)
+    }
   },
   async handler(request, h) {
-    const { projectId, featureId, returnUrl, ...values } = request.payload
+    const { projectId, featureId } = request.payload
     const { type, feature } = await fetchFeature(
       request,
       uploadType,
       projectId,
       featureId
     )
-    if (
-      type !== AREA_HABITAT_TYPE ||
-      normaliseRetentionCategory(feature.retentionCategory) !==
-        RETENTION_CREATED
-    ) {
-      throw Boom.notImplemented(
-        'Saving this post-intervention feature is not implemented'
-      )
+    const retentionCategory = featureRetentionCategory(feature)
+    if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_CREATED) {
+      return saveCreatedAreaDetails(request, h, {
+        type,
+        feature,
+        payload: request.payload
+      })
     }
-    const reference = await loadCreatedAreaReference()
-    const errors = validateCreatedArea(values, reference)
-    if (Object.keys(errors).length) {
-      const project = await fetchProject(request, projectId)
-      return h.view(
-        'habitat-details/pi-habitat-details-created-edit',
-        buildCreatedAreaEditViewModel(
-          feature,
-          reference,
-          {
-            projectId,
-            projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-            baselineFeatureId: createdBaselineFeatureId(project, feature),
-            returnUrl
-          },
-          values,
-          errors
-        )
-      )
+    if (isRefEditable(type, retentionCategory)) {
+      return saveRetainedReference(request, h, request.payload)
     }
-    await saveCreatedArea(request, values)
-    return h.redirect(
-      postInterventionBackHref(projectId, AREA_HABITAT_TYPE, returnUrl)
+    throw Boom.notImplemented(
+      'Saving this post-intervention feature is not implemented'
     )
   }
 }

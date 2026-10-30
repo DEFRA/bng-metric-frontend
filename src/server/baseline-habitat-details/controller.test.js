@@ -151,13 +151,13 @@ describe('#baselineHabitatDetails - GET', () => {
     expect(result).toContain('Greenfield Meadow Restoration')
   })
 
-  test('Renders the Baseline Details section heading', async () => {
+  test('Renders the Baseline details section heading', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
-    expect(result).toContain('Baseline Details')
+    expect(result).toContain('Baseline details')
   })
 
   test('Renders area in hectares (2.5 from 25,000 m²)', async () => {
@@ -713,8 +713,18 @@ describe('#baselineHabitatDetails - GET (hedgerow strategy)', () => {
       auth: authedAuth
     })
     expect(result).toContain('Length (km)')
-    expect(result).not.toContain('Area (hectares)')
+    expect(result).not.toContain('Size (hectares)')
     expect(result).toContain('1.234567')
+  })
+
+  test('Renders the editable hedgerow reference holding the saved reference (BMD-1061)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: hedgerowUrl,
+      auth: authedAuth
+    })
+    expect(result).toMatch(/id="habitatRef" name="habitatRef"[^>]*value="H1"/)
+    expect(result).toContain('Habitat reference')
   })
 
   test('Omits the Broad habitat row for hedgerows', async () => {
@@ -818,6 +828,10 @@ describe('#baselineHabitatDetails - POST', () => {
 
   beforeEach(async () => {
     _resetReferenceCache()
+    // A save that sends a reference reads the stored one first.
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeWreck(u))
+    )
     vi.mocked(wreck.put).mockResolvedValue({
       res: { statusCode: 200 },
       payload: {
@@ -1090,6 +1104,37 @@ describe('#baselineHabitatDetails - POST', () => {
     expect(result).toContain('Another user is editing this')
   })
 
+  test.each([
+    [statusCodes.badRequest, statusCodes.badRequest],
+    [statusCodes.notFound, statusCodes.notFound]
+  ])(
+    'Answers a backend %i with %i rather than reporting an upstream failure',
+    async (backendStatus, expectedStatus) => {
+      vi.mocked(wreck.put).mockRejectedValue({
+        isBoom: true,
+        output: { statusCode: backendStatus }
+      })
+
+      const { statusCode } = await server.inject({
+        method: 'POST',
+        url: '/baseline-habitat-details',
+        payload: {
+          projectId,
+          featureId: habitatId,
+          habitatRef: 'B-A1',
+          broadHabitat: 'Grassland',
+          habitatType: 'Modified grassland',
+          condition: 'Good',
+          crumb: crumb.token
+        },
+        headers: { cookie: crumb.cookie },
+        auth: authedAuth
+      })
+
+      expect(statusCode).toBe(expectedStatus)
+    }
+  )
+
   test('Rejects POST with 403 when crumb is missing', async () => {
     const { statusCode } = await server.inject({
       method: 'POST',
@@ -1253,5 +1298,691 @@ describe('#baselineHabitatDetails - static reference cache', () => {
     const second = await server.inject({ method: 'GET', url, auth: authedAuth })
     expect(second.statusCode).toBe(statusCodes.ok)
     expect(attempts).toBe(2)
+  })
+})
+
+describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () => {
+  let server
+  let crumb
+
+  const postRef = (payload) =>
+    server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: habitatId,
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        condition: 'Good',
+        crumb: crumb.token,
+        ...payload
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    _resetReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeWreck(u))
+    )
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'habitat', feature: mockHabitat }
+    })
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('on page load', () => {
+    test('Renders a "Habitat reference" text input holding the saved reference', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toMatch(
+        /<label class="govuk-label govuk-label--s" for="habitatRef">\s*Habitat reference\s*<\/label>/
+      )
+      expect(result).toMatch(
+        /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="100">/
+      )
+    })
+
+    test('Lays out every field with its label above the data', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      for (const label of [
+        'Size (hectares)',
+        'Distinctiveness',
+        'Strategic significance',
+        'Required action to meet trading rules'
+      ]) {
+        expect(result).toContain(
+          `<h3 class="govuk-heading-s govuk-!-margin-bottom-1">${label}</h3>`
+        )
+      }
+      for (const id of ['broadHabitat', 'habitatType', 'condition']) {
+        expect(result).toMatch(
+          new RegExp(`class="govuk-label govuk-label--s" for="${id}"`)
+        )
+      }
+      // Only the units row keeps the label | value summary-list layout.
+      expect(result.match(/govuk-summary-list__row/g)).toHaveLength(1)
+    })
+
+    test('Shows no error on a normal page load', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).not.toContain('govuk-error-summary')
+      expect(result).not.toContain('govuk-input--error')
+    })
+  })
+
+  describe('on Save with a valid reference', () => {
+    test('Saves the trimmed reference with the other edits and redirects to the baseline page', async () => {
+      const { statusCode, headers } = await postRef({ habitatRef: '  B-A1  ' })
+
+      expect(statusCode).toBe(302)
+      expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
+      expect(vi.mocked(wreck.put)).toHaveBeenCalledWith(
+        expect.stringContaining(`/projects/${projectId}/features/${habitatId}`),
+        expect.objectContaining({
+          payload: JSON.stringify({
+            ref: 'B-A1',
+            broadType: 'Grassland',
+            habitatType: 'Modified grassland',
+            condition: 'Good'
+          })
+        })
+      )
+    })
+
+    test('Sends a reference over 100 characters for the backend to truncate, as on import', async () => {
+      await postRef({ habitatRef: 'x'.repeat(120) })
+
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload).ref).toBe('x'.repeat(120))
+    })
+
+    test('Leaves a reference another habitat may use for the backend to judge', async () => {
+      // The frontend cannot see the other habitats; the backend refuses a
+      // reference in use (HABITAT_REF_IN_USE), shown below.
+      const { statusCode } = await postRef({ habitatRef: 'A2' })
+
+      expect(statusCode).toBe(302)
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload).ref).toBe('A2')
+    })
+  })
+
+  describe('on Save with a reference another habitat already uses', () => {
+    beforeEach(() => {
+      vi.mocked(wreck.put).mockRejectedValue({
+        isBoom: true,
+        output: { statusCode: 422 },
+        data: {
+          res: { statusCode: 422 },
+          payload: { code: 'HABITAT_REF_IN_USE' }
+        }
+      })
+    })
+
+    test('Shows the page again with the in-use error, keeping what was typed and chosen', async () => {
+      const { statusCode, result } = await postRef({
+        habitatRef: 'A2',
+        habitatType: 'Bracken',
+        condition: 'Poor'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+      expect(result).toContain(
+        '<a href="#habitatRef">You have entered a habitat reference that is already in use.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference that is not already in use.'
+      )
+      expect(result).toMatch(/id="habitatRef" name="habitatRef"[^>]*value="A2"/)
+      expect(result).toMatch(/<option value="Bracken" selected>/)
+      expect(result).toMatch(/<option value="Poor" selected>/)
+    })
+  })
+
+  describe('when opened from a post-intervention details page', () => {
+    const piHref = `/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
+    const piHrefInHtml = piHref.replace('&', '&amp;')
+
+    test('Carries the post-intervention page through the form', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        headers: { host: 'localhost', referer: `http://localhost${piHref}` },
+        auth: authedAuth
+      })
+
+      expect(result).toContain(
+        `<input type="hidden" name="returnUrl" value="${piHrefInHtml}">`
+      )
+    })
+
+    test('Keeps Back and Cancel on the post-intervention page after a refused save', async () => {
+      const { statusCode, result } = await postRef({
+        habitatRef: ' ',
+        returnUrl: piHref
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(
+        `<a href="${piHrefInHtml}" class="govuk-back-link"`
+      )
+      expect(result).toContain(`href="${piHrefInHtml}">Cancel`)
+      expect(result).toContain(
+        `<input type="hidden" name="returnUrl" value="${piHrefInHtml}">`
+      )
+    })
+
+    test.each([
+      ['another site', `//example.com${piHref}`],
+      ['an absolute URL', `https://example.com${piHref}`],
+      ['another project', piHref.replace(projectId, habitatId)],
+      ['another page', `/projects/${projectId}/somewhere`],
+      [
+        'a feature id that is not a UUID',
+        `/post-intervention-habitat-details?featureId=x&projectId=${projectId}`
+      ]
+    ])('Ignores a return URL to %s', async (_label, returnUrl) => {
+      const { result } = await postRef({ habitatRef: ' ', returnUrl })
+
+      expect(result).toContain(
+        `href="/projects/${projectId}/area-baseline">Cancel`
+      )
+      expect(result).toContain(
+        '<input type="hidden" name="returnUrl" value="">'
+      )
+    })
+  })
+
+  describe('on Save for a habitat imported with a reference that would not pass today', () => {
+    function withStoredRef(ref) {
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.endsWith(`/projects/${projectId}/features/${habitatId}`)
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: { type: 'habitat', feature: { ...mockHabitat, ref } }
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+    }
+
+    test.each([
+      ['characters that are not UTF-8', 'A\uFFFD1'],
+      ['surrounding spaces', '  A1  '],
+      ['more than 100 characters', 'x'.repeat(120)]
+    ])(
+      'Saves the dropdowns without checking or sending a reference holding %s that was left as it is',
+      async (_label, storedRef) => {
+        withStoredRef(storedRef)
+
+        const { statusCode } = await postRef({
+          habitatRef: storedRef,
+          condition: 'Poor'
+        })
+
+        expect(statusCode).toBe(302)
+        const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+        expect(JSON.parse(payload)).toEqual({
+          broadType: 'Grassland',
+          habitatType: 'Modified grassland',
+          condition: 'Poor'
+        })
+      }
+    )
+
+    test('Checks a reference the user changed', async () => {
+      withStoredRef('A\uFFFD1')
+
+      const { statusCode } = await postRef({ habitatRef: 'B\uFFFD1' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('for a habitat saved with values the reference data no longer offers', () => {
+    const retiredHabitat = {
+      ...mockHabitat,
+      type: 'Retired grassland',
+      condition: 'Fairly Poor'
+    }
+
+    beforeEach(() => {
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.endsWith(`/projects/${projectId}/features/${habitatId}`)
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: { type: 'habitat', feature: retiredHabitat }
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+    })
+
+    test('Keeps them selected on the page and sends them back unchanged with a rename', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toMatch(/<option value="Retired grassland" selected>/)
+      expect(result).toMatch(/<option value="Fairly Poor" selected>/)
+
+      // What the browser posts back from that page, with only the reference changed.
+      await postRef({
+        habitatRef: 'B-A1',
+        broadHabitat: 'Grassland',
+        habitatType: 'Retired grassland',
+        condition: 'Fairly Poor'
+      })
+
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload)).toEqual({
+        ref: 'B-A1',
+        broadType: 'Grassland',
+        habitatType: 'Retired grassland',
+        condition: 'Fairly Poor'
+      })
+    })
+  })
+
+  describe('when the backend refuses the save', () => {
+    test('Shows a refused reference at the field, keeping what was typed', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(Boom.badRequest('invalid ref'))
+
+      const { statusCode, result } = await postRef({ habitatRef: 'B-A1' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(
+        '<a href="#habitatRef">You have entered an invalid habitat reference.</a>'
+      )
+      expect(result).toMatch(
+        /id="habitatRef" name="habitatRef"[^>]*value="B-A1"/
+      )
+    })
+
+    test('Answers a 400 for a save that sent no reference with the error page', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(Boom.badRequest('invalid'))
+
+      const { statusCode, result } = await postRef({ habitatRef: '12' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).not.toContain('govuk-error-summary')
+    })
+  })
+
+  describe('on Save for a habitat imported with no reference', () => {
+    // Imported before the BMD-1058 import check: the stored ref is blank.
+    function withStoredRef(ref) {
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.endsWith(`/projects/${projectId}/features/${habitatId}`)
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: { type: 'habitat', feature: { ...mockHabitat, ref } }
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+    }
+
+    test.each([
+      ['missing', undefined, ''],
+      ['null', null, ''],
+      ['blank', '', '  ']
+    ])(
+      'Saves the dropdowns without a reference when the stored one is %s and the field is left blank',
+      async (_label, storedRef, habitatRef) => {
+        withStoredRef(storedRef)
+
+        const { statusCode, headers } = await postRef({ habitatRef })
+
+        expect(statusCode).toBe(302)
+        expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
+        const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+        expect(JSON.parse(payload)).toEqual({
+          broadType: 'Grassland',
+          habitatType: 'Modified grassland',
+          condition: 'Good'
+        })
+      }
+    )
+
+    test('Saves a reference the user types in', async () => {
+      withStoredRef(null)
+
+      await postRef({ habitatRef: 'A-NEW' })
+
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload).ref).toBe('A-NEW')
+    })
+
+    test('Still refuses a reference that is not valid UTF-8', async () => {
+      withStoredRef(null)
+
+      const { statusCode } = await postRef({ habitatRef: 'A\uFFFD' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+
+    test('Names the page "Habitat" with no trailing space when the reference is blank', async () => {
+      withStoredRef(null)
+
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+
+      expect(result).toMatch(/<title[^>]*>\s*Habitat -/)
+    })
+  })
+
+  describe('on Save with an invalid reference', () => {
+    test.each([
+      ['empty', ''],
+      ['whitespace only', '   ']
+    ])(
+      'Shows the page again with an error and saves nothing when the reference is %s',
+      async (_label, habitatRef) => {
+        const { statusCode, result } = await postRef({ habitatRef })
+
+        expect(statusCode).toBe(statusCodes.badRequest)
+        expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+        expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+        expect(result).toContain('There is a problem')
+        expect(result).toContain('href="#habitatRef"')
+        expect(result).toMatch(
+          /<a href="#habitatRef">You have entered an invalid habitat reference.<\/a>/
+        )
+        expect(result).toMatch(
+          /<p id="habitatRef-error" class="govuk-error-message">\s*<span class="govuk-visually-hidden">Error:<\/span> Enter a valid habitat reference.\s*<\/p>/
+        )
+        expect(result).toContain('govuk-input--error')
+        // The heading keeps naming the habitat by its saved reference.
+        expect(result).toContain('Habitat 12')
+      }
+    )
+
+    test('Refuses a reference holding characters that are not valid UTF-8', async () => {
+      const { statusCode, result } = await postRef({ habitatRef: 'B-A\uFFFD' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toContain('You have entered an invalid habitat reference.')
+      expect(result).toContain('Enter a valid habitat reference.')
+    })
+
+    test('Keeps the unsaved dropdown choices and shows what the user typed', async () => {
+      const { result } = await postRef({
+        habitatRef: '  ',
+        broadHabitat: 'Grassland',
+        habitatType: 'Bracken',
+        condition: 'Poor'
+      })
+
+      expect(result).toMatch(/<option value="Bracken" selected>/)
+      expect(result).toMatch(/<option value="Poor" selected>/)
+      expect(result).toMatch(
+        /id="habitatRef" name="habitatRef"[^>]*value=" {2}"/
+      )
+    })
+
+    test('Lists the conditions of the unsaved habitat type, not the saved one', async () => {
+      // Only the submitted type has "Condition Assessment N/A".
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.includes('/reference/conditions') &&
+        u.includes(encodeURIComponent('Urban - Developed land; sealed surface'))
+          ? Promise.resolve({
+              res: { statusCode: 200 },
+              payload: [{ condition: 'Condition Assessment N/A', score: 0 }]
+            })
+          : Promise.resolve(routeWreck(u))
+      )
+
+      const { result } = await postRef({
+        habitatRef: '  ',
+        broadHabitat: 'Urban',
+        habitatType: 'Developed land; sealed surface',
+        condition: 'Condition Assessment N/A'
+      })
+
+      expect(result).toMatch(/<option value="Urban" selected>/)
+      expect(result).toMatch(
+        /<option value="Developed land; sealed surface" selected>/
+      )
+      expect(result).toMatch(
+        /<option value="Condition Assessment N\/A" selected>/
+      )
+      // The saved type's conditions are not offered.
+      expect(result).not.toContain('<option value="Fairly Good"')
+    })
+
+    test('Rejects POST with 403 when crumb is missing', async () => {
+      const { statusCode } = await server.inject({
+        method: 'POST',
+        url: '/baseline-habitat-details',
+        payload: { projectId, featureId: habitatId, habitatRef: 'B-A1' },
+        auth: authedAuth
+      })
+      expect(statusCode).toBe(statusCodes.forbidden)
+    })
+  })
+})
+
+describe('#baselineHabitatDetails - refused reference on hedgerow and watercourse pages (BMD-1061)', () => {
+  let server
+  let crumb
+
+  const hedgerowId = 'bb0e8400-e29b-41d4-a716-446655440012'
+  const watercourseId = 'cc0e8400-e29b-41d4-a716-446655440013'
+
+  const mockHedgerow = {
+    featureId: hedgerowId,
+    ref: 'H1',
+    type: 'Native hedgerow',
+    distinctiveness: 'Low',
+    distinctivenessScore: 2,
+    condition: 'Good',
+    sizeMetres: 1000,
+    units: 4
+  }
+  const mockWatercourse = {
+    featureId: watercourseId,
+    ref: 'W1',
+    type: 'Ditches',
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    watercourseEncroachment: 'No Encroachment',
+    riparianEncroachment: 'No Encroachment',
+    sizeMetres: 500,
+    units: 2
+  }
+  const payloads = [
+    [
+      `/projects/${projectId}/features/${hedgerowId}`,
+      { type: 'hedgerow', feature: mockHedgerow }
+    ],
+    [
+      `/projects/${projectId}/features/${watercourseId}`,
+      { type: 'watercourse', feature: mockWatercourse }
+    ],
+    [`/projects/${projectId}`, mockProject],
+    [
+      '/reference/hedgerow-types',
+      [
+        {
+          name: 'Native hedgerow',
+          distinctiveness: 'Low',
+          distinctivenessScore: 2
+        },
+        {
+          name: 'Native hedgerow with trees',
+          distinctiveness: 'Medium',
+          distinctivenessScore: 4
+        }
+      ]
+    ],
+    [
+      '/reference/watercourse-types',
+      [
+        { name: 'Ditches', distinctiveness: 'Medium', distinctivenessScore: 4 },
+        { name: 'Canals', distinctiveness: 'Medium', distinctivenessScore: 4 }
+      ]
+    ],
+    [
+      '/reference/watercourse-encroachments',
+      {
+        watercourse: ['No Encroachment', 'Minor', 'Major', 'N/A - Culvert'],
+        riparian: [
+          'No Encroachment',
+          'Minor/Minor',
+          'Major/Major',
+          'N/A - Culvert'
+        ]
+      }
+    ]
+  ]
+
+  function routeLinearWreck(u) {
+    if (u.includes('/reference/conditions')) {
+      return { res: { statusCode: 200 }, payload: mockConditions }
+    }
+    if (u.includes('/reference/trading-rules')) {
+      return { res: { statusCode: 200 }, payload: mockTradingRules }
+    }
+    const match = payloads.find(([suffix]) => u.endsWith(suffix))
+    return match
+      ? { res: { statusCode: 200 }, payload: match[1] }
+      : { res: { statusCode: 404 }, payload: null }
+  }
+
+  const post = (featureId, fields) =>
+    server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: { projectId, featureId, crumb: crumb.token, ...fields },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    _resetReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeLinearWreck(u))
+    )
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Keeps the unsaved watercourse type and encroachment choices', async () => {
+    const { statusCode, result } = await post(watercourseId, {
+      habitatRef: '',
+      habitatType: 'Canals',
+      condition: 'Poor',
+      watercourseEncroachment: 'Major',
+      riparianEncroachment: 'Minor/Minor'
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    expect(result).toContain('Watercourse W1')
+    expect(result).toContain('Enter a valid habitat reference.')
+    expect(result).toMatch(/<option value="Canals" selected>/)
+    expect(result).toMatch(/<option value="Major" selected>/)
+    expect(result).toMatch(/<option value="Minor\/Minor" selected>/)
+  })
+
+  test('Keeps the stored encroachment when the form does not send it', async () => {
+    const { result } = await post(watercourseId, {
+      habitatRef: ' ',
+      habitatType: 'Ditches',
+      condition: 'Good'
+    })
+
+    expect(result).toMatch(
+      /id="watercourseEncroachment"[\s\S]*?<option value="No Encroachment" selected>/
+    )
+  })
+
+  test('Keeps an encroachment the user cleared', async () => {
+    const { result } = await post(watercourseId, {
+      habitatRef: '',
+      habitatType: 'Ditches',
+      condition: 'Good',
+      watercourseEncroachment: '',
+      riparianEncroachment: 'Minor/Minor'
+    })
+
+    expect(result).toMatch(
+      /<option value="" selected>Choose watercourse encroachment<\/option>/
+    )
+  })
+
+  test('Shows the distinctiveness of the unsaved hedgerow type', async () => {
+    const { statusCode, result } = await post(hedgerowId, {
+      habitatRef: '',
+      habitatType: 'Native hedgerow with trees',
+      condition: 'Good'
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(result).toContain('Hedgerow H1')
+    expect(result).toMatch(
+      /<option value="Native hedgerow with trees" selected>/
+    )
+    expect(result).toContain(
+      '<span id="distinctivenessDisplay">Medium (4)</span>'
+    )
+    expect(result).not.toContain('id="broadHabitat"')
+  })
+
+  test('Shows no distinctiveness for a habitat type the reference data does not hold', async () => {
+    const { result } = await post(hedgerowId, {
+      habitatRef: '',
+      habitatType: '',
+      condition: ''
+    })
+
+    expect(result).toContain('<span id="distinctivenessDisplay"></span>')
   })
 })

@@ -63,8 +63,10 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-habitat-details',
       expect.objectContaining({
-        // Parcel ref as the H1; the page name becomes the section heading.
-        heading: 'P-1',
+        // "Habitat" and the saved ref as the H1 (BMD-1180); the page name
+        // becomes the section heading.
+        heading: 'Habitat P-1',
+        pageTitle: 'Habitat P-1',
         habitatDetailsSectionHeading: 'Post-intervention habitat details',
         habitatUnitsLabel: 'Habitat units delivered',
         caption: 'Test Project',
@@ -79,11 +81,24 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '2.50',
         // Baseline feature resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/area-post-intervention`
+        backHref: `/projects/${projectId}/area-post-intervention`,
+        // Retained, so the reference is editable (BMD-1180).
+        errors: [],
+        habitatRefInput: {
+          id: 'habitatRef',
+          value: 'P-1',
+          error: undefined,
+          maxLength: 100
+        },
+        refForm: {
+          action: '/post-intervention-habitat-details',
+          projectId,
+          featureId,
+          returnUrl: '',
+          cancelHref: `/projects/${projectId}/area-post-intervention`
+        }
       })
     )
-    // View-only: no form action is passed to the template.
-    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
   test('GET omits the baseline link when no baseline feature shares the ref', async () => {
@@ -289,7 +304,10 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-hedgerow-details',
       expect.objectContaining({
-        heading: 'Post-intervention habitat details',
+        // "Hedgerow" and the saved ref as the H1 (BMD-1180).
+        heading: 'Hedgerow HG-2',
+        habitatDetailsSectionHeading: 'Post-intervention habitat details',
+        habitatUnitsLabel: 'Habitat units delivered',
         habitatRef: 'HG-2',
         interventionDisplay: 'Retained',
         sizeDisplay: '0.336',
@@ -300,11 +318,13 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '4.25',
         // Baseline hedgerow resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/hedgerows-post-intervention`
+        backHref: `/projects/${projectId}/hedgerows-post-intervention`,
+        habitatRefInput: expect.objectContaining({ value: 'HG-2' }),
+        refForm: expect.objectContaining({
+          cancelHref: `/projects/${projectId}/hedgerows-post-intervention`
+        })
       })
     )
-    // View-only: no form action is passed to the template.
-    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
   test('GET links to the baseline hedgerow when the baseline was saved before refs were cleaned (BMD-1058)', async () => {
@@ -345,6 +365,96 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view.mock.calls[0][1].viewBaselineHref).toBe(
       `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
     )
+  })
+
+  describe('GET links "View baseline details" within the habitat’s own layer', () => {
+    const otherBaselineId = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
+
+    function mockHedgerowWithBaseline(baseline, snapshot = {}) {
+      vi.mocked(wreck.get).mockImplementation((url) => {
+        if (url.includes(`/post-intervention/features/${featureId}`)) {
+          return Promise.resolve({
+            payload: {
+              type: 'hedgerow',
+              feature: {
+                featureId,
+                ref: 'H1',
+                retentionCategory: 'Retained',
+                baseline: snapshot,
+                proposed: {}
+              }
+            }
+          })
+        }
+        if (isProjectUrl(url)) {
+          return Promise.resolve({
+            payload: { project: { name: 'Test Project', baseline } }
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      })
+    }
+
+    async function linkedBaselineHref() {
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+      return h.view.mock.calls[0][1].viewBaselineHref
+    }
+
+    test('links a hedgerow to the baseline hedgerow, not an area habitat sharing its ref', async () => {
+      mockHedgerowWithBaseline({
+        habitats: [{ featureId: otherBaselineId, ref: 'H1' }],
+        hedgerows: [{ featureId: baselineFeatureId, ref: 'H1' }]
+      })
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+      )
+    })
+
+    test('shows no link when only another layer carries the ref', async () => {
+      mockHedgerowWithBaseline({
+        habitats: [{ featureId: otherBaselineId, ref: 'H1' }]
+      })
+
+      expect(await linkedBaselineHref()).toBeNull()
+    })
+
+    test('links the parcel the row’s baseline values describe where an import repeated the ref', async () => {
+      mockHedgerowWithBaseline(
+        {
+          hedgerows: [
+            { featureId: otherBaselineId, ref: 'H1', type: 'Native hedgerow' },
+            {
+              featureId: baselineFeatureId,
+              ref: 'H1',
+              type: 'Species-rich native hedgerow'
+            }
+          ]
+        },
+        { type: 'Species-rich native hedgerow' }
+      )
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+      )
+    })
+
+    test('falls back to the first parcel when the row’s values pick out none', async () => {
+      mockHedgerowWithBaseline(
+        {
+          hedgerows: [
+            { featureId: otherBaselineId, ref: 'H1', type: 'Native hedgerow' },
+            { featureId: baselineFeatureId, ref: 'H1', type: 'Native hedgerow' }
+          ]
+        },
+        { type: 'Native hedgerow' }
+      )
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${otherBaselineId}&projectId=${projectId}`
+      )
+    })
   })
 
   test('GET renders the read-only watercourse details page for a retained watercourse', async () => {
@@ -396,8 +506,9 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-watercourse-details',
       expect.objectContaining({
-        // Parcel ref as the H1; the page name becomes the section heading.
-        heading: 'W-1',
+        // "Watercourse" and the saved ref as the H1 (BMD-1180); the page
+        // name becomes the section heading.
+        heading: 'Watercourse W-1',
         habitatDetailsSectionHeading: 'Post-intervention habitat details',
         habitatUnitsLabel: 'Habitat units delivered',
         habitatRef: 'W-1',
@@ -412,11 +523,13 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitatUnitsDisplay: '6.50',
         // Baseline watercourse resolved by ref, not the PI featureId.
         viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
-        backHref: `/projects/${projectId}/watercourses-post-intervention`
+        backHref: `/projects/${projectId}/watercourses-post-intervention`,
+        habitatRefInput: expect.objectContaining({ value: 'W-1' }),
+        refForm: expect.objectContaining({
+          cancelHref: `/projects/${projectId}/watercourses-post-intervention`
+        })
       })
     )
-    // View-only: no form action is passed to the template.
-    expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
   })
 
   test('GET shows the unsupported-feature message for an unrecognised feature type', async () => {
@@ -534,7 +647,7 @@ describe('#postInterventionHabitatDetailsController', () => {
   })
 
   test('POST refuses edits for read-only retention categories', async () => {
-    mockFeature({ type: 'habitat', feature: { retentionCategory: 'Retained' } })
+    mockFeature({ type: 'habitat', feature: { retentionCategory: 'Enhanced' } })
     await expect(
       postController.handler(
         { payload: { projectId, featureId } },

@@ -8,6 +8,7 @@ import {
 } from '../../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../../common/helpers/strip-condition-prefix.js'
 import { encroachmentOptionsFor } from '../encroachment.js'
+import { buildConditionItems, buildSelectItems } from './select-items.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -69,18 +70,6 @@ async function loadReference(watercourse) {
   }
 }
 
-function buildSelectItems(values, selectedValue, defaultText) {
-  const items = [{ value: '', text: defaultText, selected: !selectedValue }]
-  for (const value of values) {
-    items.push({
-      value,
-      text: value,
-      selected: value === selectedValue
-    })
-  }
-  return items
-}
-
 function buildViewModel(watercourse, reference, { projectId, projectName }) {
   const habitatTypeNames = reference.habitatTypes.map((t) => t.name)
   const habitatRef = watercourse.ref ?? ''
@@ -110,14 +99,7 @@ function buildViewModel(watercourse, reference, { projectId, projectName }) {
       watercourse.type,
       'Choose habitat type'
     ),
-    conditionOptions: [
-      { value: '', text: 'Choose condition', selected: !savedCondition },
-      ...reference.conditions.map((c) => ({
-        value: c.condition,
-        text: `${c.condition} (${c.score})`,
-        selected: c.condition === savedCondition
-      }))
-    ],
+    conditionOptions: buildConditionItems(reference.conditions, savedCondition),
     // The encroachment options depend on the saved habitat type: culverts show
     // only "N/A - Culvert", every other type excludes it (BMD-597 AC set 1).
     watercourseEncroachmentOptions: buildSelectItems(
