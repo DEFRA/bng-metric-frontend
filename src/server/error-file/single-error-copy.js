@@ -188,9 +188,9 @@ const habitatRefInvalidCharactersEntry = () =>
 // there are designs and content for it (BMD-1110): replace the h1, message and
 // the table's caption and overflow line here.
 const UNENHANCEABLE_BASELINE_H1 =
-  'Some habitats in your file cannot be enhanced in this service'
+  'Some enhanced habitats cannot be enhanced from their baseline'
 const UNENHANCEABLE_BASELINE_MESSAGE =
-  'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file and '
+  'The baseline habitats below are already at the highest distinctiveness and condition they can be enhanced to in this service. If a habitat is not changing, record it as Retained. If it is being replaced, record it as lost and the new habitat as created. Make these changes in your file and '
 
 // The backend sends at most 50 offenders in details.sample, and the count of
 // all of them in details.count. The table never shows more than this.

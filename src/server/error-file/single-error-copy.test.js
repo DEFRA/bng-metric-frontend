@@ -550,12 +550,12 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
 
     expect(result.variant).toBe('standard')
     expect(result.h1).toBe(
-      'Some habitats in your file cannot be enhanced in this service'
+      'Some enhanced habitats cannot be enhanced from their baseline'
     )
     expect(result.h1).not.toContain('PLACEHOLDER')
     expect(result.intro).toBeUndefined()
     expect(result.messageBefore).toBe(
-      'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file and '
+      'The baseline habitats below are already at the highest distinctiveness and condition they can be enhanced to in this service. If a habitat is not changing, record it as Retained. If it is being replaced, record it as lost and the new habitat as created. Make these changes in your file and '
     )
     expect(result.uploadHref).toBe(UPLOAD_HREF)
     expect(result.table.head.map((h) => h.text)).toEqual([
@@ -663,7 +663,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     const result = resolveSingleErrorCopy(error([offender()]), null)
 
     expect(result.messageBefore).toBe(
-      'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file.'
+      'The baseline habitats below are already at the highest distinctiveness and condition they can be enhanced to in this service. If a habitat is not changing, record it as Retained. If it is being replaced, record it as lost and the new habitat as created. Make these changes in your file.'
     )
     expect(result.linkText).toBeNull()
   })
@@ -678,11 +678,11 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
 
     expect(html).not.toContain('PLACEHOLDER')
     expect(html).toContain(
-      'Your file marks the habitats below as enhanced, but this service cannot enhance them. Change them in your file and'
+      'The baseline habitats below are already at the highest distinctiveness and condition they can be enhanced to in this service. If a habitat is not changing, record it as Retained. If it is being replaced, record it as lost and the new habitat as created. Make these changes in your file and'
     )
     expect(html).not.toContain('already in good condition')
     expect(html).toContain(
-      'Some habitats in your file cannot be enhanced in this service'
+      'Some enhanced habitats cannot be enhanced from their baseline'
     )
     expect(html).toContain('data-testid="unenhanceable-habitats"')
     expect(html).toContain('Habitats that cannot be enhanced')
@@ -757,7 +757,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     )
 
     expect(singleError.table).toBeUndefined()
-    expect(singleError.messageBefore).toContain('cannot enhance them')
+    expect(singleError.messageBefore).toContain('record it as Retained')
     const html = renderTemplate('error-file/index.njk', { singleError })
     expect(html).not.toContain('govuk-table')
     expect(html).toContain(`href="${UPLOAD_HREF}"`)
