@@ -35,6 +35,14 @@ export const config = convict({
       env: 'GTM_ENABLED'
     }
   },
+  serviceTemplate: {
+    enabled: {
+      doc: "Use the BNG Service template's copy, such as the upload guidance and error text. It has the same name as the backend's flag, which decides the template an upload must use. How a project's data renders follows the template recorded on its documents, not this flag (BMD-1086).",
+      format: Boolean,
+      default: false,
+      env: 'SERVICE_TEMPLATE_ENABLED'
+    }
+  },
   serviceVersion: {
     doc: 'The service version, this variable is injected into your docker container in CDP environments',
     format: String,

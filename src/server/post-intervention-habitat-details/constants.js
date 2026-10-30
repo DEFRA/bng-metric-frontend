@@ -15,3 +15,6 @@ export const ABSENT_BASELINE_CONDITION_PREFIX = 'N/A -'
 export const AREAS_TAB_ANCHOR = '#area-habitats'
 export const HEDGEROWS_TAB_ANCHOR = '#hedgerows'
 export const WATERCOURSES_TAB_ANCHOR = '#watercourses'
+
+// Match the backend habitat-reference limit, measured in Unicode characters.
+export const MAX_REF_LENGTH = 100

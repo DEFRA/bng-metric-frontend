@@ -508,7 +508,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     await getController.handler({ query: { projectId, featureId } }, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-habitat-details-created',
+      'habitat-details/pi-habitat-details-created-edit',
       expect.objectContaining({ interventionDisplay: 'Created' })
     )
   })
@@ -533,16 +533,13 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
-  test('POST responds 501 Not Implemented', () => {
-    // The PI details pages are read-only and render no form; the save route
-    // answers 501 so a stale page or client gets an explicit refusal.
-    let error
-    try {
-      postController.handler()
-    } catch (err) {
-      error = err
-    }
-    expect(error.isBoom).toBe(true)
-    expect(error.output.statusCode).toBe(501)
+  test('POST refuses edits for read-only retention categories', async () => {
+    mockFeature({ type: 'habitat', feature: { retentionCategory: 'Retained' } })
+    await expect(
+      postController.handler(
+        { payload: { projectId, featureId } },
+        createMockH()
+      )
+    ).rejects.toMatchObject({ output: { statusCode: 501 } })
   })
 })

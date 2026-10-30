@@ -1,3 +1,5 @@
+import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
+
 // BMD-405 — exact GOV.UK copy for the "exactly one validation error" dropout
 // page, keyed by the backend's ERROR_CODES (backend/src/validation/geopackage/errors.js).
 // Copy is taken verbatim from the BMD-405 acceptance criteria; the Figma linked
@@ -180,6 +182,106 @@ const habitatRefInvalidCharactersEntry = () =>
     `${HABITAT_REF_INVALID_CHARACTERS_TEXT}. Change the references to use only letters, numbers and standard punctuation and `
   )
 
+// BMD-1182: enhanced habitats whose baseline the service cannot enhance at
+// all. The file is refused rather than the enhancements nulled, as there is
+// nothing the user can fix in the service. Interim copy, pending UCD (Figma):
+// replace the h1, intro, instruction and the table's caption and overflow
+// line here.
+const UNENHANCEABLE_BASELINE_H1 =
+  'Some habitats in your file cannot be enhanced in this service'
+const UNENHANCEABLE_BASELINE_INTRO =
+  'Your file marks the habitats below as enhanced, but this service cannot enhance them. A medium distinctiveness habitat, hedgerow, watercourse or tree that is already in good condition can only be enhanced into a higher distinctiveness habitat, which this service does not include yet. A very low distinctiveness hedgerow cannot be enhanced at all, and some low distinctiveness hedgerows in good condition have no hedgerow they can be enhanced into.'
+const UNENHANCEABLE_BASELINE_INSTRUCTION =
+  'Change the retention category of each habitat listed to Retained and '
+
+// The backend sends at most 50 offenders in details.sample, and the count of
+// all of them in details.count. The table never shows more than this.
+export const UNENHANCEABLE_BASELINE_MAX_ROWS = 50
+
+// The backend's document layer names, as the table labels a feature.
+const UNENHANCEABLE_FEATURE_LABELS = {
+  habitats: 'Area habitat',
+  hedgerows: 'Hedgerow',
+  watercourses: 'Watercourse',
+  trees: 'Individual tree'
+}
+
+const UNENHANCEABLE_BASELINE_CAPTION = 'Habitats that cannot be enhanced'
+
+function textOr(value, fallback) {
+  return value == null || value === '' ? fallback : String(value)
+}
+
+// The habitat's Feature Ref, or, without one, the same fid / feature number
+// the multi-error list falls back to (describeFeature, controller.js), so the
+// user can still find the row. A bare fid would read as a reference.
+function unenhanceableRef(sample) {
+  if (sample?.feature_ref != null && sample.feature_ref !== '') {
+    return String(sample.feature_ref)
+  }
+  if (sample?.fid != null && sample.fid !== '') {
+    return `fid ${sample.fid}`
+  }
+  if (sample?.idx != null) {
+    return `feature #${sample.idx}`
+  }
+  return 'No reference'
+}
+
+function unenhanceableRow(sample) {
+  return [
+    { text: unenhanceableRef(sample) },
+    {
+      text: UNENHANCEABLE_FEATURE_LABELS[sample?.layer] ?? 'Habitat'
+    },
+    { text: textOr(sample?.habitat_type, 'Not recorded') },
+    { text: textOr(sample?.condition, 'Not recorded') }
+  ]
+}
+
+function unenhanceableTable(error) {
+  const sample = error?.details?.sample
+  const rows = Array.isArray(sample)
+    ? sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
+    : []
+  // No habitats to list: the page keeps its explanation and instruction, and
+  // shows no empty table.
+  if (rows.length === 0) {
+    return null
+  }
+  const count = Number(error?.details?.count)
+  const total = Number.isFinite(count)
+    ? Math.max(count, rows.length)
+    : rows.length
+  return {
+    caption: UNENHANCEABLE_BASELINE_CAPTION,
+    testId: 'unenhanceable-habitats',
+    head: [
+      { text: 'Reference' },
+      { text: 'Feature' },
+      { text: 'Baseline habitat' },
+      { text: 'Baseline condition' }
+    ],
+    rows: rows.map(unenhanceableRow),
+    moreText:
+      total > rows.length
+        ? `Showing the first ${rows.length} of ${total} habitats. Fix these and upload the file again to see any others.`
+        : null
+  }
+}
+
+const unenhanceableBaselineEntry = (error) => {
+  const entry = {
+    ...standard(UNENHANCEABLE_BASELINE_H1, UNENHANCEABLE_BASELINE_INSTRUCTION),
+    intro: UNENHANCEABLE_BASELINE_INTRO
+  }
+  const table = unenhanceableTable(error)
+  if (table) {
+    entry.table = table
+  }
+  return entry
+}
+
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
   GPKG_RLB_NO_POLYGON: noRedlineEntry,
@@ -252,6 +354,7 @@ const CODE_ENTRIES = {
   TREE_COUNT_NOT_WHOLE: treeCountEntry,
   INVALID_FILENAME: invalidFilenameEntry,
   GPKG_TOO_MANY_FEATURES: tooManyFeaturesEntry,
+  BASELINE_NOT_ENHANCEABLE: unenhanceableBaselineEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
@@ -284,11 +387,20 @@ const CODE_ENTRIES = {
 // AC1 — Invalid Natural England columns/layers (BMD-339) is the catch-all:
 // every GeoPackage structural/schema error not covered by a more specific AC
 // above lands here, so an error code we haven't seen yet still degrades to a
-// sensible message rather than a blank page.
+// sensible message rather than a blank page. With the service-template flag
+// on, the service takes the BNG Service template instead, so the copy names
+// it (BMD-1086).
+const LEGACY_LAYERS_AND_COLUMNS_TEXT =
+  'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
+const SERVICE_TEMPLATE_LAYERS_AND_COLUMNS_TEXT =
+  'The layer names and column names do not match the BNG Service template. Rename the layers and columns and '
+
 function defaultEntry() {
   return standard(
     GEOPACKAGE_ERROR_H1,
-    'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
+    isServiceTemplateEnabled()
+      ? SERVICE_TEMPLATE_LAYERS_AND_COLUMNS_TEXT
+      : LEGACY_LAYERS_AND_COLUMNS_TEXT
   )
 }
 

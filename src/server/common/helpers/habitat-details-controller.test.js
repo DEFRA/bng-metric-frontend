@@ -4,7 +4,8 @@ import { backendRequest } from './auth/backend-request.js'
 import {
   createHabitatDetailsControllers,
   normalizePostInterventionFeatureForDisplay,
-  fetchProject
+  fetchProject,
+  saveHabitat
 } from './habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
 import { PI_FEATURE } from '../test-helpers/habitat-feature-fixtures.js'
@@ -288,5 +289,42 @@ describe('createHabitatDetailsControllers', () => {
         h
       )
     ).rejects.toMatchObject({ output: { statusCode: 502 } })
+  })
+})
+
+describe('shared habitat save errors', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('preserves the session-expiry error for the authentication redirect', async () => {
+    const error = Object.assign(new Error('expired session'), {
+      data: { sessionExpired: true }
+    })
+    vi.mocked(backendRequest).mockRejectedValue(error)
+    await expect(saveHabitat({}, 'projects/test', {})).rejects.toBe(error)
+  })
+
+  it.each([
+    { output: { statusCode: 409 } },
+    { data: { res: { statusCode: 409 } } }
+  ])('maps rejected conflict responses: %j', async (error) => {
+    vi.mocked(backendRequest).mockRejectedValue(error)
+    await expect(saveHabitat({}, 'projects/test', {})).rejects.toMatchObject({
+      output: {
+        statusCode: 409,
+        payload: { message: 'Another user is editing this project' }
+      }
+    })
+  })
+
+  it.each([
+    [409, 409],
+    [400, 400],
+    [404, 404],
+    [500, 502]
+  ])('maps returned HTTP %s to %s', async (statusCode, expected) => {
+    vi.mocked(backendRequest).mockResolvedValue({ res: { statusCode } })
+    await expect(saveHabitat({}, 'projects/test', {})).rejects.toMatchObject({
+      output: { statusCode: expected }
+    })
   })
 })

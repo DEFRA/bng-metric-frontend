@@ -10,6 +10,7 @@ import {
   googleTagManagerScript,
   isGoogleTagManagerEnabled
 } from '../../../server/common/helpers/google-tag-manager.js'
+import { isServiceTemplateEnabled } from '../../../server/common/helpers/service-template.js'
 
 const logger = createLogger()
 const assetPath = config.get('assetPath')
@@ -45,6 +46,7 @@ export function context(request) {
       consentScript: googleAnalyticsConsentScript,
       script: googleTagManagerScript
     },
+    serviceTemplate: { enabled: isServiceTemplateEnabled() },
     breadcrumbs: [],
     navigation: buildNavigation(request),
     user,

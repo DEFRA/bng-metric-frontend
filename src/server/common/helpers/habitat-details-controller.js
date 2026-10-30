@@ -362,6 +362,40 @@ function createGetController(uploadType) {
   }
 }
 
+/**
+ * Save a habitat, so a refusal keeps its meaning instead of always reading as
+ * an upstream failure (backendSaveError): an expired session passes through,
+ * and 409, 404 and 400 keep theirs. Shared by the baseline and Created-area
+ * forms.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {string} path backend path, without the base URL
+ * @param {object} body
+ * @param {string} [featureId] for the not-found message
+ * @returns {Promise<object>} the backend's payload
+ */
+export async function saveHabitat(request, path, body, featureId) {
+  try {
+    const { res, payload } = await backendRequest(
+      request,
+      'put',
+      `${backendUrl}/${path}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        payload: JSON.stringify(body)
+      }
+    )
+    if (res?.statusCode >= statusCodes.badRequest) {
+      throw Boom.boomify(new Error('Backend rejected habitat save'), {
+        statusCode: res.statusCode
+      })
+    }
+    return payload
+  } catch (err) {
+    throw backendSaveError(err, featureId)
+  }
+}
+
 function createPostController(uploadType) {
   return {
     options: {
@@ -426,21 +460,12 @@ function createPostController(uploadType) {
         riparianEncroachment
       })
 
-      let payload
-      try {
-        const result = await backendRequest(
-          request,
-          'put',
-          `${backendUrl}/${uploadType.backendSavePath(projectId, featureId)}`,
-          {
-            headers: { 'Content-Type': 'application/json' },
-            payload: JSON.stringify(body)
-          }
-        )
-        payload = result.payload
-      } catch (err) {
-        throw backendSaveError(err, featureId)
-      }
+      const payload = await saveHabitat(
+        request,
+        uploadType.backendSavePath(projectId, featureId),
+        body,
+        featureId
+      )
 
       return h.redirect(
         habitatDetailsDestination(projectId, payload?.type, uploadType.key)
