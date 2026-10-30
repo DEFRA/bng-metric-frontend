@@ -866,7 +866,7 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
     await invalidFileController.handler(request, h)
 
     const view = h.view.mock.calls[0][1]
-    expect(view.singleError.variant).toBe('distinctiveness')
+    expect(view.singleError.variant).toBe('metric-tool')
     expect(view.uploadHref).toBe('/projects/proj-789/upload-baseline-file')
   })
 

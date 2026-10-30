@@ -34,6 +34,19 @@ function firstSample(error) {
   return error?.details?.sample?.[0] ?? null
 }
 
+// A project the service cannot calculate: the page sends the user to the
+// statutory metric tool, opened in a new tab.
+function metricToolEntry(h1, helpTextBefore) {
+  return {
+    variant: 'metric-tool',
+    h1,
+    helpTextBefore,
+    linkText: 'metric tool (spreadsheet)',
+    linkHref: STATUTORY_METRIC_TOOL_URL,
+    helpTextAfter: ' to calculate biodiversity value.'
+  }
+}
+
 function standard(h1, messageBefore, messageAfter = '.') {
   return {
     variant: 'standard',
@@ -183,16 +196,12 @@ const habitatRefInvalidCharactersEntry = () =>
   )
 
 // BMD-1182: enhanced habitats whose baseline the service cannot enhance at
-// all. The file is refused rather than the enhancements nulled, as there is
-// nothing the user can fix in the service. Interim copy, pending UCD (Figma):
-// replace the h1, intro, instruction and the table's caption and overflow
-// line here.
-const UNENHANCEABLE_BASELINE_H1 =
-  'Some habitats in your file cannot be enhanced in this service'
-const UNENHANCEABLE_BASELINE_INTRO =
-  'Your file marks the habitats below as enhanced, but this service cannot enhance them. A medium distinctiveness habitat, hedgerow, watercourse or tree that is already in good condition can only be enhanced into a higher distinctiveness habitat, which this service does not include yet. A very low distinctiveness hedgerow cannot be enhanced at all, and some low distinctiveness hedgerows in good condition have no hedgerow they can be enhanced into.'
-const UNENHANCEABLE_BASELINE_INSTRUCTION =
-  'Change the retention category of each habitat listed to Retained and '
+// all. The file is refused rather than the enhancements nulled. Copy from the
+// design team for now (BMD-1110, row 39).
+const UNENHANCEABLE_BASELINE_H1 = 'There is a problem with your project'
+const SERVICE_ELIGIBILITY_SUBHEADING = 'Service eligibility'
+const UNENHANCEABLE_BASELINE_HELP_TEXT =
+  'Your project contains habitats that have been enhanced to a level which is not yet included in this service. Use the '
 
 // The backend sends at most 50 offenders in details.sample, and the count of
 // all of them in details.count. The table never shows more than this.
@@ -207,6 +216,8 @@ const UNENHANCEABLE_FEATURE_LABELS = {
 }
 
 const UNENHANCEABLE_BASELINE_CAPTION = 'Habitats that cannot be enhanced'
+
+const NOT_RECORDED = 'Not recorded'
 
 function textOr(value, fallback) {
   return value == null || value === '' ? fallback : String(value)
@@ -234,8 +245,10 @@ function unenhanceableRow(sample) {
     {
       text: UNENHANCEABLE_FEATURE_LABELS[sample?.layer] ?? 'Habitat'
     },
-    { text: textOr(sample?.habitat_type, 'Not recorded') },
-    { text: textOr(sample?.condition, 'Not recorded') }
+    { text: textOr(sample?.habitat_type, NOT_RECORDED) },
+    { text: textOr(sample?.condition, NOT_RECORDED) },
+    { text: textOr(sample?.proposed_habitat_type, NOT_RECORDED) },
+    { text: textOr(sample?.proposed_condition, NOT_RECORDED) }
   ]
 }
 
@@ -244,8 +257,7 @@ function unenhanceableTable(error) {
   const rows = Array.isArray(sample)
     ? sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
     : []
-  // No habitats to list: the page keeps its explanation and instruction, and
-  // shows no empty table.
+  // No habitats to list: the page shows no empty table.
   if (rows.length === 0) {
     return null
   }
@@ -260,20 +272,25 @@ function unenhanceableTable(error) {
       { text: 'Reference' },
       { text: 'Feature' },
       { text: 'Baseline habitat' },
-      { text: 'Baseline condition' }
+      { text: 'Baseline condition' },
+      { text: 'Proposed habitat' },
+      { text: 'Proposed condition' }
     ],
     rows: rows.map(unenhanceableRow),
     moreText:
       total > rows.length
-        ? `Showing the first ${rows.length} of ${total} habitats. Fix these and upload the file again to see any others.`
+        ? `Showing the first ${rows.length} of ${total} habitats.`
         : null
   }
 }
 
 const unenhanceableBaselineEntry = (error) => {
   const entry = {
-    ...standard(UNENHANCEABLE_BASELINE_H1, UNENHANCEABLE_BASELINE_INSTRUCTION),
-    intro: UNENHANCEABLE_BASELINE_INTRO
+    ...metricToolEntry(
+      UNENHANCEABLE_BASELINE_H1,
+      UNENHANCEABLE_BASELINE_HELP_TEXT
+    ),
+    subheading: SERVICE_ELIGIBILITY_SUBHEADING
   }
   const table = unenhanceableTable(error)
   if (table) {
@@ -308,14 +325,11 @@ const CODE_ENTRIES = {
     ),
 
   // AC6a — Ineligible distinctiveness (BMD-352)
-  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: () => ({
-    variant: 'distinctiveness',
-    h1: 'Very high and high distinctiveness habitats are not yet included in this service',
-    helpTextBefore: 'Use the ',
-    linkText: 'metric tool (spreadsheet)',
-    linkHref: STATUTORY_METRIC_TOOL_URL,
-    helpTextAfter: ' to calculate biodiversity value.'
-  }),
+  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: () =>
+    metricToolEntry(
+      'Very high and high distinctiveness habitats are not yet included in this service',
+      'Use the '
+    ),
 
   // AC7 — Self-intersecting parcel (BMD-300 AC5)
   AREA_PARCELS_INVALID_GEOMETRY: (error) => {

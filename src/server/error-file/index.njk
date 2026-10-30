@@ -9,8 +9,11 @@
     <div class="govuk-grid-column-two-thirds">
       {% if singleError %}
         <h1 class="govuk-heading-l">{{ singleError.h1 }}</h1>
+        {% if singleError.subheading %}
+          <h2 class="govuk-heading-m">{{ singleError.subheading }}</h2>
+        {% endif %}
 
-        {% if singleError.variant == 'distinctiveness' %}
+        {% if singleError.variant == 'metric-tool' %}
           <p class="govuk-body">
             {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} (opens in a new tab)</a>{{ singleError.helpTextAfter }}
           </p>
@@ -23,18 +26,18 @@
           <p class="govuk-body">
             {{ singleError.messageBefore }}{% if singleError.uploadHref %}<a class="govuk-link" href="{{ singleError.uploadHref }}">{{ singleError.linkText }}</a>{{ singleError.messageAfter }}{% endif %}
           </p>
-          {% if singleError.table %}
-            {{ govukTable({
-              caption: singleError.table.caption,
-              captionClasses: "govuk-table__caption--m",
-              firstCellIsHeader: true,
-              head: singleError.table.head,
-              rows: singleError.table.rows,
-              attributes: { "data-testid": singleError.table.testId }
-            }) }}
-            {% if singleError.table.moreText %}
-              <p class="govuk-body" data-testid="{{ singleError.table.testId }}-more">{{ singleError.table.moreText }}</p>
-            {% endif %}
+        {% endif %}
+        {% if singleError.table %}
+          {{ govukTable({
+            caption: singleError.table.caption,
+            captionClasses: "govuk-table__caption--m",
+            firstCellIsHeader: true,
+            head: singleError.table.head,
+            rows: singleError.table.rows,
+            attributes: { "data-testid": singleError.table.testId }
+          }) }}
+          {% if singleError.table.moreText %}
+            <p class="govuk-body" data-testid="{{ singleError.table.testId }}-more">{{ singleError.table.moreText }}</p>
           {% endif %}
         {% endif %}
       {% elif errorList and errorList.length > 0 %}
