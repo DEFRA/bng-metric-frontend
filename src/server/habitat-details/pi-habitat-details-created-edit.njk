@@ -65,8 +65,8 @@
           <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
         {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
-        {{ derived("Size (hectares)", "sizeDisplay", sizeDisplay) }}
-        {{ select(fields.broadHabitat) }}
+        {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
+        {% if fields.broadHabitat %}{{ select(fields.broadHabitat) }}{% endif %}
         {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
         {{ select(fields.strategicSignificance) }}
