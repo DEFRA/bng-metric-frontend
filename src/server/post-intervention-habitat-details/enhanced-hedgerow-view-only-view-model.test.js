@@ -90,6 +90,22 @@ describe('buildEnhancedHedgerowViewOnlyViewModel', () => {
     expect(vm.viewBaselineHref).toBeNull()
   })
 
+  it('links a Created hedgerow that names a parent to it (BMD-1086)', () => {
+    const vm = buildCreatedHedgerowViewOnlyViewModel(
+      {
+        ref: 'HG018b',
+        retentionCategory: 'Created',
+        parentFeatureId: baselineFeatureId,
+        proposed: {}
+      },
+      { projectId, projectName: 'Test Project', baselineFeatureId }
+    )
+
+    expect(vm.viewBaselineHref).toBe(
+      `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+    )
+  })
+
   it('uses an empty Created time to target when required values are absent', () => {
     const vm = buildCreatedHedgerowViewOnlyViewModel(
       { retentionCategory: 'Created', proposed: {} },

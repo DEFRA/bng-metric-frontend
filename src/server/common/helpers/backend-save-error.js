@@ -19,7 +19,7 @@ export function backendStatusOf(err) {
  * catchAll to handle (a redirect to sign in again).
  *
  * @param {unknown} err what backendRequest threw
- * @param {string} featureId
+ * @param {string} [featureId]
  * @returns {Error}
  */
 export function backendSaveError(err, featureId) {
@@ -30,7 +30,9 @@ export function backendSaveError(err, featureId) {
     case statusCodes.conflict:
       return Boom.conflict('Another user is editing this project')
     case statusCodes.notFound:
-      return Boom.notFound(`Feature ${featureId} not found`)
+      return Boom.notFound(
+        featureId ? `Feature ${featureId} not found` : 'Habitat not found'
+      )
     case statusCodes.badRequest:
       return Boom.badRequest('The habitat could not be saved')
     default:

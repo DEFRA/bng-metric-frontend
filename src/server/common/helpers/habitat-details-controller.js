@@ -236,7 +236,7 @@ function withSubmittedChoices(feature, submitted, reference) {
 }
 
 /**
- * Render the details page for one feature. `submitted` and `errors` are set
+ * Render the details page for one feature. `submitted` and `refusal` are set
  * when a save was refused, so the page shows the user's input and what to fix.
  *
  * @param {import('@hapi/hapi').Request} request
@@ -275,7 +275,6 @@ async function renderDetailsPage(
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.
   const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
-
   return h.view('habitat-details/habitat-details', {
     heading,
     caption: projectName,
@@ -303,14 +302,27 @@ function isBlank(ref) {
 }
 
 /**
+ * The stored reference as the page shows it in the input.
+ *
+ * @param {unknown} ref
+ * @returns {string}
+ */
+function storedRefText(ref) {
+  return ref === null || ref === undefined ? '' : `${ref}`
+}
+
+/**
  * The habitat reference to send with a save, undefined to leave the stored one
  * alone, or REFUSED_REF when the submitted one is invalid.
  *
- * A habitat imported before the BMD-1058 import check can have no reference.
- * Its page shows the input empty, so a save that leaves it empty is not asking
- * to change the reference, only the dropdowns. That save goes ahead without a
- * reference rather than being refused until the user makes one up. Typing a
- * reference, or blanking one that was saved, is still checked.
+ * Only a reference the user changed is checked and sent. A habitat imported
+ * before the BMD-1058 import check may hold one that would not pass today: no
+ * reference at all, characters that are not UTF-8, surrounding spaces, or more
+ * than 100 characters. Its page shows it as stored, so a save that leaves it
+ * as it is only asks to change the dropdowns. Checking it would refuse that
+ * save until the user made a new one up, and sending it would have the
+ * backend trim or cut it, renaming the habitat unasked. Blanking the field
+ * where a reference was saved is still a change, and still refused.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {object} uploadType
@@ -322,21 +334,22 @@ async function submittedRefToSave(
   uploadType,
   { projectId, featureId, habitatRef }
 ) {
-  if (habitatRef === undefined || isValidHabitatRef(habitatRef)) {
-    return habitatRef
+  if (habitatRef === undefined) {
+    return undefined
   }
-  if (isBlank(habitatRef)) {
-    const { feature } = await fetchFeature(
-      request,
-      uploadType,
-      projectId,
-      featureId
-    )
-    if (isBlank(feature?.ref)) {
-      return undefined
-    }
+  const { feature } = await fetchFeature(
+    request,
+    uploadType,
+    projectId,
+    featureId
+  )
+  const unchanged =
+    habitatRef === storedRefText(feature?.ref) ||
+    (isBlank(habitatRef) && isBlank(feature?.ref))
+  if (unchanged) {
+    return undefined
   }
-  return REFUSED_REF
+  return isValidHabitatRef(habitatRef) ? habitatRef : REFUSED_REF
 }
 
 function createGetController(uploadType) {
@@ -359,6 +372,44 @@ function createGetController(uploadType) {
           : postInterventionBackHref(request, projectId)
       })
     }
+  }
+}
+
+/**
+ * Save a habitat, so a refusal keeps its meaning instead of always reading as
+ * an upstream failure (backendSaveError): an expired session passes through,
+ * and 409, 404 and 400 keep theirs. Shared by the baseline and Created-area
+ * forms.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {string} path backend path, without the base URL
+ * @param {object} body
+ * @param {string} [featureId] for the not-found message
+ * @returns {Promise<object>} the backend's payload
+ */
+export async function saveHabitat(request, path, body, featureId) {
+  try {
+    const { res, payload } = await backendRequest(
+      request,
+      'put',
+      `${backendUrl}/${path}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        payload: JSON.stringify(body)
+      }
+    )
+    if (res?.statusCode >= statusCodes.badRequest) {
+      throw Boom.boomify(new Error('Backend rejected habitat save'), {
+        statusCode: res.statusCode
+      })
+    }
+    return payload
+  } catch (err) {
+    // A reference another habitat already carries is for the form to show.
+    if (isRefInUseError(err)) {
+      throw err
+    }
+    throw backendSaveError(err, featureId)
   }
 }
 
@@ -392,6 +443,11 @@ function createPostController(uploadType) {
         riparianEncroachment
       } = request.payload
 
+      const refToSave = await submittedRefToSave(request, uploadType, {
+        projectId,
+        featureId,
+        habitatRef
+      })
       // A refused reference shows the page again with the error, keeping
       // what the user typed and chose, and the way back they came in by.
       const showRefused = async (refusal) => {
@@ -407,12 +463,6 @@ function createPostController(uploadType) {
         })
         return response.code(statusCodes.badRequest)
       }
-
-      const refToSave = await submittedRefToSave(request, uploadType, {
-        projectId,
-        featureId,
-        habitatRef
-      })
       if (refToSave === REFUSED_REF) {
         return showRefused(HABITAT_REF_ERROR)
       }
@@ -428,21 +478,26 @@ function createPostController(uploadType) {
 
       let payload
       try {
-        const result = await backendRequest(
+        payload = await saveHabitat(
           request,
-          'put',
-          `${backendUrl}/${uploadType.backendSavePath(projectId, featureId)}`,
-          {
-            headers: { 'Content-Type': 'application/json' },
-            payload: JSON.stringify(body)
-          }
+          uploadType.backendSavePath(projectId, featureId),
+          body,
+          featureId
         )
-        payload = result.payload
       } catch (err) {
+        // The backend checks a reference again; if it refuses one this side
+        // passed, or one another habitat already carries, say so at the field
+        // rather than on an error page.
         if (isRefInUseError(err)) {
           return showRefused(HABITAT_REF_IN_USE_ERROR)
         }
-        throw backendSaveError(err, featureId)
+        if (
+          refToSave !== undefined &&
+          err.output?.statusCode === statusCodes.badRequest
+        ) {
+          return showRefused(HABITAT_REF_ERROR)
+        }
+        throw err
       }
 
       return h.redirect(

@@ -10,6 +10,8 @@
 // and carries it onto every post-intervention row joined to that parcel, so
 // the two stay linked.
 
+import Joi from 'joi'
+
 import { config } from '../../config/config.js'
 import { backendRequest } from '../common/helpers/auth/backend-request.js'
 import { backendSaveError } from '../common/helpers/backend-save-error.js'
@@ -22,6 +24,15 @@ import { RETENTION_RETAINED } from './retention.js'
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
 export const DETAILS_ROUTE = '/post-intervention-habitat-details'
+
+// What the reference form posts.
+export const retainedRefPayloadSchema = Joi.object({
+  projectId: Joi.string().uuid().required(),
+  featureId: Joi.string().uuid().required(),
+  habitatRef: Joi.string().allow('').required(),
+  returnUrl: Joi.string().allow('').optional(),
+  crumb: Joi.string().optional()
+})
 
 // The page heading names the habitat by its saved reference, as the baseline
 // details pages do (BMD-1061).

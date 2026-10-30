@@ -212,9 +212,9 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       )
     })
 
-    test('shows a Created habitat read-only, with no reference input', async () => {
+    test('shows an Enhanced habitat read-only, with no reference input', async () => {
       mockBackend({
-        feature: { ...FEATURES.habitat, retentionCategory: 'Created' }
+        feature: { ...FEATURES.habitat, retentionCategory: 'Enhanced' }
       })
 
       const { statusCode, result } = await server.inject({
@@ -226,6 +226,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(statusCode).toBe(statusCodes.ok)
       expect(result).not.toContain('id="habitatRef"')
       expect(result).not.toContain('habitat-details-form')
+      expect(result).toContain('Enhanced')
     })
 
     test('shows a habitat with no retention category read-only', async () => {
@@ -332,6 +333,8 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
     })
 
     test('refuses a POST with no reference field', async () => {
+      mockBackend()
+
       const { statusCode } = await post({})
 
       expect(statusCode).toBe(statusCodes.badRequest)

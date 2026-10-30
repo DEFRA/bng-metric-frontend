@@ -10,3 +10,24 @@
 .app-units-delivered .govuk-summary-list__row {
   border-top: 1px solid $govuk-border-colour;
 }
+
+.app-pi-edit-heading {
+  margin-bottom: govuk-spacing(4);
+}
+
+.app-pi-edit-reference {
+  max-width: 16em;
+}
+
+.app-pi-edit-heading__actions {
+  @include govuk-media-query($from: tablet) {
+    padding-top: govuk-spacing(2);
+    text-align: right;
+  }
+}
+
+.app-pi-edit-units .govuk-summary-list__key {
+  @include govuk-media-query($from: tablet) {
+    width: 40%;
+  }
+}

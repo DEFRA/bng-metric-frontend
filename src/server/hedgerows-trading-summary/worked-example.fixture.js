@@ -1,19 +1,26 @@
-// Hedgerow trading-rules figures for the published worked example ("Hedgerow
-// Trading Rules - Worked example"), at the full precision bng-library stores
-// (rounded only for display). These are the figures bng-library's worked
-// example test checks against the metric's Trading Summary Hedgerows sheet.
+// Hedgerow trading-rules figures for the worked example, recalculated with
+// every baseline hedgerow at strategic significance Low (1) as the service
+// forces ("Example - Hedgerows MVS (SS=1).xlsx" on BMD-1028). The published
+// Confluence worked example uses 1.1 for three baselines, so its figures can't
+// come out of the service. Values are the metric's Trading Summary Hedgerows
+// sheet at full precision (rounded only for display).
+//
+// bng-library's hedgerow worked-example test still checks the SS=1.1 Confluence
+// figures, so these deliberately don't match it. That test feeds unit totals
+// straight into the calculation (after strategic significance is applied), so
+// it remains a valid check of the maths.
 
 export const WORKED_EXAMPLE_TRADING_RULES = {
   habitatTypes: [
     {
       habitatType: 'Species-rich native hedgerow',
       distinctiveness: 'Medium',
-      netUnitChange: -1.67698412156
+      netUnitChange: -1.47698412156
     },
     {
       habitatType: 'Native hedgerow - associated with bank or ditch',
       distinctiveness: 'Medium',
-      netUnitChange: 1.2914508193599996
+      netUnitChange: 1.4914508193599998
     },
     {
       habitatType: 'Native hedgerow with trees',
@@ -23,7 +30,7 @@ export const WORKED_EXAMPLE_TRADING_RULES = {
     {
       habitatType: 'Native hedgerow',
       distinctiveness: 'Low',
-      netUnitChange: -1.9800000000000002
+      netUnitChange: -1.8
     },
     {
       habitatType: 'Line of trees',
@@ -41,10 +48,10 @@ export const WORKED_EXAMPLE_TRADING_RULES = {
       netUnitChange: -0.35
     }
   ],
-  medium: { netUnitChange: 0.41446669779999956 },
+  medium: { netUnitChange: 0.8144666977999999 },
   low: {
-    netUnitChange: -2.54716624548,
-    cumulativeAvailability: -2.1326995476800006
+    netUnitChange: -2.36716624548,
+    cumulativeAvailability: -1.55269954768
   },
   veryLow: { netUnitChange: -0.35, cumulativeAvailability: -0.35 }
 }

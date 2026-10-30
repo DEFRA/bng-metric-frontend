@@ -1,6 +1,11 @@
-import { describe, test, expect } from 'vitest'
+import { afterEach, describe, test, expect } from 'vitest'
 
-import { resolveSingleErrorCopy } from './single-error-copy.js'
+import { config } from '../../config/config.js'
+import {
+  UNENHANCEABLE_BASELINE_MAX_ROWS,
+  resolveSingleErrorCopy
+} from './single-error-copy.js'
+import { renderTemplate } from '../test-helpers/render-template.js'
 
 const UPLOAD_HREF = '/projects/proj-1/upload-baseline-file'
 
@@ -472,5 +477,241 @@ describe('#resolveSingleErrorCopy', () => {
     )
     expect(result.variant).toBe('placeholder')
     expect(result.helpText).toBe('PLACEHOLDER - undefined')
+  })
+})
+
+describe('#resolveSingleErrorCopy with the service-template flag on', () => {
+  const originalEnabled = config.get('serviceTemplate.enabled')
+
+  afterEach(() => {
+    config.set('serviceTemplate.enabled', originalEnabled)
+  })
+
+  test('BMD-1086: the catch-all names the BNG Service template, not Natural England', () => {
+    config.set('serviceTemplate.enabled', true)
+
+    const result = resolveSingleErrorCopy(
+      { code: 'GPKG_BASELINE_MISSING_COLUMN', message: 'x' },
+      UPLOAD_HREF
+    )
+
+    expect(result.messageBefore).toBe(
+      'The layer names and column names do not match the BNG Service template. Rename the layers and columns and '
+    )
+    expect(result.messageBefore).not.toContain('Natural England')
+  })
+})
+
+describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => {
+  const offender = (fields) => ({
+    layer: 'habitats',
+    feature_ref: 'H001',
+    habitat_type: 'Grassland - Other neutral grassland',
+    condition: 'Good',
+    distinctiveness: 'Medium',
+    rule: 'medium-area-good',
+    mvsOnly: true,
+    ...fields
+  })
+  const error = (sample, count = sample.length) => ({
+    code: 'BASELINE_NOT_ENHANCEABLE',
+    message: 'backend message',
+    details: { count, sample }
+  })
+
+  test('replaces the placeholder with interim copy and a table of the habitats', () => {
+    const result = resolveSingleErrorCopy(
+      error([
+        offender(),
+        offender({
+          layer: 'hedgerows',
+          feature_ref: 'HG011',
+          habitat_type: 'Ecologically valuable line of trees'
+        }),
+        offender({
+          layer: 'watercourses',
+          feature_ref: 'R001',
+          habitat_type: 'Ditches'
+        }),
+        offender({
+          layer: 'trees',
+          feature_ref: 'T018',
+          habitat_type: 'Individual trees - Rural tree'
+        })
+      ]),
+      UPLOAD_HREF
+    )
+
+    expect(result.variant).toBe('standard')
+    expect(result.h1).toBe(
+      'Some habitats in your file cannot be enhanced in this service'
+    )
+    expect(result.h1).not.toContain('PLACEHOLDER')
+    expect(result.intro).toContain('already in good condition')
+    expect(result.messageBefore).toBe(
+      'Change the retention category of each habitat listed to Retained and '
+    )
+    expect(result.uploadHref).toBe(UPLOAD_HREF)
+    expect(result.table.head.map((h) => h.text)).toEqual([
+      'Reference',
+      'Feature',
+      'Baseline habitat',
+      'Baseline condition'
+    ])
+    expect(result.table.rows.map((row) => row.map((c) => c.text))).toEqual([
+      ['H001', 'Area habitat', 'Grassland - Other neutral grassland', 'Good'],
+      ['HG011', 'Hedgerow', 'Ecologically valuable line of trees', 'Good'],
+      ['R001', 'Watercourse', 'Ditches', 'Good'],
+      ['T018', 'Individual tree', 'Individual trees - Rural tree', 'Good']
+    ])
+    expect(result.table.caption).toBe('Habitats that cannot be enhanced')
+    expect(result.table.moreText).toBeNull()
+  })
+
+  test('says what is missing rather than leaving a cell blank', () => {
+    const result = resolveSingleErrorCopy(
+      error([
+        offender({
+          layer: 'hedgerows',
+          feature_ref: null,
+          habitat_type: 'Non-native and ornamental hedgerow',
+          condition: ''
+        })
+      ]),
+      UPLOAD_HREF
+    )
+
+    expect(result.table.rows[0].map((c) => c.text)).toEqual([
+      'No reference',
+      'Hedgerow',
+      'Non-native and ornamental hedgerow',
+      'Not recorded'
+    ])
+  })
+
+  test(`shows at most ${UNENHANCEABLE_BASELINE_MAX_ROWS} rows, and the count of all of them`, () => {
+    const sample = Array.from({ length: 60 }, (_, i) =>
+      offender({ feature_ref: `H${String(i + 1).padStart(3, '0')}` })
+    )
+    const result = resolveSingleErrorCopy(error(sample, 75), UPLOAD_HREF)
+
+    expect(result.table.rows).toHaveLength(UNENHANCEABLE_BASELINE_MAX_ROWS)
+    expect(result.table.rows.at(-1)[0].text).toBe('H050')
+    expect(result.table.moreText).toBe(
+      'Showing the first 50 of 75 habitats. Fix these and upload the file again to see any others.'
+    )
+  })
+
+  test('reads the count from the sample when the backend sends none', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'BASELINE_NOT_ENHANCEABLE', details: { sample: [offender()] } },
+      UPLOAD_HREF
+    )
+
+    expect(result.table.rows).toHaveLength(1)
+    expect(result.table.moreText).toBeNull()
+  })
+
+  test('still reads as a sentence with no upload link', () => {
+    const result = resolveSingleErrorCopy(error([offender()]), null)
+
+    expect(result.messageBefore).toBe(
+      'Change the retention category of each habitat listed to Retained.'
+    )
+    expect(result.linkText).toBeNull()
+  })
+
+  test('renders the copy and the table on the page', () => {
+    const sample = Array.from({ length: 50 }, (_, i) =>
+      offender({ feature_ref: `H${String(i + 1).padStart(3, '0')}` })
+    )
+    const html = renderTemplate('error-file/index.njk', {
+      singleError: resolveSingleErrorCopy(error(sample, 52), UPLOAD_HREF)
+    })
+
+    expect(html).not.toContain('PLACEHOLDER')
+    expect(html).toContain(
+      'Your file marks the habitats below as enhanced, but this service cannot enhance them.'
+    )
+    expect(html).toContain(
+      'Change the retention category of each habitat listed to Retained and'
+    )
+    expect(html).toContain(
+      'Some habitats in your file cannot be enhanced in this service'
+    )
+    expect(html).toContain('data-testid="unenhanceable-habitats"')
+    expect(html).toContain('Habitats that cannot be enhanced')
+    expect(html).toContain(`href="${UPLOAD_HREF}"`)
+    expect(html.match(/<tr class="govuk-table__row">/g)).toHaveLength(51)
+    expect(html).toContain('Showing the first 50 of 52 habitats.')
+    expect(html).toContain('data-testid="unenhanceable-habitats-more"')
+  })
+
+  test('says nothing about others when every habitat is shown', () => {
+    const html = renderTemplate('error-file/index.njk', {
+      singleError: resolveSingleErrorCopy(error([offender()]), UPLOAD_HREF)
+    })
+
+    expect(html).not.toContain('data-testid="unenhanceable-habitats-more"')
+  })
+
+  test('renders each cell of a row', () => {
+    const html = renderTemplate('error-file/index.njk', {
+      singleError: resolveSingleErrorCopy(
+        error([
+          offender({
+            layer: 'hedgerows',
+            feature_ref: 'HG011',
+            habitat_type: 'Ecologically valuable line of trees'
+          })
+        ]),
+        UPLOAD_HREF
+      )
+    })
+    const cells = [
+      ...html.matchAll(
+        /<t[hd] scope="row" class="govuk-table__header">([^<]*)<\/th>|<td class="govuk-table__cell">([^<]*)<\/td>/g
+      )
+    ].map((m) => (m[1] ?? m[2]).trim())
+
+    expect(cells).toEqual([
+      'HG011',
+      'Hedgerow',
+      'Ecologically valuable line of trees',
+      'Good'
+    ])
+  })
+
+  test.each([
+    [{ fid: 12 }, 'fid 12'],
+    [{ idx: 3 }, 'feature #3'],
+    [{}, 'No reference']
+  ])(
+    'falls back to the row the multi-error list names when there is no Feature Ref (%o)',
+    (fields, ref) => {
+      const result = resolveSingleErrorCopy(
+        error([offender({ feature_ref: null, ...fields })]),
+        UPLOAD_HREF
+      )
+
+      expect(result.table.rows[0][0].text).toBe(ref)
+    }
+  )
+
+  test.each([
+    ['no sample', { count: 3 }],
+    ['an empty sample', { count: 3, sample: [] }],
+    ['a sample that is not a list', { count: 3, sample: 'H001' }]
+  ])('shows no table, only the copy, for %s', (_, details) => {
+    const singleError = resolveSingleErrorCopy(
+      { code: 'BASELINE_NOT_ENHANCEABLE', message: 'x', details },
+      UPLOAD_HREF
+    )
+
+    expect(singleError.table).toBeUndefined()
+    expect(singleError.intro).toContain('cannot enhance them')
+    const html = renderTemplate('error-file/index.njk', { singleError })
+    expect(html).not.toContain('govuk-table')
+    expect(html).toContain(`href="${UPLOAD_HREF}"`)
   })
 })

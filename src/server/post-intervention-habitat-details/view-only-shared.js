@@ -242,8 +242,9 @@ export function buildSectionsViewOnlyBaseFields(feature, shared, proposed) {
 /**
  * Build the "View baseline details" href for a post-intervention feature.
  * Baseline and post-intervention are separate uploads, so a parcel gets a
- * different featureId in each document; the baseline feature is resolved by ref
- * by the caller and passed in here. Null means no matching baseline feature
+ * different featureId in each document; the caller resolves the baseline
+ * feature (by ref, or for a BNG Service template project by the feature's
+ * parentFeatureId) and passes it in here. Null means no matching baseline feature
  * (e.g. no baseline uploaded), in which case the link is hidden.
  *
  * @param {string|null} baselineFeatureId
