@@ -4,7 +4,7 @@ import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
-  UNCHANGED_YEAR,
+  UNCHANGED_VALUE,
   resolveCreatedTiming,
   createdAreaDerived,
   selectedHabitat,
@@ -80,10 +80,10 @@ export const createdAreaPayloadSchema = Joi.object({
   condition: Joi.string().allow('').required(),
   strategicSignificance: Joi.string().allow('').required(),
   advanceYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_VALUE)
     .required(),
   delayYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_VALUE)
     .required(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
@@ -113,9 +113,9 @@ export function createdReferenceForFeature(reference, feature) {
     importedCalculation: {
       values: {
         ...saved,
-        ...(importedCondition ? { condition: UNCHANGED_YEAR } : {}),
+        ...(importedCondition ? { condition: UNCHANGED_VALUE } : {}),
         ...Object.fromEntries(
-          Object.keys(importedYears).map((field) => [field, UNCHANGED_YEAR])
+          Object.keys(importedYears).map((field) => [field, UNCHANGED_VALUE])
         )
       },
       finalTimeToTargetDisplay:
@@ -127,10 +127,10 @@ export function createdReferenceForFeature(reference, feature) {
 function createdEditValues(feature, reference) {
   const saved = createdAreaValues(feature)
   for (const field of Object.keys(reference.importedYears ?? {})) {
-    saved[field] = UNCHANGED_YEAR
+    saved[field] = UNCHANGED_VALUE
   }
   if (reference.importedCondition) {
-    saved.condition = UNCHANGED_YEAR
+    saved.condition = UNCHANGED_VALUE
   }
   return saved
 }
@@ -234,7 +234,10 @@ function validateReference(ref, errors) {
 function validateCreatedTiming(values, reference, errors) {
   const timing = resolveCreatedTiming(values, reference)
   for (const field of ['advanceYears', 'delayYears']) {
-    if (values[field] === UNCHANGED_YEAR && !reference.importedYears?.[field]) {
+    if (
+      values[field] === UNCHANGED_VALUE &&
+      !reference.importedYears?.[field]
+    ) {
       errors[field] = 'Choose a valid advance or delay value'
     }
   }
@@ -265,7 +268,7 @@ export function validateCreatedArea(values, reference) {
       .map((t) => t.name),
     condition: [
       ...(type?.conditions ?? []).map((c) => c.condition),
-      ...(keepImportedCondition(reference, values) ? [UNCHANGED_YEAR] : [])
+      ...(keepImportedCondition(reference, values) ? [UNCHANGED_VALUE] : [])
     ],
     strategicSignificance: reference.strategicSignificance.map((s) => s.value)
   }
@@ -383,7 +386,7 @@ function createdAreaFields(reference, values, type, initialLoad) {
       if (imported !== undefined) {
         items = [
           ...items,
-          { value: UNCHANGED_YEAR, text: `${imported} (imported value)` }
+          { value: UNCHANGED_VALUE, text: `${imported} (imported value)` }
         ]
       }
       return {
@@ -522,7 +525,7 @@ export function buildCreatedAreaEditViewModel(
 }
 
 function timingPayload(values, field) {
-  if (values[field] === UNCHANGED_YEAR) {
+  if (values[field] === UNCHANGED_VALUE) {
     return {}
   }
   return { [field]: values[field] === '' ? null : values[field] }
@@ -533,7 +536,7 @@ function createdAreaSavePayload(values, kind) {
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
     habitatType: values.habitatType || null,
-    ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_YEAR
+    ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_VALUE
       ? { condition: values.condition || null }
       : {}),
     strategicSignificance: values.strategicSignificance || null,

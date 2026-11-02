@@ -1,6 +1,7 @@
 import {
   createdAreaDerived,
-  selectedHabitat
+  selectedHabitat,
+  UNCHANGED_VALUE
 } from '../../shared/created-area-details.js'
 
 const DERIVED_LABELS = {
@@ -98,7 +99,7 @@ export function initCreatedAreaDetails() {
       reference.importedCondition.habitatType === type?.name
         ? [
             {
-              value: 'unchanged',
+              value: UNCHANGED_VALUE,
               text: `${reference.importedCondition.condition} (imported value)`
             }
           ]
