@@ -452,9 +452,10 @@ export function buildCreatedAreaEditViewModel(
 }
 
 function timingPayload(values, field) {
-  return values[field] === UNCHANGED_YEAR
-    ? {}
-    : { [field]: values[field] === '' ? null : values[field] }
+  if (values[field] === UNCHANGED_YEAR) {
+    return {}
+  }
+  return { [field]: values[field] === '' ? null : values[field] }
 }
 
 function createdAreaSavePayload(values, isHedgerow) {
