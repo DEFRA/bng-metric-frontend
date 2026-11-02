@@ -12,12 +12,14 @@ const PAGE_PATHS = {
   baseline: {
     habitat: AREA_BASELINE_PATH,
     tree: AREA_BASELINE_PATH,
+    verticalHabitat: AREA_BASELINE_PATH,
     hedgerow: HEDGEROWS_BASELINE_PATH,
     watercourse: WATERCOURSES_BASELINE_PATH
   },
   postIntervention: {
     habitat: AREA_POST_INTERVENTION_PATH,
     tree: AREA_POST_INTERVENTION_PATH,
+    verticalHabitat: AREA_POST_INTERVENTION_PATH,
     hedgerow: HEDGEROWS_POST_INTERVENTION_PATH,
     watercourse: WATERCOURSES_POST_INTERVENTION_PATH
   }

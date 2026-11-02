@@ -388,6 +388,58 @@ describe('area post intervention', () => {
     expect($('#created tbody a').text()).toBe('T-1')
   })
 
+  test('lists a vertical area habitat in its retention tab, sized in square metres', async () => {
+    const enhancedWall = {
+      featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      ref: 'V-1',
+      units: 0.16,
+      sizeSquareMetres: 400,
+      retentionCategory: 'Enhanced',
+      baseline: {
+        broadType: 'Urban',
+        type: 'Facade-bound green wall',
+        condition: 'Poor'
+      },
+      proposed: {
+        broadType: 'Urban',
+        type: 'Facade-bound green wall',
+        distinctiveness: 'Low',
+        distinctivenessScore: 2,
+        condition: 'Moderate',
+        conditionScore: 2
+      }
+    }
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...populatedProject.project,
+          postIntervention: {
+            ...populatedProject.project.postIntervention,
+            verticalHabitats: [enhancedWall]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const wallRow = $('#enhanced tbody .govuk-table__row').filter(
+      (_, row) => $(row).find('a').first().text() === 'V-1'
+    )
+    expect(wallRow).toHaveLength(1)
+    expect(wallRow.find('a').attr('href')).toContain(
+      `featureId=${enhancedWall.featureId}`
+    )
+    expect(wallRow.text()).toContain('400m²')
+    expect(wallRow.text()).not.toContain('0.04ha')
+  })
+
   test('shows the Broad habitat column for both habitat and tree rows', async () => {
     const { result } = await server.inject({
       method: 'GET',

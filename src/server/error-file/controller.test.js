@@ -1092,6 +1092,38 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
+  test('lists each vertical area habitat whose rows together have more face area than it, with both areas', async () => {
+    const view = await viewFor([
+      lineageError(
+        'STAGED_VERTICAL_CHILDREN_TOO_LARGE',
+        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        [
+          {
+            layer: 'verticalHabitats',
+            table: 'Vertical Area Habitats Baseline',
+            fid: 1,
+            ref: 'V001',
+            habitatType: 'Facade-bound green wall',
+            childRefs: ['V001a', 'V001b'],
+            areaSquareMetres: 40,
+            childAreaSquareMetres: 50.1
+          }
+        ]
+      )
+    ])
+
+    expect(
+      view.errorBlocks.map(({ heading, items }) => [heading, items])
+    ).toEqual([
+      [
+        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        [
+          'Vertical Area Habitats Baseline V001 — Facade-bound green wall, copied to V001a, V001b (40 m², linked 50.1 m²)'
+        ]
+      ]
+    ])
+  })
+
   test('lists each degraded row with the parent it was copied from', async () => {
     const row = (code, ref, habitatType, parentRef) =>
       lineageError(code, `Heading for ${code}`, [

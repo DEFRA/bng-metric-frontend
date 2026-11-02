@@ -147,17 +147,33 @@ function describeHedgerowChildrenTooLong(s) {
   return `${base} (${s.lengthMetres} m, linked ${s.childLengthMetres} m)`
 }
 
+function describeVerticalChildrenTooLarge(s) {
+  const base = describeLineageParent(s)
+  if (s?.areaSquareMetres == null || s?.childAreaSquareMetres == null) {
+    return base
+  }
+  return `${base} (${s.areaSquareMetres} m², linked ${s.childAreaSquareMetres} m²)`
+}
+
 const LINEAGE_DESCRIBERS = {
   STAGED_PARENT_LINK_MISSING: describeLineageFeature,
   STAGED_UNKNOWN_PARENT_REF: describeLineageFeature,
   STAGED_AMBIGUOUS_PARENT: describeAmbiguousParent,
   STAGED_BASELINE_DRIFTED: describeLineageParent,
   STAGED_HEDGEROW_CHILDREN_TOO_LONG: describeHedgerowChildrenTooLong,
+  STAGED_VERTICAL_CHILDREN_TOO_LARGE: describeVerticalChildrenTooLarge,
   STAGED_WATERCOURSE_RETAINED_AND_CREATED: describeLineageParent,
   STAGED_NATURAL_WATERCOURSE_LOST: describeLineageParent,
   STAGED_DEGRADE_NOT_WORSE: describeLineageRow,
   STAGED_DEGRADE_ADVANCE_NOT_30_PLUS: describeLineageRow,
   STAGED_WATERCOURSE_NO_INTERVENTION: describeLineageRow
+}
+
+// A vertical area habitat whose typed Area is not a number above 0, with the
+// value the file holds.
+function describeVerticalArea(s) {
+  const area = s?.area == null || s.area === '' ? 'blank' : s.area
+  return `${describeFeature(s)} (Area: ${area})`
 }
 
 function describeFeatureWithReason(s) {
@@ -175,6 +191,7 @@ const SAMPLE_DESCRIBERS = {
   AREA_PARCELS_OUTSIDE_REDLINE: describeFeatureWithEscape,
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: describeDistinctivenessOffender,
   BASELINE_NOT_ENHANCEABLE: describeUnenhanceableBaseline,
+  VERTICAL_HABITAT_AREA_NOT_POSITIVE: describeVerticalArea,
   ...LINEAGE_DESCRIBERS
 }
 

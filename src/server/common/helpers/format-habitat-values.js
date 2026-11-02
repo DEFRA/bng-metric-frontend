@@ -14,6 +14,7 @@ const HABITAT_UNITS_DECIMAL_PLACES = 2
 const SUMMARY_AREA_DECIMAL_PLACES = 2
 const HABITAT_UNITS_SIGNIFICANT_FIGURES = 7
 const KM_UNIT = 'km'
+const SQUARE_METRES_UNIT = 'm²'
 
 const EMPTY_DISPLAY = ''
 
@@ -50,6 +51,50 @@ function formatAreaHectaresValue(squareMetres) {
   }
   const hectares = squareMetres / SQUARE_METRES_PER_HECTARE
   return Number(hectares.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()
+}
+
+/**
+ * A vertical area habitat's face area, in square metres, as the surveyor
+ * entered it: not converted, and rounded only to 10 significant figures to
+ * drop floating-point noise. Returns '' for null/undefined/non-finite.
+ *
+ * @param {number|null|undefined} squareMetres
+ * @returns {string}
+ */
+function formatSquareMetresValue(squareMetres) {
+  if (!isUsableNumber(squareMetres)) {
+    return EMPTY_DISPLAY
+  }
+  return Number(squareMetres.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()
+}
+
+/**
+ * As formatSquareMetresValue, with the "m²" suffix (no space), as the hectare
+ * values carry "ha".
+ *
+ * @param {number|null|undefined} squareMetres
+ * @returns {string}
+ */
+function formatSquareMetres(squareMetres) {
+  const value = formatSquareMetresValue(squareMetres)
+  return value === EMPTY_DISPLAY
+    ? EMPTY_DISPLAY
+    : `${value}${SQUARE_METRES_UNIT}`
+}
+
+/**
+ * A size on an area habitat list: a vertical area habitat's in square metres,
+ * as entered, and every other's in hectares. A list's total stays in
+ * hectares, vertical area habitats included, as the total habitat area does.
+ *
+ * @param {number|null|undefined} squareMetres
+ * @param {object} [feature] the row's feature, marked by asVerticalHabitats
+ * @returns {string}
+ */
+function formatAreaSize(squareMetres, feature) {
+  return feature?.isVerticalHabitat
+    ? formatSquareMetres(squareMetres)
+    : formatAreaHectares(squareMetres)
 }
 
 /**
@@ -164,6 +209,9 @@ function formatBaselineTotalLengthSize(metres) {
 export {
   formatAreaHectares,
   formatAreaHectaresValue,
+  formatAreaSize,
+  formatSquareMetres,
+  formatSquareMetresValue,
   formatBaselineTotalLengthSize,
   formatLengthKm,
   formatLengthKmDisplay,

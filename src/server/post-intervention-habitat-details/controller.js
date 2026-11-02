@@ -8,6 +8,7 @@ import {
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
+import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
@@ -56,6 +57,8 @@ const CREATED_EDIT_TYPES = [AREA_HABITAT_TYPE, HEDGEROW_TYPE]
 const WATERCOURSE_TYPE = 'watercourse'
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
+// A vertical area habitat uses the area pages, view-only whatever its
+// retention: it cannot be edited after intervention yet.
 const AREA_RETENTION_PAGES = new Map([
   [
     RETENTION_ENHANCED,
@@ -100,6 +103,7 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 // some retention categories rather than always using the single-list page.
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
+  [VERTICAL_HABITAT_TYPE, AREA_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
@@ -107,14 +111,14 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
 // The read-only details page for each feature type. Each keeps its own
 // template — they share chrome via layouts/pi-view-only-sections-page.njk and
 // differ in the rows they show (BMD-845).
+const AREA_VIEW_ONLY_PAGE = {
+  template: 'habitat-details/pi-habitat-details',
+  buildViewModel: buildAreaViewOnlyViewModel
+}
+
 const VIEW_ONLY_PAGES = new Map([
-  [
-    AREA_HABITAT_TYPE,
-    {
-      template: 'habitat-details/pi-habitat-details',
-      buildViewModel: buildAreaViewOnlyViewModel
-    }
-  ],
+  [AREA_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
+  [VERTICAL_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
   [
     HEDGEROW_TYPE,
     {
@@ -156,6 +160,7 @@ function comparableRef(ref) {
 // The baseline layer a post-intervention feature of each type is joined to.
 const BASELINE_LAYER_BY_TYPE = new Map([
   [AREA_HABITAT_TYPE, 'habitats'],
+  [VERTICAL_HABITAT_TYPE, 'verticalHabitats'],
   ['tree', 'trees'],
   [HEDGEROW_TYPE, 'hedgerows'],
   [WATERCOURSE_TYPE, 'watercourses']
@@ -202,7 +207,13 @@ function resolveBaselineFeatureId(project, type, feature) {
   return match?.featureId ?? null
 }
 
-const BASELINE_LAYERS = ['habitats', 'trees', 'hedgerows', 'watercourses']
+const BASELINE_LAYERS = [
+  'habitats',
+  'verticalHabitats',
+  'trees',
+  'hedgerows',
+  'watercourses'
+]
 
 /**
  * The baseline feature a BNG Service template post-intervention feature names
@@ -364,7 +375,12 @@ async function renderDetailsPage(
     })
   }
   const viewModel = page.buildViewModel(
-    { ...feature, retentionCategory },
+    {
+      ...feature,
+      retentionCategory,
+      // A vertical area habitat's size is shown in square metres.
+      isVerticalHabitat: type === VERTICAL_HABITAT_TYPE
+    },
     {
       projectId,
       projectName,

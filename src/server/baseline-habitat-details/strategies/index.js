@@ -2,12 +2,15 @@ import Boom from '@hapi/boom'
 
 import { areaStrategy } from './area.js'
 import { hedgerowStrategy } from './hedgerow.js'
+import { verticalStrategy } from './vertical.js'
 import { watercourseStrategy } from './watercourse.js'
 
 const STRATEGIES = {
   habitat: areaStrategy,
   // Individual trees are treated as an area habitat on the details page too.
   tree: areaStrategy,
+  // A vertical area habitat too, sized in square metres.
+  verticalHabitat: verticalStrategy,
   hedgerow: hedgerowStrategy,
   watercourse: watercourseStrategy
 }

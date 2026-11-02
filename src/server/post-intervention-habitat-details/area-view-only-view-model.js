@@ -1,4 +1,8 @@
-import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
+import {
+  formatAreaHectaresValue,
+  formatSquareMetresValue
+} from '../common/helpers/format-habitat-values.js'
+import { isVerticalHabitat } from '../common/helpers/vertical-habitats.js'
 import {
   AREAS_TAB_ANCHOR,
   HABITAT_UNITS_DELIVERED_LABEL,
@@ -36,7 +40,15 @@ export function buildAreaViewOnlyViewModel(
     pageTitle: feature.ref ?? PI_DETAILS_HEADING,
     habitatDetailsSectionHeading: PI_DETAILS_HEADING,
     habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
-    sizeDisplay: formatAreaHectaresValue(feature.sizeSquareMetres),
+    ...(isVerticalHabitat(feature)
+      ? {
+          sizeLabel: 'Size (square metres)',
+          sizeDisplay: formatSquareMetresValue(feature.sizeSquareMetres)
+        }
+      : {
+          sizeLabel: 'Size (hectares)',
+          sizeDisplay: formatAreaHectaresValue(feature.sizeSquareMetres)
+        }),
     broadHabitatDisplay: proposed.broadType ?? EMPTY_PLACEHOLDER,
     habitatTypeDisplay: proposed.type ?? EMPTY_PLACEHOLDER
   }

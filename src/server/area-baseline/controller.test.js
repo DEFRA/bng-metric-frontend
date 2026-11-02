@@ -257,6 +257,54 @@ describe('area baseline', () => {
     expect($('tfoot').text()).toContain('3.0163ha')
   })
 
+  test('lists vertical area habitats with the area habitats, sized in square metres, and counts them in the total area', async () => {
+    const wall = {
+      featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      ref: 'V-1',
+      type: 'Facade-bound green wall',
+      broadType: 'Urban',
+      condition: 'Poor',
+      conditionScore: 1,
+      distinctiveness: 'Low',
+      distinctivenessScore: 2,
+      units: 0.08,
+      sizeSquareMetres: 400
+    }
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...projectWithHabitats.project,
+          baseline: {
+            ...projectWithHabitats.project.baseline,
+            verticalHabitats: [wall]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-baseline`,
+      auth
+    })
+
+    const $ = load(result)
+    const rows = $('tbody .govuk-table__row')
+    const wallRow = rows.filter(
+      (_, row) => $(row).find('a').first().text() === 'V-1'
+    )
+    expect(rows).toHaveLength(4)
+    expect(wallRow.find('a').attr('href')).toBe(
+      `/baseline-habitat-details?featureId=${wall.featureId}&projectId=${PROJECT_ID}`
+    )
+    expect(wallRow.text()).toContain('400m²')
+    expect(wallRow.text()).toContain('Urban')
+    expect(wallRow.text()).toContain('Facade-bound green wall')
+    // 2 ha + 1 ha + 163 m² + 400 m², in hectares.
+    expect($('tfoot').text()).toContain('3.0563ha')
+  })
+
   // Strategic significance is fixed at Low (1) for MVS, so an uploaded category
   // such as habitatP1's 'High' is deliberately not surfaced here.
   test('renders the fixed Low (1) strategic significance for every row', async () => {

@@ -1,4 +1,4 @@
-import { formatAreaHectares } from '../common/helpers/format-habitat-values.js'
+import { formatAreaSize } from '../common/helpers/format-habitat-values.js'
 import { AREAS_TAB_ANCHOR } from './constants.js'
 import {
   buildSectionsViewOnlyBaseFields,
@@ -28,7 +28,8 @@ export function buildAreaSectionsViewOnlyFields(
 
   return {
     ...buildSectionsViewOnlyBaseFields(feature, shared, proposed),
-    sizeDisplay: formatAreaHectares(feature.sizeSquareMetres),
+    // In hectares, or a vertical area habitat's in square metres.
+    sizeDisplay: formatAreaSize(feature.sizeSquareMetres, feature),
     broadHabitatDisplay: proposed.broadType ?? EMPTY_PLACEHOLDER,
     habitatTypeDisplay: proposed.type ?? EMPTY_PLACEHOLDER
   }

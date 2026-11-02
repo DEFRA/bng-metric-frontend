@@ -7,12 +7,18 @@ import { serviceTemplateProject } from './index.js'
 // The fixtures are captured from the backend (see README.md), so a failure
 // here after re-capturing them means the backend's shape changed.
 
-const LINKED_LAYERS = ['habitats', 'hedgerows', 'watercourses']
+const LINKED_LAYERS = [
+  'habitats',
+  'verticalHabitats',
+  'hedgerows',
+  'watercourses'
+]
 const RETENTION_CATEGORIES = ['Retained', 'Enhanced', 'Created']
 const LOST_OUTCOMES = ['removed', 'lostAndRecreated', 'lost']
 const SIGNIFICANCE_CATEGORIES = ['Low', 'High']
 const LOST_SIZE_FIELD = {
   habitats: 'lostSizeSquareMetres',
+  verticalHabitats: 'lostSizeSquareMetres',
   hedgerows: 'lostSizeMetres',
   watercourses: 'lostSizeMetres'
 }
@@ -97,6 +103,27 @@ describe('service-template project fixtures', () => {
       for (const habitat of document.habitats) {
         expect(typeof habitat.irreplaceable, habitat.ref).toBe('boolean')
       }
+    }
+  })
+
+  test('size each vertical area habitat by the face area typed in, in square metres, and keep it out of the site area', () => {
+    for (const document of [baseline, postIntervention]) {
+      expect(document.verticalHabitats.length).toBeGreaterThan(0)
+      for (const vertical of document.verticalHabitats) {
+        expect(vertical.sizeSquareMetres, vertical.ref).toBeGreaterThan(0)
+      }
+      const typed = document.verticalHabitats.reduce(
+        (sum, vertical) => sum + vertical.sizeSquareMetres,
+        0
+      )
+      expect(document.habitatSizes.verticalHabitats.totalSquareMetres).toBe(
+        typed
+      )
+      expect(
+        document.habitatSizes.areaHabitats.totalSquareMetres -
+          document.habitatSizes.site.totalSquareMetres
+      ).toBeGreaterThanOrEqual(typed)
+      expect(document.units.verticalHabitatsTotal).toBeGreaterThan(0)
     }
   })
 
