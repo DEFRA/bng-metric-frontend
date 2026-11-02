@@ -307,7 +307,7 @@ const getController = {
           ...buildCreatedHedgerowViewOnlyViewModel(feature, {
             projectId,
             projectName,
-            baselineFeatureId: createdBaselineFeatureId(project, feature, type)
+            baselineFeatureId: createdBaselineFeatureId(project, type, feature)
           }),
           backHref: postInterventionBackHref(projectId, type, returnUrl)
         })
