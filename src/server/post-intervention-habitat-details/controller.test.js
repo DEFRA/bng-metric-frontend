@@ -347,6 +347,96 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
+  describe('GET links "View baseline details" within the habitat’s own layer', () => {
+    const otherBaselineId = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
+
+    function mockHedgerowWithBaseline(baseline, snapshot = {}) {
+      vi.mocked(wreck.get).mockImplementation((url) => {
+        if (url.includes(`/post-intervention/features/${featureId}`)) {
+          return Promise.resolve({
+            payload: {
+              type: 'hedgerow',
+              feature: {
+                featureId,
+                ref: 'H1',
+                retentionCategory: 'Retained',
+                baseline: snapshot,
+                proposed: {}
+              }
+            }
+          })
+        }
+        if (isProjectUrl(url)) {
+          return Promise.resolve({
+            payload: { project: { name: 'Test Project', baseline } }
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      })
+    }
+
+    async function linkedBaselineHref() {
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+      return h.view.mock.calls[0][1].viewBaselineHref
+    }
+
+    test('links a hedgerow to the baseline hedgerow, not an area habitat sharing its ref', async () => {
+      mockHedgerowWithBaseline({
+        habitats: [{ featureId: otherBaselineId, ref: 'H1' }],
+        hedgerows: [{ featureId: baselineFeatureId, ref: 'H1' }]
+      })
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+      )
+    })
+
+    test('shows no link when only another layer carries the ref', async () => {
+      mockHedgerowWithBaseline({
+        habitats: [{ featureId: otherBaselineId, ref: 'H1' }]
+      })
+
+      expect(await linkedBaselineHref()).toBeNull()
+    })
+
+    test('links the parcel the row’s baseline values describe where an import repeated the ref', async () => {
+      mockHedgerowWithBaseline(
+        {
+          hedgerows: [
+            { featureId: otherBaselineId, ref: 'H1', type: 'Native hedgerow' },
+            {
+              featureId: baselineFeatureId,
+              ref: 'H1',
+              type: 'Species-rich native hedgerow'
+            }
+          ]
+        },
+        { type: 'Species-rich native hedgerow' }
+      )
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+      )
+    })
+
+    test('falls back to the first parcel when the row’s values pick out none', async () => {
+      mockHedgerowWithBaseline(
+        {
+          hedgerows: [
+            { featureId: otherBaselineId, ref: 'H1', type: 'Native hedgerow' },
+            { featureId: baselineFeatureId, ref: 'H1', type: 'Native hedgerow' }
+          ]
+        },
+        { type: 'Native hedgerow' }
+      )
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${otherBaselineId}&projectId=${projectId}`
+      )
+    })
+  })
+
   test('GET renders the read-only watercourse details page for a retained watercourse', async () => {
     const watercourseBaselinePayload = {
       payload: {

@@ -143,29 +143,53 @@ function comparableRef(ref) {
   return cleaned === '' ? null : cleaned
 }
 
+// The baseline layer a post-intervention feature of each type is joined to.
+const BASELINE_LAYER_BY_TYPE = new Map([
+  [AREA_HABITAT_TYPE, 'habitats'],
+  ['tree', 'trees'],
+  [HEDGEROW_TYPE, 'hedgerows'],
+  [WATERCOURSE_TYPE, 'watercourses']
+])
+
+// The values a post-intervention row's `baseline` snapshot copies from its
+// parcel, which tell parcels sharing a ref apart (as the backend's re-sync does).
+const SNAPSHOT_FIELDS = ['type', 'broadType', 'condition']
+
+function matchesSnapshot(candidate, snapshot) {
+  return SNAPSHOT_FIELDS.every(
+    (field) =>
+      !Object.hasOwn(candidate, field) || candidate[field] === snapshot?.[field]
+  )
+}
+
 /**
  * Resolve the baseline feature that corresponds to a post-intervention parcel
  * of a legacy project. Baseline and PI are separate uploads with independent
- * featureIds, so the only stable join key is the parcel ref. Returns null when no baseline has
- * been uploaded or no baseline feature shares the ref.
+ * featureIds, so the only stable join key is the parcel ref, matched within
+ * the feature's own layer: a hedgerow and an area habitat may share a ref.
+ * Where an import left several parcels on the ref, the one the row's baseline
+ * snapshot describes wins, else the first. Returns null when no baseline has
+ * been uploaded or no baseline feature in the layer shares the ref.
+ *
+ * @param {object} project
+ * @param {string} type the feature type from the PI feature endpoint
+ * @param {object} feature the post-intervention feature
+ * @returns {string|null}
  */
-function resolveBaselineFeatureId(project, ref) {
-  const wanted = comparableRef(ref)
-  if (wanted) {
-    const baseline = project?.project?.baseline
-    const candidates = [
-      ...(baseline?.habitats ?? []),
-      ...(baseline?.trees ?? []),
-      ...(baseline?.hedgerows ?? []),
-      ...(baseline?.watercourses ?? [])
-    ]
-    const match = candidates.find(
-      (feature) => comparableRef(feature.ref) === wanted
-    )
-    return match?.featureId ?? null
-  } else {
+function resolveBaselineFeatureId(project, type, feature) {
+  const wanted = comparableRef(feature.ref)
+  const layer = BASELINE_LAYER_BY_TYPE.get(type)
+  if (!wanted || !layer) {
     return null
   }
+  const candidates = (project?.project?.baseline?.[layer] ?? []).filter(
+    (candidate) => comparableRef(candidate.ref) === wanted
+  )
+  const described = candidates.filter((candidate) =>
+    matchesSnapshot(candidate, feature.baseline)
+  )
+  const match = described.length === 1 ? described[0] : candidates[0]
+  return match?.featureId ?? null
 }
 
 const BASELINE_LAYERS = ['habitats', 'trees', 'hedgerows', 'watercourses']
@@ -194,14 +218,14 @@ function isServiceTemplateProject(project) {
   return isServiceTemplateDocument(project?.project?.postIntervention)
 }
 
-function viewOnlyBaselineFeatureId(project, feature) {
+function viewOnlyBaselineFeatureId(project, type, feature) {
   if (isServiceTemplateProject(project)) {
     return parentBaselineFeatureId(project, feature)
   }
-  return resolveBaselineFeatureId(project, feature.ref)
+  return resolveBaselineFeatureId(project, type, feature)
 }
 
-function createdBaselineFeatureId(project, feature, type) {
+function createdBaselineFeatureId(project, type, feature) {
   if (
     isServiceTemplateProject(project) ||
     Object.hasOwn(feature, 'parentFeatureId')
@@ -209,7 +233,7 @@ function createdBaselineFeatureId(project, feature, type) {
     const layer = CREATED_EDIT_KINDS[type].savePath
     return parentBaselineFeatureId(project, feature, [layer])
   }
-  return resolveBaselineFeatureId(project, feature.ref)
+  return resolveBaselineFeatureId(project, type, feature)
 }
 
 /**
@@ -283,7 +307,7 @@ const getController = {
           ...buildCreatedHedgerowViewOnlyViewModel(feature, {
             projectId,
             projectName,
-            baselineFeatureId: createdBaselineFeatureId(project, feature, type)
+            baselineFeatureId: createdBaselineFeatureId(project, type, feature)
           }),
           backHref: postInterventionBackHref(projectId, type, returnUrl)
         })
@@ -293,7 +317,7 @@ const getController = {
         buildCreatedAreaEditViewModel(feature, reference, {
           projectId,
           projectName,
-          baselineFeatureId: createdBaselineFeatureId(project, feature, type),
+          baselineFeatureId: createdBaselineFeatureId(project, type, feature),
           returnUrl
         })
       )
@@ -307,7 +331,7 @@ const getController = {
       const viewModel = page.buildViewModel(featureWithIntervention, {
         projectId,
         projectName,
-        baselineFeatureId: viewOnlyBaselineFeatureId(project, feature)
+        baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature)
       })
       return h.view(page.template, {
         ...viewModel,
@@ -371,7 +395,7 @@ const postController = {
           {
             projectId,
             projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-            baselineFeatureId: createdBaselineFeatureId(project, feature, type),
+            baselineFeatureId: createdBaselineFeatureId(project, type, feature),
             returnUrl
           },
           values,

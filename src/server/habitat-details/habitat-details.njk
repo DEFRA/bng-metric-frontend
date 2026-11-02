@@ -2,6 +2,8 @@
 
 {% from "govuk/components/back-link/macro.njk" import govukBackLink %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
 {% from "govuk/components/select/macro.njk" import govukSelect %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 
@@ -13,115 +15,46 @@
   }) }}
 {% endblock %}
 
+{# Stacked "label above the data" layout (BMD-1061): each field is a bold
+   label with its value or form control underneath, matching the
+   post-intervention details pages (.app-stacked-fields). Only the units row
+   keeps label | value between top and bottom rules (.app-units-delivered).
+
+   The reference input, dropdowns and Save button live inside a single
+   appForm. Hidden inputs carry projectId and featureId; the macro injects the
+   crumb. The client JS reads referenceData below to update the
+   distinctiveness / trading-rule / condition values as the user changes
+   dropdowns, without mutating saved data.
+
+   The "Broad habitat" field only renders for area habitats; hedgerows and
+   watercourses have no broad habitat dimension. The size field swaps label +
+   value between "Size (hectares)" and "Length (km)" via the strategy view
+   model. #}
+{% macro stackedField(label, value, valueId) %}
+  <div class="app-stacked-fields__item">
+    <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ label }}</h3>
+    <p class="govuk-body">
+      {%- if valueId -%}
+        <span id="{{ valueId }}">{{ value }}</span>
+      {%- else -%}
+        {{ value }}
+      {%- endif -%}
+    </p>
+  </div>
+{% endmacro %}
+
 {% block content %}
+  {% if errors | length %}
+    {{ govukErrorSummary({
+      titleText: "There is a problem",
+      errorList: errors
+    }) }}
+  {% endif %}
+
   {{ appHeading({
     text: heading,
     caption: caption
   }) }}
-
-  {# Two-column layout (label left, value/field right) per Figma. Form fields
-     are embedded as `html` cells inside govukSummaryList so they share the
-     same row grid as the read-only rows. Each select's visible label is
-     hidden — the summary-list key column acts as the label — but the
-     accessible label text is preserved for screen readers via the
-     govuk-visually-hidden class.
-
-     The dropdowns + Save button live inside a single appForm. Hidden inputs
-     carry projectId and featureId; the macro injects the crumb. The client
-     Client JS reads referenceData below to update the
-     distinctiveness / trading-rule / condition cells as the user changes
-     dropdowns, without mutating saved data.
-
-     The "Broad habitat" row only renders for area habitats; hedgerows have
-     no broad habitat dimension. The size row swaps label + value between
-     "Area (hectares)" and "Length (km)" via the strategy view model. #}
-  {% if showBroadHabitatRow %}
-    {% set broadHabitatHtml %}
-      {{ govukSelect({
-        id: "broadHabitat",
-        name: "broadHabitat",
-        label: { text: "Broad habitat", classes: "govuk-visually-hidden" },
-        items: broadHabitatOptions,
-        formGroup: { classes: "govuk-!-margin-bottom-0" }
-      }) }}
-    {% endset %}
-  {% endif %}
-
-  {% set habitatTypeHtml %}
-    {{ govukSelect({
-      id: "habitatType",
-      name: "habitatType",
-      label: { text: "Habitat type", classes: "govuk-visually-hidden" },
-      items: habitatTypeOptions,
-      formGroup: { classes: "govuk-!-margin-bottom-0" }
-    }) }}
-  {% endset %}
-
-  {% set conditionHtml %}
-    {{ govukSelect({
-      id: "condition",
-      name: "condition",
-      label: { text: "Condition", classes: "govuk-visually-hidden" },
-      items: conditionOptions,
-      formGroup: { classes: "govuk-!-margin-bottom-0" }
-    }) }}
-  {% endset %}
-
-  {# Watercourse-only rows: the riparian/watercourse encroachment selections are
-     stored on the feature and editable. Their option lists are culvert-aware
-     (culverts show only "N/A - Culvert"; every other type excludes it), filtered
-     server-side on load and by the client JS on habitat-type change. Saving
-     persists the selections and recomputes units via the unified PUT (BMD-597).
-     Changing a value is display-only until Save, matching the condition/type
-     dropdowns. #}
-  {% if showWatercourseEncroachmentRows %}
-    {% set riparianEncroachmentHtml %}
-      {{ govukSelect({
-        id: "riparianEncroachment",
-        name: "riparianEncroachment",
-        label: { text: "Riparian encroachment", classes: "govuk-visually-hidden" },
-        items: riparianEncroachmentOptions,
-        formGroup: { classes: "govuk-!-margin-bottom-0" }
-      }) }}
-    {% endset %}
-    {% set watercourseEncroachmentHtml %}
-      {{ govukSelect({
-        id: "watercourseEncroachment",
-        name: "watercourseEncroachment",
-        label: { text: "Watercourse encroachment", classes: "govuk-visually-hidden" },
-        items: watercourseEncroachmentOptions,
-        formGroup: { classes: "govuk-!-margin-bottom-0" }
-      }) }}
-    {% endset %}
-  {% endif %}
-
-  {% set distinctivenessHtml %}
-    <span id="distinctivenessDisplay">{{ distinctivenessDisplay }}</span>
-  {% endset %}
-
-  {% set tradingRuleHtml %}
-    <span id="tradingRuleDisplay">{{ tradingRule }}</span>
-  {% endset %}
-
-  {% set summaryRows = [
-    { key: { text: "Reference" }, value: { text: habitatRef } },
-    { key: { text: sizeLabel }, value: { text: sizeDisplay } }
-  ] %}
-
-  {% if showBroadHabitatRow %}
-    {% set summaryRows = (summaryRows.push({ key: { text: "Broad habitat" }, value: { html: broadHabitatHtml } }), summaryRows) %}
-  {% endif %}
-
-  {% set summaryRows = (summaryRows.push({ key: { text: "Habitat type" }, value: { html: habitatTypeHtml } }), summaryRows) %}
-  {% set summaryRows = (summaryRows.push({ key: { text: "Distinctiveness" }, value: { html: distinctivenessHtml } }), summaryRows) %}
-  {% set summaryRows = (summaryRows.push({ key: { text: "Condition" }, value: { html: conditionHtml } }), summaryRows) %}
-  {% if showWatercourseEncroachmentRows %}
-    {% set summaryRows = (summaryRows.push({ key: { text: "Watercourse encroachment" }, value: { html: watercourseEncroachmentHtml } }), summaryRows) %}
-    {% set summaryRows = (summaryRows.push({ key: { text: "Riparian encroachment" }, value: { html: riparianEncroachmentHtml } }), summaryRows) %}
-  {% endif %}
-  {% set summaryRows = (summaryRows.push({ key: { text: "Strategic Significance" }, value: { text: strategicSignificanceDisplay } }), summaryRows) %}
-  {% set summaryRows = (summaryRows.push({ key: { text: "Required action to meet trading rules" }, value: { html: tradingRuleHtml } }), summaryRows) %}
-  {% set summaryRows = (summaryRows.push({ key: { text: "Units in this habitat" }, value: { text: habitatUnitsDisplay } }), summaryRows) %}
 
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
@@ -133,10 +66,90 @@
       }) %}
         <input type="hidden" name="projectId" value="{{ projectId }}">
         <input type="hidden" name="featureId" value="{{ featureId }}">
+        <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
 
         <script type="application/json" id="bhd-reference-data">{{ referenceJson | safe }}</script>
 
-        {{ govukSummaryList({ rows: summaryRows }) }}
+        <div class="app-stacked-fields">
+          {{ govukInput({
+            id: "habitatRef",
+            name: "habitatRef",
+            label: { text: "Habitat reference", classes: "govuk-label--s" },
+            value: habitatRefValue,
+            classes: "govuk-input--width-20",
+            spellcheck: false,
+            attributes: { maxlength: maxHabitatRefLength },
+            errorMessage: habitatRefError,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+
+          {{ stackedField(sizeLabel, sizeDisplay) }}
+
+          {% if showBroadHabitatRow %}
+            {{ govukSelect({
+              id: "broadHabitat",
+              name: "broadHabitat",
+              label: { text: "Broad habitat", classes: "govuk-label--s" },
+              items: broadHabitatOptions,
+              formGroup: { classes: "app-stacked-fields__item" }
+            }) }}
+          {% endif %}
+
+          {{ govukSelect({
+            id: "habitatType",
+            name: "habitatType",
+            label: { text: "Habitat type", classes: "govuk-label--s" },
+            items: habitatTypeOptions,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+
+          {{ stackedField("Distinctiveness", distinctivenessDisplay, "distinctivenessDisplay") }}
+
+          {{ govukSelect({
+            id: "condition",
+            name: "condition",
+            label: { text: "Condition", classes: "govuk-label--s" },
+            items: conditionOptions,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+
+          {# Watercourse-only fields: the riparian/watercourse encroachment
+             selections are stored on the feature and editable. Their option
+             lists are culvert-aware (culverts show only "N/A - Culvert"; every
+             other type excludes it), filtered server-side on load and by the
+             client JS on habitat-type change. Saving persists the selections
+             and recomputes units via the unified PUT (BMD-597). #}
+          {% if showWatercourseEncroachmentRows %}
+            {{ govukSelect({
+              id: "watercourseEncroachment",
+              name: "watercourseEncroachment",
+              label: { text: "Watercourse encroachment", classes: "govuk-label--s" },
+              items: watercourseEncroachmentOptions,
+              formGroup: { classes: "app-stacked-fields__item" }
+            }) }}
+            {{ govukSelect({
+              id: "riparianEncroachment",
+              name: "riparianEncroachment",
+              label: { text: "Riparian encroachment", classes: "govuk-label--s" },
+              items: riparianEncroachmentOptions,
+              formGroup: { classes: "app-stacked-fields__item" }
+            }) }}
+          {% endif %}
+
+          {{ stackedField("Strategic significance", strategicSignificanceDisplay) }}
+
+          {{ stackedField("Required action to meet trading rules", tradingRule, "tradingRuleDisplay") }}
+        </div>
+
+        {{ govukSummaryList({
+          classes: "app-units-delivered govuk-!-margin-top-6",
+          rows: [
+            {
+              key: { text: "Units in this habitat" },
+              value: { text: habitatUnitsDisplay }
+            }
+          ]
+        }) }}
 
         <div class="govuk-button-group">
           {{ govukButton({

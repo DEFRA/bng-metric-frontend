@@ -226,6 +226,35 @@ test('keeps Created hedgerows viewable until the backend reference endpoint is d
   expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
 })
 
+test('keeps the baseline link on the Created hedgerow rollout fallback', async () => {
+  mockFeature(
+    {
+      type: 'hedgerow',
+      feature: { ...feature, parentFeatureId: baselineFeatureId }
+    },
+    {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: { hedgerows: [{ featureId: baselineFeatureId }] }
+        }
+      }
+    }
+  )
+  const get = vi.mocked(wreck.get).getMockImplementation()
+  vi.mocked(wreck.get).mockImplementation((url) =>
+    url.endsWith('/reference/hedgerow-creation')
+      ? Promise.reject(Boom.notFound())
+      : get(url)
+  )
+  const h = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, h)
+  expect(h.view.mock.calls[0][0]).toBe(
+    'habitat-details/pi-hedgerow-details-enhanced'
+  )
+  expect(JSON.stringify(h.view.mock.calls[0][1])).toContain(baselineFeatureId)
+})
+
 test('does not hide genuine backend failures as a rollout fallback', async () => {
   vi.mocked(wreck.get).mockRejectedValue(Boom.serverUnavailable())
   await expect(
