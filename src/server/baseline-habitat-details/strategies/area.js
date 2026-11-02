@@ -7,6 +7,7 @@ import {
   formatHabitatUnits
 } from '../../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../../common/helpers/strip-condition-prefix.js'
+import { buildConditionItems, buildSelectItems } from './select-items.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -78,18 +79,6 @@ async function loadReference(habitat) {
   }
 }
 
-function buildSelectItems(values, selectedValue, defaultText) {
-  const items = [{ value: '', text: defaultText, selected: !selectedValue }]
-  for (const value of values) {
-    items.push({
-      value,
-      text: value,
-      selected: value === selectedValue
-    })
-  }
-  return items
-}
-
 function buildViewModel(habitat, reference, { projectId, projectName }) {
   // Habitat units are computed and persisted by the backend's enrichment step
   // (BMD-426 / bng-metric-engine). When the value is absent the display falls
@@ -128,14 +117,7 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
       habitat.type,
       'Choose habitat type'
     ),
-    conditionOptions: [
-      { value: '', text: 'Choose condition', selected: !savedCondition },
-      ...reference.conditions.map((c) => ({
-        value: c.condition,
-        text: `${c.condition} (${c.score})`,
-        selected: c.condition === savedCondition
-      }))
-    ],
+    conditionOptions: buildConditionItems(reference.conditions, savedCondition),
     referenceJson: JSON.stringify({
       featureType: 'area',
       habitatTypes: reference.habitatTypes,
