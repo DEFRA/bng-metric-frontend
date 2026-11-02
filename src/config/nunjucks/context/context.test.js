@@ -1,3 +1,5 @@
+import { config } from '../../config.js'
+
 const mockReadFileSync = vi.fn()
 const mockLoggerError = vi.fn()
 
@@ -12,6 +14,10 @@ vi.mock('node:fs', async () => {
 vi.mock('../../../server/common/helpers/logging/logger.js', () => ({
   createLogger: () => ({ error: (...args) => mockLoggerError(...args) })
 }))
+
+// CI runs the suite with the service-template flag both on and off, so
+// expect whatever the config reads from SERVICE_TEMPLATE_ENABLED.
+const serviceTemplateEnabled = config.get('serviceTemplate.enabled')
 
 describe('context and cache', () => {
   beforeEach(() => {
@@ -62,7 +68,7 @@ describe('context and cache', () => {
             ),
             script: expect.stringContaining('GTM-K5LRK3HR')
           },
-          serviceTemplate: { enabled: false },
+          serviceTemplate: { enabled: serviceTemplateEnabled },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
@@ -157,7 +163,7 @@ describe('context and cache', () => {
             ),
             script: expect.stringContaining('GTM-K5LRK3HR')
           },
-          serviceTemplate: { enabled: false },
+          serviceTemplate: { enabled: serviceTemplateEnabled },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
