@@ -397,24 +397,22 @@ export async function saveHabitat(request, path, body, featureId) {
   }
 }
 
+const habitatDetailsPayload = Joi.object({
+  projectId: Joi.string().uuid().required(),
+  featureId: Joi.string().uuid().required(),
+  habitatRef: Joi.string().allow('').optional(),
+  broadHabitat: Joi.string().allow('').optional(),
+  habitatType: Joi.string().allow('').optional(),
+  condition: Joi.string().allow('').optional(),
+  watercourseEncroachment: Joi.string().allow('').optional(),
+  riparianEncroachment: Joi.string().allow('').optional(),
+  returnUrl: Joi.string().allow('').optional(),
+  crumb: Joi.string().optional()
+})
+
 function createPostController(uploadType) {
   return {
-    options: {
-      validate: {
-        payload: Joi.object({
-          projectId: Joi.string().uuid().required(),
-          featureId: Joi.string().uuid().required(),
-          habitatRef: Joi.string().allow('').optional(),
-          broadHabitat: Joi.string().allow('').optional(),
-          habitatType: Joi.string().allow('').optional(),
-          condition: Joi.string().allow('').optional(),
-          watercourseEncroachment: Joi.string().allow('').optional(),
-          riparianEncroachment: Joi.string().allow('').optional(),
-          returnUrl: Joi.string().allow('').optional(),
-          crumb: Joi.string().optional()
-        })
-      }
-    },
+    options: { validate: { payload: habitatDetailsPayload } },
     async handler(request, h) {
       const {
         projectId,
