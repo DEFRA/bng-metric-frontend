@@ -1,3 +1,5 @@
+import { config } from '../../config.js'
+
 const mockReadFileSync = vi.fn()
 const mockLoggerError = vi.fn()
 
@@ -13,9 +15,9 @@ vi.mock('../../../server/common/helpers/logging/logger.js', () => ({
   createLogger: () => ({ error: (...args) => mockLoggerError(...args) })
 }))
 
-// The flag follows SERVICE_TEMPLATE_ENABLED, and CI runs the suite with it
-// both on and off.
-const serviceTemplateEnabled = process.env.SERVICE_TEMPLATE_ENABLED === 'true'
+// CI runs the suite with the service-template flag both on and off, so
+// expect whatever the config reads from SERVICE_TEMPLATE_ENABLED.
+const serviceTemplateEnabled = config.get('serviceTemplate.enabled')
 
 describe('context and cache', () => {
   beforeEach(() => {

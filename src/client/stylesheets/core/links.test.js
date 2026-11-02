@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { compile, NodePackageImporter } from 'sass-embedded'
+import { compileAsync, NodePackageImporter } from 'sass-embedded'
 
 // BMD-983: visited links must not change appearance site-wide. This can only
 // be guarded at the stylesheet level — Playwright's bundled Chromium never
@@ -200,8 +200,10 @@ function resolveVisitedColor(rules, el) {
 describe('BMD-983 visited-link stylesheet', () => {
   let rules
 
-  beforeAll(() => {
-    const { css } = compile(join(thisDir, '_links.scss'), {
+  // The async compiler: the synchronous one has failed in CI with a
+  // corrupt message from its Dart Sass subprocess ("Invalid protobuf").
+  beforeAll(async () => {
+    const { css } = await compileAsync(join(thisDir, '_links.scss'), {
       loadPaths: [
         join(repoRoot, 'src/client/stylesheets'),
         join(repoRoot, 'src/server/common/components'),
