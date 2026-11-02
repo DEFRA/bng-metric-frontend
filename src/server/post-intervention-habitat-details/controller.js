@@ -331,7 +331,6 @@ const postController = {
     validate: {
       payload: Joi.alternatives().try(
         createdAreaPayloadSchema,
-        CREATED_EDIT_KINDS,
         createdHedgerowPayloadSchema
       )
     }

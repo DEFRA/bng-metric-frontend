@@ -457,6 +457,28 @@ describe('Created area authenticated form', () => {
     ).toBe(false)
   })
 
+  test.each([
+    {},
+    { hedgerow: { loadReference: 'x' } },
+    { habitat: { buildBase: {} } }
+  ])(
+    'rejects malformed protected submissions without backend requests: %j',
+    async (fields) => {
+      const { token, cookie } = await primeCrumb(server)
+      vi.mocked(wreck.get).mockClear()
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...fields, crumb: token }
+      })
+      expect(response.statusCode).toBe(400)
+      expect(wreck.get).not.toHaveBeenCalled()
+      expect(wreck.put).not.toHaveBeenCalled()
+    }
+  )
+
   test('rejects submission without a CSRF token', async () => {
     const response = await server.inject({
       method: 'POST',
