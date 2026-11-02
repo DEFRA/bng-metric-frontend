@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { createServer } from '../server.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
@@ -204,4 +205,79 @@ test('retains a non-template hedgerow parent link on GET and validation redispla
       `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
     )
   }
+})
+
+test('keeps Created hedgerows viewable until the backend reference endpoint is deployed', async () => {
+  const get = vi.mocked(wreck.get).getMockImplementation()
+  vi.mocked(wreck.get).mockImplementation((url) =>
+    url.endsWith('/reference/hedgerow-creation')
+      ? Promise.reject(Boom.notFound())
+      : get(url)
+  )
+  const h = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, h)
+  expect(h.view).toHaveBeenCalledWith(
+    'habitat-details/pi-hedgerow-details-enhanced',
+    expect.objectContaining({
+      heading: 'H-1',
+      backHref: `/projects/${projectId}/hedgerows-post-intervention`
+    })
+  )
+  expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
+})
+
+test('does not hide genuine backend failures as a rollout fallback', async () => {
+  vi.mocked(wreck.get).mockRejectedValue(Boom.serverUnavailable())
+  await expect(
+    getController.handler({ query: { projectId, featureId } }, createMockH())
+  ).rejects.toThrow()
+})
+
+test.each([2.5, 31])(
+  'preserves imported timing %s on a reference-only save, and clears it only explicitly',
+  async (advanceYears) => {
+    mockFeature({
+      type: 'hedgerow',
+      feature: { ...feature, proposed: { ...feature.proposed, advanceYears } }
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.values.advanceYears).toBe('unchanged')
+    expect(vm.fields.advanceYears.items).toContainEqual(
+      expect.objectContaining({
+        value: 'unchanged',
+        selected: true,
+        text: `${advanceYears} (imported value)`
+      })
+    )
+    await postController.handler(
+      request({ ref: 'Renamed hedge', advanceYears: 'unchanged' }),
+      h
+    )
+    const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
+    expect(payload.ref).toBe('Renamed hedge')
+    expect(payload).not.toHaveProperty('advanceYears')
+    await postController.handler(request({ advanceYears: '' }), h)
+    expect(
+      JSON.parse(wreck.put.mock.calls[1][1].payload).advanceYears
+    ).toBeNull()
+  }
+)
+
+test('validates conflicting timing after resolving an unchanged imported fraction', async () => {
+  mockFeature({
+    type: 'hedgerow',
+    feature: {
+      ...feature,
+      proposed: { ...feature.proposed, advanceYears: 0.5 }
+    }
+  })
+  const h = createMockH()
+  await postController.handler(
+    request({ advanceYears: 'unchanged', delayYears: '1' }),
+    h
+  )
+  expect(h.view.mock.calls[0][1].errors.advanceYears).toBeDefined()
+  expect(wreck.put).not.toHaveBeenCalled()
 })

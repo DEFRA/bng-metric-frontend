@@ -4,6 +4,8 @@ import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
+  UNCHANGED_YEAR,
+  resolveCreatedTiming,
   createdAreaDerived,
   selectedHabitat,
   YEAR_OPTIONS
@@ -55,10 +57,34 @@ export const createdAreaPayloadSchema = Joi.object({
   crumb: Joi.string().optional()
 })
 
-export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
-  'broadHabitat',
-  (schema) => schema.forbidden()
-)
+export const createdHedgerowPayloadSchema = createdAreaPayloadSchema
+  .fork('broadHabitat', (schema) => schema.forbidden())
+  .fork(['advanceYears', 'delayYears'], (schema) =>
+    schema.valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
+  )
+
+export function createdReferenceForFeature(reference, feature) {
+  if (reference.featureType !== 'hedgerow') {
+    return reference
+  }
+  const saved = createdAreaValues(feature)
+  const importedYears = Object.fromEntries(
+    ['advanceYears', 'delayYears']
+      .filter(
+        (field) => saved[field] !== '' && !YEAR_OPTIONS.includes(saved[field])
+      )
+      .map((field) => [field, saved[field]])
+  )
+  return { ...reference, importedYears }
+}
+
+function createdEditValues(feature, reference) {
+  const saved = createdAreaValues(feature)
+  for (const field of Object.keys(reference.importedYears ?? {})) {
+    saved[field] = UNCHANGED_YEAR
+  }
+  return saved
+}
 
 const referencePromises = new Map()
 
@@ -139,9 +165,15 @@ function validateReference(ref, errors) {
 export function validateCreatedArea(values, reference) {
   const errors = {}
   validateReference(values.ref, errors)
+  const timing = resolveCreatedTiming(values, reference)
+  for (const field of ['advanceYears', 'delayYears']) {
+    if (values[field] === UNCHANGED_YEAR && !reference.importedYears?.[field]) {
+      errors[field] = 'Choose a valid advance or delay value'
+    }
+  }
   if (
-    Number.parseInt(values.advanceYears) > 0 &&
-    Number.parseInt(values.delayYears) > 0
+    Number.parseFloat(timing.advanceYears) > 0 &&
+    Number.parseFloat(timing.delayYears) > 0
   ) {
     errors.advanceYears =
       'Either the advance or delay field must be set at zero.'
@@ -272,23 +304,32 @@ function createdAreaFields(reference, values, type, initialLoad) {
     .filter(
       ([id]) => id !== 'broadHabitat' || reference.featureType !== 'hedgerow'
     )
-    .map(([id, label, items]) => ({
-      id,
-      label,
-      hint: choiceHint(id, items, values[id], initialLoad),
-      items: selectItems(
-        items,
-        values[id],
-        placeholders[id] ?? label.toLowerCase()
-      )
-    }))
+    .map(([id, label, items]) => {
+      const imported = reference.importedYears?.[id]
+      if (imported !== undefined) {
+        items = [
+          ...items,
+          { value: UNCHANGED_YEAR, text: `${imported} (imported value)` }
+        ]
+      }
+      return {
+        id,
+        label,
+        hint:
+          imported !== undefined
+            ? `The imported value is ${imported}. Keep it unchanged, choose a new value, or choose the default option to clear it.`
+            : choiceHint(id, items, values[id], initialLoad),
+        items: selectItems(
+          items,
+          values[id],
+          placeholders[id] ?? label.toLowerCase()
+        )
+      }
+    })
 }
 
 function createdAreaDisplayFields(feature, reference, values, base) {
-  const baseline =
-    reference.featureType === 'hedgerow'
-      ? ''
-      : stripConditionPrefix(feature.baseline?.condition)
+  const baseline = stripConditionPrefix(feature.baseline?.condition)
   const baselineCondition = typeof baseline === 'string' ? baseline : ''
   const originalDerived = createdAreaDerived(
     reference,
@@ -309,7 +350,7 @@ function createdAreaDisplayFields(feature, reference, values, base) {
 }
 
 function editFieldsWithImportHints(feature, reference, values) {
-  const originalValues = createdAreaValues(feature)
+  const originalValues = createdEditValues(feature, reference)
   const originalFields = new Map(
     createdAreaFields(
       reference,
@@ -352,12 +393,13 @@ export function buildCreatedAreaEditViewModel(
   values = null,
   errors = {}
 ) {
+  reference = createdReferenceForFeature(reference, feature)
   const isHedgerow = reference.featureType === 'hedgerow'
   const base = isHedgerow
     ? buildCreatedHedgerowViewOnlyViewModel(feature, ctx)
     : buildCreatedAreaViewOnlyViewModel(feature, ctx)
   const initialLoad = values === null
-  values ??= createdAreaValues(feature)
+  values ??= createdEditValues(feature, reference)
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
     feature,
     reference,
@@ -409,6 +451,12 @@ export function buildCreatedAreaEditViewModel(
   }
 }
 
+function timingPayload(values, field) {
+  return values[field] === UNCHANGED_YEAR
+    ? {}
+    : { [field]: values[field] === '' ? null : values[field] }
+}
+
 function createdAreaSavePayload(values, isHedgerow) {
   return {
     ref: values.ref.trim(),
@@ -416,8 +464,8 @@ function createdAreaSavePayload(values, isHedgerow) {
     habitatType: values.habitatType || null,
     condition: values.condition || null,
     strategicSignificance: values.strategicSignificance || null,
-    advanceYears: values.advanceYears === '' ? null : values.advanceYears,
-    delayYears: values.delayYears === '' ? null : values.delayYears
+    ...timingPayload(values, 'advanceYears'),
+    ...timingPayload(values, 'delayYears')
   }
 }
 

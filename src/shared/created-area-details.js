@@ -1,10 +1,22 @@
 // Shared by the server render and browser preview. Units are only recalculated
 // by the backend on Save, using the metric engine.
+export const UNCHANGED_YEAR = 'unchanged'
 export const MAX_YEARS = 30
 export const YEAR_OPTIONS = [
   ...Array.from({ length: MAX_YEARS + 1 }, (_, year) => String(year)),
   '30+'
 ]
+
+export function resolveCreatedTiming(values, reference) {
+  return Object.fromEntries(
+    ['advanceYears', 'delayYears'].map((field) => [
+      field,
+      values[field] === UNCHANGED_YEAR
+        ? (reference.importedYears?.[field] ?? '')
+        : values[field]
+    ])
+  )
+}
 
 export function selectedHabitat(reference, values) {
   return reference.habitatTypes.find(

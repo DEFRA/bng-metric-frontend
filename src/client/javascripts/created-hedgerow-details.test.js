@@ -154,7 +154,7 @@ test.each([false, true])(
   }
 )
 
-test('warns before an unavailable imported fractional timing is cleared on save', () => {
+test('preserves imported timing until a replacement or explicit clear is selected', () => {
   const imported = {
     ...feature,
     proposed: { ...feature.proposed, advanceYears: 2.5 }
@@ -167,16 +167,41 @@ test('warns before an unavailable imported fractional timing is cleared on save'
     }
   )
   initCreatedAreaDetails()
-  expect(value('advanceYears')).toBe('')
-  expect(text('advanceYears-hint')).toContain('2.5')
-  expect(text('advanceYears-hint')).toContain(
-    'saving without a new selection will clear this value'
-  )
+  expect(value('advanceYears')).toBe('unchanged')
+  expect(text('advanceYears-hint')).toContain('Keep it unchanged')
   change('ref', 'Renamed hedge')
-  expect(text('advanceYears-hint')).toContain(
-    'saving without a new selection will clear this value'
+  expect(value('advanceYears')).toBe('unchanged')
+  change('advanceYears', '')
+  expect(value('advanceYears')).toBe('')
+  expect(text('finalTimeToTargetDisplay')).toBe('')
+  change('advanceYears', '2')
+  expect(value('advanceYears')).toBe('2')
+})
+
+test('keeps baseline transition wording consistent through condition edits and validation redisplay', () => {
+  const imported = {
+    ...feature,
+    baseline: { condition: '3. Moderate' },
+    proposed: { ...feature.proposed, standardTimeToTargetCondition: '7' }
+  }
+  const values = createdAreaValues(imported)
+  renderTemplateIntoDocument(
+    'habitat-details/pi-habitat-details-created-edit.njk',
+    {
+      ...buildCreatedAreaEditViewModel(
+        imported,
+        reference,
+        ctx,
+        { ...values, ref: '' },
+        { ref: 'Enter a valid habitat reference.' }
+      ),
+      crumb: 'test-token'
+    }
   )
-  expect(
-    document.getElementById('advanceYears').getAttribute('aria-describedby')
-  ).toContain('advanceYears-hint')
+  initCreatedAreaDetails()
+  expect(text('standardTimeToTargetDisplay')).toBe('Moderate to Good - 7 years')
+  change('condition', 'Poor')
+  expect(text('standardTimeToTargetDisplay')).toBe('Moderate to Poor - 1 years')
+  change('condition', 'Good')
+  expect(text('standardTimeToTargetDisplay')).toBe('Moderate to Good - 7 years')
 })
