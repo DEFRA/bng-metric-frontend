@@ -600,3 +600,12 @@ describe('Created area reference cache', () => {
     expect(wreck.get).toHaveBeenCalledTimes(2)
   })
 })
+
+test.each([undefined, 'area', 'unknown', '__proto__'])(
+  'rejects an unknown Created reference kind instead of treating it as an area: %s',
+  (featureType) => {
+    expect(() =>
+      validateCreatedArea(values, { ...creationReference, featureType })
+    ).toThrow('Unsupported Created feature type:')
+  }
+)

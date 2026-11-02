@@ -293,7 +293,6 @@ const getController = {
         buildCreatedAreaEditViewModel(feature, reference, {
           projectId,
           projectName,
-          kind: CREATED_EDIT_KINDS[type],
           baselineFeatureId: createdBaselineFeatureId(project, feature, type),
           returnUrl
         })
@@ -372,7 +371,6 @@ const postController = {
           {
             projectId,
             projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-            kind: CREATED_EDIT_KINDS[type],
             baselineFeatureId: createdBaselineFeatureId(project, feature, type),
             returnUrl
           },

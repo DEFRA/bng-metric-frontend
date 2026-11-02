@@ -45,7 +45,12 @@ export const CREATED_EDIT_KINDS = {
 }
 
 function createdKind(reference) {
-  return CREATED_EDIT_KINDS[reference.featureType] ?? CREATED_EDIT_KINDS.habitat
+  if (!Object.hasOwn(CREATED_EDIT_KINDS, reference.featureType)) {
+    throw new Error(
+      `Unsupported Created feature type: ${reference.featureType}`
+    )
+  }
+  return CREATED_EDIT_KINDS[reference.featureType]
 }
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
@@ -118,19 +123,19 @@ function createdEditValues(feature, reference) {
 const referencePromises = new Map()
 
 export function loadCreatedAreaReference() {
-  return loadCreationReference('area')
+  return loadCreationReference('habitat', 'area')
 }
 
 export function loadCreatedHedgerowReference() {
   return loadCreationReference('hedgerow')
 }
 
-async function loadCreationReference(kind) {
+async function loadCreationReference(kind, referenceName = kind) {
   if (!referencePromises.has(kind)) {
     referencePromises.set(
       kind,
       wreck
-        .get(`${backendUrl}/reference/${kind}-creation`)
+        .get(`${backendUrl}/reference/${referenceName}-creation`)
         .then(({ res, payload }) => {
           if (
             res?.statusCode >= statusCodes.badRequest ||
@@ -138,7 +143,9 @@ async function loadCreationReference(kind) {
             !Array.isArray(payload?.strategicSignificance) ||
             !payload?.timeMultipliers
           ) {
-            throw new Error(`Invalid ${kind} creation reference response`)
+            throw new Error(
+              `Invalid ${referenceName} creation reference response`
+            )
           }
           return {
             ...structuredClone(payload),
@@ -426,7 +433,7 @@ export function buildCreatedAreaEditViewModel(
   errors = {}
 ) {
   reference = createdReferenceForFeature(reference, feature)
-  const kind = ctx.kind ?? createdKind(reference)
+  const kind = createdKind(reference)
   const base = kind.buildBase(feature, ctx)
   const initialLoad = values === null
   values ??= createdEditValues(feature, reference)

@@ -205,3 +205,20 @@ test('keeps baseline transition wording consistent through condition edits and v
   change('condition', 'Good')
   expect(text('standardTimeToTargetDisplay')).toBe('Moderate to Good - 7 years')
 })
+
+test('a stale unchanged delay has an inline timing error and accessible summary link', async () => {
+  const values = { ...createdAreaValues(feature), delayYears: 'unchanged' }
+  const errors = validateCreatedArea(values, reference)
+  expect(errors.delayYears).toBe('Choose a valid advance or delay value')
+  expect(errors.advanceYears).toBeUndefined()
+  render(values, errors)
+  expect(
+    document.querySelector('.govuk-error-summary__list a').getAttribute('href')
+  ).toBe('#delayYears')
+  expect(text('timing-error')).toContain(errors.delayYears)
+  const delay = document.getElementById('delayYears')
+  expect(delay.getAttribute('aria-describedby')).toContain('timing-error')
+  expect(delay.classList.contains('govuk-select--error')).toBe(true)
+  expect(delay.closest('.govuk-form-group--error')).not.toBeNull()
+  await runAxeChecks(document.documentElement)
+})

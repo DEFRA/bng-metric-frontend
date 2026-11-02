@@ -1,5 +1,5 @@
 export const creationReference = {
-  featureType: 'area',
+  featureType: 'habitat',
   hasBroadHabitat: true,
   habitatTypes: [
     {
