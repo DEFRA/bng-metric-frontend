@@ -21,6 +21,33 @@ import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 
+export const CREATED_EDIT_KINDS = {
+  habitat: {
+    loadReference: loadCreatedAreaReference,
+    buildBase: buildCreatedAreaViewOnlyViewModel,
+    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
+    sizeLabel: 'Size (hectares)',
+    backType: 'habitat',
+    savePath: 'habitats',
+    hasBroadHabitat: true,
+    habitatTypeError: 'Choose a habitat type for the selected broad habitat'
+  },
+  hedgerow: {
+    loadReference: loadCreatedHedgerowReference,
+    buildBase: buildCreatedHedgerowViewOnlyViewModel,
+    formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
+    sizeLabel: 'Length (km)',
+    backType: 'hedgerow',
+    savePath: 'hedgerows',
+    hasBroadHabitat: false,
+    habitatTypeError: 'Choose a valid hedgerow habitat type'
+  }
+}
+
+function createdKind(reference) {
+  return CREATED_EDIT_KINDS[reference.featureType] ?? CREATED_EDIT_KINDS.habitat
+}
+
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 const FIELD_ORDER = [
   'ref',
@@ -64,7 +91,9 @@ export const createdHedgerowPayloadSchema = createdAreaPayloadSchema
   )
 
 export function createdReferenceForFeature(reference, feature) {
-  if (reference.featureType !== 'hedgerow') {
+  const kind = createdKind(reference)
+  reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
+  if (kind.hasBroadHabitat) {
     return reference
   }
   const saved = createdAreaValues(feature)
@@ -111,7 +140,11 @@ async function loadCreationReference(kind) {
           ) {
             throw new Error(`Invalid ${kind} creation reference response`)
           }
-          return { ...structuredClone(payload), featureType: kind }
+          return {
+            ...structuredClone(payload),
+            featureType: kind,
+            hasBroadHabitat: createdKind({ featureType: kind }).hasBroadHabitat
+          }
         })
         .catch((error) => {
           referencePromises.delete(kind)
@@ -162,9 +195,7 @@ function validateReference(ref, errors) {
   }
 }
 
-export function validateCreatedArea(values, reference) {
-  const errors = {}
-  validateReference(values.ref, errors)
+function validateCreatedTiming(values, reference, errors) {
   const timing = resolveCreatedTiming(values, reference)
   for (const field of ['advanceYears', 'delayYears']) {
     if (values[field] === UNCHANGED_YEAR && !reference.importedYears?.[field]) {
@@ -179,19 +210,22 @@ export function validateCreatedArea(values, reference) {
       'Either the advance or delay field must be set at zero.'
     errors.delayYears = errors.advanceYears
   }
+}
+
+export function validateCreatedArea(values, reference) {
+  const errors = {}
+  validateReference(values.ref, errors)
+  validateCreatedTiming(values, reference, errors)
+  const kind = createdKind(reference)
   const type = selectedHabitat(reference, values)
   const choices = {
-    ...(reference.featureType === 'hedgerow'
+    ...(!kind.hasBroadHabitat
       ? {}
       : {
           broadHabitat: [...new Set(reference.habitatTypes.map((t) => t.broad))]
         }),
     habitatType: reference.habitatTypes
-      .filter(
-        (t) =>
-          reference.featureType === 'hedgerow' ||
-          t.broad === values.broadHabitat
-      )
+      .filter((t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat)
       .map((t) => t.name),
     condition: (type?.conditions ?? []).map((c) => c.condition),
     strategicSignificance: reference.strategicSignificance.map((s) => s.value)
@@ -200,10 +234,7 @@ export function validateCreatedArea(values, reference) {
     if (values[field] && !options.includes(values[field])) {
       const messages = {
         broadHabitat: 'Choose a valid broad habitat',
-        habitatType:
-          reference.featureType === 'hedgerow'
-            ? 'Choose a valid hedgerow habitat type'
-            : 'Choose a habitat type for the selected broad habitat',
+        habitatType: kind.habitatTypeError,
         condition: 'Choose a target condition for the selected habitat type',
         strategicSignificance: 'Choose a valid strategic significance'
       }
@@ -242,9 +273,9 @@ function choiceHint(id, items, value, initialLoad) {
   return hints.join(' ') || null
 }
 
-function createdAreaFields(reference, values, type, initialLoad) {
+function createdFieldChoices(reference, values, type, kind) {
   const options = (list) => list.map((value) => ({ value, text: value }))
-  const fields = [
+  return [
     [
       'broadHabitat',
       'Broad habitat',
@@ -260,9 +291,7 @@ function createdAreaFields(reference, values, type, initialLoad) {
       options(
         reference.habitatTypes
           .filter(
-            (t) =>
-              reference.featureType === 'hedgerow' ||
-              t.broad === values.broadHabitat
+            (t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat
           )
           .map((t) => t.name)
       )
@@ -294,6 +323,11 @@ function createdAreaFields(reference, values, type, initialLoad) {
       options(YEAR_OPTIONS)
     ]
   ]
+}
+
+function createdAreaFields(reference, values, type, initialLoad) {
+  const kind = createdKind(reference)
+  const fields = createdFieldChoices(reference, values, type, kind)
   const placeholders = {
     advanceYears: 'advance',
     delayYears: 'delay',
@@ -301,9 +335,7 @@ function createdAreaFields(reference, values, type, initialLoad) {
     strategicSignificance: 'strategic significance'
   }
   return fields
-    .filter(
-      ([id]) => id !== 'broadHabitat' || reference.featureType !== 'hedgerow'
-    )
+    .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
     .map(([id, label, items]) => {
       const imported = reference.importedYears?.[id]
       if (imported !== undefined) {
@@ -394,10 +426,8 @@ export function buildCreatedAreaEditViewModel(
   errors = {}
 ) {
   reference = createdReferenceForFeature(reference, feature)
-  const isHedgerow = reference.featureType === 'hedgerow'
-  const base = isHedgerow
-    ? buildCreatedHedgerowViewOnlyViewModel(feature, ctx)
-    : buildCreatedAreaViewOnlyViewModel(feature, ctx)
+  const kind = ctx.kind ?? createdKind(reference)
+  const base = kind.buildBase(feature, ctx)
   const initialLoad = values === null
   values ??= createdEditValues(feature, reference)
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
@@ -408,16 +438,14 @@ export function buildCreatedAreaEditViewModel(
   )
   const backHref = postInterventionBackHref(
     ctx.projectId,
-    isHedgerow ? 'hedgerow' : 'habitat',
+    kind.backType,
     ctx.returnUrl
   )
   return {
     ...base,
     ...derived,
-    sizeDisplay: isHedgerow
-      ? formatLengthDisplay(feature.sizeMetres)
-      : formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: isHedgerow ? 'Length (km)' : 'Size (hectares)',
+    sizeDisplay: kind.formatSize(feature),
+    sizeLabel: kind.sizeLabel,
     pageTitle: `${Object.keys(errors).length ? 'Error: ' : ''}${base.pageTitle}`,
     projectId: ctx.projectId,
     featureId: feature.featureId,
@@ -458,10 +486,10 @@ function timingPayload(values, field) {
   return { [field]: values[field] === '' ? null : values[field] }
 }
 
-function createdAreaSavePayload(values, isHedgerow) {
+function createdAreaSavePayload(values, kind) {
   return {
     ref: values.ref.trim(),
-    ...(isHedgerow ? {} : { broadType: values.broadHabitat || null }),
+    ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
     habitatType: values.habitatType || null,
     condition: values.condition || null,
     strategicSignificance: values.strategicSignificance || null,
@@ -470,11 +498,15 @@ function createdAreaSavePayload(values, isHedgerow) {
   }
 }
 
-export async function saveCreatedArea(request, values, isHedgerow = false) {
+export async function saveCreatedArea(
+  request,
+  values,
+  kind = CREATED_EDIT_KINDS.habitat
+) {
   const { projectId, featureId } = request.payload
   return saveHabitat(
     request,
-    `projects/${projectId}/post-intervention/${isHedgerow ? 'hedgerows' : 'habitats'}/${featureId}`,
-    createdAreaSavePayload(values, isHedgerow)
+    `projects/${projectId}/post-intervention/${kind.savePath}/${featureId}`,
+    createdAreaSavePayload(values, kind)
   )
 }

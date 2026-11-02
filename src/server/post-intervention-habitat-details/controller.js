@@ -1,5 +1,6 @@
 import Boom from '@hapi/boom'
 import Joi from 'joi'
+import { statusCodes } from '../common/constants.js'
 
 import {
   fetchFeature,
@@ -22,9 +23,8 @@ import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
+  CREATED_EDIT_KINDS,
   createdHedgerowPayloadSchema,
-  loadCreatedHedgerowReference,
-  loadCreatedAreaReference,
   createdReferenceForFeature,
   saveCreatedArea,
   validateCreatedArea
@@ -178,13 +178,13 @@ const BASELINE_LAYERS = ['habitats', 'trees', 'hedgerows', 'watercourses']
  * parentFeatureId has no baseline link, and neither does one whose parent the
  * baseline no longer holds.
  */
-function parentBaselineFeatureId(project, feature) {
+function parentBaselineFeatureId(project, feature, layers = BASELINE_LAYERS) {
   const parentId = feature.parentFeatureId
   if (!parentId) {
     return null
   }
   const baseline = project?.project?.baseline
-  const exists = BASELINE_LAYERS.some((layer) =>
+  const exists = layers.some((layer) =>
     baseline?.[layer]?.some((f) => f.featureId === parentId)
   )
   return exists ? parentId : null
@@ -201,12 +201,13 @@ function viewOnlyBaselineFeatureId(project, feature) {
   return resolveBaselineFeatureId(project, feature.ref)
 }
 
-function createdBaselineFeatureId(project, feature) {
-  if (isServiceTemplateProject(project)) {
-    return parentBaselineFeatureId(project, feature)
-  }
-  if (Object.hasOwn(feature, 'parentFeatureId')) {
-    return parentBaselineFeatureId(project, feature)
+function createdBaselineFeatureId(project, feature, type) {
+  if (
+    isServiceTemplateProject(project) ||
+    Object.hasOwn(feature, 'parentFeatureId')
+  ) {
+    const layer = CREATED_EDIT_KINDS[type].savePath
+    return parentBaselineFeatureId(project, feature, [layer])
   }
   return resolveBaselineFeatureId(project, feature.ref)
 }
@@ -236,12 +237,13 @@ function renderUnsupportedFeature(
 
 async function loadCreationReferenceForFeature(type, feature) {
   try {
-    const reference = await (type === HEDGEROW_TYPE
-      ? loadCreatedHedgerowReference()
-      : loadCreatedAreaReference())
+    const reference = await CREATED_EDIT_KINDS[type].loadReference()
     return createdReferenceForFeature(reference, feature)
   } catch (error) {
-    if (type === HEDGEROW_TYPE && error.output?.statusCode === 404) {
+    if (
+      type === HEDGEROW_TYPE &&
+      error.output?.statusCode === statusCodes.notFound
+    ) {
       return null
     }
     throw error
@@ -281,7 +283,7 @@ const getController = {
           ...buildCreatedHedgerowViewOnlyViewModel(feature, {
             projectId,
             projectName,
-            baselineFeatureId: createdBaselineFeatureId(project, feature)
+            baselineFeatureId: createdBaselineFeatureId(project, feature, type)
           }),
           backHref: postInterventionBackHref(projectId, type, returnUrl)
         })
@@ -291,7 +293,8 @@ const getController = {
         buildCreatedAreaEditViewModel(feature, reference, {
           projectId,
           projectName,
-          baselineFeatureId: createdBaselineFeatureId(project, feature),
+          kind: CREATED_EDIT_KINDS[type],
+          baselineFeatureId: createdBaselineFeatureId(project, feature, type),
           returnUrl
         })
       )
@@ -328,6 +331,7 @@ const postController = {
     validate: {
       payload: Joi.alternatives().try(
         createdAreaPayloadSchema,
+        CREATED_EDIT_KINDS,
         createdHedgerowPayloadSchema
       )
     }
@@ -349,14 +353,14 @@ const postController = {
         'Saving this post-intervention feature is not implemented'
       )
     }
+    if (type === AREA_HABITAT_TYPE && !Object.hasOwn(values, 'broadHabitat')) {
+      throw Boom.badRequest('Broad habitat field is required for area edits')
+    }
     const reference = await loadCreationReferenceForFeature(type, feature)
     if (!reference) {
       throw Boom.serverUnavailable(
         'Hedgerow editing is temporarily unavailable'
       )
-    }
-    if (type === AREA_HABITAT_TYPE && !Object.hasOwn(values, 'broadHabitat')) {
-      throw Boom.badRequest('Broad habitat field is required for area edits')
     }
     const errors = validateCreatedArea(values, reference)
     if (Object.keys(errors).length) {
@@ -369,7 +373,8 @@ const postController = {
           {
             projectId,
             projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-            baselineFeatureId: createdBaselineFeatureId(project, feature),
+            kind: CREATED_EDIT_KINDS[type],
+            baselineFeatureId: createdBaselineFeatureId(project, feature, type),
             returnUrl
           },
           values,
@@ -377,7 +382,7 @@ const postController = {
         )
       )
     }
-    await saveCreatedArea(request, values, type === HEDGEROW_TYPE)
+    await saveCreatedArea(request, values, CREATED_EDIT_KINDS[type])
     return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
   }
 }

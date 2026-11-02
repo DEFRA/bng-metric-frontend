@@ -431,6 +431,32 @@ describe('Created area authenticated form', () => {
     })
   })
 
+  test('refuses an area save without broad habitat before loading reference data', async () => {
+    const { token, cookie } = await primeCrumb(server)
+    const payload = { ...request().payload, crumb: token }
+    delete payload.broadHabitat
+    const response = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload
+    })
+    expect(response.statusCode).toBe(400)
+    await expect(
+      postController.handler({ payload }, createMockH())
+    ).rejects.toMatchObject({
+      output: { statusCode: 400 },
+      message: 'Broad habitat field is required for area edits'
+    })
+    expect(wreck.put).not.toHaveBeenCalled()
+    expect(
+      wreck.get.mock.calls.some(([url]) =>
+        url.endsWith('/reference/area-creation')
+      )
+    ).toBe(false)
+  })
+
   test('rejects submission without a CSRF token', async () => {
     const response = await server.inject({
       method: 'POST',

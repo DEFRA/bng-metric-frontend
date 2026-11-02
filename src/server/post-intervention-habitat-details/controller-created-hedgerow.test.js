@@ -281,3 +281,25 @@ test('validates conflicting timing after resolving an unchanged imported fractio
   expect(h.view.mock.calls[0][1].errors.advanceYears).toBeDefined()
   expect(wreck.put).not.toHaveBeenCalled()
 })
+
+test('does not give a Created area a baseline link to a hedgerow parent', async () => {
+  mockFeature(
+    {
+      type: 'habitat',
+      feature: { ...feature, parentFeatureId: baselineFeatureId }
+    },
+    {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            hedgerows: [{ featureId: baselineFeatureId, ref: feature.ref }]
+          }
+        }
+      }
+    }
+  )
+  const h = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, h)
+  expect(h.view.mock.calls[0][1].viewBaselineHref).toBeNull()
+})

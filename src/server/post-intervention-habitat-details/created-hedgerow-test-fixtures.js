@@ -1,5 +1,6 @@
 export const hedgerowCreationReference = {
   featureType: 'hedgerow',
+  hasBroadHabitat: false,
   habitatTypes: [
     {
       name: 'Native hedgerow',

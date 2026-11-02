@@ -21,7 +21,7 @@ export function resolveCreatedTiming(values, reference) {
 export function selectedHabitat(reference, values) {
   return reference.habitatTypes.find(
     (type) =>
-      (reference.featureType === 'hedgerow' ||
+      (reference.hasBroadHabitat === false ||
         type.broad === values.broadHabitat) &&
       type.name === values.habitatType
   )
