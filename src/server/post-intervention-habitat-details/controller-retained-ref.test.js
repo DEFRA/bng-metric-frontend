@@ -292,6 +292,27 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       }
     )
 
+    test.each([
+      ['surrounding spaces', '  A1  ', '  A1  '],
+      ['more than 100 characters', 'x'.repeat(120), 'x'.repeat(120)],
+      ['characters that are not UTF-8', 'A\uFFFD1', 'A\uFFFD1'],
+      ['no reference', null, ''],
+      ['a line break the browser drops', 'A\n1', 'A1']
+    ])(
+      'saves nothing when a reference holding %s is left as it is',
+      async (_label, storedRef, submitted) => {
+        mockBackend({ feature: { ...FEATURES.habitat, ref: storedRef } })
+
+        const { statusCode, headers } = await post({ habitatRef: submitted })
+
+        expect(statusCode).toBe(statusCodes.redirect)
+        expect(headers.location).toBe(
+          `/projects/${projectId}/${LIST_ROUTES.habitat}`
+        )
+        expect(wreck.put).not.toHaveBeenCalled()
+      }
+    )
+
     test('returns to the row it was opened from', async () => {
       mockBackend()
       vi.mocked(wreck.put).mockImplementation(() => savedAs('habitat', 'P-1'))
@@ -392,6 +413,17 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
     })
 
+    test('shows a reference the backend refuses at the field, keeping what was typed', async () => {
+      mockBackend()
+      vi.mocked(wreck.put).mockRejectedValue(Boom.badRequest('invalid ref'))
+
+      const { statusCode, result } = await post({ habitatRef: 'P-1' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain('Enter a valid habitat reference.')
+      expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="P-1"/s)
+    })
+
     test('answers any other 422 from the backend as an upstream failure', async () => {
       mockBackend()
       vi.mocked(wreck.put).mockRejectedValue(Boom.badData('something else'))
@@ -404,7 +436,6 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
     test.each([
       [Boom.conflict('locked'), statusCodes.conflict],
       [Boom.notFound('gone'), statusCodes.notFound],
-      [Boom.badRequest('not retained'), statusCodes.badRequest],
       [Boom.internal('backend down'), statusCodes.badGateway]
     ])('answers a backend %s with %i', async (backendError, expectedStatus) => {
       mockBackend()

@@ -21,6 +21,7 @@ import { statusCodes } from '../common/constants.js'
 import {
   HABITAT_REF_ERROR,
   HABITAT_REF_IN_USE_ERROR,
+  isRefUnchanged,
   isValidHabitatRef
 } from '../common/helpers/habitat-ref.js'
 import { PI_DETAILS_HEADING, MAX_REF_LENGTH } from './constants.js'
@@ -108,11 +109,8 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
 ])
 
 // The read-only details page for each feature type. Each keeps its own
-// template — they share chrome via layouts/pi-view-only-page.njk (or the
-// sections layout for Created/Enhanced area, Created/Enhanced hedgerow, and
-// Created/Enhanced watercourse) and differ in the rows they show. Those
-// retention categories use a two-section layout (BMD-845); other categories
-// keep the single-list page for now.
+// template — they share chrome via layouts/pi-view-only-sections-page.njk and
+// differ in the rows they show (BMD-845).
 const VIEW_ONLY_PAGES = new Map([
   [
     AREA_HABITAT_TYPE,
@@ -410,12 +408,20 @@ async function saveCreatedAreaDetails(request, h, { type, feature, payload }) {
   )
 }
 
-/** Save a Retained habitat's reference (BMD-1180). */
-async function saveRetainedReference(request, h, payload) {
+/**
+ * Save a Retained habitat's reference (BMD-1180). As on the baseline form, a
+ * reference left as stored is neither checked nor sent: it may be one that
+ * would not pass today, and the backend would trim or cut it, renaming the
+ * habitat unasked.
+ */
+async function saveRetainedReference(request, h, { type, feature, payload }) {
   const { projectId, featureId, habitatRef, returnUrl } = validatedPayload(
     retainedRefPayloadSchema,
     payload
   )
+  if (isRefUnchanged(habitatRef, feature.ref)) {
+    return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
+  }
   const showRefused = async (refusal) => {
     const response = await renderDetailsPage(request, h, {
       projectId,
@@ -437,6 +443,9 @@ async function saveRetainedReference(request, h, payload) {
   })
   if (saved.refInUse) {
     return showRefused(HABITAT_REF_IN_USE_ERROR)
+  }
+  if (saved.refInvalid) {
+    return showRefused(HABITAT_REF_ERROR)
   }
   return h.redirect(postInterventionBackHref(projectId, saved.type, returnUrl))
 }
@@ -471,7 +480,11 @@ const postController = {
       })
     }
     if (isRefEditable(type, retentionCategory)) {
-      return saveRetainedReference(request, h, request.payload)
+      return saveRetainedReference(request, h, {
+        type,
+        feature,
+        payload: request.payload
+      })
     }
     throw Boom.notImplemented(
       'Saving this post-intervention feature is not implemented'

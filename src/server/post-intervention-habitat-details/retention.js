@@ -30,11 +30,11 @@ export function normaliseRetentionCategory(value) {
   return normalised || null
 }
 
-const RETENTION_CATEGORIES = [
+const RETENTION_CATEGORIES = new Set([
   RETENTION_RETAINED,
   RETENTION_ENHANCED,
   RETENTION_CREATED
-]
+])
 
 /**
  * A feature's retention category, normalised. Read from the feature root, or
@@ -54,7 +54,7 @@ export function featureRetentionCategory(feature) {
   const nested = normaliseRetentionCategory(
     feature?.baseline?.retentionCategory
   )
-  return RETENTION_CATEGORIES.includes(nested) ? nested : null
+  return RETENTION_CATEGORIES.has(nested) ? nested : null
 }
 
 /**

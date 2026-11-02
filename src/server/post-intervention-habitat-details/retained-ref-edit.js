@@ -14,7 +14,11 @@ import Joi from 'joi'
 
 import { config } from '../../config/config.js'
 import { backendRequest } from '../common/helpers/auth/backend-request.js'
-import { backendSaveError } from '../common/helpers/backend-save-error.js'
+import {
+  backendSaveError,
+  backendStatusOf
+} from '../common/helpers/backend-save-error.js'
+import { statusCodes } from '../common/constants.js'
 import {
   habitatRefFormFields,
   isRefInUseError
@@ -98,12 +102,13 @@ export function retainedRefEditFields({
 /**
  * Save the reference. Resolves to the backend's `{ type, feature }`, or to
  * `{ refInUse: true }` when the backend refuses a reference another habitat
- * already carries. Any other failure throws (backendSaveError).
+ * already carries, or `{ refInvalid: true }` when it refuses one this side
+ * passed. Any other failure throws (backendSaveError).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
  *   `ref` has passed isValidHabitatRef; it is sent trimmed
- * @returns {Promise<{ type: string, feature: object } | { refInUse: true }>}
+ * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true }>}
  */
 export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   try {
@@ -120,6 +125,9 @@ export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   } catch (err) {
     if (isRefInUseError(err)) {
       return { refInUse: true }
+    }
+    if (backendStatusOf(err) === statusCodes.badRequest) {
+      return { refInvalid: true }
     }
     throw backendSaveError(err, featureId)
   }
