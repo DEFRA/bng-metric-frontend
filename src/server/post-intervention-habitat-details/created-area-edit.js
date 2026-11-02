@@ -105,12 +105,15 @@ export function createdReferenceForFeature(reference, feature) {
       )
       .map((field) => [field, saved[field]])
   )
+  const importedCondition = importedHedgerowCondition(reference, saved)
   return {
     ...reference,
     importedYears,
+    importedCondition,
     importedCalculation: {
       values: {
         ...saved,
+        ...(importedCondition ? { condition: UNCHANGED_YEAR } : {}),
         ...Object.fromEntries(
           Object.keys(importedYears).map((field) => [field, UNCHANGED_YEAR])
         )
@@ -126,7 +129,24 @@ function createdEditValues(feature, reference) {
   for (const field of Object.keys(reference.importedYears ?? {})) {
     saved[field] = UNCHANGED_YEAR
   }
+  if (reference.importedCondition) {
+    saved.condition = UNCHANGED_YEAR
+  }
   return saved
+}
+
+function importedHedgerowCondition(reference, values) {
+  if (reference.featureType !== 'hedgerow' || !values.condition) {
+    return null
+  }
+  const type = selectedHabitat(reference, values)
+  return type && !type.conditions.some((c) => c.condition === values.condition)
+    ? { habitatType: values.habitatType, condition: values.condition }
+    : null
+}
+
+function keepImportedCondition(reference, values) {
+  return reference.importedCondition?.habitatType === values.habitatType
 }
 
 const referencePromises = new Map()
@@ -243,7 +263,10 @@ export function validateCreatedArea(values, reference) {
     habitatType: reference.habitatTypes
       .filter((t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat)
       .map((t) => t.name),
-    condition: (type?.conditions ?? []).map((c) => c.condition),
+    condition: [
+      ...(type?.conditions ?? []).map((c) => c.condition),
+      ...(keepImportedCondition(reference, values) ? [UNCHANGED_YEAR] : [])
+    ],
     strategicSignificance: reference.strategicSignificance.map((s) => s.value)
   }
   for (const [field, options] of Object.entries(choices)) {
@@ -353,7 +376,10 @@ function createdAreaFields(reference, values, type, initialLoad) {
   return fields
     .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
     .map(([id, label, items]) => {
-      const imported = reference.importedYears?.[id]
+      const imported =
+        id === 'condition' && keepImportedCondition(reference, values)
+          ? reference.importedCondition.condition
+          : reference.importedYears?.[id]
       if (imported !== undefined) {
         items = [
           ...items,
@@ -507,7 +533,9 @@ function createdAreaSavePayload(values, kind) {
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
     habitatType: values.habitatType || null,
-    condition: values.condition || null,
+    ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_YEAR
+      ? { condition: values.condition || null }
+      : {}),
     strategicSignificance: values.strategicSignificance || null,
     ...timingPayload(values, 'advanceYears'),
     ...timingPayload(values, 'delayYears')

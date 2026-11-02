@@ -97,7 +97,11 @@ function unchangedImportedFinalTime(reference, values) {
     'advanceYears',
     'delayYears'
   ]
-  if (!Object.keys(reference.importedYears ?? {}).length || !saved) {
+  if (
+    (!Object.keys(reference.importedYears ?? {}).length &&
+      !reference.importedCondition) ||
+    !saved
+  ) {
     return ''
   }
   return fields.every(
