@@ -254,7 +254,11 @@ test('keeps the stored fractional timing display until a calculation input chang
 test('keeps an unavailable imported condition selected and offers it only for its original type', () => {
   const imported = {
     ...feature,
-    proposed: { ...feature.proposed, condition: 'Moderate' }
+    proposed: {
+      ...feature.proposed,
+      condition: 'Moderate',
+      finalTimeToTargetCondition: 'Imported final time'
+    }
   }
   renderTemplateIntoDocument(
     'habitat-details/pi-habitat-details-created-edit.njk',
@@ -266,8 +270,14 @@ test('keeps an unavailable imported condition selected and offers it only for it
   initCreatedAreaDetails()
   expect(value('condition')).toBe('unchanged')
   expect(text('condition-hint')).toContain('Keep it unchanged')
+  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
+  change('ref', 'Renamed hedge')
+  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
   change('advanceYears', '1')
   expect(value('condition')).toBe('unchanged')
+  expect(text('finalTimeToTargetDisplay')).toBe('')
+  change('advanceYears', '0')
+  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
   change('habitatType', 'Native hedgerow with trees')
   expect(
     document.querySelector('#condition option[value="unchanged"]')
@@ -278,4 +288,7 @@ test('keeps an unavailable imported condition selected and offers it only for it
   ).toBe('Moderate (imported value)')
   change('condition', '')
   expect(value('condition')).toBe('')
+  expect(text('finalTimeToTargetDisplay')).toBe('')
+  change('condition', 'unchanged')
+  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
 })
