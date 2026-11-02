@@ -80,27 +80,23 @@ export const createdAreaPayloadSchema = Joi.object({
   condition: Joi.string().allow('').required(),
   strategicSignificance: Joi.string().allow('').required(),
   advanceYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
     .required(),
   delayYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
     .required(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
 })
 
-export const createdHedgerowPayloadSchema = createdAreaPayloadSchema
-  .fork('broadHabitat', (schema) => schema.forbidden())
-  .fork(['advanceYears', 'delayYears'], (schema) =>
-    schema.valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
-  )
+export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
+  'broadHabitat',
+  (schema) => schema.forbidden()
+)
 
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
   reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
-  if (kind.hasBroadHabitat) {
-    return reference
-  }
   const saved = createdAreaValues(feature)
   const importedYears = Object.fromEntries(
     ['advanceYears', 'delayYears']
@@ -109,7 +105,20 @@ export function createdReferenceForFeature(reference, feature) {
       )
       .map((field) => [field, saved[field]])
   )
-  return { ...reference, importedYears }
+  return {
+    ...reference,
+    importedYears,
+    importedCalculation: {
+      values: {
+        ...saved,
+        ...Object.fromEntries(
+          Object.keys(importedYears).map((field) => [field, UNCHANGED_YEAR])
+        )
+      },
+      finalTimeToTargetDisplay:
+        feature.proposed?.finalTimeToTargetCondition ?? ''
+    }
+  }
 }
 
 function createdEditValues(feature, reference) {

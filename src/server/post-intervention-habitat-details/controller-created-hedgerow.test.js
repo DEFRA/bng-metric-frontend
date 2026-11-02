@@ -238,12 +238,20 @@ test.each([2.5, 31])(
   async (advanceYears) => {
     mockFeature({
       type: 'hedgerow',
-      feature: { ...feature, proposed: { ...feature.proposed, advanceYears } }
+      feature: {
+        ...feature,
+        proposed: {
+          ...feature.proposed,
+          advanceYears,
+          finalTimeToTargetCondition: '4.5 years (0.8519)'
+        }
+      }
     })
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
     const vm = h.view.mock.calls[0][1]
     expect(vm.values.advanceYears).toBe('unchanged')
+    expect(vm.finalTimeToTargetDisplay).toBe('4.5 years (0.8519)')
     expect(vm.fields.advanceYears.items).toContainEqual(
       expect.objectContaining({
         value: 'unchanged',

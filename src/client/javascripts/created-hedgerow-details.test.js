@@ -222,3 +222,31 @@ test('a stale unchanged delay has an inline timing error and accessible summary 
   expect(delay.closest('.govuk-form-group--error')).not.toBeNull()
   await runAxeChecks(document.documentElement)
 })
+
+test('keeps the stored fractional timing display until a calculation input changes', () => {
+  const imported = {
+    ...feature,
+    proposed: {
+      ...feature.proposed,
+      advanceYears: 2.5,
+      finalTimeToTargetCondition: '4.5 years (0.8519)'
+    }
+  }
+  renderTemplateIntoDocument(
+    'habitat-details/pi-habitat-details-created-edit.njk',
+    {
+      ...buildCreatedAreaEditViewModel(imported, reference, ctx),
+      crumb: 'test-token'
+    }
+  )
+  initCreatedAreaDetails()
+  expect(text('finalTimeToTargetDisplay')).toBe('4.5 years (0.8519)')
+  change('condition', 'Poor')
+  expect(text('finalTimeToTargetDisplay')).toBe('')
+  change('condition', 'Good')
+  expect(text('finalTimeToTargetDisplay')).toBe('4.5 years (0.8519)')
+  change('advanceYears', '0')
+  expect(text('finalTimeToTargetDisplay')).toBe('7 years (0.7792758067)')
+  change('advanceYears', '')
+  expect(text('finalTimeToTargetDisplay')).toBe('')
+})

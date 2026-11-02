@@ -34,7 +34,9 @@ export function createdAreaDerived(reference, values, baselineCondition = '') {
   )
   return {
     ...standardFields(type, condition, baselineCondition),
-    finalTimeToTargetDisplay: finalTimeDisplay(reference, condition, values)
+    finalTimeToTargetDisplay:
+      finalTimeDisplay(reference, condition, values) ||
+      unchangedImportedFinalTime(reference, values)
   }
 }
 
@@ -84,4 +86,23 @@ function finalTimeDisplay(reference, condition, values) {
     return `${key} years (${multiplier})`
   }
   return ''
+}
+
+function unchangedImportedFinalTime(reference, values) {
+  const saved = reference.importedCalculation
+  const fields = [
+    'broadHabitat',
+    'habitatType',
+    'condition',
+    'advanceYears',
+    'delayYears'
+  ]
+  if (!Object.keys(reference.importedYears ?? {}).length || !saved) {
+    return ''
+  }
+  return fields.every(
+    (field) => (values[field] ?? '') === (saved.values[field] ?? '')
+  )
+    ? saved.finalTimeToTargetDisplay
+    : ''
 }
