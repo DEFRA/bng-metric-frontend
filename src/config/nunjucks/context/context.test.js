@@ -13,6 +13,10 @@ vi.mock('../../../server/common/helpers/logging/logger.js', () => ({
   createLogger: () => ({ error: (...args) => mockLoggerError(...args) })
 }))
 
+// The flag follows SERVICE_TEMPLATE_ENABLED, and CI runs the suite with it
+// both on and off.
+const serviceTemplateEnabled = process.env.SERVICE_TEMPLATE_ENABLED === 'true'
+
 describe('context and cache', () => {
   beforeEach(() => {
     mockReadFileSync.mockReset()
@@ -62,7 +66,7 @@ describe('context and cache', () => {
             ),
             script: expect.stringContaining('GTM-K5LRK3HR')
           },
-          serviceTemplate: { enabled: false },
+          serviceTemplate: { enabled: serviceTemplateEnabled },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
@@ -157,7 +161,7 @@ describe('context and cache', () => {
             ),
             script: expect.stringContaining('GTM-K5LRK3HR')
           },
-          serviceTemplate: { enabled: false },
+          serviceTemplate: { enabled: serviceTemplateEnabled },
           user: null,
           isAuthenticated: false,
           canSelectDifferentOrganisation: false
