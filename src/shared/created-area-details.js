@@ -1,15 +1,29 @@
 // Shared by the server render and browser preview. Units are only recalculated
 // by the backend on Save, using the metric engine.
+export const UNCHANGED_YEAR = 'unchanged'
 export const MAX_YEARS = 30
 export const YEAR_OPTIONS = [
   ...Array.from({ length: MAX_YEARS + 1 }, (_, year) => String(year)),
   '30+'
 ]
 
+export function resolveCreatedTiming(values, reference) {
+  return Object.fromEntries(
+    ['advanceYears', 'delayYears'].map((field) => [
+      field,
+      values[field] === UNCHANGED_YEAR
+        ? (reference.importedYears?.[field] ?? '')
+        : values[field]
+    ])
+  )
+}
+
 export function selectedHabitat(reference, values) {
   return reference.habitatTypes.find(
     (type) =>
-      type.broad === values.broadHabitat && type.name === values.habitatType
+      (reference.hasBroadHabitat === false ||
+        type.broad === values.broadHabitat) &&
+      type.name === values.habitatType
   )
 }
 
@@ -20,7 +34,9 @@ export function createdAreaDerived(reference, values, baselineCondition = '') {
   )
   return {
     ...standardFields(type, condition, baselineCondition),
-    finalTimeToTargetDisplay: finalTimeDisplay(reference, condition, values)
+    finalTimeToTargetDisplay:
+      finalTimeDisplay(reference, condition, values) ||
+      unchangedImportedFinalTime(reference, values)
   }
 }
 
@@ -70,4 +86,23 @@ function finalTimeDisplay(reference, condition, values) {
     return `${key} years (${multiplier})`
   }
   return ''
+}
+
+function unchangedImportedFinalTime(reference, values) {
+  const saved = reference.importedCalculation
+  const fields = [
+    'broadHabitat',
+    'habitatType',
+    'condition',
+    'advanceYears',
+    'delayYears'
+  ]
+  if (!Object.keys(reference.importedYears ?? {}).length || !saved) {
+    return ''
+  }
+  return fields.every(
+    (field) => (values[field] ?? '') === (saved.values[field] ?? '')
+  )
+    ? saved.finalTimeToTargetDisplay
+    : ''
 }
