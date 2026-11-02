@@ -1,4 +1,6 @@
 export const creationReference = {
+  featureType: 'habitat',
+  hasBroadHabitat: true,
   habitatTypes: [
     {
       broad: 'Grassland',

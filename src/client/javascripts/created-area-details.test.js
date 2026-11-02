@@ -156,7 +156,7 @@ describe('Created area editing', () => {
     ).toBe(returnUrl)
   })
 
-  test('explains when unavailable imported values will be cleared on save', () => {
+  test('explains clearing unavailable choices while preserving imported timing', () => {
     const imported = {
       ...createdAreaFeature,
       proposed: {
@@ -173,12 +173,14 @@ describe('Created area editing', () => {
       }
     )
     expect(value('condition')).toBe('')
-    expect(value('advanceYears')).toBe('')
+    expect(value('advanceYears')).toBe('unchanged')
     expect(text('condition-hint')).toContain('"Fairly Poor" is not available')
     expect(text('condition-hint')).toContain(
       'saving without a new selection will clear this value'
     )
-    expect(text('advanceYears-hint')).toContain('"2.5" is not available')
+    expect(text('advanceYears-hint')).toContain(
+      'The imported value is 2.5. Keep it unchanged'
+    )
   })
 
   test('retains 30+ selections while reading numeric stored years', () => {

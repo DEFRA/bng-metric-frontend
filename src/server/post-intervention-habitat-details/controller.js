@@ -1,5 +1,6 @@
 import Boom from '@hapi/boom'
 import Joi from 'joi'
+import { statusCodes } from '../common/constants.js'
 
 import {
   fetchFeature,
@@ -22,7 +23,9 @@ import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
-  loadCreatedAreaReference,
+  CREATED_EDIT_KINDS,
+  createdHedgerowPayloadSchema,
+  createdReferenceForFeature,
   saveCreatedArea,
   validateCreatedArea
 } from './created-area-edit.js'
@@ -58,13 +61,6 @@ const HEDGEROW_RETENTION_PAGES = new Map([
     {
       template: 'habitat-details/pi-hedgerow-details-enhanced',
       buildViewModel: buildEnhancedHedgerowViewOnlyViewModel
-    }
-  ],
-  [
-    RETENTION_CREATED,
-    {
-      template: 'habitat-details/pi-hedgerow-details-enhanced',
-      buildViewModel: buildCreatedHedgerowViewOnlyViewModel
     }
   ]
 ])
@@ -206,13 +202,13 @@ const BASELINE_LAYERS = ['habitats', 'trees', 'hedgerows', 'watercourses']
  * parentFeatureId has no baseline link, and neither does one whose parent the
  * baseline no longer holds.
  */
-function parentBaselineFeatureId(project, feature) {
+function parentBaselineFeatureId(project, feature, layers = BASELINE_LAYERS) {
   const parentId = feature.parentFeatureId
   if (!parentId) {
     return null
   }
   const baseline = project?.project?.baseline
-  const exists = BASELINE_LAYERS.some((layer) =>
+  const exists = layers.some((layer) =>
     baseline?.[layer]?.some((f) => f.featureId === parentId)
   )
   return exists ? parentId : null
@@ -230,15 +226,12 @@ function viewOnlyBaselineFeatureId(project, type, feature) {
 }
 
 function createdBaselineFeatureId(project, type, feature) {
-  if (isServiceTemplateProject(project)) {
-    return parentBaselineFeatureId(project, feature)
-  }
-  if (Object.hasOwn(feature, 'parentFeatureId')) {
-    const parentId = feature.parentFeatureId
-    const exists = project?.project?.baseline?.habitats?.some(
-      (f) => f.featureId === parentId
-    )
-    return exists ? parentId : null
+  if (
+    isServiceTemplateProject(project) ||
+    Object.hasOwn(feature, 'parentFeatureId')
+  ) {
+    const layer = CREATED_EDIT_KINDS[type].savePath
+    return parentBaselineFeatureId(project, feature, [layer])
   }
   return resolveBaselineFeatureId(project, type, feature)
 }
@@ -266,6 +259,21 @@ function renderUnsupportedFeature(
   })
 }
 
+async function loadCreationReferenceForFeature(type, feature) {
+  try {
+    const reference = await CREATED_EDIT_KINDS[type].loadReference()
+    return createdReferenceForFeature(reference, feature)
+  } catch (error) {
+    if (
+      type === HEDGEROW_TYPE &&
+      error.output?.statusCode === statusCodes.notFound
+    ) {
+      return null
+    }
+    throw error
+  }
+}
+
 const getController = {
   options: {
     validate: {
@@ -289,8 +297,21 @@ const getController = {
     const retentionCategory = normaliseRetentionCategory(
       feature.retentionCategory
     )
-    if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_CREATED) {
-      const reference = await loadCreatedAreaReference()
+    if (
+      [AREA_HABITAT_TYPE, HEDGEROW_TYPE].includes(type) &&
+      retentionCategory === RETENTION_CREATED
+    ) {
+      const reference = await loadCreationReferenceForFeature(type, feature)
+      if (!reference) {
+        return h.view('habitat-details/pi-hedgerow-details-enhanced', {
+          ...buildCreatedHedgerowViewOnlyViewModel(feature, {
+            projectId,
+            projectName,
+            baselineFeatureId: createdBaselineFeatureId(project, feature, type)
+          }),
+          backHref: postInterventionBackHref(projectId, type, returnUrl)
+        })
+      }
       return h.view(
         'habitat-details/pi-habitat-details-created-edit',
         buildCreatedAreaEditViewModel(feature, reference, {
@@ -330,7 +351,12 @@ const getController = {
 
 const postController = {
   options: {
-    validate: { payload: createdAreaPayloadSchema }
+    validate: {
+      payload: Joi.alternatives().try(
+        createdAreaPayloadSchema,
+        createdHedgerowPayloadSchema
+      )
+    }
   },
   async handler(request, h) {
     const { projectId, featureId, returnUrl, ...values } = request.payload
@@ -341,7 +367,7 @@ const postController = {
       featureId
     )
     if (
-      type !== AREA_HABITAT_TYPE ||
+      ![AREA_HABITAT_TYPE, HEDGEROW_TYPE].includes(type) ||
       normaliseRetentionCategory(feature.retentionCategory) !==
         RETENTION_CREATED
     ) {
@@ -349,7 +375,15 @@ const postController = {
         'Saving this post-intervention feature is not implemented'
       )
     }
-    const reference = await loadCreatedAreaReference()
+    if (type === AREA_HABITAT_TYPE && !Object.hasOwn(values, 'broadHabitat')) {
+      throw Boom.badRequest('Broad habitat field is required for area edits')
+    }
+    const reference = await loadCreationReferenceForFeature(type, feature)
+    if (!reference) {
+      throw Boom.serverUnavailable(
+        'Hedgerow editing is temporarily unavailable'
+      )
+    }
     const errors = validateCreatedArea(values, reference)
     if (Object.keys(errors).length) {
       const project = await fetchProject(request, projectId)
@@ -369,10 +403,8 @@ const postController = {
         )
       )
     }
-    await saveCreatedArea(request, values)
-    return h.redirect(
-      postInterventionBackHref(projectId, AREA_HABITAT_TYPE, returnUrl)
-    )
+    await saveCreatedArea(request, values, CREATED_EDIT_KINDS[type])
+    return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
   }
 }
 

@@ -27,8 +27,8 @@
     label: { text: field.label, classes: "govuk-label--s" if not timing else "" },
     hint: { text: field.hint } if field.hint else null,
     items: field.items,
-    describedBy: "timing-error" if timing and errors.advanceYears else null,
-    classes: "govuk-select--error" if timing and errors.advanceYears else "",
+    describedBy: "timing-error" if timing and (errors.advanceYears or errors.delayYears) else null,
+    classes: "govuk-select--error" if timing and (errors.advanceYears or errors.delayYears) else "",
     errorMessage: { text: errors[field.id] } if errors[field.id] and not timing else null
   }) }}
 {% endmacro %}
@@ -65,8 +65,8 @@
           <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
         {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
-        {{ derived("Size (hectares)", "sizeDisplay", sizeDisplay) }}
-        {{ select(fields.broadHabitat) }}
+        {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
+        {% if fields.broadHabitat %}{{ select(fields.broadHabitat) }}{% endif %}
         {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
         {{ select(fields.strategicSignificance) }}
@@ -74,13 +74,13 @@
         {{ select(fields.condition) }}
         {{ derived("Standard time to target condition", "standardTimeToTargetDisplay", standardTimeToTargetDisplay) }}
         {{ derived("Standard difficulty", "standardDifficultyDisplay", standardDifficultyDisplay) }}
-        <div class="govuk-form-group{% if errors.advanceYears %} govuk-form-group--error{% endif %}">
+        <div class="govuk-form-group{% if errors.advanceYears or errors.delayYears %} govuk-form-group--error{% endif %}">
           {% call govukFieldset({
             legend: { text: "Advance or delay?", classes: "govuk-fieldset__legend--s" },
-            describedBy: "timing-error" if errors.advanceYears else null
+            describedBy: "timing-error" if errors.advanceYears or errors.delayYears else null
           }) %}
-            {% if errors.advanceYears %}
-              {{ govukErrorMessage({ id: "timing-error", text: errors.advanceYears }) }}
+            {% if errors.advanceYears or errors.delayYears %}
+              {{ govukErrorMessage({ id: "timing-error", text: errors.advanceYears or errors.delayYears }) }}
             {% endif %}
             {{ select(fields.advanceYears, true) }}
             <p class="govuk-body">or</p>
