@@ -1558,6 +1558,25 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       }
     )
 
+    test.each([
+      ['trailing', 'A1\n'],
+      ['embedded', 'A\r\n1']
+    ])(
+      'Does not rename a habitat over a %s line break the browser drops from the input',
+      async (_label, storedRef) => {
+        withStoredRef(storedRef)
+
+        const { statusCode } = await postRef({
+          habitatRef: 'A1',
+          condition: 'Poor'
+        })
+
+        expect(statusCode).toBe(302)
+        const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+        expect(JSON.parse(payload)).not.toHaveProperty('ref')
+      }
+    )
+
     test('Checks a reference the user changed', async () => {
       withStoredRef('A\uFFFD1')
 

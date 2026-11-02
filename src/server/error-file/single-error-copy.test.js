@@ -77,13 +77,13 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('AC6a: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE renders the distinctiveness variant', () => {
+  test('AC6a: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE renders the metric-tool variant', () => {
     const result = resolveSingleErrorCopy(
       { code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', message: 'x' },
       UPLOAD_HREF
     )
     expect(result).toEqual({
-      variant: 'distinctiveness',
+      variant: 'metric-tool',
       h1: 'Very high and high distinctiveness habitats are not yet included in this service',
       helpTextBefore: 'Use the ',
       linkText: 'metric tool (spreadsheet)',
@@ -509,6 +509,8 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     habitat_type: 'Grassland - Other neutral grassland',
     condition: 'Good',
     distinctiveness: 'Medium',
+    proposed_habitat_type: 'Grassland - Other neutral grassland',
+    proposed_condition: 'Good',
     rule: 'medium-area-good',
     mvsOnly: true,
     ...fields
@@ -519,50 +521,80 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     details: { count, sample }
   })
 
-  test('replaces the placeholder with interim copy and a table of the habitats', () => {
+  test('shows the service eligibility copy, a metric tool link and a table of the habitats', () => {
     const result = resolveSingleErrorCopy(
       error([
         offender(),
         offender({
           layer: 'hedgerows',
           feature_ref: 'HG011',
-          habitat_type: 'Ecologically valuable line of trees'
+          habitat_type: 'Ecologically valuable line of trees',
+          proposed_habitat_type: 'Native hedgerow with trees'
         }),
         offender({
           layer: 'watercourses',
           feature_ref: 'R001',
-          habitat_type: 'Ditches'
+          habitat_type: 'Ditches',
+          proposed_habitat_type: 'Ditches',
+          proposed_condition: 'Moderate'
         }),
         offender({
           layer: 'trees',
           feature_ref: 'T018',
-          habitat_type: 'Individual trees - Rural tree'
+          habitat_type: 'Individual trees - Rural tree',
+          proposed_habitat_type: 'Individual trees - Rural tree'
         })
       ]),
       UPLOAD_HREF
     )
 
-    expect(result.variant).toBe('standard')
-    expect(result.h1).toBe(
-      'Some habitats in your file cannot be enhanced in this service'
-    )
-    expect(result.h1).not.toContain('PLACEHOLDER')
-    expect(result.intro).toContain('already in good condition')
-    expect(result.messageBefore).toBe(
-      'Change the retention category of each habitat listed to Retained and '
-    )
-    expect(result.uploadHref).toBe(UPLOAD_HREF)
+    expect(result).toMatchObject({
+      variant: 'metric-tool',
+      h1: 'There is a problem with your project',
+      subheading: 'Service eligibility',
+      helpTextBefore:
+        'Your project contains habitats that have been enhanced to a level which is not yet included in this service. Use the ',
+      linkText: 'metric tool (spreadsheet)',
+      linkHref:
+        'https://www.gov.uk/government/publications/statutory-biodiversity-metric-tools-and-guides',
+      helpTextAfter: ' to calculate biodiversity value.'
+    })
+    // The page sends the user to the metric tool, not back to the upload.
+    expect(result.uploadHref).toBeUndefined()
     expect(result.table.head.map((h) => h.text)).toEqual([
       'Reference',
       'Feature',
       'Baseline habitat',
-      'Baseline condition'
+      'Baseline condition',
+      'Proposed habitat',
+      'Proposed condition'
     ])
     expect(result.table.rows.map((row) => row.map((c) => c.text))).toEqual([
-      ['H001', 'Area habitat', 'Grassland - Other neutral grassland', 'Good'],
-      ['HG011', 'Hedgerow', 'Ecologically valuable line of trees', 'Good'],
-      ['R001', 'Watercourse', 'Ditches', 'Good'],
-      ['T018', 'Individual tree', 'Individual trees - Rural tree', 'Good']
+      [
+        'H001',
+        'Area habitat',
+        'Grassland - Other neutral grassland',
+        'Good',
+        'Grassland - Other neutral grassland',
+        'Good'
+      ],
+      [
+        'HG011',
+        'Hedgerow',
+        'Ecologically valuable line of trees',
+        'Good',
+        'Native hedgerow with trees',
+        'Good'
+      ],
+      ['R001', 'Watercourse', 'Ditches', 'Good', 'Ditches', 'Moderate'],
+      [
+        'T018',
+        'Individual tree',
+        'Individual trees - Rural tree',
+        'Good',
+        'Individual trees - Rural tree',
+        'Good'
+      ]
     ])
     expect(result.table.caption).toBe('Habitats that cannot be enhanced')
     expect(result.table.moreText).toBeNull()
@@ -575,7 +607,9 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
           layer: 'hedgerows',
           feature_ref: null,
           habitat_type: 'Non-native and ornamental hedgerow',
-          condition: ''
+          condition: '',
+          proposed_habitat_type: null,
+          proposed_condition: ''
         })
       ]),
       UPLOAD_HREF
@@ -585,6 +619,22 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
       'No reference',
       'Hedgerow',
       'Non-native and ornamental hedgerow',
+      'Not recorded',
+      'Not recorded',
+      'Not recorded'
+    ])
+  })
+
+  test('still fills every column from a backend that sends no proposed side', () => {
+    const {
+      proposed_habitat_type: _habitat,
+      proposed_condition: _condition,
+      ...baselineOnly
+    } = offender()
+    const result = resolveSingleErrorCopy(error([baselineOnly]), UPLOAD_HREF)
+
+    expect(result.table.rows[0].slice(-2).map((c) => c.text)).toEqual([
+      'Not recorded',
       'Not recorded'
     ])
   })
@@ -597,9 +647,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
 
     expect(result.table.rows).toHaveLength(UNENHANCEABLE_BASELINE_MAX_ROWS)
     expect(result.table.rows.at(-1)[0].text).toBe('H050')
-    expect(result.table.moreText).toBe(
-      'Showing the first 50 of 75 habitats. Fix these and upload the file again to see any others.'
-    )
+    expect(result.table.moreText).toBe('Showing the first 50 of 75 habitats.')
   })
 
   test('reads the count from the sample when the backend sends none', () => {
@@ -612,13 +660,10 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     expect(result.table.moreText).toBeNull()
   })
 
-  test('still reads as a sentence with no upload link', () => {
-    const result = resolveSingleErrorCopy(error([offender()]), null)
-
-    expect(result.messageBefore).toBe(
-      'Change the retention category of each habitat listed to Retained.'
+  test('reads the same with no upload link, as it offers none', () => {
+    expect(resolveSingleErrorCopy(error([offender()]), null)).toEqual(
+      resolveSingleErrorCopy(error([offender()]), UPLOAD_HREF)
     )
-    expect(result.linkText).toBeNull()
   })
 
   test('renders the copy and the table on the page', () => {
@@ -631,17 +676,17 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
 
     expect(html).not.toContain('PLACEHOLDER')
     expect(html).toContain(
-      'Your file marks the habitats below as enhanced, but this service cannot enhance them.'
+      '<h1 class="govuk-heading-l">There is a problem with your project</h1>'
     )
     expect(html).toContain(
-      'Change the retention category of each habitat listed to Retained and'
+      '<h2 class="govuk-heading-m">Service eligibility</h2>'
     )
     expect(html).toContain(
-      'Some habitats in your file cannot be enhanced in this service'
+      'Your project contains habitats that have been enhanced to a level which is not yet included in this service. Use the <a class="govuk-link" href="https://www.gov.uk/government/publications/statutory-biodiversity-metric-tools-and-guides" target="_blank" rel="noreferrer noopener">metric tool (spreadsheet) (opens in a new tab)</a> to calculate biodiversity value.'
     )
+    expect(html).not.toContain(`href="${UPLOAD_HREF}"`)
     expect(html).toContain('data-testid="unenhanceable-habitats"')
     expect(html).toContain('Habitats that cannot be enhanced')
-    expect(html).toContain(`href="${UPLOAD_HREF}"`)
     expect(html.match(/<tr class="govuk-table__row">/g)).toHaveLength(51)
     expect(html).toContain('Showing the first 50 of 52 habitats.')
     expect(html).toContain('data-testid="unenhanceable-habitats-more"')
@@ -662,7 +707,9 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
           offender({
             layer: 'hedgerows',
             feature_ref: 'HG011',
-            habitat_type: 'Ecologically valuable line of trees'
+            habitat_type: 'Ecologically valuable line of trees',
+            proposed_habitat_type: 'Native hedgerow with trees',
+            proposed_condition: 'Moderate'
           })
         ]),
         UPLOAD_HREF
@@ -678,7 +725,9 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
       'HG011',
       'Hedgerow',
       'Ecologically valuable line of trees',
-      'Good'
+      'Good',
+      'Native hedgerow with trees',
+      'Moderate'
     ])
   })
 
@@ -709,9 +758,13 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
     )
 
     expect(singleError.table).toBeUndefined()
-    expect(singleError.intro).toContain('cannot enhance them')
     const html = renderTemplate('error-file/index.njk', { singleError })
     expect(html).not.toContain('govuk-table')
-    expect(html).toContain(`href="${UPLOAD_HREF}"`)
+    expect(html).toContain(
+      'Your project contains habitats that have been enhanced to a level which is not yet included in this service. Use the '
+    )
+    expect(html).toContain(
+      'href="https://www.gov.uk/government/publications/statutory-biodiversity-metric-tools-and-guides"'
+    )
   })
 })

@@ -12,6 +12,7 @@ import {
   HABITAT_REF_IN_USE_ERROR,
   habitatRefFormFields,
   isRefInUseError,
+  isRefUnchanged,
   isValidHabitatRef
 } from './habitat-ref.js'
 
@@ -297,20 +298,6 @@ async function renderDetailsPage(
 // What submittedRefToSave answers for a reference that must not be saved.
 const REFUSED_REF = Symbol('refused habitat reference')
 
-function isBlank(ref) {
-  return ref === undefined || ref === null || String(ref).trim() === ''
-}
-
-/**
- * The stored reference as the page shows it in the input.
- *
- * @param {unknown} ref
- * @returns {string}
- */
-function storedRefText(ref) {
-  return ref === null || ref === undefined ? '' : `${ref}`
-}
-
 /**
  * The habitat reference to send with a save, undefined to leave the stored one
  * alone, or REFUSED_REF when the submitted one is invalid.
@@ -343,10 +330,7 @@ async function submittedRefToSave(
     projectId,
     featureId
   )
-  const unchanged =
-    habitatRef === storedRefText(feature?.ref) ||
-    (isBlank(habitatRef) && isBlank(feature?.ref))
-  if (unchanged) {
+  if (isRefUnchanged(habitatRef, feature?.ref)) {
     return undefined
   }
   return isValidHabitatRef(habitatRef) ? habitatRef : REFUSED_REF

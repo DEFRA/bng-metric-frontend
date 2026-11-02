@@ -63,7 +63,7 @@
     "hapi-pino": "13.0.0",
     "hapi-pulse": "4.0.0",
     "ioredis": "6.0.0",
-    "joi": "18.3.0",
+    "joi": "18.3.1",
     "lodash": "4.18.1",
     "node-fetch": "3.3.2",
     "nunjucks": "3.2.4",
@@ -99,8 +99,8 @@
     "vitest": "5.0.5",
     "vitest-axe": "0.1.0",
     "vitest-fetch-mock": "0.4.5",
-    "webpack": "5.112.0",
-    "webpack-assets-manifest": "6.5.4",
+    "webpack": "5.112.1",
+    "webpack-assets-manifest": "6.5.5",
     "webpack-cli": "7.2.3"
   },
   "overrides": {
@@ -113,7 +113,13 @@
     "minimatch": "10.2.5",
     "js-yaml": "^4.3.1",
     "nanoid": "3.3.18",
-    "@hapi/joi": "npm:joi@18.2.9",
+    "@hapi/joi": "npm:joi@18.3.1",
+    "@hapi/catbox-redis": {
+      "joi": "17.13.9"
+    },
+    "hapi-pulse": {
+      "joi": "18.3.1"
+    },
     "moment": "2.31.0"
   }
 }

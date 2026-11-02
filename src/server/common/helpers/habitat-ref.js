@@ -73,7 +73,7 @@ export function isRefInUseError(err) {
  * page carries the error. The heading names the habitat by its saved
  * reference either way.
  *
- * @param {{ heading: string, savedRef?: unknown, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
+ * @param {{ heading: string, savedRef?: string | number | null, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
  * @returns {{ pageTitle: string, errors: Array<{ text: string, href: string }>, habitatRefInput: { id: string, value: string, error?: { text: string }, maxLength: number } }}
  */
 export function habitatRefFormFields({
@@ -82,8 +82,6 @@ export function habitatRefFormFields({
   submittedRef,
   refusal
 }) {
-  const savedValue =
-    savedRef === null || savedRef === undefined ? '' : `${savedRef}`
   return {
     pageTitle: refusal ? `Error: ${heading}` : heading,
     errors: refusal
@@ -91,9 +89,33 @@ export function habitatRefFormFields({
       : [],
     habitatRefInput: {
       id: HABITAT_REF_FIELD_ID,
-      value: submittedRef ?? savedValue,
+      value: submittedRef ?? storedRefText(savedRef),
       error: refusal ? { text: refusal.inline } : undefined,
       maxLength: MAX_HABITAT_REF_LENGTH
     }
   }
+}
+
+/**
+ * A stored reference as text, as the page puts it in the input.
+ *
+ * @param {string | number | null | undefined} ref
+ * @returns {string}
+ */
+export function storedRefText(ref) {
+  return typeof ref === 'string' || typeof ref === 'number' ? `${ref}` : ''
+}
+
+/**
+ * Whether a submitted reference leaves the stored one as it is. A text input
+ * drops line breaks from its value, so a stored reference holding one comes
+ * back without it though the user never touched the field.
+ *
+ * @param {string} submitted
+ * @param {string | number | null | undefined} stored
+ * @returns {boolean}
+ */
+export function isRefUnchanged(submitted, stored) {
+  const shown = storedRefText(stored).replaceAll(/[\r\n]/g, '')
+  return submitted === shown || (submitted.trim() === '' && shown.trim() === '')
 }

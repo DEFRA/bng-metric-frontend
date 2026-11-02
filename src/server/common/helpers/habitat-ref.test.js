@@ -3,7 +3,9 @@ import { describe, expect, test } from 'vitest'
 import {
   habitatRefFormFields,
   isRefInUseError,
-  isValidHabitatRef
+  isRefUnchanged,
+  isValidHabitatRef,
+  storedRefText
 } from './habitat-ref.js'
 
 describe('isValidHabitatRef', () => {
@@ -101,5 +103,39 @@ describe('habitatRefFormFields', () => {
         maxLength: 100
       }
     })
+  })
+})
+
+describe('storedRefText', () => {
+  test.each([
+    ['A1', 'A1'],
+    [12, '12'],
+    [null, ''],
+    [undefined, '']
+  ])('shows %s as "%s"', (ref, expected) => {
+    expect(storedRefText(ref)).toBe(expected)
+  })
+})
+
+describe('isRefUnchanged', () => {
+  test.each([
+    ['the same text', 'A1', 'A1'],
+    ['a number stored', '12', 12],
+    ['surrounding spaces kept', ' A1 ', ' A1 '],
+    ['a trailing line break the input dropped', 'A1', 'A1\n'],
+    ['an embedded line break the input dropped', 'A1', 'A\r\n1'],
+    ['nothing stored and nothing typed', '', null],
+    ['nothing stored and only spaces typed', '   ', undefined],
+    ['a stored line break alone', '', '\n']
+  ])('is true for %s', (_label, submitted, stored) => {
+    expect(isRefUnchanged(submitted, stored)).toBe(true)
+  })
+
+  test.each([
+    ['a new reference', 'A2', 'A1'],
+    ['a reference blanked', '', 'A1'],
+    ['spaces added', ' A1 ', 'A1']
+  ])('is false for %s', (_label, submitted, stored) => {
+    expect(isRefUnchanged(submitted, stored)).toBe(false)
   })
 })
