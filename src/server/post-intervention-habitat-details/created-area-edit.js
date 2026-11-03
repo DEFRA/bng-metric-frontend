@@ -1,3 +1,10 @@
+import {
+  buildCreatedEditFields,
+  ENCROACHMENT_FIELDS,
+  FIELD_ORDER,
+  ERROR_SUMMARY_TEXT,
+  keepImportedCondition
+} from './created-area-edit-fields.js'
 import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
@@ -67,25 +74,6 @@ function createdKind(reference) {
 }
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
-const FIELD_ORDER = [
-  'ref',
-  'broadHabitat',
-  'habitatType',
-  'strategicSignificance',
-  'watercourseEncroachment',
-  'riparianEncroachment',
-  'condition',
-  'advanceYears',
-  'delayYears'
-]
-
-const ERROR_SUMMARY_TEXT = {
-  'Enter a valid habitat reference.':
-    'You have entered an invalid habitat reference.',
-  'Either the advance or delay field must be set at zero.':
-    'A habitat cannot be created both in advance and with a delay.'
-}
-
 export const createdAreaPayloadSchema = Joi.object({
   projectId: Joi.string().uuid().required(),
   featureId: Joi.string().uuid().required(),
@@ -108,8 +96,6 @@ export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
   'broadHabitat',
   (schema) => schema.forbidden()
 )
-
-const ENCROACHMENT_FIELDS = ['watercourseEncroachment', 'riparianEncroachment']
 
 export const createdWatercoursePayloadSchema =
   createdHedgerowPayloadSchema.keys(
@@ -171,7 +157,9 @@ function createdEditValues(feature, reference) {
 }
 
 function importedEncroachmentValues(reference, feature) {
-  if (reference.featureType !== 'watercourse') return {}
+  if (reference.featureType !== 'watercourse') {
+    return {}
+  }
   return Object.fromEntries(
     ENCROACHMENT_FIELDS.filter(
       (field) =>
@@ -189,10 +177,6 @@ function importedHedgerowCondition(reference, values) {
   return type && !type.conditions.some((c) => c.condition === values.condition)
     ? { habitatType: values.habitatType, condition: values.condition }
     : null
-}
-
-function keepImportedCondition(reference, values) {
-  return reference.importedCondition?.habitatType === values.habitatType
 }
 
 const referencePromises = new Map()
@@ -356,139 +340,6 @@ export function validateCreatedArea(values, reference) {
   return errors
 }
 
-function selectItems(options, value, label) {
-  return [
-    {
-      value: '',
-      text: `Choose ${label}`,
-      selected: !options.some((o) => o.value === value)
-    },
-    ...options.map((option) => ({
-      ...option,
-      selected: option.value === value
-    }))
-  ]
-}
-
-function choiceHint(id, items, value, initialLoad) {
-  const hints = []
-  if (id === 'strategicSignificance') {
-    hints.push(
-      "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
-    )
-  }
-  if (initialLoad && value && !items.some((item) => item.value === value)) {
-    hints.push(
-      `The imported value "${value}" is not available. Choose a valid option; saving without a new selection will clear this value.`
-    )
-  }
-  return hints.join(' ') || null
-}
-
-function createdFieldChoices(reference, values, type, kind) {
-  const options = (list) => list.map((value) => ({ value, text: value }))
-  return [
-    [
-      'broadHabitat',
-      'Broad habitat',
-      options(
-        [...new Set(reference.habitatTypes.map((t) => t.broad))].sort((a, b) =>
-          a.localeCompare(b)
-        )
-      )
-    ],
-    [
-      'habitatType',
-      'Habitat type',
-      options(
-        reference.habitatTypes
-          .filter(
-            (t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat
-          )
-          .map((t) => t.name)
-      )
-    ],
-    [
-      'condition',
-      'Target condition (multiplier)',
-      (type?.conditions ?? []).map((c) => ({
-        value: c.condition,
-        text: `${c.condition} (${c.score})`
-      }))
-    ],
-    [
-      'strategicSignificance',
-      'Strategic significance (multiplier)',
-      reference.strategicSignificance.map((s) => ({
-        value: s.value,
-        text: `${s.value} (${s.score})`
-      }))
-    ],
-    [
-      'advanceYears',
-      'Habitat created in advance (years)',
-      options(YEAR_OPTIONS)
-    ],
-    [
-      'delayYears',
-      'Delay in starting habitat creation (years)',
-      options(YEAR_OPTIONS)
-    ]
-  ]
-}
-
-function createdAreaFields(reference, values, type, initialLoad) {
-  const kind = createdKind(reference)
-  const fields = createdFieldChoices(reference, values, type, kind)
-  if (kind.hasEncroachments) {
-    fields.push(
-      ...ENCROACHMENT_FIELDS.map((field) => [
-        field,
-        field === 'watercourseEncroachment'
-          ? 'Watercourse encroachment'
-          : 'Riparian encroachment',
-        reference[field].map((value) => ({ value, text: value }))
-      ])
-    )
-  }
-  const placeholders = {
-    advanceYears: 'advance',
-    delayYears: 'delay',
-    condition: 'target condition',
-    strategicSignificance: 'strategic significance',
-    watercourseEncroachment: 'watercourse encroachment',
-    riparianEncroachment: 'riparian encroachment'
-  }
-  return fields
-    .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
-    .map(([id, label, items]) => {
-      const imported =
-        id === 'condition' && keepImportedCondition(reference, values)
-          ? reference.importedCondition.condition
-          : (reference.importedEncroachments?.[id] ??
-            reference.importedYears?.[id])
-      if (imported !== undefined) {
-        items = [
-          ...items,
-          { value: UNCHANGED_VALUE, text: `${imported} (imported value)` }
-        ]
-      }
-      return {
-        id,
-        label,
-        hint:
-          imported !== undefined
-            ? `The imported value is ${imported}. Keep it unchanged, choose a new value, or choose the default option to clear it.`
-            : choiceHint(id, items, values[id], initialLoad),
-        items: selectItems(
-          items,
-          values[id],
-          placeholders[id] ?? label.toLowerCase()
-        )
-      }
-    })
-}
-
 function createdAreaDisplayFields(feature, reference, values, base) {
   const baseline = stripConditionPrefix(feature.baseline?.condition)
   const baselineCondition = typeof baseline === 'string' ? baseline : ''
@@ -519,43 +370,6 @@ function createdAreaDisplayFields(feature, reference, values, base) {
     }
   }
   return { baselineCondition, ...derived }
-}
-
-function editFieldsWithImportHints(feature, reference, values) {
-  const originalValues = createdEditValues(feature, reference)
-  const originalFields = new Map(
-    createdAreaFields(
-      reference,
-      originalValues,
-      selectedHabitat(reference, originalValues),
-      true
-    ).map((field) => [field.id, field])
-  )
-  const fields = createdAreaFields(
-    reference,
-    values,
-    selectedHabitat(reference, values),
-    false
-  )
-  return Object.fromEntries(
-    fields.map((field) => {
-      const importedValue = originalValues[field.id]
-      const pendingClear =
-        importedValue &&
-        (!values[field.id] || values[field.id] === importedValue)
-      const importedField = originalFields.get(field.id)
-      const unavailable = !importedField.items.some(
-        (item) => item.value === importedValue
-      )
-      return [
-        field.id,
-        {
-          ...field,
-          hint: pendingClear && unavailable ? importedField.hint : field.hint
-        }
-      ]
-    })
-  )
 }
 
 export function buildCreatedAreaEditViewModel(
@@ -609,7 +423,12 @@ export function buildCreatedAreaEditViewModel(
       text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
       href: `#${field}`
     })),
-    fields: editFieldsWithImportHints(feature, reference, values),
+    fields: buildCreatedEditFields(
+      reference,
+      values,
+      createdEditValues(feature, reference),
+      kind
+    ),
     referenceJson: JSON.stringify(reference).replaceAll(
       '<',
       String.raw`\u003c`

@@ -51,7 +51,11 @@ const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
 const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const WATERCOURSE_TYPE = 'watercourse'
-const CREATED_EDIT_TYPES = [AREA_HABITAT_TYPE, HEDGEROW_TYPE, WATERCOURSE_TYPE]
+const CREATED_EDIT_TYPES = new Set([
+  AREA_HABITAT_TYPE,
+  HEDGEROW_TYPE,
+  WATERCOURSE_TYPE
+])
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
 const AREA_RETENTION_PAGES = new Map([
@@ -355,10 +359,7 @@ async function renderDetailsPage(
   // category stored under `baseline`, or a missing value resolves consistently
   // for every page.
   const retentionCategory = featureRetentionCategory(feature)
-  if (
-    CREATED_EDIT_TYPES.includes(type) &&
-    retentionCategory === RETENTION_CREATED
-  ) {
+  if (CREATED_EDIT_TYPES.has(type) && retentionCategory === RETENTION_CREATED) {
     return renderCreatedFeature(h, {
       type,
       feature,
@@ -540,7 +541,7 @@ const postController = {
     )
     const retentionCategory = featureRetentionCategory(feature)
     if (
-      CREATED_EDIT_TYPES.includes(type) &&
+      CREATED_EDIT_TYPES.has(type) &&
       retentionCategory === RETENTION_CREATED
     ) {
       return saveCreatedDetails(request, h, {
