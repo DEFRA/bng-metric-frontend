@@ -223,109 +223,22 @@ const habitatRefInvalidCharactersEntry = () =>
   )
 
 // BMD-1182: enhanced habitats whose baseline the service cannot enhance at
-// all. The file is refused rather than the enhancements nulled. Copy from the
-// design team for now (BMD-1110, row 39).
+// all. The file is refused rather than the enhancements nulled. Copy word for
+// word from the design team's dropout spreadsheet (BMD-1110, row 39), so the
+// page lists no habitats and the link names no new tab: it opens in this one.
 const UNENHANCEABLE_BASELINE_H1 = 'There is a problem with your project'
 const SERVICE_ELIGIBILITY_SUBHEADING = 'Service eligibility'
 const UNENHANCEABLE_BASELINE_HELP_TEXT =
   'Your project contains habitats that have been enhanced to a level which is not yet included in this service. Use the '
 
-// The backend sends at most 50 offenders in details.sample, and the count of
-// all of them in details.count. The table never shows more than this.
-export const UNENHANCEABLE_BASELINE_MAX_ROWS = 50
-
-// The backend's document layer names, as the table labels a feature.
-const UNENHANCEABLE_FEATURE_LABELS = {
-  habitats: 'Area habitat',
-  verticalHabitats: 'Vertical area habitat',
-  hedgerows: 'Hedgerow',
-  watercourses: 'Watercourse',
-  trees: 'Individual tree'
-}
-
-const UNENHANCEABLE_BASELINE_CAPTION = 'Habitats that cannot be enhanced'
-
-const NOT_RECORDED = 'Not recorded'
-
-function textOr(value, fallback) {
-  return value == null || value === '' ? fallback : String(value)
-}
-
-// The habitat's Feature Ref, or, without one, the same fid / feature number
-// the multi-error list falls back to (describeFeature, controller.js), so the
-// user can still find the row. A bare fid would read as a reference.
-function unenhanceableRef(sample) {
-  if (sample?.feature_ref != null && sample.feature_ref !== '') {
-    return String(sample.feature_ref)
-  }
-  if (sample?.fid != null && sample.fid !== '') {
-    return `fid ${sample.fid}`
-  }
-  if (sample?.idx != null) {
-    return `feature #${sample.idx}`
-  }
-  return 'No reference'
-}
-
-function unenhanceableRow(sample) {
-  return [
-    { text: unenhanceableRef(sample) },
-    {
-      text: UNENHANCEABLE_FEATURE_LABELS[sample?.layer] ?? 'Habitat'
-    },
-    { text: textOr(sample?.habitat_type, NOT_RECORDED) },
-    { text: textOr(sample?.condition, NOT_RECORDED) },
-    { text: textOr(sample?.proposed_habitat_type, NOT_RECORDED) },
-    { text: textOr(sample?.proposed_condition, NOT_RECORDED) }
-  ]
-}
-
-function unenhanceableTable(error) {
-  const sample = error?.details?.sample
-  const rows = Array.isArray(sample)
-    ? sample.slice(0, UNENHANCEABLE_BASELINE_MAX_ROWS)
-    : []
-  // No habitats to list: the page shows no empty table.
-  if (rows.length === 0) {
-    return null
-  }
-  const count = Number(error?.details?.count)
-  const total = Number.isFinite(count)
-    ? Math.max(count, rows.length)
-    : rows.length
-  return {
-    caption: UNENHANCEABLE_BASELINE_CAPTION,
-    testId: 'unenhanceable-habitats',
-    head: [
-      { text: 'Reference' },
-      { text: 'Feature' },
-      { text: 'Baseline habitat' },
-      { text: 'Baseline condition' },
-      { text: 'Proposed habitat' },
-      { text: 'Proposed condition' }
-    ],
-    rows: rows.map(unenhanceableRow),
-    moreText:
-      total > rows.length
-        ? `Showing the first ${rows.length} of ${total} habitats.`
-        : null
-  }
-}
-
-const unenhanceableBaselineEntry = (error) => {
-  const entry = {
-    ...metricToolEntry(
-      UNENHANCEABLE_BASELINE_H1,
-      UNENHANCEABLE_BASELINE_HELP_TEXT
-    ),
-    subheading: SERVICE_ELIGIBILITY_SUBHEADING
-  }
-  const table = unenhanceableTable(error)
-  if (table) {
-    entry.table = table
-  }
-  return entry
-}
+const unenhanceableBaselineEntry = () => ({
+  ...metricToolEntry(
+    UNENHANCEABLE_BASELINE_H1,
+    UNENHANCEABLE_BASELINE_HELP_TEXT
+  ),
+  subheading: SERVICE_ELIGIBILITY_SUBHEADING,
+  opensInNewTab: false
+})
 
 const CODE_ENTRIES = {
   NO_REDLINE: noRedlineEntry,
