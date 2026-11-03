@@ -179,3 +179,22 @@ test('validation errors preserve both encroachments and give accessible summary 
   }
   await runAxeChecks(document.documentElement)
 })
+
+test('a type change refreshes legacy saved difficulty even when both reference types share the same difficulty', () => {
+  render({
+    ...feature,
+    proposed: {
+      ...feature.proposed,
+      difficulty: 'Low',
+      difficultyMultiplier: 1
+    }
+  })
+  expect(text('standardDifficultyDisplay')).toBe('Low')
+  expect(text('appliedDifficultyMultiplierDisplay')).toBe('1')
+  change('habitatType', 'Canals')
+  expect(text('standardDifficultyDisplay')).toBe('Medium')
+  expect(text('appliedDifficultyMultiplierDisplay')).toBe('0.67')
+  change('habitatType', 'Ditches')
+  expect(text('standardDifficultyDisplay')).toBe('Low')
+  expect(text('appliedDifficultyMultiplierDisplay')).toBe('1')
+})

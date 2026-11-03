@@ -12,10 +12,21 @@ const DERIVED_LABELS = {
   appliedDifficultyMultiplierDisplay: 'Applied difficulty multiplier'
 }
 
+const TYPE_INPUTS = ['broadHabitat', 'habitatType']
+const CONDITION_INPUTS = [...TYPE_INPUTS, 'condition']
+const DERIVED_INPUTS = {
+  distinctivenessDisplay: TYPE_INPUTS,
+  standardDifficultyDisplay: TYPE_INPUTS,
+  appliedDifficultyMultiplierDisplay: TYPE_INPUTS,
+  standardTimeToTargetDisplay: CONDITION_INPUTS,
+  finalTimeToTargetDisplay: [...CONDITION_INPUTS, 'advanceYears', 'delayYears']
+}
+
 function createDerivedUpdater(reference, values, baselineCondition) {
+  const initialValues = values()
   const initialDerived = createdAreaDerived(
     reference,
-    values(),
+    initialValues,
     baselineCondition
   )
   const initialLabels = Object.fromEntries(
@@ -24,23 +35,25 @@ function createDerivedUpdater(reference, values, baselineCondition) {
       document.getElementById(id).textContent
     ])
   )
-  let previousDerived = initialDerived
   return () => {
     const changed = []
+    const currentValues = values()
     const nextDerived = createdAreaDerived(
       reference,
-      values(),
+      currentValues,
       baselineCondition
     )
     for (const [id, value] of Object.entries(nextDerived)) {
       const element = document.getElementById(id)
-      if (previousDerived[id] !== value) {
-        const label = initialDerived[id] === value ? initialLabels[id] : value
+      const originalInputs = DERIVED_INPUTS[id].every(
+        (field) => currentValues[field] === initialValues[field]
+      )
+      const label = originalInputs ? initialLabels[id] : value
+      if (element.textContent !== label) {
         element.textContent = label
         changed.push(`${DERIVED_LABELS[id]}: ${label || 'Not available'}.`)
       }
     }
-    previousDerived = nextDerived
     if (changed.length) {
       document.getElementById('created-area-results-status').textContent =
         changed.join(' ')
