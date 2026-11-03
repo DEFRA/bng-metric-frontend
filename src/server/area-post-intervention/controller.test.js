@@ -440,6 +440,60 @@ describe('area post intervention', () => {
     expect(wallRow.text()).not.toContain('0.04ha')
   })
 
+  test('treats a project of only vertical area habitats as having a baseline', async () => {
+    const wall = {
+      featureId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      ref: 'V-1',
+      units: 0.16,
+      sizeSquareMetres: 400,
+      retentionCategory: 'Retained',
+      proposed: {
+        broadType: 'Urban',
+        type: 'Facade-bound green wall',
+        condition: 'Poor'
+      }
+    }
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...populatedProject.project,
+          baseline: {
+            ...populatedProject.project.baseline,
+            habitats: [],
+            trees: [],
+            verticalHabitats: [wall]
+          },
+          postIntervention: {
+            ...populatedProject.project.postIntervention,
+            habitats: [],
+            trees: [],
+            verticalHabitats: [wall]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const summary = $('.app-unit-type-summary')
+    const baselineLink = summary
+      .find('a')
+      .filter(
+        (_, link) => $(link).text().trim() === 'View on-site area baseline'
+      )
+    expect(baselineLink.attr('href')).toBe(
+      `/projects/${PROJECT_ID}/area-baseline`
+    )
+    expect(summary.text()).toContain('On-site post-intervention')
+    expect(summary.text()).toContain('2.80%')
+  })
+
   test('shows the Broad habitat column for both habitat and tree rows', async () => {
     const { result } = await server.inject({
       method: 'GET',

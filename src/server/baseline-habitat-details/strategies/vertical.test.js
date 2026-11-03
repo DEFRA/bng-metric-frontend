@@ -91,7 +91,7 @@ describe('verticalStrategy', () => {
     expect(viewModel).toMatchObject({
       habitatRef: 'V-1',
       sizeDisplay: '37.5m²',
-      sizeLabel: 'Area (square metres)',
+      sizeLabel: 'Size (square metres)',
       backHref: '/projects/p1/area-baseline'
     })
     expect(viewModel.habitatTypeOptions.map((o) => o.value)).toEqual([

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { serviceTemplateProject } from '../common/test-helpers/service-template-projects/index.js'
+import { renderTemplate } from '../test-helpers/render-template.js'
 import {
   createMockH,
   featureId,
@@ -30,7 +31,8 @@ const { _resetCreatedAreaReferenceCache, createdAreaValues } =
 const FEATURE_TYPES = {
   habitats: 'habitat',
   hedgerows: 'hedgerow',
-  watercourses: 'watercourse'
+  watercourses: 'watercourse',
+  verticalHabitats: 'verticalHabitat'
 }
 
 function baselineHref(baselineFeatureId) {
@@ -70,7 +72,10 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
     ['an Enhanced area habitat', 'habitats', 'H001'],
     ['a Created area habitat that degrades its parent', 'habitats', 'H043'],
     ['an Enhanced hedgerow', 'hedgerows', 'HG002'],
-    ['a Created watercourse that degrades its parent', 'watercourses', 'R004']
+    ['a Created watercourse that degrades its parent', 'watercourses', 'R004'],
+    ['a Retained vertical area habitat', 'verticalHabitats', 'V001'],
+    ['an Enhanced vertical area habitat', 'verticalHabitats', 'V002'],
+    ['a Created vertical area habitat', 'verticalHabitats', 'V003']
   ])(
     'links %s to the baseline feature it names as its parent, whatever its ref',
     async (_, layer, ref) => {
@@ -173,6 +178,60 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
     })
 
     expect(view.viewBaselineHref).toBeNull()
+  })
+
+  test('shows no link for a vertical area habitat with no parent, even when a baseline one shares its ref', async () => {
+    const body = serviceTemplateProject('twoStages')
+
+    const { view } = await render(
+      body,
+      'verticalHabitats',
+      'V003',
+      (unlinked) => {
+        delete unlinked.parentFeatureId
+      }
+    )
+
+    expect(view.viewBaselineHref).toBeNull()
+  })
+
+  test('shows no link when the baseline no longer holds a vertical area habitat’s parent', async () => {
+    const body = serviceTemplateProject('twoStages')
+    const parentId = baselineIdOf(body, 'verticalHabitats', 'V003')
+    body.project.baseline.verticalHabitats =
+      body.project.baseline.verticalHabitats.filter(
+        (f) => f.featureId !== parentId
+      )
+
+    const { view } = await render(body, 'verticalHabitats', 'V003')
+
+    expect(view.viewBaselineHref).toBeNull()
+  })
+
+  test('shows a Created vertical area habitat’s timing and difficulty, and its size in square metres', async () => {
+    const body = serviceTemplateProject('twoStages')
+    mockFeature(
+      {
+        type: 'verticalHabitat',
+        feature: body.project.postIntervention.verticalHabitats.find(
+          (f) => f.ref === 'V003'
+        )
+      },
+      { payload: body }
+    )
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    const [template, viewModel] = h.view.mock.calls[0]
+
+    const html = renderTemplate(`${template}.njk`, viewModel)
+    const row = (label) =>
+      new RegExp(`${label}</[^>]+>\\s*<[^>]+>\\s*([^<]*?)\\s*<`).exec(html)?.[1]
+
+    expect(template).toBe('habitat-details/pi-habitat-details-enhanced')
+    expect(row('Size \\(square metres\\)')).toBe('79m²')
+    expect(row('Advance or delay\\?')).toBe('Delay - 30 years')
+    expect(row('Standard difficulty')).toBe('Medium')
+    expect(row('Standard time to target condition')).toContain('8')
   })
 
   test('shows no link when the baseline no longer holds the parent', async () => {

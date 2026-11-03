@@ -184,15 +184,15 @@ describe('#postInterventionHabitatDetailsController', () => {
     ],
     [
       'Created',
-      'habitat-details/pi-habitat-details',
-      '40',
+      'habitat-details/pi-habitat-details-enhanced',
+      '40m²',
       'Size (square metres)'
     ],
     [
       'Enhanced',
       'habitat-details/pi-habitat-details-enhanced',
       '40m²',
-      undefined
+      'Size (square metres)'
     ]
   ])(
     'GET shows a %s vertical area habitat on the area page, read only, sized in square metres',
@@ -234,7 +234,7 @@ describe('#postInterventionHabitatDetailsController', () => {
           broadHabitatDisplay: 'Urban',
           habitatTypeDisplay: 'Facade-bound green wall',
           backHref: `/projects/${projectId}/area-post-intervention`,
-          ...(sizeLabel && { sizeLabel })
+          sizeLabel
         })
       )
     }

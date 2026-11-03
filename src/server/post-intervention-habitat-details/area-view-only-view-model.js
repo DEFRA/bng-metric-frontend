@@ -2,7 +2,10 @@ import {
   formatAreaHectaresValue,
   formatSquareMetresValue
 } from '../common/helpers/format-habitat-values.js'
-import { isVerticalHabitat } from '../common/helpers/vertical-habitats.js'
+import {
+  isVerticalHabitat,
+  VERTICAL_SIZE_LABEL
+} from '../common/helpers/vertical-habitats.js'
 import {
   AREAS_TAB_ANCHOR,
   HABITAT_UNITS_DELIVERED_LABEL,
@@ -42,7 +45,7 @@ export function buildAreaViewOnlyViewModel(
     habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
     ...(isVerticalHabitat(feature)
       ? {
-          sizeLabel: 'Size (square metres)',
+          sizeLabel: VERTICAL_SIZE_LABEL,
           sizeDisplay: formatSquareMetresValue(feature.sizeSquareMetres)
         }
       : {

@@ -1,5 +1,8 @@
 import { formatSquareMetres } from '../../common/helpers/format-habitat-values.js'
-import { VERTICAL_HABITATS } from '../../common/helpers/vertical-habitats.js'
+import {
+  VERTICAL_HABITATS,
+  VERTICAL_SIZE_LABEL
+} from '../../common/helpers/vertical-habitats.js'
 import { areaStrategy } from './area.js'
 
 const isVerticalChoice = (habitatType) =>
@@ -32,7 +35,7 @@ function buildViewModel(habitat, reference, ctx) {
   return {
     ...areaStrategy.buildViewModel(habitat, reference, ctx),
     sizeDisplay: formatSquareMetres(habitat.sizeSquareMetres),
-    sizeLabel: 'Area (square metres)'
+    sizeLabel: VERTICAL_SIZE_LABEL
   }
 }
 

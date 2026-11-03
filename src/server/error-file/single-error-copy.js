@@ -148,6 +148,18 @@ const verticalAreaEntry = (error) => {
   )
 }
 
+// A vertical area habitat's line, along the base of its structure, outside
+// the red line boundary. As a hedgerow's.
+const verticalOutsideRedlineEntry = (error) => {
+  const ref = describeRef(firstSample(error))
+  return standard(
+    ref
+      ? `This vertical area habitat ${ref} contains an error`
+      : GEOPACKAGE_ERROR_H1,
+    'This vertical area habitat is outside the red line boundary. Draw the vertical area habitat again and '
+  )
+}
+
 // The uploaded file's own name was rejected (backend SAFE_FILENAME_RE). Its
 // sibling code INVALID_FILE_METADATA means the document structure is wrong,
 // so it stays on the layer/column catch-all below.
@@ -414,17 +426,7 @@ const CODE_ENTRIES = {
     )
   },
 
-  // A vertical area habitat's line, along the base of its structure, outside
-  // the red line boundary. As a hedgerow's.
-  VERTICAL_HABITATS_OUTSIDE_REDLINE: (error) => {
-    const ref = describeRef(firstSample(error))
-    return standard(
-      ref
-        ? `This vertical area habitat ${ref} contains an error`
-        : GEOPACKAGE_ERROR_H1,
-      'This vertical area habitat is outside the red line boundary. Draw the vertical area habitat again and '
-    )
-  }
+  VERTICAL_HABITATS_OUTSIDE_REDLINE: verticalOutsideRedlineEntry
 }
 
 // AC1 — Invalid Natural England columns/layers (BMD-339) is the catch-all:

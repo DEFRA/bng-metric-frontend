@@ -9,6 +9,9 @@
 /** The backend's feature-type discriminator for a vertical area habitat. */
 export const VERTICAL_HABITAT_TYPE = 'verticalHabitat'
 
+/** The label of a vertical area habitat's size on every details page. */
+export const VERTICAL_SIZE_LABEL = 'Size (square metres)'
+
 /**
  * The habitats the Statutory Metric counts by their vertical area, which the
  * template's Vertical Area Habitats layers offer, and so the only choices on a

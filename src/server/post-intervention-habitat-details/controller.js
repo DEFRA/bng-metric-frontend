@@ -11,6 +11,7 @@ import { isServiceTemplateDocument } from '../common/helpers/service-template.js
 import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
+import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import {
   buildCreatedHedgerowViewOnlyViewModel,
@@ -57,14 +58,22 @@ const CREATED_EDIT_TYPES = [AREA_HABITAT_TYPE, HEDGEROW_TYPE]
 const WATERCOURSE_TYPE = 'watercourse'
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
+const ENHANCED_AREA_PAGE = {
+  template: 'habitat-details/pi-habitat-details-enhanced',
+  buildViewModel: buildEnhancedAreaViewOnlyViewModel
+}
+const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
+
 // A vertical area habitat uses the area pages, view-only whatever its
-// retention: it cannot be edited after intervention yet.
-const AREA_RETENTION_PAGES = new Map([
+// retention: it cannot be edited after intervention yet. A Created one shows
+// its timing and difficulty, as a Created area habitat's edit page does.
+const VERTICAL_RETENTION_PAGES = new Map([
+  [RETENTION_ENHANCED, ENHANCED_AREA_PAGE],
   [
-    RETENTION_ENHANCED,
+    RETENTION_CREATED,
     {
       template: 'habitat-details/pi-habitat-details-enhanced',
-      buildViewModel: buildEnhancedAreaViewOnlyViewModel
+      buildViewModel: buildCreatedAreaViewOnlyViewModel
     }
   ]
 ])
@@ -103,7 +112,7 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 // some retention categories rather than always using the single-list page.
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
-  [VERTICAL_HABITAT_TYPE, AREA_RETENTION_PAGES],
+  [VERTICAL_HABITAT_TYPE, VERTICAL_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])

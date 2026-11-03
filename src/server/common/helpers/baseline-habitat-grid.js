@@ -83,7 +83,7 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
  * @param {object[]} options.features
  * @param {string} options.projectId
  * @param {(feature: object) => number|null|undefined} options.readSize
- * @param {(value: number|null|undefined) => string} options.formatSize
+ * @param {(value: number|null|undefined, feature?: object) => string} options.formatSize
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
  * @param {object[]} [options.extraColumns]
  */
