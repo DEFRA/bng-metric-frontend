@@ -306,15 +306,18 @@ const getController = {
             ? 'habitat-details/pi-watercourse-details-created'
             : 'habitat-details/pi-hedgerow-details-enhanced',
           {
-            ...CREATED_EDIT_KINDS[type].buildBase(feature, {
-              projectId,
-              projectName,
-              baselineFeatureId: createdBaselineFeatureId(
-                project,
-                type,
-                feature
-              )
-            }),
+            ...CREATED_EDIT_KINDS[type].buildBase(
+              { ...feature, retentionCategory },
+              {
+                projectId,
+                projectName,
+                baselineFeatureId: createdBaselineFeatureId(
+                  project,
+                  type,
+                  feature
+                )
+              }
+            ),
             backHref: postInterventionBackHref(projectId, type, returnUrl)
           }
         )

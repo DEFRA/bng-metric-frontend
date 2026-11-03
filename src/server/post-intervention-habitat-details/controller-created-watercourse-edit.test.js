@@ -214,6 +214,7 @@ test('keeps a legacy Created watercourse editable and resolves only its own base
   const h = createMockH()
   await getController.handler({ query: { projectId, featureId } }, h)
   expect(h.view.mock.calls[0][1].viewBaselineHref).toBeNull()
+  expect(h.view.mock.calls[0][1].interventionDisplay).toBe('Created')
   expect(h.view.mock.calls[0][0]).toBe(
     'habitat-details/pi-habitat-details-created-edit'
   )

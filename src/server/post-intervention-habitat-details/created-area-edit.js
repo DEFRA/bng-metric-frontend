@@ -555,7 +555,14 @@ export function buildCreatedAreaEditViewModel(
 ) {
   reference = createdReferenceForFeature(reference, feature)
   const kind = createdKind(reference)
-  const base = kind.buildBase(feature, ctx)
+  const base = kind.buildBase(
+    {
+      ...feature,
+      retentionCategory:
+        feature.retentionCategory ?? feature.baseline?.retentionCategory
+    },
+    ctx
+  )
   const initialLoad = values === null
   values ??= createdEditValues(feature, reference)
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
