@@ -618,7 +618,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     await getController.handler({ query: { projectId, featureId } }, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-watercourse-details-created',
+      'habitat-details/pi-habitat-details-created-edit',
       expect.objectContaining({ interventionDisplay: 'Created' })
     )
   })

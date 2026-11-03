@@ -11,10 +11,7 @@ import { isServiceTemplateDocument } from '../common/helpers/service-template.js
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
-import {
-  buildCreatedHedgerowViewOnlyViewModel,
-  buildEnhancedHedgerowViewOnlyViewModel
-} from './enhanced-hedgerow-view-only-view-model.js'
+import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
@@ -25,6 +22,7 @@ import {
   createdAreaPayloadSchema,
   CREATED_EDIT_KINDS,
   createdHedgerowPayloadSchema,
+  createdWatercoursePayloadSchema,
   createdReferenceForFeature,
   saveCreatedArea,
   validateCreatedArea
@@ -265,7 +263,7 @@ async function loadCreationReferenceForFeature(type, feature) {
     return createdReferenceForFeature(reference, feature)
   } catch (error) {
     if (
-      type === HEDGEROW_TYPE &&
+      [HEDGEROW_TYPE, WATERCOURSE_TYPE].includes(type) &&
       error.output?.statusCode === statusCodes.notFound
     ) {
       return null
@@ -295,22 +293,31 @@ const getController = {
     // Normalise the feature-root retention category so a "1. Enhanced" list
     // prefix or a missing value resolves consistently for every view-only page.
     const retentionCategory = normaliseRetentionCategory(
-      feature.retentionCategory
+      feature.retentionCategory ?? feature.baseline?.retentionCategory
     )
     if (
-      [AREA_HABITAT_TYPE, HEDGEROW_TYPE].includes(type) &&
+      [AREA_HABITAT_TYPE, HEDGEROW_TYPE, WATERCOURSE_TYPE].includes(type) &&
       retentionCategory === RETENTION_CREATED
     ) {
       const reference = await loadCreationReferenceForFeature(type, feature)
       if (!reference) {
-        return h.view('habitat-details/pi-hedgerow-details-enhanced', {
-          ...buildCreatedHedgerowViewOnlyViewModel(feature, {
-            projectId,
-            projectName,
-            baselineFeatureId: createdBaselineFeatureId(project, type, feature)
-          }),
-          backHref: postInterventionBackHref(projectId, type, returnUrl)
-        })
+        return h.view(
+          type === WATERCOURSE_TYPE
+            ? 'habitat-details/pi-watercourse-details-created'
+            : 'habitat-details/pi-hedgerow-details-enhanced',
+          {
+            ...CREATED_EDIT_KINDS[type].buildBase(feature, {
+              projectId,
+              projectName,
+              baselineFeatureId: createdBaselineFeatureId(
+                project,
+                type,
+                feature
+              )
+            }),
+            backHref: postInterventionBackHref(projectId, type, returnUrl)
+          }
+        )
       }
       return h.view(
         'habitat-details/pi-habitat-details-created-edit',
@@ -354,7 +361,8 @@ const postController = {
     validate: {
       payload: Joi.alternatives().try(
         createdAreaPayloadSchema,
-        createdHedgerowPayloadSchema
+        createdHedgerowPayloadSchema,
+        createdWatercoursePayloadSchema
       )
     }
   },
@@ -367,9 +375,10 @@ const postController = {
       featureId
     )
     if (
-      ![AREA_HABITAT_TYPE, HEDGEROW_TYPE].includes(type) ||
-      normaliseRetentionCategory(feature.retentionCategory) !==
-        RETENTION_CREATED
+      ![AREA_HABITAT_TYPE, HEDGEROW_TYPE, WATERCOURSE_TYPE].includes(type) ||
+      normaliseRetentionCategory(
+        feature.retentionCategory ?? feature.baseline?.retentionCategory
+      ) !== RETENTION_CREATED
     ) {
       throw Boom.notImplemented(
         'Saving this post-intervention feature is not implemented'
@@ -378,10 +387,17 @@ const postController = {
     if (type === AREA_HABITAT_TYPE && !Object.hasOwn(values, 'broadHabitat')) {
       throw Boom.badRequest('Broad habitat field is required for area edits')
     }
+    const schema = {
+      habitat: createdAreaPayloadSchema,
+      hedgerow: createdHedgerowPayloadSchema,
+      watercourse: createdWatercoursePayloadSchema
+    }[type]
+    const { error } = schema.validate(request.payload)
+    if (error) throw Boom.badRequest(error.message)
     const reference = await loadCreationReferenceForFeature(type, feature)
     if (!reference) {
       throw Boom.serverUnavailable(
-        'Hedgerow editing is temporarily unavailable'
+        `${type === WATERCOURSE_TYPE ? 'Watercourse' : 'Hedgerow'} editing is temporarily unavailable`
       )
     }
     const errors = validateCreatedArea(values, reference)

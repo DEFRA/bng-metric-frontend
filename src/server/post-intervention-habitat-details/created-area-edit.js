@@ -1,4 +1,5 @@
 import Joi from 'joi'
+import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
 import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
@@ -32,6 +33,17 @@ export const CREATED_EDIT_KINDS = {
     hasBroadHabitat: true,
     habitatTypeError: 'Choose a habitat type for the selected broad habitat'
   },
+  watercourse: {
+    loadReference: loadCreatedWatercourseReference,
+    buildBase: buildCreatedWatercourseViewOnlyViewModel,
+    formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
+    sizeLabel: 'Length (km)',
+    backType: 'watercourse',
+    savePath: 'watercourses',
+    hasBroadHabitat: false,
+    hasEncroachments: true,
+    habitatTypeError: 'Choose a valid watercourse habitat type'
+  },
   hedgerow: {
     loadReference: loadCreatedHedgerowReference,
     buildBase: buildCreatedHedgerowViewOnlyViewModel,
@@ -59,6 +71,8 @@ const FIELD_ORDER = [
   'broadHabitat',
   'habitatType',
   'strategicSignificance',
+  'watercourseEncroachment',
+  'riparianEncroachment',
   'condition',
   'advanceYears',
   'delayYears'
@@ -94,6 +108,18 @@ export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
   (schema) => schema.forbidden()
 )
 
+const ENCROACHMENT_FIELDS = ['watercourseEncroachment', 'riparianEncroachment']
+
+export const createdWatercoursePayloadSchema =
+  createdHedgerowPayloadSchema.keys(
+    Object.fromEntries(
+      ENCROACHMENT_FIELDS.map((field) => [
+        field,
+        Joi.string().allow('').required()
+      ])
+    )
+  )
+
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
   reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
@@ -110,6 +136,7 @@ export function createdReferenceForFeature(reference, feature) {
     ...reference,
     importedYears,
     importedCondition,
+    importedEncroachments: importedEncroachmentValues(reference, feature),
     importedCalculation: {
       values: {
         ...saved,
@@ -132,11 +159,29 @@ function createdEditValues(feature, reference) {
   if (reference.importedCondition) {
     saved.condition = UNCHANGED_VALUE
   }
+  if (reference.featureType === 'watercourse') {
+    for (const field of ENCROACHMENT_FIELDS) {
+      saved[field] = reference.importedEncroachments?.[field]
+        ? UNCHANGED_VALUE
+        : (feature.proposed?.[field] ?? '')
+    }
+  }
   return saved
 }
 
+function importedEncroachmentValues(reference, feature) {
+  if (reference.featureType !== 'watercourse') return {}
+  return Object.fromEntries(
+    ENCROACHMENT_FIELDS.filter(
+      (field) =>
+        feature.proposed?.[field] &&
+        !reference[field].includes(feature.proposed[field])
+    ).map((field) => [field, feature.proposed[field]])
+  )
+}
+
 function importedHedgerowCondition(reference, values) {
-  if (reference.featureType !== 'hedgerow' || !values.condition) {
+  if (createdKind(reference).hasBroadHabitat || !values.condition) {
     return null
   }
   const type = selectedHabitat(reference, values)
@@ -153,6 +198,10 @@ const referencePromises = new Map()
 
 export function loadCreatedAreaReference() {
   return loadCreationReference('habitat', 'area')
+}
+
+export function loadCreatedWatercourseReference() {
+  return loadCreationReference('watercourse')
 }
 
 export function loadCreatedHedgerowReference() {
@@ -217,7 +266,12 @@ export function createdAreaValues(feature) {
       proposed.advanceYears,
       proposed.advanceYearsIs30Plus
     ),
-    delayYears: yearValue(proposed.delayYears, proposed.delayYearsIs30Plus)
+    delayYears: yearValue(proposed.delayYears, proposed.delayYearsIs30Plus),
+    ...Object.fromEntries(
+      ENCROACHMENT_FIELDS.filter((field) => Object.hasOwn(proposed, field)).map(
+        (field) => [field, proposed[field] ?? '']
+      )
+    )
   }
 }
 
@@ -270,7 +324,20 @@ export function validateCreatedArea(values, reference) {
       ...(type?.conditions ?? []).map((c) => c.condition),
       ...(keepImportedCondition(reference, values) ? [UNCHANGED_VALUE] : [])
     ],
-    strategicSignificance: reference.strategicSignificance.map((s) => s.value)
+    strategicSignificance: reference.strategicSignificance.map((s) => s.value),
+    ...(kind.hasEncroachments
+      ? Object.fromEntries(
+          ENCROACHMENT_FIELDS.map((field) => [
+            field,
+            [
+              ...reference[field],
+              ...(reference.importedEncroachments?.[field]
+                ? [UNCHANGED_VALUE]
+                : [])
+            ]
+          ])
+        )
+      : {})
   }
   for (const [field, options] of Object.entries(choices)) {
     if (values[field] && !options.includes(values[field])) {
@@ -278,7 +345,9 @@ export function validateCreatedArea(values, reference) {
         broadHabitat: 'Choose a valid broad habitat',
         habitatType: kind.habitatTypeError,
         condition: 'Choose a target condition for the selected habitat type',
-        strategicSignificance: 'Choose a valid strategic significance'
+        strategicSignificance: 'Choose a valid strategic significance',
+        watercourseEncroachment: 'Choose a valid watercourse encroachment',
+        riparianEncroachment: 'Choose a valid riparian encroachment'
       }
       errors[field] = messages[field]
     }
@@ -370,11 +439,24 @@ function createdFieldChoices(reference, values, type, kind) {
 function createdAreaFields(reference, values, type, initialLoad) {
   const kind = createdKind(reference)
   const fields = createdFieldChoices(reference, values, type, kind)
+  if (kind.hasEncroachments) {
+    fields.push(
+      ...ENCROACHMENT_FIELDS.map((field) => [
+        field,
+        field === 'watercourseEncroachment'
+          ? 'Watercourse encroachment'
+          : 'Riparian encroachment',
+        reference[field].map((value) => ({ value, text: value }))
+      ])
+    )
+  }
   const placeholders = {
     advanceYears: 'advance',
     delayYears: 'delay',
     condition: 'target condition',
-    strategicSignificance: 'strategic significance'
+    strategicSignificance: 'strategic significance',
+    watercourseEncroachment: 'watercourse encroachment',
+    riparianEncroachment: 'riparian encroachment'
   }
   return fields
     .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
@@ -382,7 +464,8 @@ function createdAreaFields(reference, values, type, initialLoad) {
       const imported =
         id === 'condition' && keepImportedCondition(reference, values)
           ? reference.importedCondition.condition
-          : reference.importedYears?.[id]
+          : (reference.importedEncroachments?.[id] ??
+            reference.importedYears?.[id])
       if (imported !== undefined) {
         items = [
           ...items,
@@ -541,7 +624,13 @@ function createdAreaSavePayload(values, kind) {
       : {}),
     strategicSignificance: values.strategicSignificance || null,
     ...timingPayload(values, 'advanceYears'),
-    ...timingPayload(values, 'delayYears')
+    ...timingPayload(values, 'delayYears'),
+    ...(kind.hasEncroachments
+      ? Object.assign(
+          {},
+          ...ENCROACHMENT_FIELDS.map((field) => timingPayload(values, field))
+        )
+      : {})
   }
 }
 
