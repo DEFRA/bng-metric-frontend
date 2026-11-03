@@ -606,6 +606,36 @@ describe('invalidFileController.handler — populated session', () => {
     ])
   })
 
+  test('errorBlocks: VERTICAL_HABITAT_AREA_NOT_POSITIVE rows name the habitat and the Area it holds', async () => {
+    const errors = [
+      {
+        code: 'VERTICAL_HABITAT_AREA_NOT_POSITIVE',
+        message:
+          'One or more vertical area habitats have an Area that is not a number above 0',
+        details: {
+          count: 3,
+          sample: [
+            { idx: 0, fid: 1, feature_ref: 'V001', area: -12 },
+            { idx: 1, fid: 2, feature_ref: 'V002', area: '' },
+            { idx: 2, fid: 3, feature_ref: null, area: null }
+          ]
+        }
+      }
+    ]
+    const h = makeH()
+
+    await invalidFileController.handler(
+      makeRequest({ baselineValidationErrors: errors }),
+      h
+    )
+
+    expect(h.view.mock.calls[0][1].errorBlocks[0].items).toEqual([
+      'Feature Ref V001 (Area: -12)',
+      'Feature Ref V002 (Area: blank)',
+      'fid 3 (Area: blank)'
+    ])
+  })
+
   test('errorBlocks: AREA_PARCELS_TOO_SMALL rows name the parcel and its area', async () => {
     const errors = [
       {
@@ -1088,6 +1118,47 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       [
         'One or more baseline watercourses have no post-intervention habitat, but only a canal or a ditch can be permanently lost. Record each as Retained, Enhanced or Created',
         ['Watercourses Baseline R003 — Priority habitat']
+      ]
+    ])
+  })
+
+  test('lists each vertical area habitat whose rows together have more face area than it, with both areas', async () => {
+    const view = await viewFor([
+      lineageError(
+        'STAGED_VERTICAL_CHILDREN_TOO_LARGE',
+        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        [
+          {
+            layer: 'verticalHabitats',
+            table: 'Vertical Area Habitats Baseline',
+            fid: 1,
+            ref: 'V001',
+            habitatType: 'Facade-bound green wall',
+            childRefs: ['V001a', 'V001b'],
+            areaSquareMetres: 40,
+            childAreaSquareMetres: 50.1
+          },
+          {
+            layer: 'verticalHabitats',
+            table: 'Vertical Area Habitats Baseline',
+            fid: 2,
+            ref: 'V002',
+            habitatType: 'Ground based green wall',
+            childRefs: ['V002a']
+          }
+        ]
+      )
+    ])
+
+    expect(
+      view.errorBlocks.map(({ heading, items }) => [heading, items])
+    ).toEqual([
+      [
+        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        [
+          'Vertical Area Habitats Baseline V001 — Facade-bound green wall, copied to V001a, V001b (40 m², linked 50.1 m²)',
+          'Vertical Area Habitats Baseline V002 — Ground based green wall, copied to V002a'
+        ]
       ]
     ])
   })

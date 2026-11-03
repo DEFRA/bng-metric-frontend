@@ -420,6 +420,59 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.linkText).toBeNull()
   })
 
+  test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in square metres', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'VERTICAL_HABITAT_AREA_NOT_POSITIVE',
+        message: 'x',
+        details: {
+          count: 1,
+          sample: [{ feature_ref: 'V001', fid: 1, idx: 0, area: -12 }]
+        }
+      },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('This vertical area habitat V001 contains an error')
+    expect(result.messageBefore).toBe(
+      'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres and '
+    )
+    expect(result.linkText).toBe('upload a new file')
+  })
+
+  test('VERTICAL_HABITATS_OUTSIDE_REDLINE names the habitat, as a hedgerow outside it is', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'VERTICAL_HABITATS_OUTSIDE_REDLINE',
+        message: 'x',
+        details: { sample: [{ feature_ref: 'I001' }] }
+      },
+      UPLOAD_HREF
+    )
+    expect(result.h1).toBe('This vertical area habitat I001 contains an error')
+    expect(result.messageBefore).toBe(
+      'This vertical area habitat is outside the red line boundary. Draw the vertical area habitat again and '
+    )
+  })
+
+  test.each([
+    [
+      'VERTICAL_HABITAT_AREA_NOT_POSITIVE',
+      'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres.'
+    ],
+    [
+      'VERTICAL_HABITATS_OUTSIDE_REDLINE',
+      'This vertical area habitat is outside the red line boundary. Draw the vertical area habitat again.'
+    ]
+  ])(
+    '%s falls back to the generic title without a ref',
+    (code, messageBefore) => {
+      const result = resolveSingleErrorCopy({ code, message: 'x' }, null)
+      expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
+      expect(result.linkText).toBeNull()
+      expect(result.messageBefore).toBe(messageBefore)
+    }
+  )
+
   test('TREE_COUNT_NOT_WHOLE names the tree in the title and the fix in the message', () => {
     const result = resolveSingleErrorCopy(
       {

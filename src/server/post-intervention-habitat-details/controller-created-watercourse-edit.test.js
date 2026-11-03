@@ -292,6 +292,43 @@ describe('authenticated Created watercourse form', () => {
     expect(response.statusCode).toBe(400)
     expect(wreck.put).not.toHaveBeenCalled()
   })
+  test('explains an unsupported imported type on the rendered read-only page and refuses a crafted save with 400', async () => {
+    mockFeature({
+      type: 'watercourse',
+      feature: {
+        ...feature,
+        proposed: {
+          ...feature.proposed,
+          type: 'Legacy river type',
+          condition: 'Legacy condition'
+        }
+      }
+    })
+    const response = await server.inject({
+      method: 'GET',
+      url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
+      auth
+    })
+    expect(response.statusCode).toBe(200)
+    expect(response.payload).toContain(
+      'This watercourse cannot be edited because its imported habitat type is not supported.'
+    )
+    expect(response.payload).toContain(
+      'upload a new post-intervention file with a supported habitat type'
+    )
+    expect(response.payload).toContain('Legacy river type')
+    expect(response.payload).not.toContain('id="habitatType"')
+    const { token: crumb, cookie } = await primeCrumb(server)
+    const refused = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: { ...request().payload, crumb }
+    })
+    expect(refused.statusCode).toBe(400)
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
 })
 
 test('keeps an unsupported stored watercourse type read-only and refuses a crafted save', async () => {
@@ -312,9 +349,12 @@ test('keeps an unsupported stored watercourse type read-only and refuses a craft
     'habitat-details/pi-watercourse-details-created'
   )
   expect(h.view.mock.calls[0][1].habitatTypeDisplay).toBe('Legacy river type')
+  expect(h.view.mock.calls[0][1].readOnlyReason).toContain(
+    'imported habitat type is not supported'
+  )
   await expect(
     postController.handler(request(), createMockH())
-  ).rejects.toMatchObject({ output: { statusCode: 503 } })
+  ).rejects.toMatchObject({ output: { statusCode: 400 } })
   expect(wreck.put).not.toHaveBeenCalled()
 })
 

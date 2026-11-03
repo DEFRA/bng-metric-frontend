@@ -140,8 +140,11 @@ function sharedSizeColumns({
     {
       text: 'Size',
       numeric: true,
+      // The feature too, for a page whose rows differ in unit: a vertical
+      // area habitat's size is in square metres among area habitats in
+      // hectares.
       cell: (feature) =>
-        numericCell(formatSize(readSize(feature)), readSize(feature)),
+        numericCell(formatSize(readSize(feature), feature), readSize(feature)),
       total: (totals) => boldCell(numericCell(formatSizeTotal(totals.size)))
     }
   ]
@@ -296,7 +299,7 @@ function habitatTabHeading(tabLabel, habitatNoun) {
  * @param {string} options.projectId
  * @param {string} options.interventionType Retained, Enhanced or Created
  * @param {(feature: object) => number|null|undefined} options.readSize
- * @param {(value: number|null|undefined) => string} options.formatSize
+ * @param {(value: number|null|undefined, feature?: object) => string} options.formatSize
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
  * @param {object[]} [options.leadingExtraColumns]
  * @param {object[]} [options.extraColumns]

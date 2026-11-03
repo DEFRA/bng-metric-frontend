@@ -8,8 +8,10 @@ import {
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
+import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
+import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
@@ -58,12 +60,22 @@ const CREATED_EDIT_TYPES = new Set([
 ])
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
-const AREA_RETENTION_PAGES = new Map([
+const ENHANCED_AREA_PAGE = {
+  template: 'habitat-details/pi-habitat-details-enhanced',
+  buildViewModel: buildEnhancedAreaViewOnlyViewModel
+}
+const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
+
+// A vertical area habitat uses the area pages, view-only whatever its
+// retention: it cannot be edited after intervention yet. A Created one shows
+// its timing and difficulty, as a Created area habitat's edit page does.
+const VERTICAL_RETENTION_PAGES = new Map([
+  [RETENTION_ENHANCED, ENHANCED_AREA_PAGE],
   [
-    RETENTION_ENHANCED,
+    RETENTION_CREATED,
     {
       template: 'habitat-details/pi-habitat-details-enhanced',
-      buildViewModel: buildEnhancedAreaViewOnlyViewModel
+      buildViewModel: buildCreatedAreaViewOnlyViewModel
     }
   ]
 ])
@@ -102,6 +114,7 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 // some retention categories rather than always using the single-list page.
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
+  [VERTICAL_HABITAT_TYPE, VERTICAL_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
@@ -109,14 +122,14 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
 // The read-only details page for each feature type. Each keeps its own
 // template — they share chrome via layouts/pi-view-only-sections-page.njk and
 // differ in the rows they show (BMD-845).
+const AREA_VIEW_ONLY_PAGE = {
+  template: 'habitat-details/pi-habitat-details',
+  buildViewModel: buildAreaViewOnlyViewModel
+}
+
 const VIEW_ONLY_PAGES = new Map([
-  [
-    AREA_HABITAT_TYPE,
-    {
-      template: 'habitat-details/pi-habitat-details',
-      buildViewModel: buildAreaViewOnlyViewModel
-    }
-  ],
+  [AREA_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
+  [VERTICAL_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
   [
     HEDGEROW_TYPE,
     {
@@ -158,6 +171,7 @@ function comparableRef(ref) {
 // The baseline layer a post-intervention feature of each type is joined to.
 const BASELINE_LAYER_BY_TYPE = new Map([
   [AREA_HABITAT_TYPE, 'habitats'],
+  [VERTICAL_HABITAT_TYPE, 'verticalHabitats'],
   ['tree', 'trees'],
   [HEDGEROW_TYPE, 'hedgerows'],
   [WATERCOURSE_TYPE, 'watercourses']
@@ -204,7 +218,13 @@ function resolveBaselineFeatureId(project, type, feature) {
   return match?.featureId ?? null
 }
 
-const BASELINE_LAYERS = ['habitats', 'trees', 'hedgerows', 'watercourses']
+const BASELINE_LAYERS = [
+  'habitats',
+  'verticalHabitats',
+  'trees',
+  'hedgerows',
+  'watercourses'
+]
 
 /**
  * The baseline feature a BNG Service template post-intervention feature names
@@ -272,27 +292,29 @@ function renderUnsupportedFeature(
 }
 
 async function loadCreationReferenceForFeature(type, feature) {
+  const kind = CREATED_EDIT_KINDS[type]
   try {
-    const reference = await CREATED_EDIT_KINDS[type].loadReference()
-    if (
-      type === WATERCOURSE_TYPE &&
-      feature.proposed?.type &&
-      !reference.habitatTypes.some(
-        (habitat) => habitat.name === feature.proposed.type
-      )
-    ) {
-      return null
-    }
+    const reference = await kind.loadReference()
     return createdReferenceForFeature(reference, feature)
   } catch (error) {
     if (
-      [HEDGEROW_TYPE, WATERCOURSE_TYPE].includes(type) &&
+      kind.optionalReference &&
       error.output?.statusCode === statusCodes.notFound
     ) {
       return null
     }
     throw error
   }
+}
+
+function hasUnsupportedStoredType(kind, feature, reference) {
+  return Boolean(
+    kind.unsupportedTypeMessage &&
+    feature.proposed?.type &&
+    !reference.habitatTypes.some(
+      (habitat) => habitat.name === feature.proposed.type
+    )
+  )
 }
 
 /**
@@ -304,24 +326,23 @@ async function renderCreatedFeature(
   { type, feature, project, projectId, projectName, returnUrl }
 ) {
   const baselineFeatureId = createdBaselineFeatureId(project, type, feature)
+  const kind = CREATED_EDIT_KINDS[type]
   const reference = await loadCreationReferenceForFeature(type, feature)
-  if (!reference) {
-    return h.view(
-      type === WATERCOURSE_TYPE
-        ? 'habitat-details/pi-watercourse-details-created'
-        : 'habitat-details/pi-hedgerow-details-enhanced',
-      {
-        ...CREATED_EDIT_KINDS[type].buildBase(
-          { ...feature, retentionCategory: RETENTION_CREATED },
-          {
-            projectId,
-            projectName,
-            baselineFeatureId
-          }
-        ),
-        backHref: postInterventionBackHref(projectId, type, returnUrl)
-      }
-    )
+  const unsupportedType =
+    reference && hasUnsupportedStoredType(kind, feature, reference)
+  if (!reference || unsupportedType) {
+    return h.view(kind.readOnlyTemplate, {
+      ...kind.buildBase(
+        { ...feature, retentionCategory: RETENTION_CREATED },
+        {
+          projectId,
+          projectName,
+          baselineFeatureId
+        }
+      ),
+      backHref: postInterventionBackHref(projectId, type, returnUrl),
+      readOnlyReason: unsupportedType ? kind.unsupportedTypeMessage : null
+    })
   }
   return h.view(
     'habitat-details/pi-habitat-details-created-edit',
@@ -380,7 +401,12 @@ async function renderDetailsPage(
     })
   }
   const viewModel = page.buildViewModel(
-    { ...feature, retentionCategory },
+    {
+      ...feature,
+      retentionCategory,
+      // A vertical area habitat's size is shown in square metres.
+      isVerticalHabitat: type === VERTICAL_HABITAT_TYPE
+    },
     {
       projectId,
       projectName,
@@ -439,7 +465,8 @@ function validatedPayload(schema, payload) {
 
 /** Save Created area, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050). */
 async function saveCreatedDetails(request, h, { type, feature, payload }) {
-  if (type === AREA_HABITAT_TYPE && !Object.hasOwn(payload, 'broadHabitat')) {
+  const kind = CREATED_EDIT_KINDS[type]
+  if (kind.hasBroadHabitat && !Object.hasOwn(payload, 'broadHabitat')) {
     throw Boom.badRequest('Broad habitat field is required for area edits')
   }
   const { projectId, returnUrl, ...values } = validatedPayload(
@@ -450,8 +477,11 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
   const reference = await loadCreationReferenceForFeature(type, feature)
   if (!reference) {
     throw Boom.serverUnavailable(
-      `${type === WATERCOURSE_TYPE ? 'Watercourse' : 'Hedgerow'} editing is temporarily unavailable`
+      `${kind.label} editing is temporarily unavailable`
     )
+  }
+  if (hasUnsupportedStoredType(kind, feature, reference)) {
+    throw Boom.badRequest(kind.unsupportedTypeMessage)
   }
   const errors = validateCreatedArea(values, reference)
   if (Object.keys(errors).length) {

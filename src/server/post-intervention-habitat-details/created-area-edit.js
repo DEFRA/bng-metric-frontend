@@ -1,4 +1,15 @@
 import {
+  loadCreatedAreaReference,
+  loadCreatedHedgerowReference,
+  loadCreatedWatercourseReference
+} from './created-edit-reference.js'
+export {
+  loadCreatedAreaReference,
+  loadCreatedHedgerowReference,
+  loadCreatedWatercourseReference,
+  _resetCreatedAreaReferenceCache
+} from './created-edit-reference.js'
+import {
   buildCreatedEditFields,
   ENCROACHMENT_FIELDS,
   FIELD_ORDER,
@@ -9,8 +20,6 @@ import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
-import { config } from '../../config/config.js'
-import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
   UNCHANGED_VALUE,
@@ -20,7 +29,6 @@ import {
   YEAR_OPTIONS
 } from '../../shared/created-area-details.js'
 import { saveHabitat } from '../common/helpers/habitat-details-controller.js'
-import { wreck } from '../common/helpers/wreck-client.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
@@ -33,6 +41,9 @@ import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view
 export const CREATED_EDIT_KINDS = {
   habitat: {
     loadReference: loadCreatedAreaReference,
+    label: 'Area habitat',
+    optionalReference: false,
+    readOnlyTemplate: null,
     buildBase: buildCreatedAreaViewOnlyViewModel,
     formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
     sizeLabel: 'Size (hectares)',
@@ -43,6 +54,11 @@ export const CREATED_EDIT_KINDS = {
   },
   watercourse: {
     loadReference: loadCreatedWatercourseReference,
+    label: 'Watercourse',
+    optionalReference: true,
+    readOnlyTemplate: 'habitat-details/pi-watercourse-details-created',
+    unsupportedTypeMessage:
+      'This watercourse cannot be edited because its imported habitat type is not supported. To change it, upload a new post-intervention file with a supported habitat type.',
     buildBase: buildCreatedWatercourseViewOnlyViewModel,
     formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
     sizeLabel: 'Length (km)',
@@ -54,6 +70,9 @@ export const CREATED_EDIT_KINDS = {
   },
   hedgerow: {
     loadReference: loadCreatedHedgerowReference,
+    label: 'Hedgerow',
+    optionalReference: true,
+    readOnlyTemplate: 'habitat-details/pi-hedgerow-details-enhanced',
     buildBase: buildCreatedHedgerowViewOnlyViewModel,
     formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
     sizeLabel: 'Length (km)',
@@ -73,7 +92,6 @@ function createdKind(reference) {
   return CREATED_EDIT_KINDS[reference.featureType]
 }
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
 export const createdAreaPayloadSchema = Joi.object({
   projectId: Joi.string().uuid().required(),
   featureId: Joi.string().uuid().required(),
@@ -118,7 +136,7 @@ export function createdReferenceForFeature(reference, feature) {
       )
       .map((field) => [field, saved[field]])
   )
-  const importedCondition = importedHedgerowCondition(reference, saved)
+  const importedCondition = importedLinearCondition(reference, saved)
   return {
     ...reference,
     importedYears,
@@ -169,7 +187,7 @@ function importedEncroachmentValues(reference, feature) {
   )
 }
 
-function importedHedgerowCondition(reference, values) {
+function importedLinearCondition(reference, values) {
   if (createdKind(reference).hasBroadHabitat || !values.condition) {
     return null
   }
@@ -177,56 +195,6 @@ function importedHedgerowCondition(reference, values) {
   return type && !type.conditions.some((c) => c.condition === values.condition)
     ? { habitatType: values.habitatType, condition: values.condition }
     : null
-}
-
-const referencePromises = new Map()
-
-export function loadCreatedAreaReference() {
-  return loadCreationReference('habitat', 'area')
-}
-
-export function loadCreatedWatercourseReference() {
-  return loadCreationReference('watercourse')
-}
-
-export function loadCreatedHedgerowReference() {
-  return loadCreationReference('hedgerow')
-}
-
-async function loadCreationReference(kind, referenceName = kind) {
-  if (!referencePromises.has(kind)) {
-    referencePromises.set(
-      kind,
-      wreck
-        .get(`${backendUrl}/reference/${referenceName}-creation`)
-        .then(({ res, payload }) => {
-          if (
-            res?.statusCode >= statusCodes.badRequest ||
-            !Array.isArray(payload?.habitatTypes) ||
-            !Array.isArray(payload?.strategicSignificance) ||
-            !payload?.timeMultipliers
-          ) {
-            throw new Error(
-              `Invalid ${referenceName} creation reference response`
-            )
-          }
-          return {
-            ...structuredClone(payload),
-            featureType: kind,
-            hasBroadHabitat: createdKind({ featureType: kind }).hasBroadHabitat
-          }
-        })
-        .catch((error) => {
-          referencePromises.delete(kind)
-          throw error
-        })
-    )
-  }
-  return structuredClone(await referencePromises.get(kind))
-}
-
-export function _resetCreatedAreaReferenceCache() {
-  referencePromises.clear()
 }
 
 function yearValue(value, is30Plus) {

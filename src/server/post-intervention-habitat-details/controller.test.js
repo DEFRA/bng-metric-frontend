@@ -72,6 +72,7 @@ describe('#postInterventionHabitatDetailsController', () => {
         caption: 'Test Project',
         habitatRef: 'P-1',
         interventionDisplay: 'Retained',
+        sizeLabel: 'Size (hectares)',
         sizeDisplay: '2.5',
         broadHabitatDisplay: 'Grassland',
         habitatTypeDisplay: 'Modified grassland',
@@ -173,6 +174,71 @@ describe('#postInterventionHabitatDetailsController', () => {
       expect.objectContaining({ viewBaselineHref: null })
     )
   })
+
+  test.each([
+    [
+      'Retained',
+      'habitat-details/pi-habitat-details',
+      '40',
+      'Size (square metres)'
+    ],
+    [
+      'Created',
+      'habitat-details/pi-habitat-details-enhanced',
+      '40m²',
+      'Size (square metres)'
+    ],
+    [
+      'Enhanced',
+      'habitat-details/pi-habitat-details-enhanced',
+      '40m²',
+      'Size (square metres)'
+    ]
+  ])(
+    'GET shows a %s vertical area habitat on the area page, read only, sized in square metres',
+    async (retentionCategory, template, sizeDisplay, sizeLabel) => {
+      vi.mocked(wreck.get).mockImplementation((url) => {
+        if (url.includes(`/post-intervention/features/${featureId}`)) {
+          return Promise.resolve({
+            payload: {
+              type: 'verticalHabitat',
+              feature: {
+                featureId,
+                ref: 'V-1',
+                sizeSquareMetres: 40,
+                units: 0.08,
+                retentionCategory,
+                proposed: {
+                  broadType: 'Urban',
+                  type: 'Facade-bound green wall',
+                  condition: 'Poor'
+                }
+              }
+            }
+          })
+        }
+        if (isProjectUrl(url)) {
+          return Promise.resolve(projectPayload)
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      })
+
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      expect(h.view).toHaveBeenCalledWith(
+        template,
+        expect.objectContaining({
+          heading: 'V-1',
+          sizeDisplay,
+          broadHabitatDisplay: 'Urban',
+          habitatTypeDisplay: 'Facade-bound green wall',
+          backHref: `/projects/${projectId}/area-post-intervention`,
+          sizeLabel
+        })
+      )
+    }
+  )
 
   test('GET shows the unsupported-feature message for an individual tree', async () => {
     vi.mocked(wreck.get).mockImplementation((url) => {
@@ -370,12 +436,16 @@ describe('#postInterventionHabitatDetailsController', () => {
   describe('GET links "View baseline details" within the habitat’s own layer', () => {
     const otherBaselineId = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
 
-    function mockHedgerowWithBaseline(baseline, snapshot = {}) {
+    function mockHedgerowWithBaseline(
+      baseline,
+      snapshot = {},
+      type = 'hedgerow'
+    ) {
       vi.mocked(wreck.get).mockImplementation((url) => {
         if (url.includes(`/post-intervention/features/${featureId}`)) {
           return Promise.resolve({
             payload: {
-              type: 'hedgerow',
+              type,
               feature: {
                 featureId,
                 ref: 'H1',
@@ -406,6 +476,21 @@ describe('#postInterventionHabitatDetailsController', () => {
         habitats: [{ featureId: otherBaselineId, ref: 'H1' }],
         hedgerows: [{ featureId: baselineFeatureId, ref: 'H1' }]
       })
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+      )
+    })
+
+    test('links a vertical area habitat to the baseline vertical habitat, not an area habitat sharing its ref', async () => {
+      mockHedgerowWithBaseline(
+        {
+          habitats: [{ featureId: otherBaselineId, ref: 'H1' }],
+          verticalHabitats: [{ featureId: baselineFeatureId, ref: 'H1' }]
+        },
+        {},
+        'verticalHabitat'
+      )
 
       expect(await linkedBaselineHref()).toBe(
         `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
