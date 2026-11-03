@@ -15,6 +15,7 @@ import {
 } from './created-watercourse-test-fixtures.js'
 import {
   createdAreaValues,
+  loadCreatedWatercourseReference,
   _resetCreatedAreaReferenceCache
 } from './created-area-edit.js'
 import { getController, postController } from './controller.js'
@@ -35,6 +36,24 @@ beforeEach(() => {
     payload: {}
   })
 })
+
+test.each(
+  ['watercourseEncroachment', 'riparianEncroachment'].flatMap((field) =>
+    [undefined, null, 'not an array', {}].map((value) => [field, value])
+  )
+)(
+  'rejects malformed %s reference data %j and retries the next request',
+  async (field, value) => {
+    wreck.get
+      .mockResolvedValueOnce({ payload: { ...reference, [field]: value } })
+      .mockResolvedValueOnce({ payload: reference })
+    await expect(loadCreatedWatercourseReference()).rejects.toThrow(
+      'Invalid watercourse creation reference response'
+    )
+    await expect(loadCreatedWatercourseReference()).resolves.toEqual(reference)
+    expect(wreck.get).toHaveBeenCalledTimes(2)
+  }
+)
 
 test('loads the Created watercourse form with independent saved encroachments and fixed length', async () => {
   const h = createMockH()
