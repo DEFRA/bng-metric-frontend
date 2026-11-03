@@ -25,6 +25,7 @@ import {
   UNCHANGED_VALUE,
   resolveCreatedTiming,
   createdAreaDerived,
+  createdDerivedInputsUnchanged,
   selectedHabitat,
   YEAR_OPTIONS
 } from '../../shared/created-area-details.js'
@@ -318,15 +319,11 @@ function createdAreaDisplayFields(feature, reference, values, base) {
   )
   const derived = createdAreaDerived(reference, values, baselineCondition)
   const originalValues = createdEditValues(feature, reference)
-  const habitatInputs = ['broadHabitat', 'habitatType']
-  const conditionInputs = [...habitatInputs, 'condition']
-  const inputsByDisplay = {
-    standardTimeToTargetDisplay: conditionInputs,
-    finalTimeToTargetDisplay: [...conditionInputs, 'advanceYears', 'delayYears']
-  }
   for (const field of Object.keys(derived)) {
-    const sameInputs = (inputsByDisplay[field] ?? habitatInputs).every(
-      (input) => (values[input] ?? '') === (originalValues[input] ?? '')
+    const sameInputs = createdDerivedInputsUnchanged(
+      field,
+      values,
+      originalValues
     )
     if (
       sameInputs &&
