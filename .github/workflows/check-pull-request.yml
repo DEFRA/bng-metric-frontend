@@ -18,10 +18,15 @@ on:
     branches:
       - main
 
+# The suite runs twice, once in each state of the service-template flag
+# (BMD-1086), and both jobs must pass. Pull Request Checks runs it with the
+# flag off, the legacy path, and owns the coverage SonarCloud reads.
 jobs:
   pr-validator:
     name: Run Pull Request Checks
     runs-on: ubuntu-latest
+    env:
+      SERVICE_TEMPLATE_ENABLED: 'false'
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,3 +58,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  service-template-tests:
+    name: Run Tests with the Service Template Flag On
+    runs-on: ubuntu-latest
+    env:
+      SERVICE_TEMPLATE_ENABLED: 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Test code with the service-template flag on
+        run: |
+          npm ci
+          npm test

@@ -4,6 +4,8 @@ import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
+  UNCHANGED_YEAR,
+  resolveCreatedTiming,
   createdAreaDerived,
   selectedHabitat,
   YEAR_OPTIONS
@@ -13,9 +15,43 @@ import { wreck } from '../common/helpers/wreck-client.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
+import { buildCreatedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
+import { formatLengthDisplay } from './view-only-shared.js'
 import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
+
+export const CREATED_EDIT_KINDS = {
+  habitat: {
+    loadReference: loadCreatedAreaReference,
+    buildBase: buildCreatedAreaViewOnlyViewModel,
+    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
+    sizeLabel: 'Size (hectares)',
+    backType: 'habitat',
+    savePath: 'habitats',
+    hasBroadHabitat: true,
+    habitatTypeError: 'Choose a habitat type for the selected broad habitat'
+  },
+  hedgerow: {
+    loadReference: loadCreatedHedgerowReference,
+    buildBase: buildCreatedHedgerowViewOnlyViewModel,
+    formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
+    sizeLabel: 'Length (km)',
+    backType: 'hedgerow',
+    savePath: 'hedgerows',
+    hasBroadHabitat: false,
+    habitatTypeError: 'Choose a valid hedgerow habitat type'
+  }
+}
+
+function createdKind(reference) {
+  if (!Object.hasOwn(CREATED_EDIT_KINDS, reference.featureType)) {
+    throw new Error(
+      `Unsupported Created feature type: ${reference.featureType}`
+    )
+  }
+  return CREATED_EDIT_KINDS[reference.featureType]
+}
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 const FIELD_ORDER = [
@@ -44,41 +80,99 @@ export const createdAreaPayloadSchema = Joi.object({
   condition: Joi.string().allow('').required(),
   strategicSignificance: Joi.string().allow('').required(),
   advanceYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
     .required(),
   delayYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
     .required(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
 })
 
-let creationReferencePromise = null
+export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
+  'broadHabitat',
+  (schema) => schema.forbidden()
+)
 
-export async function loadCreatedAreaReference() {
-  creationReferencePromise ??= wreck
-    .get(`${backendUrl}/reference/area-creation`)
-    .then(({ res, payload }) => {
-      if (
-        res?.statusCode >= statusCodes.badRequest ||
-        !Array.isArray(payload?.habitatTypes) ||
-        !Array.isArray(payload?.strategicSignificance) ||
-        !payload?.timeMultipliers
-      ) {
-        throw new Error('Invalid area creation reference response')
-      }
-      return structuredClone(payload)
-    })
-    .catch((error) => {
-      creationReferencePromise = null
-      throw error
-    })
-  return structuredClone(await creationReferencePromise)
+export function createdReferenceForFeature(reference, feature) {
+  const kind = createdKind(reference)
+  reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
+  const saved = createdAreaValues(feature)
+  const importedYears = Object.fromEntries(
+    ['advanceYears', 'delayYears']
+      .filter(
+        (field) => saved[field] !== '' && !YEAR_OPTIONS.includes(saved[field])
+      )
+      .map((field) => [field, saved[field]])
+  )
+  return {
+    ...reference,
+    importedYears,
+    importedCalculation: {
+      values: {
+        ...saved,
+        ...Object.fromEntries(
+          Object.keys(importedYears).map((field) => [field, UNCHANGED_YEAR])
+        )
+      },
+      finalTimeToTargetDisplay:
+        feature.proposed?.finalTimeToTargetCondition ?? ''
+    }
+  }
 }
 
-// Match the existing area-strategy cache reset convention for isolated tests.
+function createdEditValues(feature, reference) {
+  const saved = createdAreaValues(feature)
+  for (const field of Object.keys(reference.importedYears ?? {})) {
+    saved[field] = UNCHANGED_YEAR
+  }
+  return saved
+}
+
+const referencePromises = new Map()
+
+export function loadCreatedAreaReference() {
+  return loadCreationReference('habitat', 'area')
+}
+
+export function loadCreatedHedgerowReference() {
+  return loadCreationReference('hedgerow')
+}
+
+async function loadCreationReference(kind, referenceName = kind) {
+  if (!referencePromises.has(kind)) {
+    referencePromises.set(
+      kind,
+      wreck
+        .get(`${backendUrl}/reference/${referenceName}-creation`)
+        .then(({ res, payload }) => {
+          if (
+            res?.statusCode >= statusCodes.badRequest ||
+            !Array.isArray(payload?.habitatTypes) ||
+            !Array.isArray(payload?.strategicSignificance) ||
+            !payload?.timeMultipliers
+          ) {
+            throw new Error(
+              `Invalid ${referenceName} creation reference response`
+            )
+          }
+          return {
+            ...structuredClone(payload),
+            featureType: kind,
+            hasBroadHabitat: createdKind({ featureType: kind }).hasBroadHabitat
+          }
+        })
+        .catch((error) => {
+          referencePromises.delete(kind)
+          throw error
+        })
+    )
+  }
+  return structuredClone(await referencePromises.get(kind))
+}
+
 export function _resetCreatedAreaReferenceCache() {
-  creationReferencePromise = null
+  referencePromises.clear()
 }
 
 function yearValue(value, is30Plus) {
@@ -117,22 +211,37 @@ function validateReference(ref, errors) {
   }
 }
 
-export function validateCreatedArea(values, reference) {
-  const errors = {}
-  validateReference(values.ref, errors)
+function validateCreatedTiming(values, reference, errors) {
+  const timing = resolveCreatedTiming(values, reference)
+  for (const field of ['advanceYears', 'delayYears']) {
+    if (values[field] === UNCHANGED_YEAR && !reference.importedYears?.[field]) {
+      errors[field] = 'Choose a valid advance or delay value'
+    }
+  }
   if (
-    Number.parseInt(values.advanceYears) > 0 &&
-    Number.parseInt(values.delayYears) > 0
+    Number.parseFloat(timing.advanceYears) > 0 &&
+    Number.parseFloat(timing.delayYears) > 0
   ) {
     errors.advanceYears =
       'Either the advance or delay field must be set at zero.'
     errors.delayYears = errors.advanceYears
   }
+}
+
+export function validateCreatedArea(values, reference) {
+  const errors = {}
+  validateReference(values.ref, errors)
+  validateCreatedTiming(values, reference, errors)
+  const kind = createdKind(reference)
   const type = selectedHabitat(reference, values)
   const choices = {
-    broadHabitat: [...new Set(reference.habitatTypes.map((t) => t.broad))],
+    ...(!kind.hasBroadHabitat
+      ? {}
+      : {
+          broadHabitat: [...new Set(reference.habitatTypes.map((t) => t.broad))]
+        }),
     habitatType: reference.habitatTypes
-      .filter((t) => t.broad === values.broadHabitat)
+      .filter((t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat)
       .map((t) => t.name),
     condition: (type?.conditions ?? []).map((c) => c.condition),
     strategicSignificance: reference.strategicSignificance.map((s) => s.value)
@@ -141,7 +250,7 @@ export function validateCreatedArea(values, reference) {
     if (values[field] && !options.includes(values[field])) {
       const messages = {
         broadHabitat: 'Choose a valid broad habitat',
-        habitatType: 'Choose a habitat type for the selected broad habitat',
+        habitatType: kind.habitatTypeError,
         condition: 'Choose a target condition for the selected habitat type',
         strategicSignificance: 'Choose a valid strategic significance'
       }
@@ -180,9 +289,9 @@ function choiceHint(id, items, value, initialLoad) {
   return hints.join(' ') || null
 }
 
-function createdAreaFields(reference, values, type, initialLoad) {
+function createdFieldChoices(reference, values, type, kind) {
   const options = (list) => list.map((value) => ({ value, text: value }))
-  const fields = [
+  return [
     [
       'broadHabitat',
       'Broad habitat',
@@ -197,7 +306,9 @@ function createdAreaFields(reference, values, type, initialLoad) {
       'Habitat type',
       options(
         reference.habitatTypes
-          .filter((t) => t.broad === values.broadHabitat)
+          .filter(
+            (t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat
+          )
           .map((t) => t.name)
       )
     ],
@@ -228,22 +339,41 @@ function createdAreaFields(reference, values, type, initialLoad) {
       options(YEAR_OPTIONS)
     ]
   ]
+}
+
+function createdAreaFields(reference, values, type, initialLoad) {
+  const kind = createdKind(reference)
+  const fields = createdFieldChoices(reference, values, type, kind)
   const placeholders = {
     advanceYears: 'advance',
     delayYears: 'delay',
     condition: 'target condition',
     strategicSignificance: 'strategic significance'
   }
-  return fields.map(([id, label, items]) => ({
-    id,
-    label,
-    hint: choiceHint(id, items, values[id], initialLoad),
-    items: selectItems(
-      items,
-      values[id],
-      placeholders[id] ?? label.toLowerCase()
-    )
-  }))
+  return fields
+    .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
+    .map(([id, label, items]) => {
+      const imported = reference.importedYears?.[id]
+      if (imported !== undefined) {
+        items = [
+          ...items,
+          { value: UNCHANGED_YEAR, text: `${imported} (imported value)` }
+        ]
+      }
+      return {
+        id,
+        label,
+        hint:
+          imported !== undefined
+            ? `The imported value is ${imported}. Keep it unchanged, choose a new value, or choose the default option to clear it.`
+            : choiceHint(id, items, values[id], initialLoad),
+        items: selectItems(
+          items,
+          values[id],
+          placeholders[id] ?? label.toLowerCase()
+        )
+      }
+    })
 }
 
 function createdAreaDisplayFields(feature, reference, values, base) {
@@ -268,7 +398,7 @@ function createdAreaDisplayFields(feature, reference, values, base) {
 }
 
 function editFieldsWithImportHints(feature, reference, values) {
-  const originalValues = createdAreaValues(feature)
+  const originalValues = createdEditValues(feature, reference)
   const originalFields = new Map(
     createdAreaFields(
       reference,
@@ -311,9 +441,11 @@ export function buildCreatedAreaEditViewModel(
   values = null,
   errors = {}
 ) {
-  const base = buildCreatedAreaViewOnlyViewModel(feature, ctx)
+  reference = createdReferenceForFeature(reference, feature)
+  const kind = createdKind(reference)
+  const base = kind.buildBase(feature, ctx)
   const initialLoad = values === null
-  values ??= createdAreaValues(feature)
+  values ??= createdEditValues(feature, reference)
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
     feature,
     reference,
@@ -322,13 +454,14 @@ export function buildCreatedAreaEditViewModel(
   )
   const backHref = postInterventionBackHref(
     ctx.projectId,
-    'habitat',
+    kind.backType,
     ctx.returnUrl
   )
   return {
     ...base,
     ...derived,
-    sizeDisplay: formatAreaHectaresValue(feature.sizeSquareMetres),
+    sizeDisplay: kind.formatSize(feature),
+    sizeLabel: kind.sizeLabel,
     pageTitle: `${Object.keys(errors).length ? 'Error: ' : ''}${base.pageTitle}`,
     projectId: ctx.projectId,
     featureId: feature.featureId,
@@ -362,23 +495,34 @@ export function buildCreatedAreaEditViewModel(
   }
 }
 
-function createdAreaSavePayload(values) {
+function timingPayload(values, field) {
+  if (values[field] === UNCHANGED_YEAR) {
+    return {}
+  }
+  return { [field]: values[field] === '' ? null : values[field] }
+}
+
+function createdAreaSavePayload(values, kind) {
   return {
     ref: values.ref.trim(),
-    broadType: values.broadHabitat || null,
+    ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
     habitatType: values.habitatType || null,
     condition: values.condition || null,
     strategicSignificance: values.strategicSignificance || null,
-    advanceYears: values.advanceYears === '' ? null : values.advanceYears,
-    delayYears: values.delayYears === '' ? null : values.delayYears
+    ...timingPayload(values, 'advanceYears'),
+    ...timingPayload(values, 'delayYears')
   }
 }
 
-export async function saveCreatedArea(request, values) {
+export async function saveCreatedArea(
+  request,
+  values,
+  kind = CREATED_EDIT_KINDS.habitat
+) {
   const { projectId, featureId } = request.payload
   return saveHabitat(
     request,
-    `projects/${projectId}/post-intervention/habitats/${featureId}`,
-    createdAreaSavePayload(values)
+    `projects/${projectId}/post-intervention/${kind.savePath}/${featureId}`,
+    createdAreaSavePayload(values, kind)
   )
 }

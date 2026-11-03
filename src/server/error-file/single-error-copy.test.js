@@ -1,4 +1,4 @@
-import { afterEach, describe, test, expect } from 'vitest'
+import { afterEach, beforeEach, describe, test, expect } from 'vitest'
 
 import { config } from '../../config/config.js'
 import {
@@ -10,6 +10,18 @@ import { renderTemplate } from '../test-helpers/render-template.js'
 const UPLOAD_HREF = '/projects/proj-1/upload-baseline-file'
 
 describe('#resolveSingleErrorCopy', () => {
+  // The legacy copy, which is the flag-off path. CI also runs the suite with
+  // the flag on, so pin it off here rather than rely on the default.
+  const originalEnabled = config.get('serviceTemplate.enabled')
+
+  beforeEach(() => {
+    config.set('serviceTemplate.enabled', false)
+  })
+
+  afterEach(() => {
+    config.set('serviceTemplate.enabled', originalEnabled)
+  })
+
   test('AC1: unmapped/structural codes fall back to the Natural England columns copy', () => {
     const result = resolveSingleErrorCopy(
       { code: 'GPKG_BASELINE_MISSING_COLUMN', message: 'x' },

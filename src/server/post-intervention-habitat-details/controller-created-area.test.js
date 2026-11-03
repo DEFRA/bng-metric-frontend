@@ -213,6 +213,39 @@ describe('Created area controller', () => {
     }
   )
 
+  test.each([2.5, 31])(
+    'preserves imported area timing %s on reference-only saves and clears only explicitly',
+    async (advanceYears) => {
+      mockFeature({
+        type: 'habitat',
+        feature: {
+          ...createdAreaFeature,
+          proposed: {
+            ...createdAreaFeature.proposed,
+            advanceYears,
+            finalTimeToTargetCondition: '4.5 years (0.8519)'
+          }
+        }
+      })
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+      const vm = h.view.mock.calls[0][1]
+      expect(vm.values.advanceYears).toBe('unchanged')
+      expect(vm.finalTimeToTargetDisplay).toBe('4.5 years (0.8519)')
+      await postController.handler(
+        request({ ref: 'Renamed area', advanceYears: 'unchanged' }),
+        h
+      )
+      const saved = JSON.parse(wreck.put.mock.calls[0][1].payload)
+      expect(saved.ref).toBe('Renamed area')
+      expect(saved).not.toHaveProperty('advanceYears')
+      await postController.handler(request({ advanceYears: '' }), h)
+      expect(
+        JSON.parse(wreck.put.mock.calls[1][1].payload).advanceYears
+      ).toBeNull()
+    }
+  )
+
   test('allows incomplete saves and sends null rather than default labels', async () => {
     await postController.handler(
       request({
@@ -373,14 +406,16 @@ describe('Created area controller', () => {
       }
     })
     const h = createMockH()
-    // Unavailable imported select values submit the rendered empty option.
+    // The user explicitly clears timing and leaves the unavailable condition blank.
     await postController.handler(
       request({ ref: ' ', condition: '', advanceYears: '' }),
       h
     )
     const fields = h.view.mock.calls[0][1].fields
     expect(fields.condition.hint).toContain('"Fairly Poor" is not available')
-    expect(fields.advanceYears.hint).toContain('"2.5" is not available')
+    expect(fields.advanceYears.hint).toContain(
+      'choose the default option to clear it'
+    )
     expect(fields.condition.hint).toContain(
       'saving without a new selection will clear this value'
     )
@@ -389,11 +424,11 @@ describe('Created area controller', () => {
       request({ ref: ' ', condition: 'Good', advanceYears: '0' }),
       h
     )
+    const corrected = h.view.mock.calls[1][1].fields
+    expect(corrected.condition.hint ?? '').not.toContain('"Fairly Poor"')
     expect(
-      Object.values(h.view.mock.calls[1][1].fields).every(
-        (field) => !field.hint?.includes('imported value')
-      )
-    ).toBe(true)
+      corrected.advanceYears.items.find((item) => item.selected).value
+    ).toBe('0')
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
@@ -430,6 +465,54 @@ describe('Created area authenticated form', () => {
       payload: {}
     })
   })
+
+  test('refuses an area save without broad habitat before loading reference data', async () => {
+    const { token, cookie } = await primeCrumb(server)
+    const payload = { ...request().payload, crumb: token }
+    delete payload.broadHabitat
+    const response = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload
+    })
+    expect(response.statusCode).toBe(400)
+    await expect(
+      postController.handler({ payload }, createMockH())
+    ).rejects.toMatchObject({
+      output: { statusCode: 400 },
+      message: 'Broad habitat field is required for area edits'
+    })
+    expect(wreck.put).not.toHaveBeenCalled()
+    expect(
+      wreck.get.mock.calls.some(([url]) =>
+        url.endsWith('/reference/area-creation')
+      )
+    ).toBe(false)
+  })
+
+  test.each([
+    {},
+    { hedgerow: { loadReference: 'x' } },
+    { habitat: { buildBase: {} } }
+  ])(
+    'rejects malformed protected submissions without backend requests: %j',
+    async (fields) => {
+      const { token, cookie } = await primeCrumb(server)
+      vi.mocked(wreck.get).mockClear()
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...fields, crumb: token }
+      })
+      expect(response.statusCode).toBe(400)
+      expect(wreck.get).not.toHaveBeenCalled()
+      expect(wreck.put).not.toHaveBeenCalled()
+    }
+  )
 
   test('rejects submission without a CSRF token', async () => {
     const response = await server.inject({
@@ -552,3 +635,12 @@ describe('Created area reference cache', () => {
     expect(wreck.get).toHaveBeenCalledTimes(2)
   })
 })
+
+test.each([undefined, 'area', 'unknown', '__proto__'])(
+  'rejects an unknown Created reference kind instead of treating it as an area: %s',
+  (featureType) => {
+    expect(() =>
+      validateCreatedArea(values, { ...creationReference, featureType })
+    ).toThrow('Unsupported Created feature type:')
+  }
+)
