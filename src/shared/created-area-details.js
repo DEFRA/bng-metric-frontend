@@ -89,6 +89,13 @@ function finalTimeDisplay(reference, condition, values) {
 }
 
 function unchangedImportedFinalTime(reference, values) {
+  const timing = resolveCreatedTiming(values, reference)
+  if (
+    Number.parseFloat(timing.advanceYears) > 0 &&
+    Number.parseFloat(timing.delayYears) > 0
+  ) {
+    return ''
+  }
   const saved = reference.importedCalculation
   const fields = [
     'broadHabitat',

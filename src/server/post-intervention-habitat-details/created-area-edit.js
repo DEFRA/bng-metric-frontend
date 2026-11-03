@@ -1,3 +1,4 @@
+import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
@@ -497,8 +498,19 @@ function createdAreaDisplayFields(feature, reference, values, base) {
     baselineCondition
   )
   const derived = createdAreaDerived(reference, values, baselineCondition)
+  const originalValues = createdEditValues(feature, reference)
+  const habitatInputs = ['broadHabitat', 'habitatType']
+  const conditionInputs = [...habitatInputs, 'condition']
+  const inputsByDisplay = {
+    standardTimeToTargetDisplay: conditionInputs,
+    finalTimeToTargetDisplay: [...conditionInputs, 'advanceYears', 'delayYears']
+  }
   for (const field of Object.keys(derived)) {
+    const sameInputs = (inputsByDisplay[field] ?? habitatInputs).every(
+      (input) => (values[input] ?? '') === (originalValues[input] ?? '')
+    )
     if (
+      sameInputs &&
       derived[field] &&
       derived[field] === originalDerived[field] &&
       base[field]
@@ -558,8 +570,7 @@ export function buildCreatedAreaEditViewModel(
   const base = kind.buildBase(
     {
       ...feature,
-      retentionCategory:
-        feature.retentionCategory ?? feature.baseline?.retentionCategory
+      retentionCategory: featureRetentionCategory(feature)
     },
     ctx
   )

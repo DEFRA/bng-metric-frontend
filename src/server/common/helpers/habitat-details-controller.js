@@ -9,7 +9,9 @@ import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
 import {
   HABITAT_REF_ERROR,
-  MAX_HABITAT_REF_LENGTH,
+  HABITAT_REF_IN_USE_ERROR,
+  habitatRefFormFields,
+  isRefInUseError,
   isRefUnchanged,
   isValidHabitatRef
 } from './habitat-ref.js'
@@ -235,22 +237,21 @@ function withSubmittedChoices(feature, submitted, reference) {
 }
 
 /**
- * Render the details page for one feature. `submitted` and `errors` are set
+ * Render the details page for one feature. `submitted` and `refusal` are set
  * when a save was refused, so the page shows the user's input and what to fix.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {import('@hapi/hapi').ResponseToolkit} h
  * @param {object} uploadType
- * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, errors?: Array<{ text: string, inline: string, href: string }> }} params
+ * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, refusal?: { summary: string, inline: string } }} params
  *   `piBackHref` is the post-intervention page the user came from, if any.
- *   Each error carries its error-summary `text` and the `inline` message shown
- *   at the field, which content design words differently.
+ *   `refusal` is why the reference was refused (habitat-ref.js), when it was.
  */
 async function renderDetailsPage(
   request,
   h,
   uploadType,
-  { projectId, featureId, piBackHref = null, submitted = null, errors = [] }
+  { projectId, featureId, piBackHref = null, submitted = null, refusal }
 ) {
   const [{ type, feature: rawFeature }, projectName] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
@@ -275,18 +276,16 @@ async function renderDetailsPage(
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.
   const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
-  const hasErrors = errors.length > 0
-
   return h.view('habitat-details/habitat-details', {
-    pageTitle: hasErrors ? `Error: ${heading}` : heading,
     heading,
     caption: projectName,
     ...viewModel,
-    // A refused save always carries the typed reference: it is what was refused.
-    habitatRefValue: submitted ? submitted.habitatRef : viewModel.habitatRef,
-    habitatRefError: hasErrors ? { text: errors[0].inline } : undefined,
-    maxHabitatRefLength: MAX_HABITAT_REF_LENGTH,
-    errors,
+    ...habitatRefFormFields({
+      heading,
+      savedRef: viewModel.habitatRef,
+      submittedRef: submitted?.habitatRef,
+      refusal
+    }),
     formAction: `/${uploadType.detailsRoute}`,
     detailsSectionHeading: uploadType.detailsSectionHeading,
     // Carried through the form so a refused save keeps Back and Cancel.
@@ -390,6 +389,10 @@ export async function saveHabitat(request, path, body, featureId) {
     }
     return payload
   } catch (err) {
+    // A reference another habitat already carries is for the form to show.
+    if (isRefInUseError(err)) {
+      throw err
+    }
     throw backendSaveError(err, featureId)
   }
 }
@@ -429,7 +432,7 @@ function createPostController(uploadType) {
       })
       // A refused reference shows the page again with the error, keeping
       // what the user typed and chose, and the way back they came in by.
-      const showRefusedRef = async () => {
+      const showRefused = async (refusal) => {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
@@ -438,18 +441,12 @@ function createPostController(uploadType) {
             projectId
           ),
           submitted: request.payload,
-          errors: [
-            {
-              text: HABITAT_REF_ERROR.summary,
-              inline: HABITAT_REF_ERROR.inline,
-              href: '#habitatRef'
-            }
-          ]
+          refusal
         })
         return response.code(statusCodes.badRequest)
       }
       if (refToSave === REFUSED_REF) {
-        return showRefusedRef()
+        return showRefused(HABITAT_REF_ERROR)
       }
 
       const body = buildSaveBody({
@@ -471,12 +468,16 @@ function createPostController(uploadType) {
         )
       } catch (err) {
         // The backend checks a reference again; if it refuses one this side
-        // passed, say so at the field rather than on an error page.
+        // passed, or one another habitat already carries, say so at the field
+        // rather than on an error page.
+        if (isRefInUseError(err)) {
+          return showRefused(HABITAT_REF_IN_USE_ERROR)
+        }
         if (
           refToSave !== undefined &&
           err.output?.statusCode === statusCodes.badRequest
         ) {
-          return showRefusedRef()
+          return showRefused(HABITAT_REF_ERROR)
         }
         throw err
       }

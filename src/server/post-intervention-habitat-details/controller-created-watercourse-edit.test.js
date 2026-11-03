@@ -153,45 +153,44 @@ test.each([
   }
 )
 
-test('preserves an unsupported imported condition, timing and encroachment until explicitly cleared', async () => {
-  mockFeature({
-    type: 'watercourse',
-    feature: {
-      ...feature,
-      proposed: {
-        ...feature.proposed,
-        type: 'Culvert',
-        condition: 'Good',
-        advanceYears: 2.5,
-        watercourseEncroachment: 'Imported value'
+test.each(['watercourseEncroachment', 'riparianEncroachment'])(
+  'preserves an unsupported imported condition, timing and %s until explicitly cleared',
+  async (encroachment) => {
+    mockFeature({
+      type: 'watercourse',
+      feature: {
+        ...feature,
+        proposed: {
+          ...feature.proposed,
+          type: 'Culvert',
+          condition: 'Good',
+          advanceYears: 2.5,
+          [encroachment]: 'Imported value'
+        }
       }
-    }
-  })
-  const h = createMockH()
-  await getController.handler({ query: { projectId, featureId } }, h)
-  expect(h.view.mock.calls[0][1].values).toMatchObject({
-    condition: 'unchanged',
-    advanceYears: 'unchanged',
-    watercourseEncroachment: 'unchanged'
-  })
-  await postController.handler(
-    request({
-      habitatType: 'Culvert',
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    expect(h.view.mock.calls[0][1].values).toMatchObject({
       condition: 'unchanged',
       advanceYears: 'unchanged',
-      watercourseEncroachment: 'unchanged'
-    }),
-    createMockH()
-  )
-  const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
-  for (const field of [
-    'condition',
-    'advanceYears',
-    'watercourseEncroachment'
-  ]) {
-    expect(payload).not.toHaveProperty(field)
+      [encroachment]: 'unchanged'
+    })
+    await postController.handler(
+      request({
+        habitatType: 'Culvert',
+        condition: 'unchanged',
+        advanceYears: 'unchanged',
+        [encroachment]: 'unchanged'
+      }),
+      createMockH()
+    )
+    const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
+    for (const field of ['condition', 'advanceYears', encroachment]) {
+      expect(payload).not.toHaveProperty(field)
+    }
   }
-})
+)
 
 test('keeps a legacy Created watercourse editable and resolves only its own baseline layer', async () => {
   const legacy = structuredClone(feature)
@@ -278,4 +277,132 @@ describe('authenticated Created watercourse form', () => {
       `/projects/${projectId}/watercourses-post-intervention`
     )
   })
+  test('rejects an authenticated watercourse submission without encroachment controls', async () => {
+    const { token: crumb, cookie } = await primeCrumb(server)
+    const payload = request().payload
+    delete payload.watercourseEncroachment
+    delete payload.riparianEncroachment
+    const response = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: { ...payload, crumb }
+    })
+    expect(response.statusCode).toBe(400)
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+})
+
+test('keeps an unsupported stored watercourse type read-only and refuses a crafted save', async () => {
+  mockFeature({
+    type: 'watercourse',
+    feature: {
+      ...feature,
+      proposed: {
+        ...feature.proposed,
+        type: 'Legacy river type',
+        condition: 'Legacy condition'
+      }
+    }
+  })
+  const h = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, h)
+  expect(h.view.mock.calls[0][0]).toBe(
+    'habitat-details/pi-watercourse-details-created'
+  )
+  expect(h.view.mock.calls[0][1].habitatTypeDisplay).toBe('Legacy river type')
+  await expect(
+    postController.handler(request(), createMockH())
+  ).rejects.toMatchObject({ output: { statusCode: 503 } })
+  expect(wreck.put).not.toHaveBeenCalled()
+})
+
+test('uses the selected habitat difficulty after a validation error even when the old reference difficulty matches', async () => {
+  mockFeature({
+    type: 'watercourse',
+    feature: {
+      ...feature,
+      proposed: {
+        ...feature.proposed,
+        standardDifficulty: 'Low',
+        appliedDifficultyMultiplier: 1
+      }
+    }
+  })
+  const h = createMockH()
+  await postController.handler(request({ ref: '', habitatType: 'Canals' }), h)
+  expect(h.view.mock.calls[0][1]).toMatchObject({
+    standardDifficultyDisplay: 'Medium',
+    appliedDifficultyMultiplierDisplay: '0.67'
+  })
+  expect(wreck.put).not.toHaveBeenCalled()
+})
+
+test.each(['watercourseEncroachment', 'riparianEncroachment'])(
+  'rejects unchanged for %s without an imported value',
+  async (field) => {
+    const other =
+      field === 'watercourseEncroachment'
+        ? 'riparianEncroachment'
+        : 'watercourseEncroachment'
+    mockFeature({
+      type: 'watercourse',
+      feature: {
+        ...feature,
+        proposed: { ...feature.proposed, [other]: 'Imported value' }
+      }
+    })
+    const h = createMockH()
+    await postController.handler(request({ [field]: 'unchanged' }), h)
+    expect(h.view.mock.calls[0][1].errors[field]).toEqual(expect.any(String))
+    expect(wreck.put).not.toHaveBeenCalled()
+  }
+)
+
+test('shows conflicting imported timing, refuses it on Save, and accepts an explicit correction', async () => {
+  mockFeature({
+    type: 'watercourse',
+    feature: {
+      ...feature,
+      proposed: {
+        ...feature.proposed,
+        advanceYears: 2.5,
+        delayYears: 1.5,
+        finalTimeToTargetCondition: 'stale imported calculation'
+      }
+    }
+  })
+  const loaded = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, loaded)
+  expect(loaded.view.mock.calls[0][1].values).toMatchObject({
+    advanceYears: 'unchanged',
+    delayYears: 'unchanged'
+  })
+  expect(loaded.view.mock.calls[0][1].finalTimeToTargetDisplay).toBe('')
+  const refused = createMockH()
+  await postController.handler(
+    request({
+      ref: 'Rename only',
+      advanceYears: 'unchanged',
+      delayYears: 'unchanged'
+    }),
+    refused
+  )
+  expect(refused.view.mock.calls[0][1].errors).toMatchObject({
+    advanceYears: expect.any(String),
+    delayYears: expect.any(String)
+  })
+  expect(refused.view.mock.calls[0][1].values).toMatchObject({
+    advanceYears: 'unchanged',
+    delayYears: 'unchanged'
+  })
+  expect(wreck.put).not.toHaveBeenCalled()
+  await postController.handler(
+    request({ advanceYears: 'unchanged', delayYears: '' }),
+    createMockH()
+  )
+  const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
+  expect(payload).not.toHaveProperty('advanceYears')
+  expect(payload.delayYears).toBeNull()
 })

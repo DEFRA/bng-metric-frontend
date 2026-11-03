@@ -3,7 +3,7 @@
 {% from "govuk/components/back-link/macro.njk" import govukBackLink %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
-{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "habitat-ref-input/macro.njk" import appHabitatRefInput %}
 {% from "govuk/components/select/macro.njk" import govukSelect %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 
@@ -71,17 +71,7 @@
         <script type="application/json" id="bhd-reference-data">{{ referenceJson | safe }}</script>
 
         <div class="app-stacked-fields">
-          {{ govukInput({
-            id: "habitatRef",
-            name: "habitatRef",
-            label: { text: "Habitat reference", classes: "govuk-label--s" },
-            value: habitatRefValue,
-            classes: "govuk-input--width-20",
-            spellcheck: false,
-            attributes: { maxlength: maxHabitatRefLength },
-            errorMessage: habitatRefError,
-            formGroup: { classes: "app-stacked-fields__item" }
-          }) }}
+          {{ appHabitatRefInput(habitatRefInput) }}
 
           {{ stackedField(sizeLabel, sizeDisplay) }}
 
