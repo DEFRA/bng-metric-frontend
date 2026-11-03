@@ -144,7 +144,7 @@ const verticalAreaEntry = (error) => {
     ref
       ? `This vertical area habitat ${ref} contains an error`
       : GEOPACKAGE_ERROR_H1,
-    'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site, in square metres, and '
+    'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres and '
   )
 }
 
