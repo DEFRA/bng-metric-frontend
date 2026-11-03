@@ -103,6 +103,19 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.uploadHref).toBeUndefined()
   })
 
+  test('AC6b: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE renders the metric tool link in a new tab, and says so', () => {
+    const html = renderTemplate('error-file/index.njk', {
+      singleError: resolveSingleErrorCopy(
+        { code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', message: 'x' },
+        UPLOAD_HREF
+      )
+    })
+
+    expect(html).toContain(
+      'Use the <a class="govuk-link" href="https://www.gov.uk/government/publications/statutory-biodiversity-metric-tools-and-guides" target="_blank" rel="noreferrer noopener">metric tool (spreadsheet) (opens in a new tab)</a> to calculate biodiversity value.'
+    )
+  })
+
   test('AC7: AREA_PARCELS_INVALID_GEOMETRY interpolates the parcel ref from details.sample', () => {
     const result = resolveSingleErrorCopy(
       {

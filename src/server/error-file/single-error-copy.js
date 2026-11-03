@@ -35,7 +35,8 @@ function firstSample(error) {
 }
 
 // A project the service cannot calculate: the page sends the user to the
-// statutory metric tool, opened in a new tab.
+// statutory metric tool. The link opens in a new tab and says so, unless the
+// entry sets opensInNewTab: false, when it opens in this tab and says nothing.
 function metricToolEntry(h1, helpTextBefore) {
   return {
     variant: 'metric-tool',
