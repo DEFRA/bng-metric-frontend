@@ -1,7 +1,14 @@
+import {
+  loadCreatedAreaReference,
+  loadCreatedHedgerowReference
+} from './created-edit-reference.js'
+export {
+  loadCreatedAreaReference,
+  loadCreatedHedgerowReference,
+  _resetCreatedAreaReferenceCache
+} from './created-edit-reference.js'
 import Joi from 'joi'
 
-import { config } from '../../config/config.js'
-import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
   UNCHANGED_VALUE,
@@ -11,7 +18,6 @@ import {
   YEAR_OPTIONS
 } from '../../shared/created-area-details.js'
 import { saveHabitat } from '../common/helpers/habitat-details-controller.js'
-import { wreck } from '../common/helpers/wreck-client.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
@@ -53,7 +59,6 @@ function createdKind(reference) {
   return CREATED_EDIT_KINDS[reference.featureType]
 }
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
 const FIELD_ORDER = [
   'ref',
   'broadHabitat',
@@ -147,52 +152,6 @@ function importedHedgerowCondition(reference, values) {
 
 function keepImportedCondition(reference, values) {
   return reference.importedCondition?.habitatType === values.habitatType
-}
-
-const referencePromises = new Map()
-
-export function loadCreatedAreaReference() {
-  return loadCreationReference('habitat', 'area')
-}
-
-export function loadCreatedHedgerowReference() {
-  return loadCreationReference('hedgerow')
-}
-
-async function loadCreationReference(kind, referenceName = kind) {
-  if (!referencePromises.has(kind)) {
-    referencePromises.set(
-      kind,
-      wreck
-        .get(`${backendUrl}/reference/${referenceName}-creation`)
-        .then(({ res, payload }) => {
-          if (
-            res?.statusCode >= statusCodes.badRequest ||
-            !Array.isArray(payload?.habitatTypes) ||
-            !Array.isArray(payload?.strategicSignificance) ||
-            !payload?.timeMultipliers
-          ) {
-            throw new Error(
-              `Invalid ${referenceName} creation reference response`
-            )
-          }
-          return {
-            ...structuredClone(payload),
-            featureType: kind,
-            hasBroadHabitat: createdKind({ featureType: kind }).hasBroadHabitat
-          }
-        })
-        .catch((error) => {
-          referencePromises.delete(kind)
-          throw error
-        })
-    )
-  }
-  return structuredClone(await referencePromises.get(kind))
-}
-
-export function _resetCreatedAreaReferenceCache() {
-  referencePromises.clear()
 }
 
 function yearValue(value, is30Plus) {
