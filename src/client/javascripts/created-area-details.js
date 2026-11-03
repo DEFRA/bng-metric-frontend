@@ -1,6 +1,7 @@
 import {
   createdAreaDerived,
-  selectedHabitat
+  selectedHabitat,
+  UNCHANGED_VALUE
 } from '../../shared/created-area-details.js'
 
 const DERIVED_LABELS = {
@@ -89,14 +90,21 @@ export function initCreatedAreaDetails() {
   })
   document.getElementById('habitatType').addEventListener('change', () => {
     const type = selectedHabitat(reference, values())
-    reset(
-      'condition',
-      'target condition',
-      (type?.conditions ?? []).map((c) => ({
+    reset('condition', 'target condition', [
+      ...(type?.conditions ?? []).map((c) => ({
         value: c.condition,
         text: `${c.condition} (${c.score})`
-      }))
-    )
+      })),
+      ...(reference.importedCondition &&
+      reference.importedCondition.habitatType === type?.name
+        ? [
+            {
+              value: UNCHANGED_VALUE,
+              text: `${reference.importedCondition.condition} (imported value)`
+            }
+          ]
+        : [])
+    ])
     updateDerived()
   })
   for (const id of ['condition', 'advanceYears', 'delayYears']) {

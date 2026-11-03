@@ -340,3 +340,45 @@ test('does not give a Created area a baseline link to a hedgerow parent', async 
   await getController.handler({ query: { projectId, featureId } }, h)
   expect(h.view.mock.calls[0][1].viewBaselineHref).toBeNull()
 })
+
+test.each(['Moderate', 'Fairly Poor'])(
+  'retains unavailable imported %s condition only through an unchanged submission',
+  async (condition) => {
+    mockFeature({
+      type: 'hedgerow',
+      feature: { ...feature, proposed: { ...feature.proposed, condition } }
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.values.condition).toBe('unchanged')
+    expect(vm.fields.condition.items).toContainEqual(
+      expect.objectContaining({
+        value: 'unchanged',
+        text: `${condition} (imported value)`,
+        selected: true
+      })
+    )
+    await postController.handler(
+      request({ ref: 'Renamed hedge', condition: 'unchanged' }),
+      createMockH()
+    )
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).not.toHaveProperty(
+      'condition'
+    )
+    wreck.put.mockClear()
+    await postController.handler(request({ condition: '' }), createMockH())
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload).condition).toBeNull()
+    wreck.put.mockClear()
+    const changed = createMockH()
+    await postController.handler(
+      request({
+        condition: 'unchanged',
+        habitatType: 'Native hedgerow with trees'
+      }),
+      changed
+    )
+    expect(wreck.put).not.toHaveBeenCalled()
+    expect(changed.view.mock.calls[0][1].errors.condition).toBeDefined()
+  }
+)

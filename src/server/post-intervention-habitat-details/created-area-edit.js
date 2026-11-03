@@ -1,17 +1,23 @@
+import {
+  loadCreatedAreaReference,
+  loadCreatedHedgerowReference
+} from './created-edit-reference.js'
+export {
+  loadCreatedAreaReference,
+  loadCreatedHedgerowReference,
+  _resetCreatedAreaReferenceCache
+} from './created-edit-reference.js'
 import Joi from 'joi'
 
-import { config } from '../../config/config.js'
-import { statusCodes } from '../common/constants.js'
 import {
   MAX_YEARS,
-  UNCHANGED_YEAR,
+  UNCHANGED_VALUE,
   resolveCreatedTiming,
   createdAreaDerived,
   selectedHabitat,
   YEAR_OPTIONS
 } from '../../shared/created-area-details.js'
 import { saveHabitat } from '../common/helpers/habitat-details-controller.js'
-import { wreck } from '../common/helpers/wreck-client.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
@@ -53,7 +59,6 @@ function createdKind(reference) {
   return CREATED_EDIT_KINDS[reference.featureType]
 }
 
-const backendUrl = config.get('backend').url.replace(/\/$/, '')
 const FIELD_ORDER = [
   'ref',
   'broadHabitat',
@@ -80,10 +85,10 @@ export const createdAreaPayloadSchema = Joi.object({
   condition: Joi.string().allow('').required(),
   strategicSignificance: Joi.string().allow('').required(),
   advanceYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_VALUE)
     .required(),
   delayYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS, UNCHANGED_YEAR)
+    .valid('', ...YEAR_OPTIONS, UNCHANGED_VALUE)
     .required(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
@@ -105,14 +110,17 @@ export function createdReferenceForFeature(reference, feature) {
       )
       .map((field) => [field, saved[field]])
   )
+  const importedCondition = importedHedgerowCondition(reference, saved)
   return {
     ...reference,
     importedYears,
+    importedCondition,
     importedCalculation: {
       values: {
         ...saved,
+        ...(importedCondition ? { condition: UNCHANGED_VALUE } : {}),
         ...Object.fromEntries(
-          Object.keys(importedYears).map((field) => [field, UNCHANGED_YEAR])
+          Object.keys(importedYears).map((field) => [field, UNCHANGED_VALUE])
         )
       },
       finalTimeToTargetDisplay:
@@ -124,55 +132,26 @@ export function createdReferenceForFeature(reference, feature) {
 function createdEditValues(feature, reference) {
   const saved = createdAreaValues(feature)
   for (const field of Object.keys(reference.importedYears ?? {})) {
-    saved[field] = UNCHANGED_YEAR
+    saved[field] = UNCHANGED_VALUE
+  }
+  if (reference.importedCondition) {
+    saved.condition = UNCHANGED_VALUE
   }
   return saved
 }
 
-const referencePromises = new Map()
-
-export function loadCreatedAreaReference() {
-  return loadCreationReference('habitat', 'area')
-}
-
-export function loadCreatedHedgerowReference() {
-  return loadCreationReference('hedgerow')
-}
-
-async function loadCreationReference(kind, referenceName = kind) {
-  if (!referencePromises.has(kind)) {
-    referencePromises.set(
-      kind,
-      wreck
-        .get(`${backendUrl}/reference/${referenceName}-creation`)
-        .then(({ res, payload }) => {
-          if (
-            res?.statusCode >= statusCodes.badRequest ||
-            !Array.isArray(payload?.habitatTypes) ||
-            !Array.isArray(payload?.strategicSignificance) ||
-            !payload?.timeMultipliers
-          ) {
-            throw new Error(
-              `Invalid ${referenceName} creation reference response`
-            )
-          }
-          return {
-            ...structuredClone(payload),
-            featureType: kind,
-            hasBroadHabitat: createdKind({ featureType: kind }).hasBroadHabitat
-          }
-        })
-        .catch((error) => {
-          referencePromises.delete(kind)
-          throw error
-        })
-    )
+function importedHedgerowCondition(reference, values) {
+  if (reference.featureType !== 'hedgerow' || !values.condition) {
+    return null
   }
-  return structuredClone(await referencePromises.get(kind))
+  const type = selectedHabitat(reference, values)
+  return type && !type.conditions.some((c) => c.condition === values.condition)
+    ? { habitatType: values.habitatType, condition: values.condition }
+    : null
 }
 
-export function _resetCreatedAreaReferenceCache() {
-  referencePromises.clear()
+function keepImportedCondition(reference, values) {
+  return reference.importedCondition?.habitatType === values.habitatType
 }
 
 function yearValue(value, is30Plus) {
@@ -214,7 +193,10 @@ function validateReference(ref, errors) {
 function validateCreatedTiming(values, reference, errors) {
   const timing = resolveCreatedTiming(values, reference)
   for (const field of ['advanceYears', 'delayYears']) {
-    if (values[field] === UNCHANGED_YEAR && !reference.importedYears?.[field]) {
+    if (
+      values[field] === UNCHANGED_VALUE &&
+      !reference.importedYears?.[field]
+    ) {
       errors[field] = 'Choose a valid advance or delay value'
     }
   }
@@ -243,7 +225,10 @@ export function validateCreatedArea(values, reference) {
     habitatType: reference.habitatTypes
       .filter((t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat)
       .map((t) => t.name),
-    condition: (type?.conditions ?? []).map((c) => c.condition),
+    condition: [
+      ...(type?.conditions ?? []).map((c) => c.condition),
+      ...(keepImportedCondition(reference, values) ? [UNCHANGED_VALUE] : [])
+    ],
     strategicSignificance: reference.strategicSignificance.map((s) => s.value)
   }
   for (const [field, options] of Object.entries(choices)) {
@@ -353,11 +338,14 @@ function createdAreaFields(reference, values, type, initialLoad) {
   return fields
     .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
     .map(([id, label, items]) => {
-      const imported = reference.importedYears?.[id]
+      const imported =
+        id === 'condition' && keepImportedCondition(reference, values)
+          ? reference.importedCondition.condition
+          : reference.importedYears?.[id]
       if (imported !== undefined) {
         items = [
           ...items,
-          { value: UNCHANGED_YEAR, text: `${imported} (imported value)` }
+          { value: UNCHANGED_VALUE, text: `${imported} (imported value)` }
         ]
       }
       return {
@@ -496,7 +484,7 @@ export function buildCreatedAreaEditViewModel(
 }
 
 function timingPayload(values, field) {
-  if (values[field] === UNCHANGED_YEAR) {
+  if (values[field] === UNCHANGED_VALUE) {
     return {}
   }
   return { [field]: values[field] === '' ? null : values[field] }
@@ -507,7 +495,9 @@ function createdAreaSavePayload(values, kind) {
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
     habitatType: values.habitatType || null,
-    condition: values.condition || null,
+    ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_VALUE
+      ? { condition: values.condition || null }
+      : {}),
     strategicSignificance: values.strategicSignificance || null,
     ...timingPayload(values, 'advanceYears'),
     ...timingPayload(values, 'delayYears')
