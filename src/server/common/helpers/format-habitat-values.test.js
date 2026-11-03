@@ -3,6 +3,9 @@ import { describe, test, expect } from 'vitest'
 import {
   formatAreaHectares,
   formatAreaHectaresValue,
+  formatAreaSize,
+  formatSquareMetres,
+  formatSquareMetresValue,
   formatBaselineTotalLengthSize,
   formatHabitatUnits,
   formatLengthKm,
@@ -212,5 +215,34 @@ describe('formatBaselineTotalLengthSize', () => {
 
   test('Returns an empty string when given a non-number', () => {
     expect(formatBaselineTotalLengthSize('100')).toBe('')
+  })
+})
+
+describe('formatSquareMetres', () => {
+  test('shows a vertical area habitat’s face area as entered, in square metres', () => {
+    expect(formatSquareMetres(40)).toBe('40m²')
+    expect(formatSquareMetres(37.5)).toBe('37.5m²')
+    expect(formatSquareMetres(1250)).toBe('1250m²')
+    expect(formatSquareMetresValue(37.5)).toBe('37.5')
+  })
+
+  test('drops floating-point noise', () => {
+    expect(formatSquareMetres(10.1 + 20.2)).toBe('30.3m²')
+  })
+
+  test.each([null, undefined, Number.NaN])(
+    'returns an empty string for %s',
+    (value) => {
+      expect(formatSquareMetres(value)).toBe('')
+      expect(formatSquareMetresValue(value)).toBe('')
+    }
+  )
+})
+
+describe('formatAreaSize', () => {
+  test('shows a vertical area habitat in square metres, and any other area in hectares', () => {
+    expect(formatAreaSize(400, { isVerticalHabitat: true })).toBe('400m²')
+    expect(formatAreaSize(400, {})).toBe('0.04ha')
+    expect(formatAreaSize(400)).toBe('0.04ha')
   })
 })

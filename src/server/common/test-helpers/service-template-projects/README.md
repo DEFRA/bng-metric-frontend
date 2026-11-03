@@ -15,10 +15,12 @@ They aren't written by hand. Each is a real upload through the backend, with
 | `baseline-only.json`                  | `valid/default-site-baseline.gpkg`                             | `POST /baseline/validate/{id}`          | A project with only a baseline: no `postIntervention` key                                                                                                          |
 | `watercourse-advance-incomplete.json` | `incomplete/degrade-watercourse-advance-not-encroachment.gpkg` | `POST /post-intervention/validate/{id}` | A degraded watercourse created 10 years in advance, which the backend clears and saves Incomplete                                                                  |
 
-Captured at bng-metric-backend `76ce71e` (bng-library `93f8d08`) from harness
-`a4c9bad`. Both documents carry `template: { name: 'bng-service', version: '1.0' }`,
-and every area habitat its `irreplaceable` status. Individual trees (BMD-1172)
-and vertical area habitats (BMD-1084) aren't read yet, so `trees` is empty.
+Captured at bng-metric-backend `a4462c1` (bng-library `93f8d08`) from the
+harness corpus with each vertical area habitat's Area in square metres. Both
+documents carry `template: { name: 'bng-service', version: '1.0' }`, and every
+area habitat its `irreplaceable` status. Each holds `verticalHabitats`, sized by
+the face area typed in. Individual trees (BMD-1172) aren't read yet, so `trees`
+is empty.
 
 ## Regenerating them
 

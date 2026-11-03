@@ -1,18 +1,25 @@
 import { describe, expect, test } from 'vitest'
 
 import { isServiceTemplateDocument } from '../../helpers/service-template.js'
+import { VERTICAL_HABITATS } from '../../helpers/vertical-habitats.js'
 import { serviceTemplateProject } from './index.js'
 
 // What the frontend relies on in a BNG Service template project (BMD-1086).
 // The fixtures are captured from the backend (see README.md), so a failure
 // here after re-capturing them means the backend's shape changed.
 
-const LINKED_LAYERS = ['habitats', 'hedgerows', 'watercourses']
+const LINKED_LAYERS = [
+  'habitats',
+  'verticalHabitats',
+  'hedgerows',
+  'watercourses'
+]
 const RETENTION_CATEGORIES = ['Retained', 'Enhanced', 'Created']
 const LOST_OUTCOMES = ['removed', 'lostAndRecreated', 'lost']
 const SIGNIFICANCE_CATEGORIES = ['Low', 'High']
 const LOST_SIZE_FIELD = {
   habitats: 'lostSizeSquareMetres',
+  verticalHabitats: 'lostSizeSquareMetres',
   hedgerows: 'lostSizeMetres',
   watercourses: 'lostSizeMetres'
 }
@@ -97,6 +104,53 @@ describe('service-template project fixtures', () => {
       for (const habitat of document.habitats) {
         expect(typeof habitat.irreplaceable, habitat.ref).toBe('boolean')
       }
+    }
+  })
+
+  test('size each vertical area habitat by the face area typed in, in square metres, and keep it out of the site area', () => {
+    for (const document of [baseline, postIntervention]) {
+      expect(document.verticalHabitats.length).toBeGreaterThan(0)
+      for (const vertical of document.verticalHabitats) {
+        expect(vertical.sizeSquareMetres, vertical.ref).toBeGreaterThan(0)
+        // As typed into the template's Area column, not converted.
+        expect(vertical.sizeSquareMetres, vertical.ref).toBe(
+          vertical.properties.Area
+        )
+      }
+      const typed = document.verticalHabitats.reduce(
+        (sum, vertical) => sum + vertical.sizeSquareMetres,
+        0
+      )
+      expect(document.habitatSizes.verticalHabitats.totalSquareMetres).toBe(
+        typed
+      )
+      expect(
+        document.habitatSizes.areaHabitats.totalSquareMetres -
+          document.habitatSizes.site.totalSquareMetres
+      ).toBeGreaterThanOrEqual(typed)
+      expect(document.units.verticalHabitatsTotal).toBeGreaterThan(0)
+    }
+  })
+
+  test('give vertical area habitats only the habitats the frontend offers them', () => {
+    // The frontend's VERTICAL_HABITATS is a copy of the backend's list, and
+    // narrows the details page's choices to it: a habitat it lacks would show
+    // no selection there.
+    const offered = new Set(
+      VERTICAL_HABITATS.map(({ broad, name }) => `${broad} - ${name}`)
+    )
+    const used = [
+      ...baseline.verticalHabitats.map((v) => `${v.broadType} - ${v.type}`),
+      ...postIntervention.verticalHabitats.flatMap(
+        ({ baseline: was, proposed }) => [
+          `${was.broadType} - ${was.type}`,
+          `${proposed.broadType} - ${proposed.type}`
+        ]
+      )
+    ]
+    expect(used.length).toBeGreaterThan(0)
+    for (const habitat of used) {
+      expect(offered, habitat).toContain(habitat)
     }
   })
 

@@ -40,8 +40,11 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
     {
       text: 'Size',
       numeric: true,
+      // The feature too, for a page whose rows differ in unit: a vertical
+      // area habitat's size is in square metres among area habitats in
+      // hectares.
       cell: (feature) =>
-        numericCell(formatSize(readSize(feature)), readSize(feature)),
+        numericCell(formatSize(readSize(feature), feature), readSize(feature)),
       total: (totals) => boldCell(numericCell(formatSizeTotal(totals.size)))
     },
     ...extraColumns,
@@ -80,7 +83,7 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
  * @param {object[]} options.features
  * @param {string} options.projectId
  * @param {(feature: object) => number|null|undefined} options.readSize
- * @param {(value: number|null|undefined) => string} options.formatSize
+ * @param {(value: number|null|undefined, feature?: object) => string} options.formatSize
  * @param {(value: number|null|undefined) => string} options.formatSizeTotal
  * @param {object[]} [options.extraColumns]
  */
