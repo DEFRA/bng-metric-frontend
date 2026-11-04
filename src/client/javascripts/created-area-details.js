@@ -102,8 +102,8 @@ export function initCreatedAreaDetails() {
         value: c.condition,
         text: `${c.condition} (${c.score})`
       })),
-      ...(reference.importedCondition &&
-      reference.importedCondition.habitatType === currentValues.habitatType
+      ...(reference.importedCondition?.habitatType ===
+      (currentValues.habitatType ?? '')
         ? [
             {
               value: UNCHANGED_VALUE,
