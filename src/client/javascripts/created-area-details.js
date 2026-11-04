@@ -95,14 +95,15 @@ export function initCreatedAreaDetails() {
     updateDerived()
   })
   document.getElementById('habitatType').addEventListener('change', () => {
-    const type = selectedHabitat(reference, values())
+    const currentValues = values()
+    const type = selectedHabitat(reference, currentValues)
     reset('condition', 'target condition', [
       ...(type?.conditions ?? []).map((c) => ({
         value: c.condition,
         text: `${c.condition} (${c.score})`
       })),
       ...(reference.importedCondition &&
-      reference.importedCondition.habitatType === type?.name
+      reference.importedCondition.habitatType === currentValues.habitatType
         ? [
             {
               value: UNCHANGED_VALUE,

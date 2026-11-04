@@ -40,6 +40,40 @@ beforeAll(() => {
 })
 beforeEach(() => render())
 
+test('keeps an imported condition available when the stored type is blank', () => {
+  render({
+    ...feature,
+    proposed: { ...feature.proposed, type: null, condition: 'Good' }
+  })
+  expect(value('habitatType')).toBe('')
+  expect(value('condition')).toBe('unchanged')
+  change('ref', 'Renamed')
+  expect(
+    new FormData(document.getElementById('created-area-details-form')).get(
+      'condition'
+    )
+  ).toBe('unchanged')
+  change('habitatType', 'Canals')
+  expect(value('condition')).toBe('')
+  expect(
+    document.querySelector('#condition option[value="unchanged"]')
+  ).toBeNull()
+  change('habitatType', '')
+  expect(
+    document.querySelector('#condition option[value="unchanged"]').textContent
+  ).toBe('Good (imported value)')
+  change('condition', 'unchanged')
+  const values = Object.fromEntries(
+    new FormData(document.getElementById('created-area-details-form'))
+  )
+  const savedReference = JSON.parse(
+    document.getElementById('created-area-reference-data').textContent
+  )
+  expect(validateCreatedArea(values, savedReference)).toEqual({})
+  change('condition', '')
+  expect(value('condition')).toBe('')
+})
+
 test('renders fixed size and all watercourse-only controls with their own defaults', async () => {
   expect(document.getElementById('broadHabitat')).toBeNull()
   expect(text('sizeDisplay')).toBe('0.5km')

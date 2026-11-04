@@ -200,7 +200,7 @@ function importedLinearCondition(reference, values) {
     return null
   }
   const type = selectedHabitat(reference, values)
-  return type && !type.conditions.some((c) => c.condition === values.condition)
+  return !type?.conditions.some((c) => c.condition === values.condition)
     ? { habitatType: values.habitatType, condition: values.condition }
     : null
 }

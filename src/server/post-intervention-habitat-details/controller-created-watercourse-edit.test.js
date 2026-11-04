@@ -475,8 +475,8 @@ test('uses the selected habitat difficulty after a validation error even when th
       ...feature,
       proposed: {
         ...feature.proposed,
-        standardDifficulty: 'Low',
-        appliedDifficultyMultiplier: 1
+        difficulty: 'Low',
+        difficultyMultiplier: 1
       }
     }
   })
