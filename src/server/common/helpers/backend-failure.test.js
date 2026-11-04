@@ -16,6 +16,20 @@ function responseError(statusCode, { headers = {}, payload } = {}) {
   })
 }
 
+// A response wreck could not read: it rethrows the read error with the
+// response attached as `data.res` (_shortcut). A body that will not parse as
+// JSON is a 502 of wreck's own, with the raw body kept (tryParseBuffer).
+function unparseableResponse(statusCode, headers, body) {
+  const error = Boom.badGateway(
+    'Unexpected token \'<\', "<html>" is not valid JSON',
+    {
+      payload: Buffer.from(body)
+    }
+  )
+  error.data.res = { statusCode, headers }
+  return error
+}
+
 function connectionError(code) {
   const socketError = new Error(`connect ${code} 10.0.0.1:443`)
   socketError.code = code
@@ -25,6 +39,18 @@ function connectionError(code) {
 describe('#backendFailureKind', () => {
   test('a response from the backend or a proxy', () => {
     expect(backendFailureKind(responseError(502))).toBe('response')
+  })
+
+  test('a response whose body could not be read', () => {
+    expect(
+      backendFailureKind(
+        unparseableResponse(
+          502,
+          { 'content-type': 'application/json' },
+          '<html>'
+        )
+      )
+    ).toBe('unreadable')
   })
 
   test("wreck's own timeout, although it wears a 504", () => {
@@ -69,7 +95,16 @@ describe('#describeBackendFailure', () => {
     )
   })
 
-  test('caps a long body', () => {
+  test('quotes a long JSON body whole, so no error code is lost', () => {
+    const errors = Array.from({ length: 40 }, (_, i) => ({ code: `CODE_${i}` }))
+    const error = responseError(422, { payload: { valid: false, errors } })
+
+    expect(describeBackendFailure(error, TIMING)).toContain(
+      `body: ${JSON.stringify({ valid: false, errors })}`
+    )
+  })
+
+  test('caps a long raw body', () => {
     const error = responseError(502, { payload: Buffer.from('x'.repeat(5000)) })
 
     expect(describeBackendFailure(error, TIMING)).toMatch(/body: x{300}$/)
@@ -78,6 +113,27 @@ describe('#describeBackendFailure', () => {
   test('says when a response had no headers or body', () => {
     expect(describeBackendFailure(responseError(503), TIMING)).toContain(
       'contentType: none, server: none, body: none'
+    )
+  })
+
+  test('says what answered when its body would not parse, not just the 502 wreck gives it', () => {
+    const error = unparseableResponse(
+      502,
+      { 'content-type': 'application/json', server: 'envoy' },
+      '<html><title>502 Bad Gateway</title></html>'
+    )
+
+    expect(describeBackendFailure(error, TIMING)).toBe(
+      'failure: unreadable, elapsedMs: 1235, timeoutMs: 25000, responseStatusCode: 502, contentType: application/json, server: envoy, body: <html><title>502 Bad Gateway</title></html>'
+    )
+  })
+
+  test('says what answered when its body stopped short', () => {
+    const error = Boom.internal('Payload stream closed prematurely')
+    error.data = { res: { statusCode: 200, headers: { server: 'envoy' } } }
+
+    expect(describeBackendFailure(error, TIMING)).toBe(
+      'failure: unreadable, elapsedMs: 1235, timeoutMs: 25000, responseStatusCode: 200, contentType: none, server: envoy, body: none'
     )
   })
 

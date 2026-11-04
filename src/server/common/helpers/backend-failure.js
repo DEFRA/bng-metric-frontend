@@ -1,7 +1,7 @@
 /**
- * Longest stretch of a response body worth quoting in a log line. Enough for a
- * proxy's error page title or the start of an unexpected JSON body, short
- * enough that a large page cannot flood the log.
+ * Longest stretch of a raw response body worth quoting in a log line. Enough
+ * for a proxy's error page title, short enough that a large page cannot flood
+ * the log.
  */
 const BODY_SNIPPET_LENGTH = 300
 
@@ -15,21 +15,28 @@ const WRECK_REQUEST_ERROR_MESSAGE = 'Client request error'
  * Wreck reports its own failures with HTTP status codes of their own, so the
  * status code alone cannot tell them apart from a real response: a timeout
  * here is a 504 and a dropped or refused connection a 502, the same codes a
- * proxy in front of the backend would send. Only a response error carries the
- * response itself, in `data.isResponseError`.
+ * proxy in front of the backend would send. A response error carries the
+ * response itself, in `data.isResponseError`. So does a response whose body
+ * could not be read: wreck attaches it as `data.res` before rethrowing.
  *
  * - `response` — something answered with a 4xx or 5xx: the backend, or a proxy
  *   in front of it (its `server` header and body say which)
+ * - `unreadable` — something answered, but its body would not parse as the
+ *   JSON its content type promised, or stopped short. Wreck gives a body that
+ *   will not parse a 502 of its own, whatever status actually came back.
  * - `timeout` — nothing answered before this side gave up
  * - `connection` — the connection failed: refused, reset or not resolvable
- * - `other` — anything else, such as a payload that would not parse
+ * - `other` — anything else
  *
  * @param {object} error what wreck (or backendRequest) rejected with
- * @returns {'response'|'timeout'|'connection'|'other'}
+ * @returns {'response'|'unreadable'|'timeout'|'connection'|'other'}
  */
 function backendFailureKind(error) {
   if (error?.data?.isResponseError) {
     return 'response'
+  }
+  if (error?.data?.res) {
+    return 'unreadable'
   }
   if (error?.message === WRECK_TIMEOUT_MESSAGE) {
     return 'timeout'
@@ -41,18 +48,40 @@ function backendFailureKind(error) {
 }
 
 /**
- * The start of a body that is not the JSON the backend sends, as text. A
- * proxy's error page arrives as a Buffer, which JSON.stringify would turn into
- * an array of byte values.
+ * A response body as log text. JSON the backend sent is quoted whole, so a
+ * long list of error codes keeps all of them. A body that is not JSON, such as
+ * a proxy's error page, arrives as a Buffer, which JSON.stringify would turn
+ * into an array of byte values: only its start is quoted, as text.
  */
-function bodySnippet(payload) {
+function bodyText(payload) {
   if (payload === undefined || payload === null) {
     return 'none'
   }
-  const text = Buffer.isBuffer(payload)
-    ? payload.toString('utf8')
-    : JSON.stringify(payload)
-  return text.replaceAll(/\s+/g, ' ').slice(0, BODY_SNIPPET_LENGTH)
+  if (!Buffer.isBuffer(payload)) {
+    return JSON.stringify(payload)
+  }
+  return payload
+    .toString('utf8')
+    .replaceAll(/\s+/g, ' ')
+    .slice(0, BODY_SNIPPET_LENGTH)
+}
+
+/**
+ * What answered: its status, content type, server and body. A response error
+ * copies the headers to `data.headers`; an unreadable response has them only
+ * on `data.res`.
+ *
+ * @param {{ headers?: object, res?: object, payload?: unknown }} data
+ * @returns {string[]}
+ */
+function responseParts({ headers: dataHeaders, res, payload }) {
+  const headers = dataHeaders ?? res?.headers ?? {}
+  return [
+    `responseStatusCode: ${res?.statusCode}`,
+    `contentType: ${headers['content-type'] ?? 'none'}`,
+    `server: ${headers.server ?? 'none'}`,
+    `body: ${bodyText(payload)}`
+  ]
 }
 
 /**
@@ -72,14 +101,10 @@ function describeBackendFailure(error, { elapsedMs, timeoutMs }) {
     `timeoutMs: ${timeoutMs}`
   ]
 
-  if (kind === 'response') {
-    const headers = error.data.headers ?? {}
-    parts.push(
-      `responseStatusCode: ${error.data.res?.statusCode}`,
-      `contentType: ${headers['content-type'] ?? 'none'}`,
-      `server: ${headers.server ?? 'none'}`,
-      `body: ${bodySnippet(error.data.payload)}`
-    )
+  if (kind === 'response' || kind === 'unreadable') {
+    // A body that would not parse is kept raw in `data.payload`; one that
+    // stopped short leaves none.
+    parts.push(...responseParts(error.data))
   }
 
   if (kind === 'connection') {
