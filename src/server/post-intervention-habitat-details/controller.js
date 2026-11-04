@@ -10,7 +10,6 @@ import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
 import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
-import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
@@ -93,20 +92,13 @@ const HEDGEROW_RETENTION_PAGES = new Map([
   ]
 ])
 
-// Created/Enhanced watercourses use a two-section layout keyed by retention.
+// Enhanced watercourses use a two-section layout keyed by retention.
 const WATERCOURSE_RETENTION_PAGES = new Map([
   [
     RETENTION_ENHANCED,
     {
       template: 'habitat-details/pi-watercourse-details-enhanced',
       buildViewModel: buildEnhancedWatercourseViewOnlyViewModel
-    }
-  ],
-  [
-    RETENTION_CREATED,
-    {
-      template: 'habitat-details/pi-watercourse-details-created',
-      buildViewModel: buildCreatedWatercourseViewOnlyViewModel
     }
   ]
 ])

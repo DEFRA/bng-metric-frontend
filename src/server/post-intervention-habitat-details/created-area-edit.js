@@ -72,6 +72,7 @@ export const CREATED_EDIT_KINDS = {
     savePath: 'watercourses',
     hasBroadHabitat: false,
     hasEncroachments: true,
+    restoresLineageAdvance: true,
     habitatTypeError: 'Choose a valid watercourse habitat type'
   },
   hedgerow: {
@@ -172,7 +173,7 @@ function createdEditValues(feature, reference) {
   if (reference.importedCondition) {
     saved.condition = UNCHANGED_VALUE
   }
-  if (reference.featureType === 'watercourse') {
+  if (createdKind(reference).hasEncroachments) {
     for (const field of ENCROACHMENT_FIELDS) {
       saved[field] = reference.importedEncroachments?.[field]
         ? UNCHANGED_VALUE
@@ -183,7 +184,7 @@ function createdEditValues(feature, reference) {
 }
 
 function importedEncroachmentValues(reference, feature) {
-  if (reference.featureType !== 'watercourse') {
+  if (!createdKind(reference).hasEncroachments) {
     return {}
   }
   return Object.fromEntries(
@@ -449,7 +450,7 @@ function advancePayload(values, kind, feature) {
   // Preserve a lineage-hidden advance on rename, but clear it when a positive
   // delay is selected or kept from the imported timing options.
   const keepBlank =
-    kind.hasEncroachments &&
+    kind.restoresLineageAdvance &&
     feature &&
     feature.proposed?.advanceYears == null &&
     !hasPositiveDelay
