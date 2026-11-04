@@ -285,6 +285,7 @@ describe('authenticated Created watercourse form', () => {
     ].flatMap((stored) =>
       [
         { value: '0', saved: 0, clearAdvance: false },
+        { value: '', saved: 0, clearAdvance: false },
         { value: '2', saved: 0, clearAdvance: true },
         { value: '30+', saved: 0, clearAdvance: true },
         { value: 'unchanged', saved: 2.5, clearAdvance: true }
@@ -335,7 +336,7 @@ describe('authenticated Created watercourse form', () => {
       if (delay.value === 'unchanged') {
         expect(payload).not.toHaveProperty('delayYears')
       } else {
-        expect(payload.delayYears).toBe(delay.value)
+        expect(payload.delayYears).toBe(delay.value || null)
       }
     }
   )

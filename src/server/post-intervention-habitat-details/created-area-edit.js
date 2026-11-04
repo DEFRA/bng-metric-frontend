@@ -445,13 +445,14 @@ function advancePayload(values, kind, feature) {
     values.delayYears === UNCHANGED_VALUE
       ? feature?.proposed?.delayYears
       : values.delayYears
+  const hasPositiveDelay = Number.parseFloat(delayYears) > 0
   // Preserve a lineage-hidden advance on rename, but clear it when a positive
   // delay is selected or kept from the imported timing options.
   const keepBlank =
     kind.hasEncroachments &&
     feature &&
     feature.proposed?.advanceYears == null &&
-    !(Number.parseFloat(delayYears) > 0)
+    !hasPositiveDelay
   return timingPayload(values, 'advanceYears', keepBlank)
 }
 
