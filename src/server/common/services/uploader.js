@@ -3,6 +3,7 @@ import Boom from '@hapi/boom'
 import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
+import { describeBackendError } from '../helpers/describe-backend-error.js'
 
 const logger = createLogger()
 
@@ -22,18 +23,6 @@ function buildUploadUrl(path) {
   }
 
   return `${cdpUploaderUrl}${path}`
-}
-
-/**
- * Summarise a backend error response for the log without logging its body.
- * The backend's Boom payload carries a reason phrase (`error`) and a
- * `message`; only the reason phrase is logged, because a message can echo
- * user-supplied input. The backend logs the full error on its own side.
- * @param {unknown} error - the error Wreck threw
- * @returns {string}
- */
-function describeBackendError(error) {
-  return error?.data?.payload?.error ?? 'none'
 }
 
 /**

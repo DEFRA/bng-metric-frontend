@@ -4,6 +4,7 @@ import { config } from '../../../config/config.js'
 import { statusCodes } from '../constants.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
+import { describeBackendError } from '../helpers/describe-backend-error.js'
 import { HABITAT_UPLOAD_TYPES } from '../helpers/habitat-upload-types.js'
 
 const logger = createLogger()
@@ -101,9 +102,10 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
   } catch (error) {
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
+    const backendError = describeBackendError(error)
 
     logger.error(
-      `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, backendError: ${backendError}, message: ${error?.message}`
     )
 
     // A busy validator means the file was never looked at. It is the one

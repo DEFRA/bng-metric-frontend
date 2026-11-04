@@ -3,6 +3,17 @@ import { vi } from 'vitest'
 import { validateBaseline, validatePostIntervention } from './baseline.js'
 import { wreck } from '../helpers/wreck-client.js'
 
+const mockLoggerError = vi.hoisted(() => vi.fn())
+
+vi.mock('../helpers/logging/logger.js', () => ({
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: mockLoggerError
+  })
+}))
+
 vi.mock('../helpers/wreck-client.js', () => ({
   wreck: {
     get: vi.fn(),
@@ -92,6 +103,27 @@ describe('#validateBaseline', () => {
     expect(result.errors).toEqual([
       { code: 'VALIDATION_FAILED', message: 'Bad input' }
     ])
+  })
+
+  test('Should log the backend reason phrase but not its message', async () => {
+    const boomError = {
+      output: { statusCode: 400 },
+      data: {
+        payload: {
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'echoed user input jane@example.com'
+        }
+      },
+      message: 'Response Error: 400 Bad Request'
+    }
+    vi.mocked(wreck.post).mockRejectedValue(boomError)
+
+    await validateBaseline(makeRequest(), projectId, uploadId)
+
+    const logged = mockLoggerError.mock.calls.at(-1)[0]
+    expect(logged).toContain('backendError: Bad Request')
+    expect(logged).not.toContain('jane@example.com')
   })
 
   test('Should throw a Boom badGateway error on 5xx response from backend', async () => {
