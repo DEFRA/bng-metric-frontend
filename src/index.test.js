@@ -27,6 +27,7 @@ describe('#index', () => {
     const mockLogger = createLogger()
 
     const exit = vi.spyOn(process, 'exit').mockImplementation(() => {})
+    vi.useFakeTimers()
 
     try {
       await import('./index.js')
@@ -36,9 +37,16 @@ describe('#index', () => {
 
       expect(mockLogger.info).toHaveBeenCalledWith('Unhandled rejection')
       expect(mockLogger.error).toHaveBeenCalledWith(error)
+      expect(process.exitCode).toBe(1)
+      expect(exit).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(1000)
+
       expect(exit).toHaveBeenCalledWith(1)
     } finally {
+      vi.useRealTimers()
       exit.mockRestore()
+      process.exitCode = undefined
     }
   })
 })
