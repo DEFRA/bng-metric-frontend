@@ -45,7 +45,9 @@ export const CREATED_EDIT_KINDS = {
     loadReference: loadCreatedAreaReference,
     label: 'Area habitat',
     optionalReference: false,
-    readOnlyTemplate: null,
+    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
+    unsupportedSignificanceMessage:
+      'This habitat cannot be edited because its imported strategic significance is not supported. To change it, upload a new post-intervention file with supported strategic significance.',
     buildBase: buildCreatedAreaViewOnlyViewModel,
     formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
     sizeLabel: 'Size (hectares)',
@@ -77,6 +79,8 @@ export const CREATED_EDIT_KINDS = {
     label: 'Hedgerow',
     optionalReference: true,
     readOnlyTemplate: 'habitat-details/pi-hedgerow-details-enhanced',
+    unsupportedSignificanceMessage:
+      'This hedgerow cannot be edited because its imported strategic significance is not supported. To change it, upload a new post-intervention file with supported strategic significance.',
     buildBase: buildCreatedHedgerowViewOnlyViewModel,
     formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
     sizeLabel: 'Length (km)',

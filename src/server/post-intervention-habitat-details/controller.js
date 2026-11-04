@@ -341,9 +341,6 @@ function createdReadOnlyReason(kind, feature, reference) {
   if (hasUnsupportedStoredType(kind, feature, reference)) {
     return kind.unsupportedTypeMessage
   }
-  if (!kind.unsupportedSignificanceMessage) {
-    return null
-  }
   const unsupported = unsupportedStoredSignificance(feature, reference)
   return unsupported !== null
     ? `${kind.unsupportedSignificanceMessage} Imported value: "${unsupported}".`
