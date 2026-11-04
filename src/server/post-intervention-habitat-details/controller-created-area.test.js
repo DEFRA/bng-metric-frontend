@@ -133,6 +133,7 @@ describe('Created area controller', () => {
       'Location ecologically desirable but not in local strategy'
     ],
     ['Unknown', 'Unknown'],
+    [42, 42],
     [null, ''],
     ['', '']
   ])(
