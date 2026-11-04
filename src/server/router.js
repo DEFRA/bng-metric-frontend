@@ -37,6 +37,7 @@ import { watercoursesPostIntervention } from './watercourses-post-intervention/i
 import { watercoursesTradingSummary } from './watercourses-trading-summary/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
+import { isNonProductionEnvironment } from './common/helpers/environment.js'
 import { swagger } from './common/helpers/swagger.js'
 
 export const router = {
@@ -86,7 +87,8 @@ export const router = {
       // /db-info shows the backend's database diagnostics, and the backend
       // leaves its own /db-info out of prod, so keep the page out of the prod
       // route table too rather than serving a public page that can only fail.
-      if (config.get('environment') !== 'prod') {
+      // Allowlist, so an empty or unknown ENVIRONMENT leaves the route out.
+      if (isNonProductionEnvironment()) {
         await server.register([dbInfo])
       }
 

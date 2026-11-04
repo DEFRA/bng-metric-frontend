@@ -15,14 +15,18 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 
 describe('#dbInfoController', () => {
   let server
+  let environment
 
   beforeAll(async () => {
+    environment = config.get('environment')
+    config.set('environment', 'local')
     server = await createServer()
     await server.initialize()
   })
 
   afterAll(async () => {
     await server.stop({ timeout: 0 })
+    config.set('environment', environment)
   })
 
   test('Should provide expected response', async () => {
@@ -44,31 +48,34 @@ describe('#dbInfoController', () => {
   })
 })
 
-describe('#dbInfo route in prod', () => {
-  let server
-  let environment
+describe.each(['prod', '', 'production'])(
+  '#dbInfo route with environment "%s"',
+  (value) => {
+    let server
+    let environment
 
-  beforeAll(async () => {
-    environment = config.get('environment')
-    config.set('environment', 'prod')
-    server = await createServer()
-    await server.initialize()
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-    config.set('environment', environment)
-  })
-
-  test('Should not be registered', async () => {
-    const { statusCode } = await server.inject({
-      method: 'GET',
-      url: '/db-info'
+    beforeAll(async () => {
+      environment = config.get('environment')
+      config.set('environment', value)
+      server = await createServer()
+      await server.initialize()
     })
 
-    expect(statusCode).toBe(statusCodes.notFound)
-    expect(wreck.get).not.toHaveBeenCalledWith(
-      expect.stringContaining('/db-info')
-    )
-  })
-})
+    afterAll(async () => {
+      await server.stop({ timeout: 0 })
+      config.set('environment', environment)
+    })
+
+    test('Should not be registered', async () => {
+      const { statusCode } = await server.inject({
+        method: 'GET',
+        url: '/db-info'
+      })
+
+      expect(statusCode).toBe(statusCodes.notFound)
+      expect(wreck.get).not.toHaveBeenCalledWith(
+        expect.stringContaining('/db-info')
+      )
+    })
+  }
+)

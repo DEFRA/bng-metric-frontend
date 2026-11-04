@@ -28,15 +28,17 @@ describe('#index', () => {
 
     const exit = vi.spyOn(process, 'exit').mockImplementation(() => {})
 
-    await import('./index.js')
+    try {
+      await import('./index.js')
 
-    const error = new Error('test error')
-    process.emit('unhandledRejection', error)
+      const error = new Error('test error')
+      process.emit('unhandledRejection', error)
 
-    expect(mockLogger.info).toHaveBeenCalledWith('Unhandled rejection')
-    expect(mockLogger.error).toHaveBeenCalledWith(error)
-    expect(exit).toHaveBeenCalledWith(1)
-
-    exit.mockRestore()
+      expect(mockLogger.info).toHaveBeenCalledWith('Unhandled rejection')
+      expect(mockLogger.error).toHaveBeenCalledWith(error)
+      expect(exit).toHaveBeenCalledWith(1)
+    } finally {
+      exit.mockRestore()
+    }
   })
 })
