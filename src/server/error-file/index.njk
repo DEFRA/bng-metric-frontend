@@ -69,7 +69,12 @@
         </p>
       {% endif %}
 
-      {% if not singleError %}
+      {#
+        A single error with its own upload link says what to do in the sentence,
+        and a metric-tool page has nothing to upload. Plain text copy has
+        neither, so it keeps the way back to uploading.
+      #}
+      {% if not singleError or singleError.variant == 'text' %}
         <div class="govuk-button-group govuk-!-margin-top-6">
           {% if projectId %}
             {{ govukButton({
