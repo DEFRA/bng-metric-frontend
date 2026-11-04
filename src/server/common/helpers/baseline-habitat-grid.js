@@ -2,6 +2,7 @@ import { formatHabitatUnits } from './format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
 import {
   FIXED_STRATEGIC_SIGNIFICANCE,
+  STATUS_COLUMN,
   TOTALS_LABEL,
   boldCell,
   buildHabitatGrid,
@@ -70,7 +71,8 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
     {
       text: 'Strategic significance',
       cell: () => textCell(FIXED_STRATEGIC_SIGNIFICANCE)
-    }
+    },
+    STATUS_COLUMN
   ]
 }
 

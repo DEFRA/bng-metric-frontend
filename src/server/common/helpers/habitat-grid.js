@@ -16,6 +16,11 @@ const SORT_KEY_DIGIT_WIDTH = 10
 // then an ellipsis. Showing the whole reference on hover is a separate ticket.
 const MAX_REF_DISPLAY_LENGTH = 10
 const TRUNCATION_MARK = '…'
+// The status the backend saves against each feature (BMD-482). Only an
+// incomplete feature is tagged, so it stands out among the complete ones.
+const STATUS_COMPLETE = 'Complete'
+const STATUS_INCOMPLETE = 'Incomplete'
+const INCOMPLETE_TAG_CLASS = 'govuk-tag--blue'
 
 function featureRef(feature) {
   const ref = feature?.ref?.trim()
@@ -129,6 +134,21 @@ function buildRefCell(feature, projectId, detailsRoute, returnUrl) {
   return cell
 }
 
+function statusCell(status) {
+  if (status === STATUS_INCOMPLETE) {
+    return { text: status, tag: { classes: INCOMPLETE_TAG_CLASS } }
+  }
+  if (status === STATUS_COMPLETE) {
+    return textCell(status)
+  }
+  return textCell()
+}
+
+const STATUS_COLUMN = {
+  text: 'Status',
+  cell: (feature) => statusCell(feature.status)
+}
+
 function boldCell(cell) {
   return { ...cell, classes: BOLD_CELL_CLASS }
 }
@@ -172,6 +192,7 @@ function buildHabitatGrid({ columns, features, projectId, readSize }) {
 export {
   EMPTY_DISPLAY,
   FIXED_STRATEGIC_SIGNIFICANCE,
+  STATUS_COLUMN,
   TOTALS_LABEL,
   boldCell,
   buildHabitatGrid,

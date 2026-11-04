@@ -16,7 +16,7 @@ const auth = {
 
 const POPULATED_UNITS_TOTAL = 2
 const EMPTY_UNITS_TOTAL = 0
-const LINEAR_BASELINE_COLUMN_COUNT = 7
+const LINEAR_BASELINE_COLUMN_COUNT = 8
 const UNIT_SUMMARY_TILE_COUNT = 5
 const BODY_ROW_SELECTOR = 'tbody .govuk-table__row'
 const EXPECTED_UNITS_DISPLAY = '0.80'
@@ -164,6 +164,38 @@ function registerGridTests(ctx) {
     expect($('.moj-scrollable-pane').attr('aria-label')).toBe(
       ctx.detailsHeading
     )
+  })
+
+  test('ends each row with its status, tagging only an incomplete one (BMD-1101)', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          name: PROJECT_NAME,
+          baseline: {
+            units: { [ctx.unitsTotalKey]: POPULATED_UNITS_TOTAL },
+            [ctx.habitatKey]: [
+              { ...ctx.featureFirst, status: 'Incomplete' },
+              { ...ctx.featureSecond, status: 'Complete' }
+            ]
+          }
+        }
+      }
+    })
+
+    const { result } = await ctx.loadPage()
+    const $ = load(result)
+    const statusCells = $(BODY_ROW_SELECTOR).map((_, row) =>
+      $(row).find('td').last()
+    )
+
+    expect($('thead th').last().text()).toBe('Status')
+    expect(statusCells.eq(0).find('strong.govuk-tag--blue').text()).toBe(
+      'Incomplete'
+    )
+    expect(statusCells.eq(1).text()).toBe('Complete')
+    expect(statusCells.eq(1).find('.govuk-tag')).toHaveLength(0)
+    expect($('tfoot td').last().text()).toBe('')
   })
 }
 

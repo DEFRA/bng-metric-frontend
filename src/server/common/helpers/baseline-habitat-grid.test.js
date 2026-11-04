@@ -103,7 +103,7 @@ describe('buildBaselineHabitatGrid', () => {
       formatSizeTotal: formatBaselineTotalLengthSize
     })
 
-    expect(grid.columns).toHaveLength(7)
+    expect(grid.columns).toHaveLength(8)
     expect(
       grid.columns.some((column) => column.text === BROAD_HABITAT_HEADER)
     ).toBe(false)
@@ -133,7 +133,7 @@ describe('buildBaselineHabitatGrid', () => {
       extraColumns: [BROAD_HABITAT_COLUMN]
     })
 
-    expect(grid.columns).toHaveLength(8)
+    expect(grid.columns).toHaveLength(9)
     expect(grid.columns.map((column) => column.text)).toContain(
       BROAD_HABITAT_HEADER
     )
@@ -150,9 +150,35 @@ describe('buildBaselineHabitatGrid', () => {
     })
 
     expect(grid.habitatRows).toEqual([])
-    expect(grid.columns).toHaveLength(7)
-    expect(grid.totalsRow).toHaveLength(7)
+    expect(grid.columns).toHaveLength(8)
+    expect(grid.totalsRow).toHaveLength(8)
     expect(grid.totalsRow[1].text).toBe('0.00')
     expect(grid.totalsRow[2].text).toBe('0km')
+  })
+
+  test('ends with a Status column that tags only incomplete features (BMD-1101)', () => {
+    const grid = buildBaselineHabitatGrid({
+      features: [
+        { featureId: 'a', ref: 'H-1', status: 'Complete' },
+        { featureId: 'b', ref: 'H-2', status: 'Incomplete' },
+        { featureId: 'c', ref: 'H-3' }
+      ],
+      projectId: PROJECT_ID,
+      readSize: (feature) => feature.sizeMetres,
+      formatSize: formatLengthKmDisplay,
+      formatSizeTotal: formatBaselineTotalLengthSize
+    })
+
+    expect(grid.columns.at(-1)).toEqual({ text: 'Status' })
+    const [complete, incomplete, missing] = grid.habitatRows.map((row) =>
+      row.at(-1)
+    )
+    expect(complete).toEqual({ text: 'Complete' })
+    expect(incomplete).toEqual({
+      text: 'Incomplete',
+      tag: { classes: 'govuk-tag--blue' }
+    })
+    expect(missing).toEqual({ text: '' })
+    expect(grid.totalsRow.at(-1)).toEqual({ text: '' })
   })
 })

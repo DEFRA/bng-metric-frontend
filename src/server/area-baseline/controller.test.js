@@ -315,11 +315,47 @@ describe('area baseline', () => {
     })
 
     const $ = load(result)
+    // Second from last: Status is the last column.
     const significanceCells = $('tbody .govuk-table__row')
-      .map((_, row) => $(row).find('td').last().text())
+      .map((_, row) => $(row).find('td').eq(-2).text())
       .get()
 
     expect(significanceCells).toEqual(['Low (1)', 'Low (1)', 'Low (1)'])
+  })
+
+  test('ends each row with its status, tagging only an incomplete one (BMD-1101)', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...projectWithHabitats.project,
+          baseline: {
+            ...projectWithHabitats.project.baseline,
+            habitats: [
+              { ...habitatP1, status: 'Complete' },
+              { ...habitatP2, status: 'Incomplete' }
+            ],
+            trees: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-baseline`,
+      auth
+    })
+
+    const $ = load(result)
+    const [p1Status, p2Status] = $('tbody .govuk-table__row')
+      .map((_, row) => $(row).find('td').last())
+      .get()
+
+    expect($('thead th').last().text()).toBe('Status')
+    expect($(p1Status).text()).toBe('Complete')
+    expect($(p1Status).find('.govuk-tag')).toHaveLength(0)
+    expect($(p2Status).find('strong.govuk-tag--blue').text()).toBe('Incomplete')
   })
 
   test('keeps the header, habitat rows and totals row the same width', async () => {
@@ -335,7 +371,7 @@ describe('area baseline', () => {
       .map((_, row) => $(row).find('td').length)
       .get()
 
-    expect(headerCount).toBe(8)
+    expect(headerCount).toBe(9)
     expect(bodyRowWidths).toEqual([headerCount, headerCount, headerCount])
     expect($('tfoot td')).toHaveLength(headerCount)
   })
@@ -558,7 +594,7 @@ describe('area baseline', () => {
 
     expect($('table').attr('data-module')).toBe('moj-sortable-table')
     expect($('table').hasClass('app-habitat-details-table')).toBe(true)
-    expect($('th[aria-sort="none"]')).toHaveLength(8)
+    expect($('th[aria-sort="none"]')).toHaveLength(9)
     expect($('th[aria-sort="ascending"]')).toHaveLength(0)
     expect($('.moj-scrollable-pane').attr('aria-label')).toBe(
       'Area habitat details'
