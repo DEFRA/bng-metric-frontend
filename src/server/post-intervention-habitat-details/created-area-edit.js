@@ -417,8 +417,11 @@ export function buildCreatedAreaEditViewModel(
   }
 }
 
-function timingPayload(values, field) {
-  if (values[field] === UNCHANGED_VALUE) {
+function timingPayload(values, field, keepBlank = false) {
+  if (
+    values[field] === UNCHANGED_VALUE ||
+    (keepBlank && values[field] === '')
+  ) {
     return {}
   }
   return { [field]: values[field] === '' ? null : values[field] }
@@ -446,7 +449,13 @@ function createdAreaSavePayload(values, kind, feature) {
       ? { condition: values.condition || null }
       : {}),
     strategicSignificance: values.strategicSignificance || null,
-    ...timingPayload(values, 'advanceYears'),
+    // Lineage can blank a watercourse advance while keeping its restoration source.
+    // An unchanged blank must not overwrite that source with an explicit clear.
+    ...timingPayload(
+      values,
+      'advanceYears',
+      kind.hasEncroachments && feature && feature.proposed?.advanceYears == null
+    ),
     ...timingPayload(values, 'delayYears'),
     ...(kind.hasEncroachments
       ? Object.assign(

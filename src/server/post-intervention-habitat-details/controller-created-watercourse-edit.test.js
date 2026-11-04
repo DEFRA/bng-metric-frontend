@@ -275,6 +275,67 @@ describe('authenticated Created watercourse form', () => {
     await server.initialize()
   })
   afterAll(async () => server.stop({ timeout: 0 }))
+  test.each([
+    { raw: 10 },
+    { raw: '30+' },
+    { raw: 5, editedAdvanceYears: 10 },
+    { raw: 5, editedAdvanceYears: 30 },
+    { raw: 10, editedAdvanceYears: null }
+  ])('keeps an unchanged blank advance on a rename: %j', async (stored) => {
+    const restricted = {
+      ...feature,
+      ...stored,
+      properties: { 'Habitat created in advance/years': stored.raw },
+      proposed: { ...feature.proposed, advanceYears: null }
+    }
+    mockFeature({ type: 'watercourse', feature: restricted })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    const { broadHabitat: _broad, ...form } = h.view.mock.calls[0][1].values
+    expect(form.advanceYears).toBe('')
+    const { token: crumb, cookie } = await primeCrumb(server)
+    const response = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: {
+        projectId,
+        featureId,
+        ...form,
+        ref: 'Renamed watercourse',
+        crumb
+      }
+    })
+    expect(response.statusCode).toBe(302)
+    const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
+    expect(payload).not.toHaveProperty('advanceYears')
+    expect(payload).toMatchObject({
+      ref: 'Renamed watercourse',
+      delayYears: '0'
+    })
+  })
+  test.each([10, 30])(
+    'explicitly clears a displayed advance of %s',
+    async (advanceYears) => {
+      mockFeature({
+        type: 'watercourse',
+        feature: { ...feature, proposed: { ...feature.proposed, advanceYears } }
+      })
+      const { token: crumb, cookie } = await primeCrumb(server)
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...request({ advanceYears: '' }).payload, crumb }
+      })
+      expect(response.statusCode).toBe(302)
+      expect(
+        JSON.parse(wreck.put.mock.calls[0][1].payload).advanceYears
+      ).toBeNull()
+    }
+  )
   test('requires CSRF and accepts the watercourse-specific shape with a valid token', async () => {
     const denied = await server.inject({
       method: 'POST',
