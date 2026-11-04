@@ -20,7 +20,7 @@ describe.each([
 ])('incomplete Created %s', (type, feature) => {
   beforeEach(() => _resetCreatedAreaReferenceCache())
 
-  test.each([null, undefined])(
+  test.each([null, undefined, ''])(
     'keeps a saved condition through rename and reload with type %s',
     async (habitatType) => {
       const stored = {
@@ -61,7 +61,10 @@ describe.each([
       )
       expect(h.redirect).toHaveBeenCalled()
       const saved = JSON.parse(wreck.put.mock.calls[0][1].payload)
-      expect(saved).toMatchObject({ ref: 'Renamed', habitatType: null })
+      expect(saved).toMatchObject({
+        ref: 'Renamed',
+        habitatType: habitatType ?? null
+      })
       expect(saved).not.toHaveProperty('condition')
       await get()
       expect(h.view.mock.calls.at(-1)[1].values).toMatchObject({

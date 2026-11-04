@@ -494,7 +494,7 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
       )
     )
   }
-  await saveCreatedArea(request, values, CREATED_EDIT_KINDS[type])
+  await saveCreatedArea(request, values, kind, feature)
   return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
 }
 

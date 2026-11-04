@@ -296,21 +296,23 @@ describe('authenticated Created watercourse form', () => {
       `/projects/${projectId}/watercourses-post-intervention`
     )
   })
-  test('rejects an authenticated watercourse submission without encroachment controls', async () => {
-    const { token: crumb, cookie } = await primeCrumb(server)
-    const payload = request().payload
-    delete payload.watercourseEncroachment
-    delete payload.riparianEncroachment
-    const response = await server.inject({
-      method: 'POST',
-      url: '/post-intervention-habitat-details',
-      auth,
-      headers: { cookie },
-      payload: { ...payload, crumb }
-    })
-    expect(response.statusCode).toBe(400)
-    expect(wreck.put).not.toHaveBeenCalled()
-  })
+  test.each(['watercourseEncroachment', 'riparianEncroachment'])(
+    'rejects an authenticated watercourse submission without %s',
+    async (field) => {
+      const { token: crumb, cookie } = await primeCrumb(server)
+      const payload = request().payload
+      delete payload[field]
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...payload, crumb }
+      })
+      expect(response.statusCode).toBe(400)
+      expect(wreck.put).not.toHaveBeenCalled()
+    }
+  )
   test('explains an unsupported imported type on the rendered read-only page and refuses a crafted save with 400', async () => {
     mockFeature({
       type: 'watercourse',

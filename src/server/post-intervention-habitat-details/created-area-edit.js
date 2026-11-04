@@ -424,11 +424,24 @@ function timingPayload(values, field) {
   return { [field]: values[field] === '' ? null : values[field] }
 }
 
-function createdAreaSavePayload(values, kind) {
+function habitatTypePayload(values, kind, feature) {
+  if (
+    !kind.hasBroadHabitat &&
+    values.condition === UNCHANGED_VALUE &&
+    feature
+  ) {
+    // The backend compares types before preserving an omitted condition.
+    // Keep a stored empty string distinct from null on an unchanged-type save.
+    return feature.proposed?.type ?? null
+  }
+  return values.habitatType || null
+}
+
+function createdAreaSavePayload(values, kind, feature) {
   return {
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
-    habitatType: values.habitatType || null,
+    habitatType: habitatTypePayload(values, kind, feature),
     ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_VALUE
       ? { condition: values.condition || null }
       : {}),
@@ -447,12 +460,13 @@ function createdAreaSavePayload(values, kind) {
 export async function saveCreatedArea(
   request,
   values,
-  kind = CREATED_EDIT_KINDS.habitat
+  kind = CREATED_EDIT_KINDS.habitat,
+  feature = null
 ) {
   const { projectId, featureId } = request.payload
   return saveHabitat(
     request,
     `projects/${projectId}/post-intervention/${kind.savePath}/${featureId}`,
-    createdAreaSavePayload(values, kind)
+    createdAreaSavePayload(values, kind, feature)
   )
 }
