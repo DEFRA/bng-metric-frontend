@@ -82,7 +82,8 @@ describe('buildPostInterventionHabitatGrid', () => {
       'Habitat type',
       'Distinctiveness',
       'Condition',
-      'Strategic significance'
+      'Strategic significance',
+      'Status'
     ])
     expect(grid.habitatRows[0][0].href).toBe(
       `/post-intervention-habitat-details?featureId=hedge-1&projectId=${PROJECT_ID}`
@@ -165,7 +166,8 @@ describe('buildPostInterventionHabitatGrid', () => {
       'Advance',
       'Delay',
       'Final time to target',
-      'Standard difficulty'
+      'Standard difficulty',
+      'Status'
     ])
     expect(created.columns.map((column) => column.text)).toEqual(
       enhanced.columns.map((column) => column.text)
@@ -238,8 +240,28 @@ describe('buildPostInterventionHabitatGrid', () => {
       'Habitat type',
       'Distinctiveness',
       'Condition',
-      'Strategic significance'
+      'Strategic significance',
+      'Status'
     ])
     expect(grid.habitatRows[0][3].text).toBe('Grassland')
   })
+
+  test.each(['Retained', 'Enhanced', 'Created'])(
+    'ends the %s grid with a Status column that tags only incomplete features (BMD-1102)',
+    (interventionType) => {
+      const grid = buildGrid(interventionType, [
+        { featureId: 'a', ref: 'P-1', status: 'Complete' },
+        { featureId: 'b', ref: 'P-2', status: 'Incomplete' },
+        { featureId: 'c', ref: 'P-3' }
+      ])
+
+      expect(grid.columns.at(-1)).toEqual({ text: 'Status' })
+      expect(grid.habitatRows.map((row) => row.at(-1))).toEqual([
+        { text: 'Complete' },
+        { text: 'Incomplete', tag: { classes: 'govuk-tag--blue' } },
+        { text: '' }
+      ])
+      expect(grid.totalsRow.at(-1)).toEqual({ text: '' })
+    }
+  )
 })

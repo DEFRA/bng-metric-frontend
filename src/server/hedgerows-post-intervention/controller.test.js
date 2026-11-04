@@ -392,7 +392,8 @@ describe('hedgerows post intervention', () => {
       'Habitat type',
       'Distinctiveness',
       'Condition',
-      'Strategic significance'
+      'Strategic significance',
+      'Status'
     ])
     expect(headers).not.toContain('Target condition')
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)

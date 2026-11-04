@@ -515,7 +515,8 @@ describe('area post intervention', () => {
       'Habitat type',
       'Distinctiveness',
       'Condition',
-      'Strategic significance'
+      'Strategic significance',
+      'Status'
     ])
     const targetAndTimeHeaders = [
       'Strategic significance',
@@ -524,7 +525,8 @@ describe('area post intervention', () => {
       'Advance',
       'Delay',
       'Final time to target',
-      'Standard difficulty'
+      'Standard difficulty',
+      'Status'
     ]
     expect(headings('#enhanced thead th')).toEqual([
       'Ref',
@@ -546,6 +548,47 @@ describe('area post intervention', () => {
     ])
     expect($('#retained tbody').text()).toContain('Grassland')
     expect($('#created tbody').text()).toContain('Individual trees')
+  })
+
+  test('ends each tab row with its status, tagging only an incomplete one (BMD-1102)', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...populatedProject.project,
+          postIntervention: {
+            ...populatedProject.project.postIntervention,
+            habitats: [
+              { ...retainedHabitat, status: 'Complete' },
+              { ...enhancedHabitat, status: 'Incomplete' }
+            ],
+            trees: [{ ...createdTree, status: 'Incomplete' }]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const lastCell = (tab) => $(`#${tab} tbody .govuk-table__row td`).last()
+
+    for (const tab of ['retained', 'enhanced', 'created']) {
+      expect($(`#${tab} thead th`).last().text()).toBe('Status')
+      expect($(`#${tab} tfoot td`).last().text()).toBe('')
+    }
+    expect(lastCell('retained').text()).toBe('Complete')
+    expect(lastCell('retained').find('.govuk-tag')).toHaveLength(0)
+    expect(lastCell('enhanced').find('strong.govuk-tag--blue').text()).toBe(
+      'Incomplete'
+    )
+    expect(lastCell('created').find('strong.govuk-tag--blue').text()).toBe(
+      'Incomplete'
+    )
   })
 
   test('shows the area habitat totals row in hectares', async () => {

@@ -299,7 +299,8 @@ describe('watercourses post intervention', () => {
       'Condition',
       'Watercourse encroachment',
       'Riparian encroachment',
-      'Strategic significance'
+      'Strategic significance',
+      'Status'
     ])
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)
     expect(panel.find('tbody a').text()).toBe('W-A2')
@@ -350,7 +351,8 @@ describe('watercourses post intervention', () => {
       'Advance',
       'Delay',
       'Final time to target',
-      'Standard difficulty'
+      'Standard difficulty',
+      'Status'
     ])
     expect(row).toContain('Minor (0.8)')
     expect(row).toContain('Minor/No Encroachment (0.98)')

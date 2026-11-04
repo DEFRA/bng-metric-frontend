@@ -16,6 +16,7 @@ import { formatHabitatUnits } from './format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
 import {
   EMPTY_DISPLAY,
+  STATUS_COLUMN,
   TOTALS_LABEL,
   boldCell,
   buildHabitatGrid,
@@ -276,7 +277,8 @@ function buildColumns({
     strategicSignificanceColumn(interventionType),
     ...(INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)
       ? targetAndTimeColumns()
-      : [])
+      : []),
+    STATUS_COLUMN
   ]
 }
 
