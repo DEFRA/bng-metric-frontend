@@ -1,6 +1,12 @@
 import { config } from '../../../config/config.js'
 import { wreck } from '../helpers/wreck-client.js'
 
+const mockLoggerError = vi.hoisted(() => vi.fn())
+
+vi.mock('../helpers/logging/logger.js', () => ({
+  createLogger: () => ({ info: vi.fn(), error: mockLoggerError })
+}))
+
 vi.mock('../helpers/wreck-client.js', () => ({
   wreck: {
     get: vi.fn(),
@@ -155,5 +161,23 @@ describe('getUploadStatus', () => {
       uploadStatus: 'error',
       error: 'Unable to check upload status'
     })
+  })
+
+  it('should log the backend reason phrase but not its message', async () => {
+    const error = new Error('Response Error: 400 Bad Request')
+    error.data = {
+      payload: {
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'echoed user input jane@example.com'
+      }
+    }
+    vi.mocked(wreck.get).mockRejectedValue(error)
+
+    await getUploadStatus(makeRequest(), 'abc-123')
+
+    const logged = mockLoggerError.mock.calls.at(-1)[0]
+    expect(logged).toContain('backendError: Bad Request')
+    expect(logged).not.toContain('jane@example.com')
   })
 })

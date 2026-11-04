@@ -25,6 +25,18 @@ function buildUploadUrl(path) {
 }
 
 /**
+ * Summarise a backend error response for the log without logging its body.
+ * The backend's Boom payload carries a reason phrase (`error`) and a
+ * `message`; only the reason phrase is logged, because a message can echo
+ * user-supplied input. The backend logs the full error on its own side.
+ * @param {unknown} error - the error Wreck threw
+ * @returns {string}
+ */
+function describeBackendError(error) {
+  return error?.data?.payload?.error ?? 'none'
+}
+
+/**
  * Initiate an upload session via the backend
  * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {object} options - Upload options
@@ -68,10 +80,10 @@ export async function initiateUpload(
     }
   } catch (error) {
     const statusCode = error?.output?.statusCode
-    const responsePayload = error?.data?.payload
+    const backendError = describeBackendError(error)
 
     logger.error(
-      `Error initiating upload - url: ${url}, backendUrl: ${backendUrl}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error initiating upload - url: ${url}, backendUrl: ${backendUrl}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}, statusCode: ${statusCode}, backendError: ${backendError}, message: ${error?.message}`
     )
 
     throw Boom.badGateway('Unable to initiate upload', error)
@@ -107,10 +119,10 @@ export async function getUploadStatus(request, uploadId) {
     }
   } catch (error) {
     const statusCode = error?.output?.statusCode
-    const responsePayload = error?.data?.payload
+    const backendError = describeBackendError(error)
 
     logger.error(
-      `Error fetching upload status - url: ${url}, backendUrl: ${backendUrl}, uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error fetching upload status - url: ${url}, backendUrl: ${backendUrl}, uploadId: ${uploadId}, statusCode: ${statusCode}, backendError: ${backendError}, message: ${error?.message}`
     )
 
     // Return an error status rather than throwing Boom — the caller retries

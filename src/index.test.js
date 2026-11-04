@@ -26,6 +26,8 @@ describe('#index', () => {
       await import('./server/common/helpers/logging/logger.js')
     const mockLogger = createLogger()
 
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => {})
+
     await import('./index.js')
 
     const error = new Error('test error')
@@ -33,6 +35,8 @@ describe('#index', () => {
 
     expect(mockLogger.info).toHaveBeenCalledWith('Unhandled rejection')
     expect(mockLogger.error).toHaveBeenCalledWith(error)
-    expect(process.exitCode).toBe(1)
+    expect(exit).toHaveBeenCalledWith(1)
+
+    exit.mockRestore()
   })
 })

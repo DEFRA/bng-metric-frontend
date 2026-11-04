@@ -53,7 +53,6 @@ export const router = {
         home,
         about,
         auth,
-        dbInfo,
         projects,
         defineProjectName,
         changeProjectName,
@@ -83,6 +82,13 @@ export const router = {
         watercoursesPostIntervention,
         watercoursesTradingSummary
       ])
+
+      // /db-info shows the backend's database diagnostics, and the backend
+      // leaves its own /db-info out of prod, so keep the page out of the prod
+      // route table too rather than serving a public page that can only fail.
+      if (config.get('environment') !== 'prod') {
+        await server.register([dbInfo])
+      }
 
       // Static assets
       await server.register([serveStaticFiles])
