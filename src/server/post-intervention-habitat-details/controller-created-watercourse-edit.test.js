@@ -577,6 +577,37 @@ test('uses the selected habitat difficulty after a validation error even when th
   expect(wreck.put).not.toHaveBeenCalled()
 })
 
+test('validation redisplay restores a saved timing label only for the original advance with the same calculated result', async () => {
+  const savedLabel = 'Saved imported final time label'
+  mockFeature({
+    type: 'watercourse',
+    feature: {
+      ...feature,
+      proposed: {
+        ...feature.proposed,
+        advanceYears: 10,
+        finalTimeToTargetCondition: savedLabel
+      }
+    }
+  })
+  const loaded = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, loaded)
+  expect(loaded.view.mock.calls[0][1].finalTimeToTargetDisplay).toBe(savedLabel)
+  for (const [advanceYears, expected] of [
+    ['30+', '0 years (1)'],
+    ['20', '0 years (1)'],
+    ['10', savedLabel]
+  ]) {
+    const h = createMockH()
+    await postController.handler(request({ ref: '', advanceYears }), h)
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.errors.ref).toBeDefined()
+    expect(vm.values.advanceYears).toBe(advanceYears)
+    expect(vm.finalTimeToTargetDisplay).toBe(expected)
+  }
+  expect(wreck.put).not.toHaveBeenCalled()
+})
+
 test.each(['watercourseEncroachment', 'riparianEncroachment'])(
   'rejects unchanged for %s without an imported value',
   async (field) => {

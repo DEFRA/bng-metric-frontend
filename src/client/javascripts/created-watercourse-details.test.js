@@ -177,6 +177,26 @@ test('an incomplete feature selects blank defaults and leaves all derived labels
   await runAxeChecks(document.documentElement)
 })
 
+test('restores a saved timing label only for its original advance when previews calculate the same result', () => {
+  const savedLabel = 'Saved imported final time label'
+  render({
+    ...feature,
+    proposed: {
+      ...feature.proposed,
+      advanceYears: 10,
+      finalTimeToTargetCondition: savedLabel
+    }
+  })
+  expect(value('advanceYears')).toBe('10')
+  expect(text('finalTimeToTargetDisplay')).toBe(savedLabel)
+  change('advanceYears', '30+')
+  expect(text('finalTimeToTargetDisplay')).toBe('0 years (1)')
+  change('advanceYears', '20')
+  expect(text('finalTimeToTargetDisplay')).toBe('0 years (1)')
+  change('advanceYears', '10')
+  expect(text('finalTimeToTargetDisplay')).toBe(savedLabel)
+})
+
 test('retains unavailable imported encroachment independently when the habitat type changes', () => {
   render({
     ...feature,
