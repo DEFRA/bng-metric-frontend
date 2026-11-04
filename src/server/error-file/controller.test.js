@@ -590,18 +590,22 @@ describe('invalidFileController.handler — populated session', () => {
 
     const view = h.view.mock.calls[0][1]
     expect(view.errorBlocks).toEqual([
-      { heading: 'All habitats must have a reference', items: [], more: 0 },
+      {
+        heading: 'Your file contains a habitat with no habitat reference',
+        items: [],
+        more: 0
+      },
       {
         heading:
-          'One or more habitat references contain characters that are not allowed',
+          'This habitat reference contains characters that are not allowed',
         items: [],
         more: 0
       }
     ])
     expect(view.errorList).toEqual([
-      { text: 'All habitats must have a reference' },
+      { text: 'Your file contains a habitat with no habitat reference' },
       {
-        text: 'One or more habitat references contain characters that are not allowed'
+        text: 'This habitat reference contains characters that are not allowed'
       }
     ])
   })
@@ -1298,11 +1302,6 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       'POST_INTERVENTION_TABLES_EMPTY',
       'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.',
       []
-    ],
-    [
-      'LEGACY_TEMPLATE_NOT_ACCEPTED',
-      'This file is in the legacy Natural England template. The service now takes the BNG Service template: convert the file with the QGIS plugin, then upload it again.',
-      ['convert the file with the QGIS plugin, then upload it again.']
     ]
   ])(
     'shows a lone %s under the backend’s message, with no placeholder title',
@@ -1316,4 +1315,21 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       ])
     }
   )
+  test('shows a lone LEGACY_TEMPLATE_NOT_ACCEPTED as single-error copy, not split at its colon', async () => {
+    const view = await viewFor([
+      {
+        code: 'LEGACY_TEMPLATE_NOT_ACCEPTED',
+        message:
+          'This file is in the legacy Natural England template. The service now takes the BNG Service template: convert the file with the QGIS plugin, then upload it again.'
+      }
+    ])
+
+    expect(view.singleError).toMatchObject({
+      variant: 'text',
+      h1: 'There is a problem with your file',
+      subheading: 'Template',
+      helpText:
+        'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
+    })
+  })
 })

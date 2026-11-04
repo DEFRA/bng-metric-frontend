@@ -20,7 +20,7 @@
               {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} (opens in a new tab)</a>{{ singleError.helpTextAfter }}
             {% endif %}
           </p>
-        {% elif singleError.variant == 'placeholder' %}
+        {% elif singleError.variant == 'placeholder' or singleError.variant == 'text' %}
           <p class="govuk-body">{{ singleError.helpText }}</p>
         {% else %}
           {% if singleError.intro %}
