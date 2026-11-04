@@ -440,6 +440,21 @@ function habitatTypePayload(values, kind, feature) {
   return values.habitatType || null
 }
 
+function advancePayload(values, kind, feature) {
+  const delayYears =
+    values.delayYears === UNCHANGED_VALUE
+      ? feature?.proposed?.delayYears
+      : values.delayYears
+  // Preserve a lineage-hidden advance on rename, but clear it when a positive
+  // delay is selected or kept from the imported timing options.
+  const keepBlank =
+    kind.hasEncroachments &&
+    feature &&
+    feature.proposed?.advanceYears == null &&
+    !(Number.parseFloat(delayYears) > 0)
+  return timingPayload(values, 'advanceYears', keepBlank)
+}
+
 function createdAreaSavePayload(values, kind, feature) {
   return {
     ref: values.ref.trim(),
@@ -449,13 +464,7 @@ function createdAreaSavePayload(values, kind, feature) {
       ? { condition: values.condition || null }
       : {}),
     strategicSignificance: values.strategicSignificance || null,
-    // Lineage can blank a watercourse advance while keeping its restoration source.
-    // An unchanged blank must not overwrite that source with an explicit clear.
-    ...timingPayload(
-      values,
-      'advanceYears',
-      kind.hasEncroachments && feature && feature.proposed?.advanceYears == null
-    ),
+    ...advancePayload(values, kind, feature),
     ...timingPayload(values, 'delayYears'),
     ...(kind.hasEncroachments
       ? Object.assign(

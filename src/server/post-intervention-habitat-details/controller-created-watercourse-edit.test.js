@@ -275,46 +275,70 @@ describe('authenticated Created watercourse form', () => {
     await server.initialize()
   })
   afterAll(async () => server.stop({ timeout: 0 }))
-  test.each([
-    { raw: 10 },
-    { raw: '30+' },
-    { raw: 5, editedAdvanceYears: 10 },
-    { raw: 5, editedAdvanceYears: 30 },
-    { raw: 10, editedAdvanceYears: null }
-  ])('keeps an unchanged blank advance on a rename: %j', async (stored) => {
-    const restricted = {
-      ...feature,
-      ...stored,
-      properties: { 'Habitat created in advance/years': stored.raw },
-      proposed: { ...feature.proposed, advanceYears: null }
-    }
-    mockFeature({ type: 'watercourse', feature: restricted })
-    const h = createMockH()
-    await getController.handler({ query: { projectId, featureId } }, h)
-    const { broadHabitat: _broad, ...form } = h.view.mock.calls[0][1].values
-    expect(form.advanceYears).toBe('')
-    const { token: crumb, cookie } = await primeCrumb(server)
-    const response = await server.inject({
-      method: 'POST',
-      url: '/post-intervention-habitat-details',
-      auth,
-      headers: { cookie },
-      payload: {
-        projectId,
-        featureId,
-        ...form,
-        ref: 'Renamed watercourse',
-        crumb
+  test.each(
+    [
+      { raw: 10 },
+      { raw: '30+' },
+      { raw: 5, editedAdvanceYears: 10 },
+      { raw: 5, editedAdvanceYears: 30 },
+      { raw: 10, editedAdvanceYears: null }
+    ].flatMap((stored) =>
+      [
+        { value: '0', saved: 0, clearAdvance: false },
+        { value: '2', saved: 0, clearAdvance: true },
+        { value: '30+', saved: 0, clearAdvance: true },
+        { value: 'unchanged', saved: 2.5, clearAdvance: true }
+      ].map((delay) => [stored, delay])
+    )
+  )(
+    'handles a blank advance with stored source %j and delay %j',
+    async (stored, delay) => {
+      const { raw, ...metadata } = stored
+      const restricted = {
+        ...feature,
+        ...metadata,
+        properties: { 'Habitat created in advance/years': raw },
+        proposed: {
+          ...feature.proposed,
+          advanceYears: null,
+          delayYears: delay.saved
+        }
       }
-    })
-    expect(response.statusCode).toBe(302)
-    const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
-    expect(payload).not.toHaveProperty('advanceYears')
-    expect(payload).toMatchObject({
-      ref: 'Renamed watercourse',
-      delayYears: '0'
-    })
-  })
+      mockFeature({ type: 'watercourse', feature: restricted })
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+      const { broadHabitat: _broad, ...form } = h.view.mock.calls[0][1].values
+      expect(form.advanceYears).toBe('')
+      const { token: crumb, cookie } = await primeCrumb(server)
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: {
+          projectId,
+          featureId,
+          ...form,
+          delayYears: delay.value,
+          ref: 'Renamed watercourse',
+          crumb
+        }
+      })
+      expect(response.statusCode).toBe(302)
+      const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
+      if (delay.clearAdvance) {
+        expect(payload.advanceYears).toBeNull()
+      } else {
+        expect(payload).not.toHaveProperty('advanceYears')
+      }
+      expect(payload.ref).toBe('Renamed watercourse')
+      if (delay.value === 'unchanged') {
+        expect(payload).not.toHaveProperty('delayYears')
+      } else {
+        expect(payload.delayYears).toBe(delay.value)
+      }
+    }
+  )
   test.each([10, 30])(
     'explicitly clears a displayed advance of %s',
     async (advanceYears) => {
