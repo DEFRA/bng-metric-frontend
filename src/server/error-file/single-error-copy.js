@@ -48,6 +48,17 @@ function metricToolEntry(h1, helpTextBefore) {
   }
 }
 
+// Copy from the design team's dropout spreadsheet (BMD-1110) that asks for no
+// upload link: a heading, a subheading and one sentence.
+function textEntry(h1, subheading, helpText) {
+  return { variant: 'text', h1, subheading, helpText }
+}
+
+// The dropout spreadsheet's two page titles: one for a file the service cannot
+// read, one for a project it cannot take.
+const FILE_PROBLEM_H1 = 'There is a problem with your file'
+const PROJECT_PROBLEM_H1 = 'There is a problem with your project'
+
 function standard(h1, messageBefore, messageAfter = '.') {
   return {
     variant: 'standard',
@@ -204,39 +215,50 @@ const tooManyFeaturesEntry = (error) => {
 
 // BMD-1058: habitats with no Parcel Ref, or one with characters that are not
 // valid UTF-8. Each is one collated error for every habitat it applies to, and
-// a habitat with no reference has none to put in the title, so both use the
-// file-level h1. Interim copy from the refinement session, pending UCD (Jack /
-// Kyle): replace it here and in COLLATED_ERROR_HEADINGS (controller.js).
-export const HABITAT_REF_MISSING_TEXT = 'All habitats must have a reference'
+// a habitat with no reference has none to name, so neither names a habitat.
+// Copy word for word from the dropout spreadsheet (BMD-1110, rows 32 and 33);
+// the multi-error list uses the same sentences as its headings
+// (COLLATED_ERROR_HEADINGS, controller.js).
+const HABITAT_PARCELS_SUBHEADING = 'Habitat parcels'
+export const HABITAT_REF_MISSING_TEXT =
+  'Your file contains a habitat with no habitat reference'
 export const HABITAT_REF_INVALID_CHARACTERS_TEXT =
-  'One or more habitat references contain characters that are not allowed'
+  'This habitat reference contains characters that are not allowed'
 
 const habitatRefMissingEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    `${HABITAT_REF_MISSING_TEXT}. Add a reference to every habitat and `
+  textEntry(
+    PROJECT_PROBLEM_H1,
+    HABITAT_PARCELS_SUBHEADING,
+    `${HABITAT_REF_MISSING_TEXT}.`
   )
 
 const habitatRefInvalidCharactersEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    `${HABITAT_REF_INVALID_CHARACTERS_TEXT}. Change the references to use only letters, numbers and standard punctuation and `
+  textEntry(
+    PROJECT_PROBLEM_H1,
+    HABITAT_PARCELS_SUBHEADING,
+    `${HABITAT_REF_INVALID_CHARACTERS_TEXT}.`
+  )
+
+// BMD-1086: a legacy Natural England file refused once the service-template
+// flag is on. The backend sends it alone. Copy word for word from the dropout
+// spreadsheet (BMD-1110, row 40).
+const legacyTemplateEntry = () =>
+  textEntry(
+    FILE_PROBLEM_H1,
+    'Template',
+    'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
   )
 
 // BMD-1182: enhanced habitats whose baseline the service cannot enhance at
 // all. The file is refused rather than the enhancements nulled. Copy word for
 // word from the design team's dropout spreadsheet (BMD-1110, row 39), so the
 // page lists no habitats and the link names no new tab: it opens in this one.
-const UNENHANCEABLE_BASELINE_H1 = 'There is a problem with your project'
 const SERVICE_ELIGIBILITY_SUBHEADING = 'Service eligibility'
 const UNENHANCEABLE_BASELINE_HELP_TEXT =
   'Your project contains habitats that have been enhanced to a level which is not yet included in this service. Use the '
 
 const unenhanceableBaselineEntry = () => ({
-  ...metricToolEntry(
-    UNENHANCEABLE_BASELINE_H1,
-    UNENHANCEABLE_BASELINE_HELP_TEXT
-  ),
+  ...metricToolEntry(PROJECT_PROBLEM_H1, UNENHANCEABLE_BASELINE_HELP_TEXT),
   subheading: SERVICE_ELIGIBILITY_SUBHEADING,
   opensInNewTab: false
 })
@@ -312,6 +334,7 @@ const CODE_ENTRIES = {
   INVALID_FILENAME: invalidFilenameEntry,
   GPKG_TOO_MANY_FEATURES: tooManyFeaturesEntry,
   BASELINE_NOT_ENHANCEABLE: unenhanceableBaselineEntry,
+  LEGACY_TEMPLATE_NOT_ACCEPTED: legacyTemplateEntry,
 
   // AC10 — Parcel outside redline boundary (BMD-300 AC8)
   AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
