@@ -25,6 +25,7 @@ import {
 } from '../common/helpers/habitat-ref.js'
 import { PI_DETAILS_HEADING, MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
+import { createdStrategicSignificance } from './created-strategic-significance.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
@@ -317,6 +318,38 @@ function hasUnsupportedStoredType(kind, feature, reference) {
   )
 }
 
+function unsupportedStoredSignificance(feature, reference) {
+  const proposed = feature.proposed ?? {}
+  return (
+    [
+      proposed.strategicSignificanceCategory,
+      proposed.strategicSignificance,
+      proposed.rejectedStrategicSignificance
+    ]
+      .map((value) => createdStrategicSignificance(value ?? ''))
+      .find(
+        (value) =>
+          value !== '' &&
+          !reference.strategicSignificance.some(
+            (option) => option.value === value
+          )
+      ) ?? null
+  )
+}
+
+function createdReadOnlyReason(kind, feature, reference) {
+  if (hasUnsupportedStoredType(kind, feature, reference)) {
+    return kind.unsupportedTypeMessage
+  }
+  if (!kind.unsupportedSignificanceMessage) {
+    return null
+  }
+  const unsupported = unsupportedStoredSignificance(feature, reference)
+  return unsupported !== null
+    ? `${kind.unsupportedSignificanceMessage} Imported value: "${unsupported}".`
+    : null
+}
+
 /**
  * Render a Created area habitat, hedgerow or watercourse: its edit page, or the read-only
  * page for a linear feature while the backend reference endpoint is not deployed.
@@ -328,9 +361,9 @@ async function renderCreatedFeature(
   const baselineFeatureId = createdBaselineFeatureId(project, type, feature)
   const kind = CREATED_EDIT_KINDS[type]
   const reference = await loadCreationReferenceForFeature(type, feature)
-  const unsupportedType =
-    reference && hasUnsupportedStoredType(kind, feature, reference)
-  if (!reference || unsupportedType) {
+  const readOnlyReason =
+    reference && createdReadOnlyReason(kind, feature, reference)
+  if (!reference || readOnlyReason) {
     return h.view(kind.readOnlyTemplate, {
       ...kind.buildBase(
         { ...feature, retentionCategory: RETENTION_CREATED },
@@ -341,7 +374,7 @@ async function renderCreatedFeature(
         }
       ),
       backHref: postInterventionBackHref(projectId, type, returnUrl),
-      readOnlyReason: unsupportedType ? kind.unsupportedTypeMessage : null
+      readOnlyReason
     })
   }
   return h.view(
@@ -480,8 +513,9 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
       `${kind.label} editing is temporarily unavailable`
     )
   }
-  if (hasUnsupportedStoredType(kind, feature, reference)) {
-    throw Boom.badRequest(kind.unsupportedTypeMessage)
+  const readOnlyReason = createdReadOnlyReason(kind, feature, reference)
+  if (readOnlyReason) {
+    throw Boom.badRequest(readOnlyReason)
   }
   const errors = validateCreatedArea(values, reference)
   if (Object.keys(errors).length) {

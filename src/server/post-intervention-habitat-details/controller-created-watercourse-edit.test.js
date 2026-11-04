@@ -348,7 +348,98 @@ describe('authenticated Created watercourse form', () => {
     expect(refused.statusCode).toBe(400)
     expect(wreck.put).not.toHaveBeenCalled()
   })
+
+  test.each([
+    { strategicSignificance: 'Medium' },
+    { strategicSignificance: 'Medium', strategicSignificanceCategory: 'Low' },
+    { strategicSignificance: 'Low', rejectedStrategicSignificance: 'Medium' },
+    {
+      strategicSignificance:
+        'Location ecologically desirable but not in local strategy'
+    },
+    { strategicSignificance: null, rejectedStrategicSignificance: 'Medium' },
+    { strategicSignificance: 'Unknown' }
+  ])(
+    'preserves unsupported significance across a refused rename and reload: %j',
+    async (stored) => {
+      const original = {
+        ...structuredClone(feature),
+        proposed: {
+          ...feature.proposed,
+          strategicSignificanceCategory: null,
+          strategicSignificanceScore: null,
+          ...stored
+        }
+      }
+      const snapshot = structuredClone(original)
+      mockFeature({ type: 'watercourse', feature: original })
+      const url = `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`
+      const page = await server.inject({ method: 'GET', url, auth })
+      expect(page.statusCode).toBe(200)
+      expect(page.payload).toContain(
+        'imported strategic significance is not supported'
+      )
+      expect(page.payload).toContain(
+        stored.rejectedStrategicSignificance ?? stored.strategicSignificance
+      )
+      expect(page.payload).not.toContain('id="strategicSignificance"')
+      expect(page.payload).not.toContain('name="ref"')
+      expect(page.payload).not.toContain('>Save</button>')
+      const { token: crumb, cookie } = await primeCrumb(server)
+      const refused = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...request({ ref: 'Renamed' }).payload, crumb }
+      })
+      expect(refused.statusCode).toBe(400)
+      expect(wreck.put).not.toHaveBeenCalled()
+      const reloaded = await server.inject({ method: 'GET', url, auth })
+      expect(reloaded.payload).toContain(original.ref)
+      expect(reloaded.payload).toContain(
+        stored.rejectedStrategicSignificance ?? stored.strategicSignificance
+      )
+      expect(original).toEqual(snapshot)
+    }
+  )
 })
+
+test.each([
+  ['Area/compensation not in local strategy/ no local strategy', 'Low'],
+  ['Formally identified in local strategy', 'High'],
+  [null, '']
+])(
+  'keeps supported or missing significance editable: %s',
+  async (stored, expected) => {
+    mockFeature({
+      type: 'watercourse',
+      feature: {
+        ...feature,
+        proposed: {
+          ...feature.proposed,
+          strategicSignificanceCategory: null,
+          strategicSignificance: stored
+        }
+      }
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    expect(h.view.mock.calls[0][0]).toBe(
+      'habitat-details/pi-habitat-details-created-edit'
+    )
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.values.strategicSignificance).toBe(expected)
+    const { broadHabitat: _unused, ...formValues } = vm.values
+    await postController.handler(
+      { payload: { projectId, featureId, ...formValues, ref: 'Renamed' } },
+      h
+    )
+    expect(
+      JSON.parse(wreck.put.mock.calls[0][1].payload).strategicSignificance
+    ).toBe(expected || null)
+  }
+)
 
 test('keeps an unsupported stored watercourse type read-only and refuses a crafted save', async () => {
   mockFeature({

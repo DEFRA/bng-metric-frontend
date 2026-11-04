@@ -38,6 +38,7 @@ import { formatLengthDisplay } from './view-only-shared.js'
 import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
+import { createdStrategicSignificance } from './created-strategic-significance.js'
 
 export const CREATED_EDIT_KINDS = {
   habitat: {
@@ -60,6 +61,8 @@ export const CREATED_EDIT_KINDS = {
     readOnlyTemplate: 'habitat-details/pi-watercourse-details-created',
     unsupportedTypeMessage:
       'This watercourse cannot be edited because its imported habitat type is not supported. To change it, upload a new post-intervention file with a supported habitat type.',
+    unsupportedSignificanceMessage:
+      'This watercourse cannot be edited because its imported strategic significance is not supported. To change it, upload a new post-intervention file with supported strategic significance.',
     buildBase: buildCreatedWatercourseViewOnlyViewModel,
     formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
     sizeLabel: 'Length (km)',
@@ -212,10 +215,11 @@ export function createdAreaValues(feature) {
     broadHabitat: proposed.broadType ?? '',
     habitatType: proposed.type ?? '',
     condition: stripConditionPrefix(proposed.condition) ?? '',
-    strategicSignificance:
+    strategicSignificance: createdStrategicSignificance(
       proposed.strategicSignificanceCategory ??
-      proposed.strategicSignificance ??
-      '',
+        proposed.strategicSignificance ??
+        ''
+    ),
     advanceYears: yearValue(
       proposed.advanceYears,
       proposed.advanceYearsIs30Plus
