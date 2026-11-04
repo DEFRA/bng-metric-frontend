@@ -2,12 +2,10 @@ import process from 'node:process'
 
 import { startServer } from './server/common/helpers/start-server.js'
 import { createLogger } from './server/common/helpers/logging/logger.js'
+import { createFatalShutdown } from './server/common/helpers/exit-process.js'
 
-// Time to let the logger flush before a fatal exit. The pino-pretty transport
-// writes from a worker thread, so an immediate exit can lose the last log line.
-const FATAL_EXIT_FLUSH_MS = 1000
-
-await startServer()
+const server = await startServer()
+const shutDown = createFatalShutdown(server)
 
 process.on('unhandledRejection', (error) => {
   const logger = createLogger()
@@ -15,7 +13,7 @@ process.on('unhandledRejection', (error) => {
   logger.error(error)
   // Exit rather than only setting exitCode: a long-running server never exits
   // on its own, so it would carry on in an unknown state while /health still
-  // passes. Exiting lets ECS replace the task.
-  process.exitCode = 1
-  setTimeout(() => process.exit(1), FATAL_EXIT_FLUSH_MS)
+  // passes. Exiting lets ECS replace the task. The server stops first, so the
+  // requests in flight finish, and the exit waits for the logger to flush.
+  shutDown()
 })

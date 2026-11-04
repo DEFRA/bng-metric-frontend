@@ -101,6 +101,29 @@ describe('initiateUpload', () => {
       })
     ).rejects.toThrow('Unable to initiate upload')
   })
+
+  it('should log the backend reason phrase but not its message', async () => {
+    const error = new Error('Response Error: 400 Bad Request')
+    error.data = {
+      payload: {
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'echoed user input jane@example.com'
+      }
+    }
+    vi.mocked(wreck.post).mockRejectedValue(error)
+
+    await expect(
+      initiateUpload(makeRequest(), {
+        redirect: '/projects/1/upload-received',
+        s3Bucket: 'baseline-files'
+      })
+    ).rejects.toThrow('Unable to initiate upload')
+
+    const logged = mockLoggerError.mock.calls.at(-1)[0]
+    expect(logged).toContain('backendError: Bad Request')
+    expect(logged).not.toContain('jane@example.com')
+  })
 })
 
 describe('getUploadStatus', () => {

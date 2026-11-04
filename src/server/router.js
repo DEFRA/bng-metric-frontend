@@ -4,7 +4,6 @@ import { config } from '../config/config.js'
 import { home } from './home/index.js'
 import { about } from './about/index.js'
 import { auth } from './auth/index.js'
-import { dbInfo } from './db-info/index.js'
 import { projects } from './projects/index.js'
 import { defineProjectName } from './project-name/index.js'
 import { changeProjectName } from './change-project-name/index.js'
@@ -37,7 +36,6 @@ import { watercoursesPostIntervention } from './watercourses-post-intervention/i
 import { watercoursesTradingSummary } from './watercourses-trading-summary/index.js'
 import { health } from './health/index.js'
 import { serveStaticFiles } from './common/helpers/serve-static-files.js'
-import { isNonProductionEnvironment } from './common/helpers/environment.js'
 import { swagger } from './common/helpers/swagger.js'
 
 export const router = {
@@ -83,14 +81,6 @@ export const router = {
         watercoursesPostIntervention,
         watercoursesTradingSummary
       ])
-
-      // /db-info shows the backend's database diagnostics, and the backend
-      // leaves its own /db-info out of prod, so keep the page out of the prod
-      // route table too rather than serving a public page that can only fail.
-      // Allowlist, so an empty or unknown ENVIRONMENT leaves the route out.
-      if (isNonProductionEnvironment()) {
-        await server.register([dbInfo])
-      }
 
       // Static assets
       await server.register([serveStaticFiles])
