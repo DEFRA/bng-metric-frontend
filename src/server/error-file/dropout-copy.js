@@ -191,13 +191,6 @@ export function splitLink(sentence) {
 }
 
 /**
- * The page's own wording, filled in for this page, as the template reads it:
- * `listHeading` names the file's stage, and `more(count)` says how many
- * habitats a list leaves out.
- *
- * @param {{ fileLabel?: string }} [values]
- */
-/**
  * The {values} each page string can name: pageText fills these and no
  * others, so a test can check the copy names only them. A page string not
  * listed names none.
@@ -207,6 +200,13 @@ export const PAGE_TEXT_VALUES = Object.freeze({
   more: ['count']
 })
 
+/**
+ * The page's own wording, filled in for this page, as the template reads it:
+ * `listHeading` names the file's stage, and `more(count)` says how many
+ * habitats a list leaves out.
+ *
+ * @param {{ fileLabel?: string }} [values]
+ */
 export function pageText({ fileLabel } = {}) {
   const { page } = dropoutCopy
   return {

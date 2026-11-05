@@ -638,6 +638,13 @@ errors:
   # baseline parent by its template layer, Habitat Ref and habitat type, then
   # the parent it was copied from, or the rows copied from it. Interim copy
   # until UCD's (BMD-1086).
+  #
+  # Each heading was copied word for word from the backend's message
+  # (bng-metric-backend, src/validation/geopackage/service-template/lineage/
+  # lineage-rules.js and parent-links.js). The page shows the heading here,
+  # not the backend's message, so when the backend changes what a lineage
+  # rule asks for, change its heading here in the same change. The nightly
+  # check compares only the codes, not the wording.
 
   STAGED_PARENT_LINK_MISSING:
     copyFrom: developer wording (BMD-1083)
