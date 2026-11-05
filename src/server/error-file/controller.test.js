@@ -1,4 +1,5 @@
 import { vi, describe, test, beforeAll, afterAll, expect } from 'vitest'
+import { load } from 'cheerio'
 
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
@@ -59,7 +60,8 @@ describe('#invalidFileController', () => {
     expect(result).toEqual(
       expect.stringContaining('There is a problem with your file')
     )
-    expect(result).toEqual(expect.stringContaining("couldn't accept your file"))
+    // The copy is escaped as any text is, so read it as the user does.
+    expect(load(result)('main').text()).toContain("couldn't accept your file")
   })
 
   test('redirects unauthenticated requests', async () => {

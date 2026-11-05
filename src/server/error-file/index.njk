@@ -17,7 +17,7 @@
             {% if singleError.opensInNewTab === false %}
               {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}">{{ singleError.linkText }}</a>{{ singleError.helpTextAfter }}
             {% else %}
-              {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} (opens in a new tab)</a>{{ singleError.helpTextAfter }}
+              {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} {{ dropoutPage.opensInNewTab }}</a>{{ singleError.helpTextAfter }}
             {% endif %}
           </p>
         {% elif singleError.variant == 'placeholder' or singleError.variant == 'text' %}
@@ -32,16 +32,13 @@
         {% endif %}
       {% elif errorList and errorList.length > 0 %}
         {{ govukErrorSummary({
-          titleText: "There is a problem with your file",
+          titleText: dropoutPage.summaryTitle,
           errorList: errorList
         }) }}
 
-        <h1 class="govuk-heading-l">We couldn't accept your {{ fileLabel }} file</h1>
+        <h1 class="govuk-heading-l">{{ listHeading }}</h1>
 
-        <p class="govuk-body">
-          Your file is a valid GeoPackage, but we found problems with its
-          contents. Fix the issues listed below and upload it again.
-        </p>
+        <p class="govuk-body">{{ dropoutPage.listIntro }}</p>
 
         {#
           Interim layout. The final formatting will be finalized in future stories.
@@ -57,16 +54,14 @@
                 <li>{{ item }}</li>
               {% endfor %}
               {% if block.more > 0 %}
-                <li class="govuk-hint">… and {{ block.more }} more</li>
+                <li class="govuk-hint">{{ dropoutPage.more | replace("{count}", block.more) }}</li>
               {% endif %}
             </ul>
           {% endif %}
         {% endfor %}
       {% else %}
-        <h1 class="govuk-heading-l">There is a problem with your file</h1>
-        <p class="govuk-body">
-          We couldn't accept your file. Please try again.
-        </p>
+        <h1 class="govuk-heading-l">{{ dropoutPage.noErrorsHeading }}</h1>
+        <p class="govuk-body">{{ dropoutPage.noErrorsBody }}</p>
       {% endif %}
 
       {#
@@ -78,12 +73,12 @@
         <div class="govuk-button-group govuk-!-margin-top-6">
           {% if projectId %}
             {{ govukButton({
-              text: "Upload a different file",
+              text: dropoutPage.uploadButton,
               href: uploadHref
             }) }}
-            <a class="govuk-link" href="/projects/{{ projectId }}/project-summary">Back to project</a>
+            <a class="govuk-link" href="/projects/{{ projectId }}/project-summary">{{ dropoutPage.backToProject }}</a>
           {% else %}
-            <a class="govuk-link" href="/">Back to start</a>
+            <a class="govuk-link" href="/">{{ dropoutPage.backToStart }}</a>
           {% endif %}
         </div>
       {% endif %}
