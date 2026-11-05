@@ -514,6 +514,21 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
+  test.each(['COMMENT_INVALID_CHARACTERS', 'COMMENT_TOO_LONG'])(
+    '%s uses the placeholder until UCD supplies the dropout copy',
+    (code) => {
+      const result = resolveSingleErrorCopy(
+        { code, message: 'backend message for ' + code },
+        UPLOAD_HREF
+      )
+      expect(result).toEqual({
+        variant: 'placeholder',
+        h1: 'PLACEHOLDER (AWAITING UCD)',
+        helpText: `PLACEHOLDER - backend message for ${code}`
+      })
+    }
+  )
+
   test.each([
     'REDLINE_OUTSIDE_ENGLAND',
     'REDLINE_AREA_TOO_LARGE',

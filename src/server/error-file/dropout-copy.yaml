@@ -501,6 +501,19 @@ errors:
     whenAlone: placeholder
     inList: service-message
 
+  # --------------------------------------------------------------- comments
+  # Interim: a single comment error uses the placeholder until the dropout
+  # spreadsheet has a row for it. A file with several problems lists the
+  # service's own message.
+
+  COMMENT_INVALID_CHARACTERS:
+    whenAlone: placeholder
+    inList: service-message
+
+  COMMENT_TOO_LONG:
+    whenAlone: placeholder
+    inList: service-message
+
   # ------------------------------------------------------------ habitat refs
 
   HABITAT_REF_MISSING:
