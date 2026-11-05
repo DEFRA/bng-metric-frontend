@@ -1,3 +1,4 @@
+import { load } from 'cheerio'
 import Boom from '@hapi/boom'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { createServer } from '../server.js'
@@ -27,6 +28,16 @@ const { broadHabitat: _broad, ...values } = createdAreaValues(feature)
 const request = (overrides = {}) => ({
   payload: { projectId, featureId, ...values, ...overrides }
 })
+
+function renderedForm(page) {
+  const $ = load(page.payload)
+  return Object.fromEntries(
+    $('#created-area-details-form')
+      .find('input[name], select[name]')
+      .toArray()
+      .map((element) => [$(element).attr('name'), $(element).val()])
+  )
+}
 
 beforeEach(() => {
   _resetCreatedAreaReferenceCache()
@@ -173,7 +184,7 @@ test.each([
 )
 
 test.each(['watercourseEncroachment', 'riparianEncroachment'])(
-  'preserves an unsupported imported condition, timing and %s until explicitly cleared',
+  'defaults unsupported condition, timing and %s and saves the selected defaults as null',
   async (encroachment) => {
     mockFeature({
       type: 'watercourse',
@@ -190,23 +201,28 @@ test.each(['watercourseEncroachment', 'riparianEncroachment'])(
     })
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
-    expect(h.view.mock.calls[0][1].values).toMatchObject({
-      condition: 'unchanged',
-      advanceYears: 'unchanged',
-      [encroachment]: 'unchanged'
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.values).toMatchObject({
+      condition: '',
+      advanceYears: '',
+      [encroachment]: ''
     })
+    for (const field of ['condition', 'advanceYears', encroachment]) {
+      expect(vm.fields[field].items.find((item) => item.selected).value).toBe(
+        ''
+      )
+      expect(
+        vm.fields[field].items.some((item) => item.value === 'unchanged')
+      ).toBe(false)
+    }
+    const { broadHabitat: _broad, ...form } = vm.values
     await postController.handler(
-      request({
-        habitatType: 'Culvert',
-        condition: 'unchanged',
-        advanceYears: 'unchanged',
-        [encroachment]: 'unchanged'
-      }),
+      request({ ...form, ref: 'Renamed' }),
       createMockH()
     )
     const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
     for (const field of ['condition', 'advanceYears', encroachment]) {
-      expect(payload).not.toHaveProperty(field)
+      expect(payload[field]).toBeNull()
     }
   }
 )
@@ -287,8 +303,7 @@ describe('authenticated Created watercourse form', () => {
         { value: '0', saved: 0, clearAdvance: false },
         { value: '', saved: 0, clearAdvance: false },
         { value: '2', saved: 0, clearAdvance: true },
-        { value: '30+', saved: 0, clearAdvance: true },
-        { value: 'unchanged', saved: 2.5, clearAdvance: true }
+        { value: '30+', saved: 0, clearAdvance: true }
       ].map((delay) => [stored, delay])
     )
   )(
@@ -333,11 +348,7 @@ describe('authenticated Created watercourse form', () => {
         expect(payload).not.toHaveProperty('advanceYears')
       }
       expect(payload.ref).toBe('Renamed watercourse')
-      if (delay.value === 'unchanged') {
-        expect(payload).not.toHaveProperty('delayYears')
-      } else {
-        expect(payload.delayYears).toBe(delay.value || null)
-      }
+      expect(payload.delayYears).toBe(delay.value || null)
     }
   )
   test.each([10, 30])(
@@ -399,42 +410,46 @@ describe('authenticated Created watercourse form', () => {
       expect(wreck.put).not.toHaveBeenCalled()
     }
   )
-  test('explains an unsupported imported type on the rendered read-only page and refuses a crafted save with 400', async () => {
-    mockFeature({
-      type: 'watercourse',
-      feature: {
-        ...feature,
-        proposed: {
-          ...feature.proposed,
-          type: 'Legacy river type',
-          condition: 'Legacy condition'
-        }
+  test('keeps unsupported saved types editable with default type and condition selections', async () => {
+    const stored = {
+      ...feature,
+      units: 0,
+      status: 'Incomplete',
+      proposed: {
+        ...feature.proposed,
+        type: 'Legacy river type',
+        condition: 'Legacy condition'
       }
-    })
-    const response = await server.inject({
+    }
+    const snapshot = structuredClone(stored)
+    mockFeature({ type: 'watercourse', feature: stored })
+    const page = await server.inject({
       method: 'GET',
       url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
       auth
     })
-    expect(response.statusCode).toBe(200)
-    expect(response.payload).toContain(
-      'This watercourse cannot be edited because its imported habitat type is not supported.'
-    )
-    expect(response.payload).toContain(
-      'upload a new post-intervention file with a supported habitat type'
-    )
-    expect(response.payload).toContain('Legacy river type')
-    expect(response.payload).not.toContain('id="habitatType"')
+    expect(page.statusCode).toBe(200)
+    const $ = load(page.payload)
+    expect($('#habitatType').val()).toBe('')
+    expect($('#condition').val()).toBe('')
+    expect($('button[type="submit"]').text()).toContain('Save')
+    expect(stored).toEqual(snapshot)
     const { token: crumb, cookie } = await primeCrumb(server)
-    const refused = await server.inject({
+    const saved = await server.inject({
       method: 'POST',
       url: '/post-intervention-habitat-details',
       auth,
       headers: { cookie },
-      payload: { ...request().payload, crumb }
+      payload: { ...renderedForm(page), ref: 'Renamed', crumb }
     })
-    expect(refused.statusCode).toBe(400)
-    expect(wreck.put).not.toHaveBeenCalled()
+    expect(saved.statusCode).toBe(302)
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+      ref: 'Renamed',
+      habitatType: null,
+      condition: null,
+      strategicSignificance: 'Low',
+      watercourseEncroachment: 'Minor'
+    })
   })
 
   test.each([
@@ -448,10 +463,12 @@ describe('authenticated Created watercourse form', () => {
     { strategicSignificance: null, rejectedStrategicSignificance: 'Medium' },
     { strategicSignificance: 'Unknown' }
   ])(
-    'preserves unsupported significance across a refused rename and reload: %j',
+    'defaults unsupported significance and permits an authenticated save: %j',
     async (stored) => {
       const original = {
         ...structuredClone(feature),
+        units: 0,
+        status: 'Incomplete',
         proposed: {
           ...feature.proposed,
           strategicSignificanceCategory: null,
@@ -461,34 +478,36 @@ describe('authenticated Created watercourse form', () => {
       }
       const snapshot = structuredClone(original)
       mockFeature({ type: 'watercourse', feature: original })
-      const url = `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`
-      const page = await server.inject({ method: 'GET', url, auth })
+      const page = await server.inject({
+        method: 'GET',
+        url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
+        auth
+      })
       expect(page.statusCode).toBe(200)
-      expect(page.payload).toContain(
-        'imported strategic significance is not supported'
+      const $ = load(page.payload)
+      expect($('#strategicSignificance').val()).toBe('')
+      expect($('#strategicSignificance option:selected').text()).toBe(
+        'Choose strategic significance'
       )
-      expect(page.payload).toContain(
-        stored.rejectedStrategicSignificance ?? stored.strategicSignificance
-      )
-      expect(page.payload).not.toContain('id="strategicSignificance"')
-      expect(page.payload).not.toContain('name="ref"')
-      expect(page.payload).not.toContain('>Save</button>')
+      expect($('button[type="submit"]').text()).toContain('Save')
+      expect(original).toEqual(snapshot)
       const { token: crumb, cookie } = await primeCrumb(server)
-      const refused = await server.inject({
+      const saved = await server.inject({
         method: 'POST',
         url: '/post-intervention-habitat-details',
         auth,
         headers: { cookie },
-        payload: { ...request({ ref: 'Renamed' }).payload, crumb }
+        payload: { ...renderedForm(page), ref: 'Renamed', crumb }
       })
-      expect(refused.statusCode).toBe(400)
-      expect(wreck.put).not.toHaveBeenCalled()
-      const reloaded = await server.inject({ method: 'GET', url, auth })
-      expect(reloaded.payload).toContain(original.ref)
-      expect(reloaded.payload).toContain(
-        stored.rejectedStrategicSignificance ?? stored.strategicSignificance
-      )
-      expect(original).toEqual(snapshot)
+      expect(saved.statusCode).toBe(302)
+      expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+        ref: 'Renamed',
+        habitatType: 'Ditches',
+        condition: 'Moderate',
+        strategicSignificance: null,
+        watercourseEncroachment: 'Minor',
+        riparianEncroachment: 'Minor/No Encroachment'
+      })
     }
   )
 })
@@ -529,7 +548,7 @@ test.each([
   }
 )
 
-test('keeps an unsupported stored watercourse type read-only and refuses a crafted save', async () => {
+test('defaults an unsupported stored type and its condition without hiding the edit form', async () => {
   mockFeature({
     type: 'watercourse',
     feature: {
@@ -544,16 +563,25 @@ test('keeps an unsupported stored watercourse type read-only and refuses a craft
   const h = createMockH()
   await getController.handler({ query: { projectId, featureId } }, h)
   expect(h.view.mock.calls[0][0]).toBe(
-    'habitat-details/pi-watercourse-details-created'
+    'habitat-details/pi-habitat-details-created-edit'
   )
-  expect(h.view.mock.calls[0][1].habitatTypeDisplay).toBe('Legacy river type')
-  expect(h.view.mock.calls[0][1].readOnlyReason).toContain(
-    'imported habitat type is not supported'
-  )
-  await expect(
-    postController.handler(request(), createMockH())
-  ).rejects.toMatchObject({ output: { statusCode: 400 } })
-  expect(wreck.put).not.toHaveBeenCalled()
+  const vm = h.view.mock.calls[0][1]
+  expect(vm.values).toMatchObject({ habitatType: '', condition: '' })
+  for (const field of [
+    'distinctivenessDisplay',
+    'standardDifficultyDisplay',
+    'standardTimeToTargetDisplay',
+    'finalTimeToTargetDisplay',
+    'appliedDifficultyMultiplierDisplay'
+  ]) {
+    expect(vm[field]).toBe('')
+  }
+  const { broadHabitat: _broad, ...form } = vm.values
+  await postController.handler(request(form), h)
+  expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+    habitatType: null,
+    condition: null
+  })
 })
 
 test('uses the selected habitat difficulty after a validation error even when the old reference difficulty matches', async () => {
@@ -629,7 +657,7 @@ test.each(['watercourseEncroachment', 'riparianEncroachment'])(
   }
 )
 
-test('shows conflicting imported timing, refuses it on Save, and accepts an explicit correction', async () => {
+test('defaults invalid imported timing and rejects conflicting new selections on Save', async () => {
   mockFeature({
     type: 'watercourse',
     feature: {
@@ -645,17 +673,13 @@ test('shows conflicting imported timing, refuses it on Save, and accepts an expl
   const loaded = createMockH()
   await getController.handler({ query: { projectId, featureId } }, loaded)
   expect(loaded.view.mock.calls[0][1].values).toMatchObject({
-    advanceYears: 'unchanged',
-    delayYears: 'unchanged'
+    advanceYears: '',
+    delayYears: ''
   })
   expect(loaded.view.mock.calls[0][1].finalTimeToTargetDisplay).toBe('')
   const refused = createMockH()
   await postController.handler(
-    request({
-      ref: 'Rename only',
-      advanceYears: 'unchanged',
-      delayYears: 'unchanged'
-    }),
+    request({ advanceYears: '2', delayYears: '1' }),
     refused
   )
   expect(refused.view.mock.calls[0][1].errors).toMatchObject({
@@ -663,15 +687,16 @@ test('shows conflicting imported timing, refuses it on Save, and accepts an expl
     delayYears: expect.any(String)
   })
   expect(refused.view.mock.calls[0][1].values).toMatchObject({
-    advanceYears: 'unchanged',
-    delayYears: 'unchanged'
+    advanceYears: '2',
+    delayYears: '1'
   })
   expect(wreck.put).not.toHaveBeenCalled()
   await postController.handler(
-    request({ advanceYears: 'unchanged', delayYears: '' }),
+    request({ advanceYears: '', delayYears: '' }),
     createMockH()
   )
-  const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
-  expect(payload).not.toHaveProperty('advanceYears')
-  expect(payload.delayYears).toBeNull()
+  expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+    advanceYears: null,
+    delayYears: null
+  })
 })

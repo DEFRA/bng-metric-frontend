@@ -46,11 +46,12 @@ describe.each([
       await get()
       const vm = h.view.mock.calls[0][1]
       expect(vm.values.habitatType).toBe('')
-      expect(vm.values.condition).toBe('unchanged')
+      const preservesCondition = type === 'hedgerow'
+      const expectedCondition = preservesCondition ? 'unchanged' : ''
+      expect(vm.values.condition).toBe(expectedCondition)
       expect(vm.fields.condition.items).toContainEqual(
         expect.objectContaining({
-          value: 'unchanged',
-          text: 'Good (imported value)',
+          value: expectedCondition,
           selected: true
         })
       )
@@ -63,16 +64,20 @@ describe.each([
       const saved = JSON.parse(wreck.put.mock.calls[0][1].payload)
       expect(saved).toMatchObject({
         ref: 'Renamed',
-        habitatType: habitatType ?? null
+        habitatType: preservesCondition ? (habitatType ?? null) : null
       })
-      expect(saved).not.toHaveProperty('condition')
+      if (preservesCondition) {
+        expect(saved).not.toHaveProperty('condition')
+      } else {
+        expect(saved.condition).toBeNull()
+      }
       await get()
       expect(h.view.mock.calls.at(-1)[1].values).toMatchObject({
         ref: 'Renamed',
         habitatType: '',
-        condition: 'unchanged'
+        condition: expectedCondition
       })
-      expect(stored.proposed.condition).toBe('Good')
+      expect(stored.proposed.condition).toBe(preservesCondition ? 'Good' : null)
 
       await postController.handler(
         {

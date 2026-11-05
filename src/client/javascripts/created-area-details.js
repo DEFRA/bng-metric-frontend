@@ -14,18 +14,20 @@ const DERIVED_LABELS = {
 }
 
 function createDerivedUpdater(reference, values, baselineCondition) {
-  const initialValues = values()
+  const initialValues = reference.storedPreview?.values ?? values()
   const initialDerived = createdAreaDerived(
     reference,
     initialValues,
     baselineCondition
   )
-  const initialLabels = Object.fromEntries(
-    Object.keys(initialDerived).map((id) => [
-      id,
-      document.getElementById(id).textContent
-    ])
-  )
+  const initialLabels =
+    reference.storedPreview?.labels ??
+    Object.fromEntries(
+      Object.keys(initialDerived).map((id) => [
+        id,
+        document.getElementById(id).textContent
+      ])
+    )
   return () => {
     const changed = []
     const currentValues = values()

@@ -39,6 +39,7 @@ import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { createdStrategicSignificance } from './created-strategic-significance.js'
+import { createdChoiceValues } from './created-choice-values.js'
 
 export const CREATED_EDIT_KINDS = {
   habitat: {
@@ -61,10 +62,6 @@ export const CREATED_EDIT_KINDS = {
     label: 'Watercourse',
     optionalReference: true,
     readOnlyTemplate: 'habitat-details/pi-watercourse-details-created',
-    unsupportedTypeMessage:
-      'This watercourse cannot be edited because its imported habitat type is not supported. To change it, upload a new post-intervention file with a supported habitat type.',
-    unsupportedSignificanceMessage:
-      'This watercourse cannot be edited because its imported strategic significance is not supported. To change it, upload a new post-intervention file with supported strategic significance.',
     buildBase: buildCreatedWatercourseViewOnlyViewModel,
     formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
     sizeLabel: 'Length (km)',
@@ -73,6 +70,7 @@ export const CREATED_EDIT_KINDS = {
     hasBroadHabitat: false,
     hasEncroachments: true,
     restoresLineageAdvance: true,
+    defaultsUnsupportedChoices: true,
     habitatTypeError: 'Choose a valid watercourse habitat type'
   },
   hedgerow: {
@@ -137,7 +135,12 @@ export const createdWatercoursePayloadSchema =
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
   reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
-  const saved = createdAreaValues(feature)
+  const saved = createdChoiceValues(
+    createdAreaValues(feature),
+    feature,
+    reference,
+    kind
+  )
   const importedYears = Object.fromEntries(
     ['advanceYears', 'delayYears']
       .filter(
@@ -166,7 +169,12 @@ export function createdReferenceForFeature(reference, feature) {
 }
 
 function createdEditValues(feature, reference) {
-  const saved = createdAreaValues(feature)
+  const saved = createdChoiceValues(
+    createdAreaValues(feature),
+    feature,
+    reference,
+    createdKind(reference)
+  )
   for (const field of Object.keys(reference.importedYears ?? {})) {
     saved[field] = UNCHANGED_VALUE
   }
@@ -177,14 +185,17 @@ function createdEditValues(feature, reference) {
     for (const field of ENCROACHMENT_FIELDS) {
       saved[field] = reference.importedEncroachments?.[field]
         ? UNCHANGED_VALUE
-        : (feature.proposed?.[field] ?? '')
+        : (saved[field] ?? '')
     }
   }
   return saved
 }
 
 function importedEncroachmentValues(reference, feature) {
-  if (!createdKind(reference).hasEncroachments) {
+  if (
+    !createdKind(reference).hasEncroachments ||
+    createdKind(reference).defaultsUnsupportedChoices
+  ) {
     return {}
   }
   return Object.fromEntries(
@@ -363,11 +374,18 @@ export function buildCreatedAreaEditViewModel(
     ctx
   )
   const initialLoad = values === null
-  values ??= createdEditValues(feature, reference)
+  const storedValues = createdEditValues(feature, reference)
+  values ??= storedValues
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
     feature,
     reference,
     values,
+    base
+  )
+  const storedDisplay = createdAreaDisplayFields(
+    feature,
+    reference,
+    storedValues,
     base
   )
   const backHref = postInterventionBackHref(
@@ -397,16 +415,16 @@ export function buildCreatedAreaEditViewModel(
       text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
       href: `#${field}`
     })),
-    fields: buildCreatedEditFields(
-      reference,
-      values,
-      createdEditValues(feature, reference),
-      kind
-    ),
-    referenceJson: JSON.stringify(reference).replaceAll(
-      '<',
-      String.raw`\u003c`
-    ),
+    fields: buildCreatedEditFields(reference, values, storedValues, kind),
+    referenceJson: JSON.stringify({
+      ...reference,
+      storedPreview: {
+        values: storedValues,
+        labels: Object.fromEntries(
+          Object.keys(derived).map((field) => [field, storedDisplay[field]])
+        )
+      }
+    }).replaceAll('<', String.raw`\u003c`),
     formAction: '/post-intervention-habitat-details',
     backHref,
     cancelHref: backHref,
@@ -442,13 +460,8 @@ function habitatTypePayload(values, kind, feature) {
 }
 
 function advancePayload(values, kind, feature) {
-  const delayYears =
-    values.delayYears === UNCHANGED_VALUE
-      ? feature?.proposed?.delayYears
-      : values.delayYears
-  const hasPositiveDelay = Number.parseFloat(delayYears) > 0
-  // Preserve a lineage-hidden advance on rename, but clear it when a positive
-  // delay is selected or kept from the imported timing options.
+  const hasPositiveDelay = Number.parseFloat(values.delayYears) > 0
+  // Preserve a lineage-hidden advance on rename, but clear it for a positive delay.
   const keepBlank =
     kind.restoresLineageAdvance &&
     feature &&

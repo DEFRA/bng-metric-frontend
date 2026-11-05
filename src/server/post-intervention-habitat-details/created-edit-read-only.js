@@ -1,16 +1,6 @@
 import { createdStrategicSignificance } from './created-strategic-significance.js'
 
-function hasUnsupportedStoredType(kind, feature, reference) {
-  return Boolean(
-    kind.unsupportedTypeMessage &&
-    feature.proposed?.type &&
-    !reference.habitatTypes.some(
-      (habitat) => habitat.name === feature.proposed.type
-    )
-  )
-}
-
-function unsupportedStoredSignificance(feature, reference) {
+export function unsupportedStoredSignificance(feature, reference) {
   const proposed = feature.proposed ?? {}
   return (
     [
@@ -30,8 +20,8 @@ function unsupportedStoredSignificance(feature, reference) {
 }
 
 export function createdReadOnlyReason(kind, feature, reference) {
-  if (hasUnsupportedStoredType(kind, feature, reference)) {
-    return kind.unsupportedTypeMessage
+  if (kind.defaultsUnsupportedChoices) {
+    return null
   }
   const unsupported = unsupportedStoredSignificance(feature, reference)
   return unsupported !== null

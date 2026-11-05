@@ -40,19 +40,19 @@ beforeAll(() => {
 })
 beforeEach(() => render())
 
-test('keeps an imported condition available when the stored type is blank', () => {
+test('defaults an invalid condition when the stored type is blank', () => {
   render({
     ...feature,
     proposed: { ...feature.proposed, type: null, condition: 'Good' }
   })
   expect(value('habitatType')).toBe('')
-  expect(value('condition')).toBe('unchanged')
+  expect(value('condition')).toBe('')
   change('ref', 'Renamed')
   expect(
     new FormData(document.getElementById('created-area-details-form')).get(
       'condition'
     )
-  ).toBe('unchanged')
+  ).toBe('')
   change('habitatType', 'Canals')
   expect(value('condition')).toBe('')
   expect(
@@ -60,9 +60,8 @@ test('keeps an imported condition available when the stored type is blank', () =
   ).toBeNull()
   change('habitatType', '')
   expect(
-    document.querySelector('#condition option[value="unchanged"]').textContent
-  ).toBe('Good (imported value)')
-  change('condition', 'unchanged')
+    document.querySelector('#condition option[value="unchanged"]')
+  ).toBeNull()
   const values = Object.fromEntries(
     new FormData(document.getElementById('created-area-details-form'))
   )
@@ -197,15 +196,42 @@ test('restores a saved timing label only for its original advance when previews 
   expect(text('finalTimeToTargetDisplay')).toBe(savedLabel)
 })
 
-test('retains unavailable imported encroachment independently when the habitat type changes', () => {
+test('restores stored timing after validation redisplay instead of treating submitted timing as the saved baseline', () => {
+  const savedLabel = 'Saved final time label'
+  const stored = {
+    ...feature,
+    proposed: {
+      ...feature.proposed,
+      advanceYears: 10,
+      finalTimeToTargetCondition: savedLabel
+    }
+  }
+  render(
+    stored,
+    { ...createdAreaValues(stored), ref: '', advanceYears: '20' },
+    { ref: 'Enter a valid habitat reference.' }
+  )
+  expect(value('advanceYears')).toBe('20')
+  expect(text('finalTimeToTargetDisplay')).toBe('0 years (1)')
+  change('advanceYears', '10')
+  expect(text('finalTimeToTargetDisplay')).toBe(savedLabel)
+  change('advanceYears', '30+')
+  expect(text('finalTimeToTargetDisplay')).toBe('0 years (1)')
+  change('advanceYears', '20')
+  expect(text('finalTimeToTargetDisplay')).toBe('0 years (1)')
+})
+
+test('defaults unavailable encroachment independently when the habitat type changes', () => {
   render({
     ...feature,
     proposed: { ...feature.proposed, riparianEncroachment: 'Imported value' }
   })
-  expect(value('riparianEncroachment')).toBe('unchanged')
-  expect(text('riparianEncroachment-hint')).toContain('Keep it unchanged')
+  expect(value('riparianEncroachment')).toBe('')
+  expect(
+    document.querySelector('#riparianEncroachment option[value="unchanged"]')
+  ).toBeNull()
   change('habitatType', 'Canals')
-  expect(value('riparianEncroachment')).toBe('unchanged')
+  expect(value('riparianEncroachment')).toBe('')
   expect(value('watercourseEncroachment')).toBe('Minor')
 })
 
