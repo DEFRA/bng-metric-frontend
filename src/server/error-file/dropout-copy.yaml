@@ -46,8 +46,12 @@
 #
 # Each error code is the one the backend raises (bng-metric-backend,
 # src/validation/geopackage/errors.js). A code missing here is shown as a
-# catch-all on its own and as the service's message in a list. The harness's
-# /geopackage-validation-explainer lists any backend code that is missing.
+# catch-all on its own and as the service's message in a list. A nightly check
+# in bng-metric-harness (npm run check:dropout-copy) fails on a backend code
+# missing here, or an entry here for a code the backend no longer has.
+#
+# What each rule checks, and which example file shows it:
+# https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md
 
 page:
   title: There is a problem with your file
@@ -625,19 +629,6 @@ errors:
   ENHANCEMENT_NOT_VALID:
     copyFrom: none
     whenAlone: catch-all
-    inList: service-message
-
-  # ---------------------------------------------------- advance and delay
-
-  # Raised by the backend's advance-delay-check.js.
-  ADVANCE_AND_DELAY_BOTH_SET:
-    copyFrom: developer wording
-    whenAlone:
-      title: Your Geopackage (.gpkg) file contains an error
-      body: >-
-        A habitat has both advance and delayed creation set. Select either
-        advance or delayed creation but not both. To create a habitat in
-        stages, add a separate row for each and [upload a new file](upload).
     inList: service-message
 
   # ----------------------------------- BNG Service template lineage (BMD-1083)
