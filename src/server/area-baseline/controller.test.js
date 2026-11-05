@@ -315,15 +315,14 @@ describe('area baseline', () => {
     })
 
     const $ = load(result)
-    // Second from last: Status is the last column.
     const significanceCells = $('tbody .govuk-table__row')
-      .map((_, row) => $(row).find('td').eq(-2).text())
+      .map((_, row) => $(row).find('td').last().text())
       .get()
 
     expect(significanceCells).toEqual(['Low (1)', 'Low (1)', 'Low (1)'])
   })
 
-  test('ends each row with its status, tagging only an incomplete one (BMD-1101)', async () => {
+  test("shows each row's status as a tag after Ref (BMD-1101)", async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
@@ -349,13 +348,15 @@ describe('area baseline', () => {
 
     const $ = load(result)
     const [p1Status, p2Status] = $('tbody .govuk-table__row')
-      .map((_, row) => $(row).find('td').last())
+      .map((_, row) => $(row).find('td').eq(1))
       .get()
 
-    expect($('thead th').last().text()).toBe('Status')
-    expect($(p1Status).text()).toBe('Complete')
-    expect($(p1Status).find('.govuk-tag')).toHaveLength(0)
+    expect($('thead th').eq(1).text()).toBe('Status')
+    expect($('thead th').eq(1).attr('data-sort-ties-by-ref')).toBe('true')
+    expect($(p1Status).find('strong.govuk-tag--grey').text()).toBe('Complete')
+    expect($(p1Status).attr('data-sort-value')).toBe('Complete')
     expect($(p2Status).find('strong.govuk-tag--blue').text()).toBe('Incomplete')
+    expect($('tfoot td').eq(1).text()).toBe('')
   })
 
   test('keeps the header, habitat rows and totals row the same width', async () => {
@@ -410,11 +411,11 @@ describe('area baseline', () => {
     const firstRow = $('tbody .govuk-table__row').eq(0)
     const secondRow = $('tbody .govuk-table__row').eq(1)
 
-    expect(firstRow.find('td').eq(5).text()).toBe('')
-    expect(firstRow.find('td').eq(6).text()).toBe('Moderate')
-    expect(secondRow.find('td').eq(5).text()).toBe('')
+    expect(firstRow.find('td').eq(6).text()).toBe('')
+    expect(firstRow.find('td').eq(7).text()).toBe('Moderate')
+    expect(secondRow.find('td').eq(6).text()).toBe('')
     // Only habitatP1's 24 units count; habitatP2's null is skipped, not NaN.
-    expect($('tfoot td').eq(1).text()).toBe('24.00')
+    expect($('tfoot td').eq(2).text()).toBe('24.00')
   })
 
   test('falls back to Project when the project has no name', async () => {

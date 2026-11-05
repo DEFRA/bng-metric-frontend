@@ -1,3 +1,4 @@
+import { SORT_TIES_BY_REF_ATTRIBUTE } from '../../../shared/habitat-details-sort.js'
 import { isFiniteNumber } from './unit-summary.js'
 
 const EMPTY_DISPLAY = ''
@@ -16,11 +17,12 @@ const SORT_KEY_DIGIT_WIDTH = 10
 // then an ellipsis. Showing the whole reference on hover is a separate ticket.
 const MAX_REF_DISPLAY_LENGTH = 10
 const TRUNCATION_MARK = '…'
-// The status the backend saves against each feature (BMD-482). Only an
-// incomplete feature is tagged, so it stands out among the complete ones.
-const STATUS_COMPLETE = 'Complete'
-const STATUS_INCOMPLETE = 'Incomplete'
-const INCOMPLETE_TAG_CLASS = 'govuk-tag--blue'
+// The status the backend saves against each feature (BMD-482), and the tag
+// each one is shown as (BMD-1101 AC2/AC3).
+const STATUS_TAG_CLASSES = {
+  Complete: 'govuk-tag--grey',
+  Incomplete: 'govuk-tag--blue'
+}
 
 function featureRef(feature) {
   const ref = feature?.ref?.trim()
@@ -134,18 +136,25 @@ function buildRefCell(feature, projectId, detailsRoute, returnUrl) {
   return cell
 }
 
+// The sort value is the status itself: without it the sortable table would
+// compare the tag markup, whose class names sort Incomplete first.
 function statusCell(status) {
-  if (status === STATUS_INCOMPLETE) {
-    return { text: status, tag: { classes: INCOMPLETE_TAG_CLASS } }
+  const classes = Object.hasOwn(STATUS_TAG_CLASSES, status)
+    ? STATUS_TAG_CLASSES[status]
+    : null
+  if (!classes) {
+    return textCell()
   }
-  if (status === STATUS_COMPLETE) {
-    return textCell(status)
+  return {
+    text: status,
+    tag: { classes },
+    attributes: { 'data-sort-value': status }
   }
-  return textCell()
 }
 
 const STATUS_COLUMN = {
   text: 'Status',
+  attributes: { [SORT_TIES_BY_REF_ATTRIBUTE]: true },
   cell: (feature) => statusCell(feature.status)
 }
 
@@ -181,7 +190,11 @@ function buildHabitatGrid({ columns, features, projectId, readSize }) {
   }
 
   return {
-    columns: columns.map(({ text, numeric }) => ({ text, numeric })),
+    columns: columns.map(({ text, numeric, attributes }) => ({
+      text,
+      numeric,
+      attributes
+    })),
     habitatRows: features.map((feature) =>
       columns.map((column) => column.cell(feature, projectId))
     ),

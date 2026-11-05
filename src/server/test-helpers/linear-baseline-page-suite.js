@@ -166,7 +166,7 @@ function registerGridTests(ctx) {
     )
   })
 
-  test('ends each row with its status, tagging only an incomplete one (BMD-1101)', async () => {
+  test("shows each row's status as a tag after Ref (BMD-1101)", async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
@@ -186,16 +186,17 @@ function registerGridTests(ctx) {
     const { result } = await ctx.loadPage()
     const $ = load(result)
     const statusCells = $(BODY_ROW_SELECTOR).map((_, row) =>
-      $(row).find('td').last()
+      $(row).find('td').eq(1)
     )
 
-    expect($('thead th').last().text()).toBe('Status')
+    expect($('thead th').eq(1).text()).toBe('Status')
     expect(statusCells.eq(0).find('strong.govuk-tag--blue').text()).toBe(
       'Incomplete'
     )
-    expect(statusCells.eq(1).text()).toBe('Complete')
-    expect(statusCells.eq(1).find('.govuk-tag')).toHaveLength(0)
-    expect($('tfoot td').last().text()).toBe('')
+    expect(statusCells.eq(1).find('strong.govuk-tag--grey').text()).toBe(
+      'Complete'
+    )
+    expect($('tfoot td').eq(1).text()).toBe('')
   })
 }
 

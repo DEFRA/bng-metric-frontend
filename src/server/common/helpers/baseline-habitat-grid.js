@@ -31,6 +31,7 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
         ),
       total: () => boldCell(textCell(TOTALS_LABEL))
     },
+    STATUS_COLUMN,
     {
       text: 'Units',
       numeric: true,
@@ -71,8 +72,7 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
     {
       text: 'Strategic significance',
       cell: () => textCell(FIXED_STRATEGIC_SIGNIFICANCE)
-    },
-    STATUS_COLUMN
+    }
   ]
 }
 

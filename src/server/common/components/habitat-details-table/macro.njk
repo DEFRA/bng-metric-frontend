@@ -22,7 +22,7 @@
       <thead class="govuk-table__head">
         <tr class="govuk-table__row">
           {% for column in params.columns %}
-            <th class="govuk-table__header{% if column.numeric %} govuk-table__header--numeric{% endif %}" scope="col" aria-sort="none">{{ column.text }}</th>
+            <th class="govuk-table__header{% if column.numeric %} govuk-table__header--numeric{% endif %}" scope="col" aria-sort="none"{% if column.attributes %}{% for attr, val in column.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}{% endif %}>{{ column.text }}</th>
           {% endfor %}
         </tr>
       </thead>
