@@ -326,7 +326,6 @@ export const invalidFileController = {
       errorBlocks,
       singleError,
       projectId,
-      fileLabel: uploadType.label,
       uploadHref
     })
   }
