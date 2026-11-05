@@ -515,6 +515,53 @@ describe('#resolveSingleErrorCopy', () => {
   })
 
   test.each([
+    [
+      'COMMENT_INVALID_CHARACTERS',
+      'A comment contains characters that are not allowed. Remove those characters and ',
+      'A comment contains characters that are not allowed. Remove those characters.'
+    ],
+    [
+      'COMMENT_TOO_LONG',
+      'A comment is longer than 999 characters. Shorten the comment and ',
+      'A comment is longer than 999 characters. Shorten the comment.'
+    ]
+  ])(
+    'AC7: %s names the comment problem and links to a new upload',
+    (code, messageBefore, messageWithoutLink) => {
+      const result = resolveSingleErrorCopy(
+        { code, message: 'backend message for ' + code },
+        UPLOAD_HREF
+      )
+      expect(result).toEqual({
+        variant: 'standard',
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore,
+        linkText: 'upload a new file',
+        messageAfter: '.',
+        uploadHref: UPLOAD_HREF
+      })
+
+      const withoutUpload = resolveSingleErrorCopy(
+        { code, message: 'backend message for ' + code },
+        null
+      )
+      expect(withoutUpload.linkText).toBeNull()
+      expect(withoutUpload.messageBefore).toBe(messageWithoutLink)
+      expect(withoutUpload.messageAfter).toBe('')
+
+      const html = renderTemplate('error-file/index.njk', {
+        singleError: result
+      })
+      expect(html).toContain(
+        '<h1 class="govuk-heading-l">Your Geopackage (.gpkg) file contains an error</h1>'
+      )
+      expect(html).toContain(
+        `${messageBefore}<a class="govuk-link" href="${UPLOAD_HREF}">upload a new file</a>.`
+      )
+    }
+  )
+
+  test.each([
     'REDLINE_OUTSIDE_ENGLAND',
     'REDLINE_AREA_TOO_LARGE',
     'IGGIS_OUTSIDE_REDLINE',
@@ -551,7 +598,7 @@ describe('#resolveSingleErrorCopy', () => {
       UPLOAD_HREF
     )
     expect(result.variant).toBe('placeholder')
-    expect(result.helpText).toBe('PLACEHOLDER - undefined')
+    expect(result.helpText).toBe('PLACEHOLDER')
   })
 })
 

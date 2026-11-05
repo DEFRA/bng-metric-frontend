@@ -91,6 +91,41 @@ describe('invalidFileController.handler — populated session', () => {
 
   const makeH = () => ({ view: vi.fn().mockReturnThis() })
 
+  test('shows a heading for each comment validation error', async () => {
+    const errors = [
+      {
+        code: 'COMMENT_INVALID_CHARACTERS',
+        message:
+          'One or more comments contain characters that are not valid UTF-8: areas fid 1'
+      },
+      {
+        code: 'COMMENT_TOO_LONG',
+        message:
+          'One or more comments are longer than 999 characters: areas fid 2'
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'error-file/index',
+      expect.objectContaining({
+        singleError: null,
+        errorBlocks: [
+          expect.objectContaining({
+            heading:
+              'One or more comments contain characters that are not valid UTF-8'
+          }),
+          expect.objectContaining({
+            heading: 'One or more comments are longer than 999 characters'
+          })
+        ]
+      })
+    )
+  })
+
   test('passes errorList and projectId to the view from session', async () => {
     const errors = [
       { code: 'NO_HABITAT_AREAS', message: 'No habitat areas' },

@@ -101,7 +101,8 @@ function buildPage(page, values) {
 export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['serviceMessage'])
 
 function placeholderPage(error) {
-  const values = { serviceMessage: `${error?.message}` }
+  const message = error?.message
+  const values = message ? { serviceMessage: message } : {}
   return {
     variant: 'placeholder',
     h1: firstKnown(dropoutCopy.placeholder.title, values),
