@@ -39,7 +39,6 @@ const pageCopy = Joi.object({
 })
 
 const errorEntry = Joi.object({
-  copyFrom: text.required(),
   whenAlone: Joi.alternatives(
     Joi.string().valid(...Object.values(WHEN_ALONE)),
     pageCopy,

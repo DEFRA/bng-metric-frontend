@@ -49,9 +49,8 @@ const allPages = [
 ]
 
 describe('dropout-copy.yaml', () => {
-  test('gives every error where its copy came from and both layouts', () => {
+  test('gives every error both layouts', () => {
     for (const [code, entry] of entries) {
-      expect(entry.copyFrom, code).toBeTruthy()
       expect(entry.whenAlone, code).toBeDefined()
       expect(entry.inList, code).toBeDefined()
     }
@@ -164,13 +163,13 @@ describe('parseDropoutCopy', () => {
     expect(parseDropoutCopy(COPY_SOURCE).errors.NO_REDLINE).toBeDefined()
   })
 
-  test('refuses an error with no copyFrom', () => {
-    const broken = COPY_SOURCE.replace(
-      /( {2}NO_REDLINE:\n) {4}copyFrom: [^\n]+\n/,
-      '$1'
-    )
+  test('refuses an error with no inList', () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    delete copy.errors.NO_REDLINE.inList
 
-    expect(() => parseDropoutCopy(broken)).toThrow(/NO_REDLINE.*copyFrom/)
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
+      /NO_REDLINE.*inList/
+    )
   })
 
   test('refuses a whenAlone that is neither copy nor a known keyword', () => {

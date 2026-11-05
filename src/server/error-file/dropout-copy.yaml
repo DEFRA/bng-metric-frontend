@@ -40,10 +40,6 @@
 #   service's own technical message as the heading. These have no reviewed
 #   copy yet.
 #
-# - copyFrom says where the wording came from: the dropout spreadsheet, a
-#   ticket's acceptance criteria, or the developers (developer wording, not yet
-#   reviewed).
-#
 # Each error code is the one the backend raises (bng-metric-backend,
 # src/validation/geopackage/errors.js). A code missing here is shown as a
 # catch-all on its own and as the service's message in a list. A nightly check
@@ -126,7 +122,6 @@ errors:
   # ---------------------------------------------------------------- file name
 
   INVALID_FILENAME:
-    copyFrom: developer wording
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -136,34 +131,28 @@ errors:
     inList: service-message
 
   FILENAME_TOO_LONG:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   INVALID_FILE_METADATA:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   # -------------------------------------------------------------- file format
 
   GPKG_INVALID_FILE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_NOT_A_GEOPACKAGE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_MISSING_SYSTEM_TABLE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_TOO_MANY_FEATURES:
-    copyFrom: developer wording
     whenAlone:
       title: Your Geopackage (.gpkg) file contains too many features
       body:
@@ -179,74 +168,60 @@ errors:
   # --------------------------------------------------------- layers and columns
 
   GPKG_MISSING_LAYER:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_UNEXPECTED_FEATURE_LAYER:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_CONTENTS_DATA_TYPE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_SRS_ID:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_GPKG_SRS_INCONSISTENT:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_GEOMETRY_TYPE_NAME:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_MISSING_COLUMN:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_COLUMN_SQLITE_TYPE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_COLUMN_NOT_NULL:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_COLUMN_PRIMARY_KEY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   # ---------------------------------------------------------- BNG Service template
 
   LEGACY_TEMPLATE_NOT_ACCEPTED:
-    copyFrom: dropout spreadsheet (BMD-1110, row 40)
     whenAlone:
       title: There is a problem with your file
       subheading: Template
@@ -256,34 +231,28 @@ errors:
     inList: service-message
 
   TEMPLATE_VERSION_MISSING:
-    copyFrom: none (BMD-1086)
     whenAlone: list
     inList: service-message
 
   TEMPLATE_VERSION_DUPLICATED:
-    copyFrom: none (BMD-1086)
     whenAlone: list
     inList: service-message
 
   TEMPLATE_VERSION_INVALID:
-    copyFrom: none (BMD-1086)
     whenAlone: list
     inList: service-message
 
   TEMPLATE_VERSION_UNSUPPORTED:
-    copyFrom: none (BMD-1086)
     whenAlone: list
     inList: service-message
 
   POST_INTERVENTION_TABLES_EMPTY:
-    copyFrom: none (BMD-1086)
     whenAlone: list
     inList: service-message
 
   # ------------------------------------------------------- red line boundary
 
   NO_REDLINE:
-    copyFrom: acceptance criteria (BMD-405 AC2)
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -292,7 +261,6 @@ errors:
     inList: service-message
 
   GPKG_RLB_NO_POLYGON:
-    copyFrom: acceptance criteria (BMD-405 AC2)
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -301,7 +269,6 @@ errors:
     inList: service-message
 
   GPKG_RLB_TOO_MANY_POLYGONS:
-    copyFrom: acceptance criteria (BMD-405 AC3)
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -310,17 +277,14 @@ errors:
     inList: service-message
 
   GPKG_RLB_NO_GEOMETRY_COLUMN:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_RLB_UNREADABLE_GEOMETRY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   REDLINE_INVALID_GEOMETRY:
-    copyFrom: acceptance criteria (BMD-405 AC5)
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -329,19 +293,16 @@ errors:
     inList: service-message
 
   REDLINE_OUTSIDE_ENGLAND:
-    copyFrom: placeholder (BMD-592)
     whenAlone: placeholder
     inList: service-message
 
   REDLINE_AREA_TOO_LARGE:
-    copyFrom: placeholder (BMD-592)
     whenAlone: placeholder
     inList: service-message
 
   # ------------------------------------------------------------ area habitats
 
   NO_HABITAT_AREAS:
-    copyFrom: acceptance criteria (BMD-405 AC4)
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -350,22 +311,18 @@ errors:
     inList: service-message
 
   GPKG_HABITATS_NO_GEOMETRY_COLUMN:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_HABITATS_UNREADABLE_GEOMETRY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_HABITATS_WRONG_GEOMETRY_TYPE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   AREA_PARCELS_INVALID_GEOMETRY:
-    copyFrom: acceptance criteria (BMD-405 AC7)
     whenAlone:
       title:
         - This parcel {ref} contains an error
@@ -379,7 +336,6 @@ errors:
         - ' ({reason})'
 
   PARCEL_OVERLAPS:
-    copyFrom: acceptance criteria (BMD-405 AC8)
     whenAlone:
       # Both parcels' refs known, then not.
       - title: These parcels {refA}, {refB} contain an error
@@ -396,7 +352,6 @@ errors:
   # The check is on area alone; the 1 square metre is MIN_PARCEL_AREA_SQ_M in
   # the backend (validation/geopackage/postgis/index.js). Change both together.
   AREA_PARCELS_TOO_SMALL:
-    copyFrom: acceptance criteria (BMD-405 AC9)
     whenAlone:
       title:
         - This parcel {ref} contains an error
@@ -410,7 +365,6 @@ errors:
         - ' — ~{area} sq m'
 
   SLIVERS_OUTSIDE_REDLINE:
-    copyFrom: acceptance criteria (BMD-405 AC9)
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -422,7 +376,6 @@ errors:
       item: '~{area} sq m near {location}'
 
   AREA_PARCELS_OUTSIDE_REDLINE:
-    copyFrom: acceptance criteria (BMD-405 AC10)
     whenAlone:
       title:
         - This parcel {ref} contains an error
@@ -436,12 +389,10 @@ errors:
         - ' — ~{area} sq m near {location}'
 
   AREA_SUM_MISMATCH:
-    copyFrom: placeholder (BMD-592)
     whenAlone: placeholder
     inList: service-message
 
   NO_DERIVED_BASELINE_HABITATS:
-    copyFrom: developer wording
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -450,7 +401,6 @@ errors:
     inList: service-message
 
   BASELINE_TYPE_MISSING:
-    copyFrom: developer wording
     whenAlone:
       title: Your Geopackage (.gpkg) file contains an error
       body: >-
@@ -461,22 +411,18 @@ errors:
   # --------------------------------------------------------------- hedgerows
 
   GPKG_HEDGEROWS_UNREADABLE_GEOMETRY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_HEDGEROWS_NO_LINESTRING_GEOMETRY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_HEDGEROWS_WRONG_GEOMETRY_TYPE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   HEDGEROWS_OUTSIDE_REDLINE:
-    copyFrom: acceptance criteria (BMD-405 AC11)
     whenAlone:
       title:
         - This hedgerow {ref} contains an error
@@ -489,22 +435,18 @@ errors:
   # ------------------------------------------------------------ watercourses
 
   GPKG_RIVERS_UNREADABLE_GEOMETRY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_RIVERS_NO_LINESTRING_GEOMETRY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   GPKG_RIVERS_WRONG_GEOMETRY_TYPE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   WATERCOURSES_OUTSIDE_REDLINE:
-    copyFrom: acceptance criteria (BMD-405 AC12)
     whenAlone:
       title:
         - This watercourse {ref} contains an error
@@ -517,7 +459,6 @@ errors:
   # -------------------------------------------------- vertical area habitats
 
   VERTICAL_HABITAT_AREA_NOT_POSITIVE:
-    copyFrom: developer wording
     whenAlone:
       title:
         - This vertical area habitat {ref} contains an error
@@ -530,7 +471,6 @@ errors:
       item: '{feature} (Area: {area})'
 
   VERTICAL_HABITATS_OUTSIDE_REDLINE:
-    copyFrom: developer wording
     whenAlone:
       title:
         - This vertical area habitat {ref} contains an error
@@ -543,7 +483,6 @@ errors:
   # ------------------------------------------------------- trees and IGGIs
 
   TREE_COUNT_NOT_WHOLE:
-    copyFrom: developer wording
     whenAlone:
       title:
         - This tree {ref} contains an error
@@ -555,19 +494,16 @@ errors:
     inList: service-message
 
   TREES_OUTSIDE_REDLINE:
-    copyFrom: placeholder (BMD-592)
     whenAlone: placeholder
     inList: service-message
 
   IGGIS_OUTSIDE_REDLINE:
-    copyFrom: placeholder (BMD-592)
     whenAlone: placeholder
     inList: service-message
 
   # ------------------------------------------------------------ habitat refs
 
   HABITAT_REF_MISSING:
-    copyFrom: dropout spreadsheet (BMD-1110, row 32)
     whenAlone:
       title: There is a problem with your project
       subheading: Habitat parcels
@@ -579,7 +515,6 @@ errors:
       listsHabitats: false
 
   HABITAT_REF_INVALID_CHARACTERS:
-    copyFrom: dropout spreadsheet (BMD-1110, row 33)
     whenAlone:
       title: There is a problem with your project
       subheading: Habitat parcels
@@ -589,14 +524,12 @@ errors:
       listsHabitats: false
 
   HABITAT_REF_IN_USE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   # --------------------------------------------------- habitat eligibility
 
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
-    copyFrom: acceptance criteria (BMD-405 AC6a)
     whenAlone:
       title: >-
         Very high and high distinctiveness habitats are not yet included in
@@ -610,7 +543,6 @@ errors:
       note: 'Allowed distinctiveness: {bands}.'
 
   BASELINE_NOT_ENHANCEABLE:
-    copyFrom: dropout spreadsheet (BMD-1110, row 39)
     whenAlone:
       title: There is a problem with your project
       subheading: Service eligibility
@@ -627,7 +559,6 @@ errors:
         - ' ({condition})'
 
   ENHANCEMENT_NOT_VALID:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
@@ -647,7 +578,6 @@ errors:
   # check compares only the codes, not the wording.
 
   STAGED_PARENT_LINK_MISSING:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -659,7 +589,6 @@ errors:
         - ' — {habitatType}'
 
   STAGED_UNKNOWN_PARENT_REF:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -671,7 +600,6 @@ errors:
         - ' — {habitatType}'
 
   STAGED_AMBIGUOUS_PARENT:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -685,7 +613,6 @@ errors:
         - ', named by {childRefs}'
 
   STAGED_BASELINE_DRIFTED:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -698,7 +625,6 @@ errors:
         - ', copied to {childRefs}'
 
   STAGED_HEDGEROW_CHILDREN_TOO_LONG:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -712,7 +638,6 @@ errors:
         - ' ({length} m, linked {childLength} m)'
 
   STAGED_VERTICAL_CHILDREN_TOO_LARGE:
-    copyFrom: developer wording (BMD-1084)
     whenAlone: list
     inList:
       heading: >-
@@ -727,7 +652,6 @@ errors:
         - ' ({area} m², linked {childArea} m²)'
 
   STAGED_WATERCOURSE_RETAINED_AND_CREATED:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -742,7 +666,6 @@ errors:
         - ', copied to {childRefs}'
 
   STAGED_NATURAL_WATERCOURSE_LOST:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -756,7 +679,6 @@ errors:
         - ', copied to {childRefs}'
 
   STAGED_DEGRADE_NOT_WORSE:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -771,7 +693,6 @@ errors:
         - ', copied from {parentRef}'
 
   STAGED_DEGRADE_ADVANCE_NOT_30_PLUS:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -785,7 +706,6 @@ errors:
         - ', copied from {parentRef}'
 
   STAGED_WATERCOURSE_NO_INTERVENTION:
-    copyFrom: developer wording (BMD-1083)
     whenAlone: list
     inList:
       heading: >-
@@ -802,21 +722,17 @@ errors:
   # ------------------------------------------------------ while uploading
 
   SIZING_FAILED:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   VALIDATION_FAILED:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   VALIDATION_BUSY:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
 
   VALIDATION_UNAVAILABLE:
-    copyFrom: none
     whenAlone: catch-all
     inList: service-message
