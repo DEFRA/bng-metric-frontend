@@ -140,8 +140,7 @@ function createdAreaFields(reference, values, type, initialLoad, kind) {
       const imported =
         id === 'condition' && keepImportedCondition(reference, values)
           ? reference.importedCondition.condition
-          : (reference.importedEncroachments?.[id] ??
-            reference.importedYears?.[id])
+          : reference.importedYears?.[id]
       if (imported !== undefined) {
         items = [
           ...items,

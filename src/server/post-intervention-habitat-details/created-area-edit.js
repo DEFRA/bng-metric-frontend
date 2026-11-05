@@ -73,7 +73,9 @@ export const CREATED_EDIT_KINDS = {
     hasBroadHabitat: false,
     hasEncroachments: true,
     restoresLineageAdvance: true,
-    defaultsUnsupportedChoices: true,
+    // BMD-1050 AC2 keeps incomplete watercourses editable; AC11 saves defaults as null.
+    // Area and hedgerow editors retain their existing imported-value policies.
+    clearsUnsupportedValuesOnSave: true,
     habitatTypeError: 'Choose a valid watercourse habitat type'
   },
   hedgerow: {
@@ -156,7 +158,6 @@ export function createdReferenceForFeature(reference, feature) {
     ...reference,
     importedYears,
     importedCondition,
-    importedEncroachments: importedEncroachmentValues(reference, feature),
     importedCalculation: {
       values: {
         ...saved,
@@ -184,30 +185,7 @@ function createdEditValues(feature, reference) {
   if (reference.importedCondition) {
     saved.condition = UNCHANGED_VALUE
   }
-  if (createdKind(reference).hasEncroachments) {
-    for (const field of ENCROACHMENT_FIELDS) {
-      saved[field] = reference.importedEncroachments?.[field]
-        ? UNCHANGED_VALUE
-        : (saved[field] ?? '')
-    }
-  }
   return saved
-}
-
-function importedEncroachmentValues(reference, feature) {
-  if (
-    !createdKind(reference).hasEncroachments ||
-    createdKind(reference).defaultsUnsupportedChoices
-  ) {
-    return {}
-  }
-  return Object.fromEntries(
-    ENCROACHMENT_FIELDS.filter(
-      (field) =>
-        feature.proposed?.[field] &&
-        !reference[field].includes(feature.proposed[field])
-    ).map((field) => [field, feature.proposed[field]])
-  )
 }
 
 function importedLinearCondition(reference, values) {
@@ -272,15 +250,7 @@ export function validateCreatedArea(values, reference) {
     strategicSignificance: reference.strategicSignificance.map((s) => s.value),
     ...(kind.hasEncroachments
       ? Object.fromEntries(
-          ENCROACHMENT_FIELDS.map((field) => [
-            field,
-            [
-              ...reference[field],
-              ...(reference.importedEncroachments?.[field]
-                ? [UNCHANGED_VALUE]
-                : [])
-            ]
-          ])
+          ENCROACHMENT_FIELDS.map((field) => [field, reference[field]])
         )
       : {})
   }
@@ -469,7 +439,9 @@ function createdAreaSavePayload(values, kind, feature) {
     ...(kind.hasEncroachments
       ? Object.assign(
           {},
-          ...ENCROACHMENT_FIELDS.map((field) => timingPayload(values, field))
+          ...ENCROACHMENT_FIELDS.map((field) => ({
+            [field]: values[field] || null
+          }))
         )
       : {})
   }

@@ -9,7 +9,7 @@ import { ENCROACHMENT_FIELDS } from './created-area-edit-fields.js'
 import { unsupportedStoredSignificance } from './created-edit-read-only.js'
 
 export function createdChoiceValues(values, feature, reference, kind) {
-  if (!kind.defaultsUnsupportedChoices) {
+  if (!kind.clearsUnsupportedValuesOnSave) {
     return values
   }
   const type = selectedHabitat(reference, values)

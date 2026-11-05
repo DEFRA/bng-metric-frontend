@@ -20,7 +20,7 @@ export function unsupportedStoredSignificance(feature, reference) {
 }
 
 export function createdReadOnlyReason(kind, feature, reference) {
-  if (kind.defaultsUnsupportedChoices) {
+  if (kind.clearsUnsupportedValuesOnSave) {
     return null
   }
   const unsupported = unsupportedStoredSignificance(feature, reference)
