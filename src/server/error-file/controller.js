@@ -13,8 +13,9 @@ import {
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 
 // The drop-out page for a file with more than one problem: a heading for each
-// error and a bullet for each habitat it names. The wording is in
-// dropout-copy.yaml; this module works out the {values} each error's bullets
+// error and a bullet for each habitat it names. The wording is the upload
+// section of common/error-text/error-text.yaml; this module works out the
+// {values} each error's bullets
 // name, from the habitats in its details.sample.
 
 const { names, unknown } = dropoutCopy
