@@ -387,7 +387,7 @@ async function renderDetailsPage(
     {
       ...feature,
       retentionCategory,
-      // A vertical area habitat's size is shown in square metres.
+      // A vertical area habitat's size is shown in square metres too.
       isVerticalHabitat: type === VERTICAL_HABITAT_TYPE
     },
     {

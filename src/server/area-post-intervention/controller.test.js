@@ -388,7 +388,7 @@ describe('area post intervention', () => {
     expect($('#created tbody a').text()).toBe('T-1')
   })
 
-  test('lists a vertical area habitat in its retention tab, sized in square metres', async () => {
+  test('lists a vertical area habitat in its retention tab, sized in hectares and square metres', async () => {
     const enhancedWall = {
       featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       ref: 'V-1',
@@ -436,8 +436,7 @@ describe('area post intervention', () => {
     expect(wallRow.find('a').attr('href')).toContain(
       `featureId=${enhancedWall.featureId}`
     )
-    expect(wallRow.text()).toContain('400m²')
-    expect(wallRow.text()).not.toContain('0.04ha')
+    expect(wallRow.text()).toContain('0.04ha (400m²)')
   })
 
   test('treats a project of only vertical area habitats as having a baseline', async () => {

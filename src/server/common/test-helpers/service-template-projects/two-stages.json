@@ -2802,7 +2802,7 @@
           "featureId": "e1ab42d6-baf2-4529-8d20-974755091c3d",
           "properties": {
             "fid": 1,
-            "Area": 93,
+            "Area": 0.0093,
             "Comment": null,
             "Parcel Ref": "V001",
             "feature_uuid": "3ee81e80-d1ea-5c20-9fe4-f47ae05ff58a",
@@ -2843,7 +2843,7 @@
           "featureId": "4d8e1023-cab2-41e8-a2f3-4884622c9acf",
           "properties": {
             "fid": 2,
-            "Area": 79,
+            "Area": 0.0079,
             "Comment": null,
             "Parcel Ref": "V002",
             "feature_uuid": "8342b5f7-b535-5106-8a70-4ae77fd90114",
@@ -2884,7 +2884,7 @@
           "featureId": "6191b5f3-7740-42ef-81db-950a8b88a18a",
           "properties": {
             "fid": 3,
-            "Area": 79,
+            "Area": 0.0079,
             "Comment": null,
             "Parcel Ref": "V003",
             "feature_uuid": "1020adde-3087-5617-8118-dd25c5da8109",
@@ -2925,7 +2925,7 @@
           "featureId": "53ce4f43-c162-47a6-9c43-928b3583743d",
           "properties": {
             "fid": 4,
-            "Area": 56,
+            "Area": 0.0056,
             "Comment": null,
             "Parcel Ref": "V004",
             "feature_uuid": "e5215e57-e313-5613-bd4f-9135090e47d7",
@@ -2966,7 +2966,7 @@
           "featureId": "9cb0c84d-1301-45ca-8095-2f6a19879f03",
           "properties": {
             "fid": 5,
-            "Area": 41,
+            "Area": 0.0041,
             "Comment": null,
             "Parcel Ref": "V005",
             "feature_uuid": "dedbba3b-5982-549c-8975-e90f777fc056",
@@ -7913,7 +7913,7 @@
           "featureId": "ea272da9-c19d-4d2d-8b88-37607c39a009",
           "properties": {
             "fid": 1,
-            "Area": 93,
+            "Area": 0.0093,
             "Comment": null,
             "Parcel Ref": "V001",
             "Parent Ref": "V001",
@@ -7973,7 +7973,7 @@
           "featureId": "90b093f0-c286-492a-b0aa-6b37dbb547ec",
           "properties": {
             "fid": 2,
-            "Area": 79,
+            "Area": 0.0079,
             "Comment": null,
             "Parcel Ref": "V002",
             "Parent Ref": "V002",
@@ -8033,7 +8033,7 @@
           "featureId": "2b94d0c1-f123-47ea-ab1d-564d1ac17ee6",
           "properties": {
             "fid": 3,
-            "Area": 79,
+            "Area": 0.0079,
             "Comment": "Delayed: work starts 30 or more years after the losses",
             "Parcel Ref": "V003",
             "Parent Ref": "V003",
@@ -8093,7 +8093,7 @@
           "featureId": "5edc3e2c-3f17-4502-a3dd-1af4e955c8b2",
           "properties": {
             "fid": 4,
-            "Area": 41,
+            "Area": 0.0041,
             "Comment": "Condition cannot be kept: recorded as lost and created again in a lower condition",
             "Parcel Ref": "V005",
             "Parent Ref": "V005",

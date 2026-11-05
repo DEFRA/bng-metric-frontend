@@ -2802,7 +2802,7 @@
           "featureId": "c88658f5-1828-4479-a46b-708ae06b1bea",
           "properties": {
             "fid": 1,
-            "Area": 93,
+            "Area": 0.0093,
             "Comment": null,
             "Parcel Ref": "V001",
             "feature_uuid": "3ee81e80-d1ea-5c20-9fe4-f47ae05ff58a",
@@ -2843,7 +2843,7 @@
           "featureId": "6a5b88d1-7550-4b5c-9824-98ccf1713112",
           "properties": {
             "fid": 2,
-            "Area": 79,
+            "Area": 0.0079,
             "Comment": null,
             "Parcel Ref": "V002",
             "feature_uuid": "8342b5f7-b535-5106-8a70-4ae77fd90114",
@@ -2884,7 +2884,7 @@
           "featureId": "1c1ff0d5-dcf5-4b64-a176-ac02d5755833",
           "properties": {
             "fid": 3,
-            "Area": 79,
+            "Area": 0.0079,
             "Comment": null,
             "Parcel Ref": "V003",
             "feature_uuid": "1020adde-3087-5617-8118-dd25c5da8109",
@@ -2925,7 +2925,7 @@
           "featureId": "7fa00cb5-d687-4f74-bf4b-f66d9bc11138",
           "properties": {
             "fid": 4,
-            "Area": 56,
+            "Area": 0.0056,
             "Comment": null,
             "Parcel Ref": "V004",
             "feature_uuid": "e5215e57-e313-5613-bd4f-9135090e47d7",
@@ -2966,7 +2966,7 @@
           "featureId": "bda36956-d8a9-4265-9a17-7008523fd44f",
           "properties": {
             "fid": 5,
-            "Area": 41,
+            "Area": 0.0041,
             "Comment": null,
             "Parcel Ref": "V005",
             "feature_uuid": "dedbba3b-5982-549c-8975-e90f777fc056",
