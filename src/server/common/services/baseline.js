@@ -109,6 +109,7 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
     // The status code alone is ambiguous — wreck gives its own timeout a 504
     // and a dropped connection a 502 — so say which failure this was, how long
     // it took and what answered, so the cause of a 502 can be read off the log.
+    // It gives only the safe fields of the backend's body, never its messages.
     const failure = describeBackendFailure(error, {
       elapsedMs: performance.now() - startedAt,
       timeoutMs
