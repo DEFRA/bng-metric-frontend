@@ -265,17 +265,17 @@ const SINGLE_VALIDATION_ERROR = 1
 //
 // A BNG Service template file the service cannot read as one has no copy of
 // its own yet either. Shown alone through single-error copy it would carry
-// the "PLACEHOLDER (AWAITING UCD)" title, and a legacy file refused once the
-// flag is on is the refusal users will meet most, so it is shown the same
-// way: under the backend's message, which says what to do.
+// the "PLACEHOLDER (AWAITING UCD)" title, so it is shown the same way: under
+// the backend's message, which says what to do.
 //
-// Both are interim layouts until UCD's copy (BMD-1086).
+// Both are interim layouts until UCD's copy (BMD-1086). A legacy file refused
+// once the flag is on has its copy (LEGACY_TEMPLATE_NOT_ACCEPTED, in
+// single-error-copy.js).
 const TEMPLATE_FILE_ERROR_CODES = new Set([
   'TEMPLATE_VERSION_MISSING',
   'TEMPLATE_VERSION_DUPLICATED',
   'TEMPLATE_VERSION_INVALID',
   'TEMPLATE_VERSION_UNSUPPORTED',
-  'LEGACY_TEMPLATE_NOT_ACCEPTED',
   'POST_INTERVENTION_TABLES_EMPTY'
 ])
 

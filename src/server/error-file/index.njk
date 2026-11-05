@@ -20,7 +20,7 @@
               {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} (opens in a new tab)</a>{{ singleError.helpTextAfter }}
             {% endif %}
           </p>
-        {% elif singleError.variant == 'placeholder' %}
+        {% elif singleError.variant == 'placeholder' or singleError.variant == 'text' %}
           <p class="govuk-body">{{ singleError.helpText }}</p>
         {% else %}
           {% if singleError.intro %}
@@ -69,7 +69,12 @@
         </p>
       {% endif %}
 
-      {% if not singleError %}
+      {#
+        A single error with its own upload link says what to do in the sentence,
+        and a metric-tool page has nothing to upload. Plain text copy has
+        neither, so it keeps the way back to uploading.
+      #}
+      {% if not singleError or singleError.variant == 'text' %}
         <div class="govuk-button-group govuk-!-margin-top-6">
           {% if projectId %}
             {{ govukButton({

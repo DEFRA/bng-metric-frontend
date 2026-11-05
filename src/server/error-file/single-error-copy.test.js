@@ -402,7 +402,7 @@ describe('#resolveSingleErrorCopy', () => {
     )
   })
 
-  test('HABITAT_REF_MISSING (BMD-1058) is one file-level error, not one per habitat', () => {
+  test('HABITAT_REF_MISSING (BMD-1058) is one file-level error, in the dropout spreadsheet copy', () => {
     const result = resolveSingleErrorCopy(
       {
         code: 'HABITAT_REF_MISSING',
@@ -411,23 +411,44 @@ describe('#resolveSingleErrorCopy', () => {
       },
       UPLOAD_HREF
     )
-    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
-    expect(result.messageBefore).toBe(
-      'All habitats must have a reference. Add a reference to every habitat and '
-    )
-    expect(result.linkText).toBe('upload a new file')
+    expect(result).toEqual({
+      variant: 'text',
+      h1: 'There is a problem with your project',
+      subheading: 'Habitat parcels',
+      helpText: 'Your file contains a habitat with no habitat reference.'
+    })
   })
 
-  test('HABITAT_REF_INVALID_CHARACTERS (BMD-1058) names the problem and the fix', () => {
+  test('HABITAT_REF_INVALID_CHARACTERS (BMD-1058) uses the dropout spreadsheet copy', () => {
     const result = resolveSingleErrorCopy(
       { code: 'HABITAT_REF_INVALID_CHARACTERS', message: 'x' },
       null
     )
-    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
-    expect(result.messageBefore).toBe(
-      'One or more habitat references contain characters that are not allowed. Change the references to use only letters, numbers and standard punctuation.'
+    expect(result).toEqual({
+      variant: 'text',
+      h1: 'There is a problem with your project',
+      subheading: 'Habitat parcels',
+      helpText:
+        'This habitat reference contains characters that are not allowed.'
+    })
+  })
+
+  test('LEGACY_TEMPLATE_NOT_ACCEPTED (BMD-1086) uses the dropout spreadsheet copy, whole', () => {
+    const result = resolveSingleErrorCopy(
+      {
+        code: 'LEGACY_TEMPLATE_NOT_ACCEPTED',
+        message:
+          'This file is in the legacy Natural England template. The service now takes the BNG Service template: convert the file with the QGIS plugin, then upload it again.'
+      },
+      UPLOAD_HREF
     )
-    expect(result.linkText).toBeNull()
+    expect(result).toEqual({
+      variant: 'text',
+      h1: 'There is a problem with your file',
+      subheading: 'Template',
+      helpText:
+        'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
+    })
   })
 
   test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in square metres', () => {
