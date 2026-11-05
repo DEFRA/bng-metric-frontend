@@ -87,7 +87,10 @@ catchAll:
 # Copy awaiting UCD (BMD-592). {serviceMessage} is the service's own message.
 placeholder:
   title: PLACEHOLDER (AWAITING UCD)
-  body: PLACEHOLDER - {serviceMessage}
+  # The service's message when it sent one, and the title alone when it did not.
+  body:
+    - PLACEHOLDER - {serviceMessage}
+    - PLACEHOLDER
 
 # How a bullet names a habitat, the first option whose values are known.
 names:
@@ -502,16 +505,24 @@ errors:
     inList: service-message
 
   # --------------------------------------------------------------- comments
-  # Interim: a single comment error uses the placeholder until the dropout
-  # spreadsheet has a row for it. A file with several problems lists the
-  # service's own message.
+  # The 999 character figure mirrors MAX_COMMENT_LENGTH in the backend
+  # (validation/geopackage/comment-check.js); change both together. A file
+  # with several problems lists the service's own message.
 
   COMMENT_INVALID_CHARACTERS:
-    whenAlone: placeholder
+    whenAlone:
+      title: Your Geopackage (.gpkg) file contains an error
+      body: >-
+        A comment contains characters that are not allowed. Remove those
+        characters and [upload a new file](upload).
     inList: service-message
 
   COMMENT_TOO_LONG:
-    whenAlone: placeholder
+    whenAlone:
+      title: Your Geopackage (.gpkg) file contains an error
+      body: >-
+        A comment is longer than 999 characters. Shorten the comment and
+        [upload a new file](upload).
     inList: service-message
 
   # ------------------------------------------------------------ habitat refs
