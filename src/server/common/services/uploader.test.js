@@ -105,6 +105,8 @@ describe('initiateUpload', () => {
   it('should log the backend reason phrase but not its message', async () => {
     const error = new Error('Response Error: 400 Bad Request')
     error.data = {
+      isResponseError: true,
+      res: { statusCode: 400 },
       payload: {
         statusCode: 400,
         error: 'Bad Request',
@@ -121,7 +123,7 @@ describe('initiateUpload', () => {
     ).rejects.toThrow('Unable to initiate upload')
 
     const logged = mockLoggerError.mock.calls.at(-1)[0]
-    expect(logged).toContain('backendError: Bad Request')
+    expect(logged).toContain('body: {"error":"Bad Request"}')
     expect(logged).not.toContain('jane@example.com')
   })
 })
@@ -189,6 +191,8 @@ describe('getUploadStatus', () => {
   it('should log the backend reason phrase but not its message', async () => {
     const error = new Error('Response Error: 400 Bad Request')
     error.data = {
+      isResponseError: true,
+      res: { statusCode: 400 },
       payload: {
         statusCode: 400,
         error: 'Bad Request',
@@ -200,7 +204,7 @@ describe('getUploadStatus', () => {
     await getUploadStatus(makeRequest(), 'abc-123')
 
     const logged = mockLoggerError.mock.calls.at(-1)[0]
-    expect(logged).toContain('backendError: Bad Request')
+    expect(logged).toContain('body: {"error":"Bad Request"}')
     expect(logged).not.toContain('jane@example.com')
   })
 })
