@@ -1,26 +1,18 @@
 import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
+import {
+  LINK_TARGETS,
+  WHEN_ALONE,
+  canFill,
+  dropoutCopy,
+  errorCopy,
+  firstKnown,
+  splitLink
+} from './dropout-copy.js'
 
-// BMD-405 — exact GOV.UK copy for the "exactly one validation error" dropout
-// page, keyed by the backend's ERROR_CODES (backend/src/validation/geopackage/errors.js).
-// Copy is taken verbatim from the BMD-405 acceptance criteria; the Figma linked
-// on the ticket is the source of truth for anything not covered here.
-
-const GEOPACKAGE_ERROR_H1 = 'Your Geopackage (.gpkg) file contains an error'
-const UPLOAD_LINK_TEXT = 'upload a new file'
-const BOTH_OVERLAP_REFS = 2
-
-const STATUTORY_METRIC_TOOL_URL =
-  'https://www.gov.uk/government/publications/statutory-biodiversity-metric-tools-and-guides'
-
-// AC14 — BMD-300 checks whose finalised GOV.UK copy isn't written yet.
-// Placeholder text pending BMD-592.
-const PLACEHOLDER_ERROR_CODES = new Set([
-  'REDLINE_OUTSIDE_ENGLAND',
-  'REDLINE_AREA_TOO_LARGE',
-  'IGGIS_OUTSIDE_REDLINE',
-  'TREES_OUTSIDE_REDLINE',
-  'AREA_SUM_MISMATCH'
-])
+// BMD-405: the drop-out page for a file with exactly one validation error,
+// keyed by the backend's ERROR_CODES
+// (backend/src/validation/geopackage/errors.js). The copy is in
+// dropout-copy.yaml; this module only picks the entry and fills it in.
 
 function describeRef(sample, suffix = '') {
   const ref =
@@ -30,383 +22,112 @@ function describeRef(sample, suffix = '') {
   return ref != null && ref !== '' ? String(ref) : null
 }
 
-function firstSample(error) {
-  return error?.details?.sample?.[0] ?? null
-}
-
-// A project the service cannot calculate: the page sends the user to the
-// statutory metric tool. The link opens in a new tab and says so, unless the
-// entry sets opensInNewTab: false, when it opens in this tab and says nothing.
-function metricToolEntry(h1, helpTextBefore) {
-  return {
-    variant: 'metric-tool',
-    h1,
-    helpTextBefore,
-    linkText: 'metric tool (spreadsheet)',
-    linkHref: STATUTORY_METRIC_TOOL_URL,
-    helpTextAfter: ' to calculate biodiversity value.'
-  }
-}
-
-// Copy from the design team's dropout spreadsheet (BMD-1110) that asks for no
-// upload link: a heading, a subheading and one sentence.
-function textEntry(h1, subheading, helpText) {
-  return { variant: 'text', h1, subheading, helpText }
-}
-
-// The dropout spreadsheet's two page titles: one for a file the service cannot
-// read, one for a project it cannot take.
-const FILE_PROBLEM_H1 = 'There is a problem with your file'
-const PROJECT_PROBLEM_H1 = 'There is a problem with your project'
-
-function standard(h1, messageBefore, messageAfter = '.') {
-  return {
-    variant: 'standard',
-    h1,
-    messageBefore,
-    linkText: UPLOAD_LINK_TEXT,
-    messageAfter
-  }
-}
-
-// AC2 — No redline boundary (BMD-340): two codes, same copy.
-const noRedlineEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    'The redline boundary is missing. Draw the red line boundary and '
-  )
-
-// AC9 — Sliver (BMD-300 AC7). Two codes, and they are two different problems,
-// so they no longer share a sentence.
-
-// AREA_PARCELS_TOO_SMALL rejects a parcel on area alone — shape is not
-// considered, so the old "a thin strip of land" wording described something the
-// service never measures. Naming the limit tells the user what to draw instead.
-// The 1 square metre figure mirrors MIN_PARCEL_AREA_SQ_M in the backend
-// (validation/geopackage/postgis/index.js); change both together.
-// It also names the offending parcel, so the title can too (QA-clarified on the
-// BMD-405 thread: a sliver carries a parcel ref like any other polygon).
-const tooSmallParcelEntry = (error) => {
-  const ref = describeRef(firstSample(error))
-  return standard(
-    ref ? `This parcel ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
-    'This parcel is smaller than 1 square metre. Draw the parcel again and '
-  )
-}
-
-// SLIVERS_OUTSIDE_REDLINE really is a thin strip — it reports the leftover
-// geometry where the parcels overhang the boundary — so it keeps the original
-// wording. It describes that leftover rather than a titled parcel, so there is
-// no ref to personalise the title with.
-const sliverGeometryEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    'This parcel is a sliver (a thin strip of land). Draw the parcel again and '
-  )
-
-// Advance and delayed creation both set on one habitat. The statutory metric
-// rejects this (backend advance-delay-check.js); without dedicated copy a lone
-// occurrence fell through to the misleading "layer and column names" catch-all,
-// so name the actual problem and the fix here.
-const advanceAndDelayEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
-  )
-
-// A Retained or Enhanced row with no Baseline type (backend
-// BASELINE_TYPE_MISSING). The layers and columns are fine; those habitats
-// are incomplete, so name the missing field rather than the schema catch-all.
-const missingBaselineTypeEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    'Some retained or enhanced habitats have no baseline habitat type. Add a baseline habitat type for each of them and '
-  )
-
-// A post-intervention file that derives no baseline area habitats (backend
-// NO_DERIVED_BASELINE_HABITATS). Different from a blank Baseline type: there
-// is nothing to keep as the baseline.
-const noDerivedBaselineEntry = () =>
-  standard(
-    GEOPACKAGE_ERROR_H1,
-    'This file has no baseline area habitats. Add baseline habitats and '
-  )
-
-// A tree point's "Count" column says how many trees it stands for. The backend
-// refuses a value that is not a whole number of trees (TREE_COUNT_NOT_WHOLE,
-// validation/geopackage/tree-count-check.js) rather than guess between two
-// and three, and names the tree, so the title can too. A blank is fine: the
-// metric reads it as one tree, which is why the fix offers it.
-const treeCountEntry = (error) => {
-  const ref = describeRef(firstSample(error))
-  return standard(
-    ref ? `This tree ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
-    'The Count for a tree is not a whole number of trees. Leave Count blank for one tree, or enter how many trees the point stands for and '
-  )
-}
-
-// A vertical area habitat's Area is the face area the surveyor estimated on
-// site, in square metres, which a line cannot give. The backend refuses one
-// that is blank, zero, negative or not a number
-// (VERTICAL_HABITAT_AREA_NOT_POSITIVE, validation/geopackage/vertical-area-check.js)
-// and names the habitat, so the title can too.
-const verticalAreaEntry = (error) => {
-  const ref = describeRef(firstSample(error))
-  return standard(
-    ref
-      ? `This vertical area habitat ${ref} contains an error`
-      : GEOPACKAGE_ERROR_H1,
-    'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres and '
-  )
-}
-
-// A vertical area habitat's line, along the base of its structure, outside
-// the red line boundary. As a hedgerow's.
-const verticalOutsideRedlineEntry = (error) => {
-  const ref = describeRef(firstSample(error))
-  return standard(
-    ref
-      ? `This vertical area habitat ${ref} contains an error`
-      : GEOPACKAGE_ERROR_H1,
-    'This vertical area habitat is outside the red line boundary. Draw the vertical area habitat again and '
-  )
-}
-
-// The uploaded file's own name was rejected (backend SAFE_FILENAME_RE). Its
-// sibling code INVALID_FILE_METADATA means the document structure is wrong,
-// so it stays on the layer/column catch-all below.
-const invalidFilenameEntry = () => ({
-  ...standard(
-    GEOPACKAGE_ERROR_H1,
-    'The file name contains characters we cannot accept. Rename the file using letters, numbers, spaces, hyphens, underscores or brackets and '
-  ),
-  linkText: 'upload the renamed file'
-})
-
-// The file is too big for the service to check, not broken (backend
-// geopackage-internals-validate-features.js pushes GPKG_TOO_MANY_FEATURES from
-// VALIDATION_MAX_FEATURE_COUNT). Without dedicated copy it fell through to the
-// "layer and column names" catch-all below, which would send the user off
-// renaming columns that are perfectly correct. Its own h1 too: nothing is wrong
-// with the file, so "contains an error" would be telling them the wrong thing.
-const TOO_MANY_FEATURES_H1 =
-  'Your Geopackage (.gpkg) file contains too many features'
-
 // The counts ride on the error's details rather than being parsed back out of
-// the message. When they are missing the sentence still has to stand up, so the
-// copy falls back to naming the problem without the numbers.
+// the message.
 function describeCount(error, key) {
   const value = error?.details?.[key]
   return Number.isFinite(value) ? value.toLocaleString('en-GB') : null
 }
 
-const tooManyFeaturesEntry = (error) => {
-  const featureCount = describeCount(error, 'featureCount')
-  const maxFeatureCount = describeCount(error, 'maxFeatureCount')
-  const counts =
-    featureCount && maxFeatureCount
-      ? `This file contains ${featureCount} features. This service can check up to ${maxFeatureCount}. `
-      : 'This file contains more features than this service can check. '
-  return standard(
-    TOO_MANY_FEATURES_H1,
-    `${counts}Reduce the number of features and `
+// The {values} a single error's copy can name.
+function valuesFor(error) {
+  const sample = error?.details?.sample?.[0] ?? null
+  return {
+    ref: describeRef(sample),
+    refA: describeRef(sample, '_a'),
+    refB: describeRef(sample, '_b'),
+    featureCount: describeCount(error, 'featureCount'),
+    maxFeatureCount: describeCount(error, 'maxFeatureCount')
+  }
+}
+
+/** The {values} a page's title and body can name, for a test to check. */
+export function pageValueNames() {
+  return Object.keys(valuesFor({}))
+}
+
+// whenAlone may give several pages, the first whose title and body the error
+// can fill.
+function choosePage(pages, values) {
+  const list = [pages].flat()
+  return (
+    list.find(
+      (page) => canFill(page.title, values) && canFill(page.body, values)
+    ) ?? list.at(-1)
   )
 }
 
-// BMD-1058: habitats with no Parcel Ref, or one with characters that are not
-// valid UTF-8. Each is one collated error for every habitat it applies to, and
-// a habitat with no reference has none to name, so neither names a habitat.
-// Copy word for word from the dropout spreadsheet (BMD-1110, rows 32 and 33);
-// the multi-error list uses the same sentences as its headings
-// (COLLATED_ERROR_HEADINGS, controller.js).
-const HABITAT_PARCELS_SUBHEADING = 'Habitat parcels'
-export const HABITAT_REF_MISSING_TEXT =
-  'Your file contains a habitat with no habitat reference'
-export const HABITAT_REF_INVALID_CHARACTERS_TEXT =
-  'This habitat reference contains characters that are not allowed'
-
-const habitatRefMissingEntry = () =>
-  textEntry(
-    PROJECT_PROBLEM_H1,
-    HABITAT_PARCELS_SUBHEADING,
-    `${HABITAT_REF_MISSING_TEXT}.`
-  )
-
-const habitatRefInvalidCharactersEntry = () =>
-  textEntry(
-    PROJECT_PROBLEM_H1,
-    HABITAT_PARCELS_SUBHEADING,
-    `${HABITAT_REF_INVALID_CHARACTERS_TEXT}.`
-  )
-
-// BMD-1086: a legacy Natural England file refused once the service-template
-// flag is on. The backend sends it alone. Copy word for word from the dropout
-// spreadsheet (BMD-1110, row 40).
-const legacyTemplateEntry = () =>
-  textEntry(
-    FILE_PROBLEM_H1,
-    'Template',
-    'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
-  )
-
-// BMD-1182: enhanced habitats whose baseline the service cannot enhance at
-// all. The file is refused rather than the enhancements nulled. Copy word for
-// word from the design team's dropout spreadsheet (BMD-1110, row 39), so the
-// page lists no habitats and the link names no new tab: it opens in this one.
-const SERVICE_ELIGIBILITY_SUBHEADING = 'Service eligibility'
-const UNENHANCEABLE_BASELINE_HELP_TEXT =
-  'Your project contains habitats that have been enhanced to a level which is not yet included in this service. Use the '
-
-const unenhanceableBaselineEntry = () => ({
-  ...metricToolEntry(PROJECT_PROBLEM_H1, UNENHANCEABLE_BASELINE_HELP_TEXT),
-  subheading: SERVICE_ELIGIBILITY_SUBHEADING,
-  opensInNewTab: false
-})
-
-const CODE_ENTRIES = {
-  NO_REDLINE: noRedlineEntry,
-  GPKG_RLB_NO_POLYGON: noRedlineEntry,
-
-  // AC3 — Multiple redline boundaries (BMD-340)
-  GPKG_RLB_TOO_MANY_POLYGONS: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'This file contains multiple red line boundaries. Draw the red line boundary again and '
-    ),
-
-  // AC4 — No area habitat polygons (BMD-461)
-  NO_HABITAT_AREAS: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      "The file doesn't contain any parcels. Draw parcels within your red line boundary and "
-    ),
-
-  // AC5 — Self-intersecting redline boundary (BMD-300 AC4)
-  REDLINE_INVALID_GEOMETRY: () =>
-    standard(
-      GEOPACKAGE_ERROR_H1,
-      'The redline boundary is overlapping itself. Draw the boundary again and '
-    ),
-
-  // AC6a — Ineligible distinctiveness (BMD-352)
-  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: () =>
-    metricToolEntry(
-      'Very high and high distinctiveness habitats are not yet included in this service',
-      'Use the '
-    ),
-
-  // AC7 — Self-intersecting parcel (BMD-300 AC5)
-  AREA_PARCELS_INVALID_GEOMETRY: (error) => {
-    const ref = describeRef(firstSample(error))
-    return standard(
-      ref ? `This parcel ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
-      'This parcel is overlapping itself. Draw the parcel again and '
-    )
-  },
-
-  // AC8 — Overlapping parcel (BMD-300 AC6)
-  PARCEL_OVERLAPS: (error) => {
-    const sample = firstSample(error)
-    const refs = [describeRef(sample, '_a'), describeRef(sample, '_b')].filter(
-      Boolean
-    )
-    const bothRefs = refs.length === BOTH_OVERLAP_REFS
-    return standard(
-      bothRefs
-        ? `These parcels ${refs.join(', ')} contain an error`
-        : GEOPACKAGE_ERROR_H1,
-      bothRefs
-        ? 'These parcels are overlapping. Draw the parcels again and '
-        : 'Some parcels in this file are overlapping. Draw the affected parcels again and '
-    )
-  },
-
-  AREA_PARCELS_TOO_SMALL: tooSmallParcelEntry,
-  SLIVERS_OUTSIDE_REDLINE: sliverGeometryEntry,
-
-  ADVANCE_AND_DELAY_BOTH_SET: advanceAndDelayEntry,
-  BASELINE_TYPE_MISSING: missingBaselineTypeEntry,
-  NO_DERIVED_BASELINE_HABITATS: noDerivedBaselineEntry,
-  HABITAT_REF_MISSING: habitatRefMissingEntry,
-  HABITAT_REF_INVALID_CHARACTERS: habitatRefInvalidCharactersEntry,
-  TREE_COUNT_NOT_WHOLE: treeCountEntry,
-  VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaEntry,
-  INVALID_FILENAME: invalidFilenameEntry,
-  GPKG_TOO_MANY_FEATURES: tooManyFeaturesEntry,
-  BASELINE_NOT_ENHANCEABLE: unenhanceableBaselineEntry,
-  LEGACY_TEMPLATE_NOT_ACCEPTED: legacyTemplateEntry,
-
-  // AC10 — Parcel outside redline boundary (BMD-300 AC8)
-  AREA_PARCELS_OUTSIDE_REDLINE: (error) => {
-    const ref = describeRef(firstSample(error))
-    return standard(
-      ref ? `This parcel ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
-      'This parcel is outside the red line boundary. Draw the parcel again and '
-    )
-  },
-
-  // AC11 — Hedgerow outside redline boundary (BMD-300 AC9)
-  HEDGEROWS_OUTSIDE_REDLINE: (error) => {
-    const ref = describeRef(firstSample(error))
-    return standard(
-      ref ? `This hedgerow ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
-      'This hedgerow is outside the red line boundary. Draw the hedgerow again and '
-    )
-  },
-
-  // AC12 — Watercourse outside redline boundary (BMD-300 AC10)
-  WATERCOURSES_OUTSIDE_REDLINE: (error) => {
-    const ref = describeRef(firstSample(error))
-    return standard(
-      ref ? `This watercourse ${ref} contains an error` : GEOPACKAGE_ERROR_H1,
-      'This watercourse is outside the red line boundary. Draw the watercourse again and '
-    )
-  },
-
-  VERTICAL_HABITATS_OUTSIDE_REDLINE: verticalOutsideRedlineEntry
+function catchAllPage() {
+  return isServiceTemplateEnabled()
+    ? dropoutCopy.catchAll.serviceTemplate
+    : dropoutCopy.catchAll.legacyTemplate
 }
 
-// AC1 — Invalid Natural England columns/layers (BMD-339) is the catch-all:
-// every GeoPackage structural/schema error not covered by a more specific AC
-// above lands here, so an error code we haven't seen yet still degrades to a
-// sensible message rather than a blank page. With the service-template flag
-// on, the service takes the BNG Service template instead, so the copy names
-// it (BMD-1086).
-const LEGACY_LAYERS_AND_COLUMNS_TEXT =
-  'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
-const SERVICE_TEMPLATE_LAYERS_AND_COLUMNS_TEXT =
-  'The layer names and column names do not match the BNG Service template. Rename the layers and columns and '
-
-function defaultEntry() {
-  return standard(
-    GEOPACKAGE_ERROR_H1,
-    isServiceTemplateEnabled()
-      ? SERVICE_TEMPLATE_LAYERS_AND_COLUMNS_TEXT
-      : LEGACY_LAYERS_AND_COLUMNS_TEXT
+// The page's fields for its variant, from where its sentence links: to the
+// upload page, to the metric tool, or nowhere.
+function buildPage(page, values) {
+  const h1 = firstKnown(page.title, values)
+  const { before, linkText, target, after } = splitLink(
+    firstKnown(page.body, values)
   )
+  const subheading = page.subheading ? { subheading: page.subheading } : {}
+
+  if (target === LINK_TARGETS.UPLOAD) {
+    return {
+      variant: 'standard',
+      h1,
+      ...subheading,
+      messageBefore: before,
+      linkText,
+      messageAfter: after
+    }
+  }
+  if (target === LINK_TARGETS.METRIC_TOOL) {
+    return {
+      variant: 'metric-tool',
+      h1,
+      ...subheading,
+      helpTextBefore: before,
+      linkText,
+      linkHref: dropoutCopy.links[LINK_TARGETS.METRIC_TOOL],
+      helpTextAfter: after,
+      ...(page.opensInNewTab === false ? { opensInNewTab: false } : {})
+    }
+  }
+  return { variant: 'text', h1, subheading: page.subheading, helpText: before }
+}
+
+/** The {values} the placeholder copy can name, for a test to check. */
+export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['serviceMessage'])
+
+function placeholderPage(error) {
+  const values = { serviceMessage: `${error?.message}` }
+  return {
+    variant: 'placeholder',
+    h1: firstKnown(dropoutCopy.placeholder.title, values),
+    helpText: firstKnown(dropoutCopy.placeholder.body, values)
+  }
 }
 
 /**
- * Resolve the exact AC copy for a single validation error.
+ * Resolve the copy for a single validation error.
  *
  * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
  */
 export function resolveSingleErrorCopy(error, uploadHref) {
-  const build = CODE_ENTRIES[error?.code]
+  const whenAlone = errorCopy(error?.code)?.whenAlone
 
-  // Check CODE_ENTRIES before PLACEHOLDER_ERROR_CODES so that adding real copy
-  // to CODE_ENTRIES for a graduating placeholder code takes effect without also
-  // needing to remember to remove it from the Set.
-  if (!build && PLACEHOLDER_ERROR_CODES.has(error?.code)) {
-    return {
-      variant: 'placeholder',
-      h1: 'PLACEHOLDER (AWAITING UCD)',
-      helpText: `PLACEHOLDER - ${error?.message}`
-    }
+  if (whenAlone === WHEN_ALONE.PLACEHOLDER) {
+    return placeholderPage(error)
   }
 
-  const resolved = (build ?? defaultEntry)(error)
+  // A code with no copy of its own, or one the page always lists, takes the
+  // catch-all, so an error code we haven't seen yet still degrades to a
+  // sensible message rather than a blank page.
+  const pages = typeof whenAlone === 'object' ? whenAlone : catchAllPage()
+  const values = valuesFor(error)
+  const resolved = buildPage(choosePage(pages, values), values)
 
   if (resolved.variant === 'standard') {
     resolved.uploadHref = uploadHref
