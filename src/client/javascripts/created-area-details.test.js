@@ -65,6 +65,46 @@ describe('Created area editing', () => {
     )
   })
 
+  test.each([
+    ['Area/compensation not in local strategy/ no local strategy', 'Low'],
+    ['Formally identified in local strategy', 'High']
+  ])(
+    'submits the saved significance %s from an incomplete legacy form',
+    (strategicSignificance, expected) => {
+      const feature = {
+        ...structuredClone(createdAreaFeature),
+        units: null,
+        status: 'Incomplete',
+        proposed: {
+          ...createdAreaFeature.proposed,
+          condition: null,
+          advanceYears: null,
+          strategicSignificanceCategory: null,
+          strategicSignificanceScore: null,
+          strategicSignificance
+        }
+      }
+      renderTemplateIntoDocument(
+        'habitat-details/pi-habitat-details-created-edit.njk',
+        buildCreatedAreaEditViewModel(feature, creationReference, ctx)
+      )
+      initCreatedAreaDetails()
+      const form = document.getElementById('strategicSignificance').form
+      expect(value('strategicSignificance')).toBe(expected)
+      expect(new FormData(form).get('strategicSignificance')).toBe(expected)
+      expect(document.body.textContent).not.toContain('is not available')
+      expect(
+        document
+          .querySelector('.app-units-delivered .govuk-summary-list__value')
+          .textContent.trim()
+      ).toBe('')
+
+      // Clearing is still an explicit user choice, not a fallback to the raw label.
+      change('strategicSignificance', '')
+      expect(new FormData(form).get('strategicSignificance')).toBe('')
+    }
+  )
+
   test('announces changed calculation labels politely without moving focus', () => {
     const status = document.getElementById('created-area-results-status')
     expect(status.getAttribute('aria-live')).toBe('polite')
