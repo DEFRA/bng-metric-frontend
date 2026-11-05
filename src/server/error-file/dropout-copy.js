@@ -197,6 +197,16 @@ export function splitLink(sentence) {
  *
  * @param {{ fileLabel?: string }} [values]
  */
+/**
+ * The {values} each page string can name: pageText fills these and no
+ * others, so a test can check the copy names only them. A page string not
+ * listed names none.
+ */
+export const PAGE_TEXT_VALUES = Object.freeze({
+  listHeading: ['fileLabel'],
+  more: ['count']
+})
+
 export function pageText({ fileLabel } = {}) {
   const { page } = dropoutCopy
   return {

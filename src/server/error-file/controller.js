@@ -115,7 +115,7 @@ function outsideRedlineValues(s) {
 function distinctivenessValues(s) {
   return {
     ...featureValues(s),
-    habitatType: s?.habitat_type ?? unknown.habitatType,
+    habitatType: known(s?.habitat_type) ?? unknown.habitatType,
     distinctiveness: displayBand(s?.distinctiveness)
   }
 }
@@ -123,7 +123,7 @@ function distinctivenessValues(s) {
 function unenhanceableValues(s) {
   return {
     ...featureValues(s),
-    habitatType: s?.habitat_type ?? unknown.habitatType
+    habitatType: known(s?.habitat_type) ?? unknown.habitatType
   }
 }
 
@@ -224,6 +224,9 @@ function joinWithAnd(items) {
 // offender list. For distinctiveness rejection the backend supplies the raw
 // allowed-band identifiers in details.allowedBands; we map them through
 // displayBand so the user sees "Very low" rather than "V.Low".
+/** The {values} a list's note can name, for a test to check. */
+export const NOTE_VALUE_NAMES = Object.freeze(['bands'])
+
 function buildNote(err) {
   const note = inListCopy(err.code).note
   const bands = err.details?.allowedBands

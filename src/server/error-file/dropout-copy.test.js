@@ -5,6 +5,7 @@ import { describe, test, expect } from 'vitest'
 
 import {
   LINK_TARGETS,
+  PAGE_TEXT_VALUES,
   WHEN_ALONE,
   canFill,
   dropoutCopy,
@@ -17,8 +18,8 @@ import {
   parseDropoutCopy,
   splitLink
 } from './dropout-copy.js'
-import { itemValueNames } from './controller.js'
-import { pageValueNames } from './single-error-copy.js'
+import { NOTE_VALUE_NAMES, itemValueNames } from './controller.js'
+import { PLACEHOLDER_VALUE_NAMES, pageValueNames } from './single-error-copy.js'
 
 const COPY_SOURCE = readFileSync(
   path.join(import.meta.dirname, 'dropout-copy.yaml'),
@@ -74,6 +75,35 @@ describe('dropout-copy.yaml', () => {
       ...[dropoutCopy.names.habitat].flat()
     ])) {
       expect(NAME_VALUES, `{${name}}`).toContain(name)
+    }
+  })
+
+  // The page's own strings, list notes and headings, and the placeholder copy:
+  // each is filled with its own few values, or none, so a typo such as
+  // {Count} would otherwise leave a blank on every page.
+  test('names only the {values} each page string, note, heading and placeholder is filled with', () => {
+    for (const [key, value] of Object.entries(dropoutCopy.page)) {
+      for (const name of placeholders(value)) {
+        expect(PAGE_TEXT_VALUES[key] ?? [], `page.${key}: {${name}}`).toContain(
+          name
+        )
+      }
+    }
+    for (const [code, { inList }] of entries) {
+      for (const name of placeholders(inList.note ?? [])) {
+        expect(NOTE_VALUE_NAMES, `${code} note: {${name}}`).toContain(name)
+      }
+      expect(placeholders(inList.heading ?? []), `${code} heading`).toEqual([])
+    }
+    const { title, body } = dropoutCopy.placeholder
+    for (const name of placeholders([title, body].flat())) {
+      expect(PLACEHOLDER_VALUE_NAMES, `placeholder: {${name}}`).toContain(name)
+    }
+    for (const section of ['unknown', 'distinctiveness', 'links']) {
+      expect(
+        placeholders(Object.values(dropoutCopy[section])),
+        section
+      ).toEqual([])
     }
   })
 

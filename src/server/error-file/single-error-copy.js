@@ -97,6 +97,9 @@ function buildPage(page, values) {
   return { variant: 'text', h1, subheading: page.subheading, helpText: before }
 }
 
+/** The {values} the placeholder copy can name, for a test to check. */
+export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['serviceMessage'])
+
 function placeholderPage(error) {
   const values = { serviceMessage: `${error?.message}` }
   return {

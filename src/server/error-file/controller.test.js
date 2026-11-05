@@ -1378,6 +1378,22 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     expect(blocks[0].items).toEqual(['Feature Ref H1 — Grassland (unknown)'])
   })
 
+  test('names a blank habitat type as unknown, so the bullet keeps the habitat and its condition', async () => {
+    const blocks = await blocksFor([
+      {
+        code: 'BASELINE_NOT_ENHANCEABLE',
+        message: 'Not enhanceable: H2',
+        details: {
+          count: 1,
+          sample: [{ feature_ref: 'H2', habitat_type: '', condition: 'Good' }]
+        }
+      },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(blocks[0].items).toEqual(['Feature Ref H2 — unknown habitat (Good)'])
+  })
+
   test('names a habitat by its ref when no part of its bullet has its values', async () => {
     const blocks = await blocksFor([
       {
