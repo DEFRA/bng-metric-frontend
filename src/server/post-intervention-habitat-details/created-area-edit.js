@@ -26,6 +26,7 @@ import { formatLengthDisplay } from './view-only-shared.js'
 import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
+import { createdStrategicSignificance } from './created-strategic-significance.js'
 
 export const CREATED_EDIT_KINDS = {
   habitat: {
@@ -168,10 +169,11 @@ export function createdAreaValues(feature) {
     broadHabitat: proposed.broadType ?? '',
     habitatType: proposed.type ?? '',
     condition: stripConditionPrefix(proposed.condition) ?? '',
-    strategicSignificance:
+    strategicSignificance: createdStrategicSignificance(
       proposed.strategicSignificanceCategory ??
-      proposed.strategicSignificance ??
-      '',
+        proposed.strategicSignificance ??
+        ''
+    ),
     advanceYears: yearValue(
       proposed.advanceYears,
       proposed.advanceYearsIs30Plus
