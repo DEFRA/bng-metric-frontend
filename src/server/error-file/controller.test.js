@@ -1163,11 +1163,11 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each vertical area habitat whose rows together have more face area than it, with both areas', async () => {
+  test('lists each vertical area habitat whose rows together have more area than it, with both areas in hectares and square metres', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_VERTICAL_CHILDREN_TOO_LARGE',
-        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        'One or more baseline vertical area habitats have a smaller Area (ha) than the post-intervention vertical area habitats linked to them together',
         [
           {
             layer: 'verticalHabitats',
@@ -1195,9 +1195,9 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        'One or more baseline vertical area habitats have a smaller Area (ha) than the post-intervention vertical area habitats linked to them together',
         [
-          'Vertical Area Habitats Baseline V001 — Facade-bound green wall, copied to V001a, V001b (40 m², linked 50.1 m²)',
+          'Vertical Area Habitats Baseline V001 — Facade-bound green wall, copied to V001a, V001b; Area 0.004ha (40m²), linked 0.00501ha (50.1m²)',
           'Vertical Area Habitats Baseline V002 — Ground based green wall, copied to V002a'
         ]
       ]

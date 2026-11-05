@@ -467,8 +467,8 @@ errors:
         - This vertical area habitat {ref} contains an error
         - Your Geopackage (.gpkg) file contains an error
       body: >-
-        The Area (m²) of a vertical area habitat must be a number above 0.
-        Enter the face area you estimated on site in square metres and
+        The Area (ha) of a vertical area habitat must be a number above 0.
+        Enter the area you estimated on site in hectares and
         [upload a new file](upload).
     inList:
       item: '{feature} (Area: {area})'
@@ -665,7 +665,7 @@ errors:
     whenAlone: list
     inList:
       heading: >-
-        One or more baseline vertical area habitats have a smaller Area (m²)
+        One or more baseline vertical area habitats have a smaller Area (ha)
         than the post-intervention vertical area habitats linked to them
         together
       item:
@@ -673,7 +673,7 @@ errors:
         - '{name}'
         - ' — {habitatType}'
         - ', copied to {childRefs}'
-        - ' ({area} m², linked {childArea} m²)'
+        - '; Area {area}, linked {childArea}'
 
   STAGED_WATERCOURSE_RETAINED_AND_CREATED:
     whenAlone: list
