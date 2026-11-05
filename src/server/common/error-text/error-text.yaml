@@ -9,6 +9,7 @@
 #
 #   upload   the drop-out page (/error-file), shown when an uploaded
 #            GeoPackage is refused. Keyed by the backend's error code.
+#            A code met only on an edit has no entry here.
 #   edit     refusals of a change made to a habitat on screen, after the file
 #            was accepted. Keyed by the backend's error code.
 #   forms    a form field's own validation, before anything reaches the
@@ -564,10 +565,6 @@ upload:
         heading: This habitat reference contains characters that are not allowed
         listsHabitats: false
 
-    HABITAT_REF_IN_USE:
-      whenAlone: catch-all
-      inList: service-message
-
     # --------------------------------------------------- habitat eligibility
 
     HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
@@ -598,10 +595,6 @@ upload:
         item:
           - '{feature} — {habitatType}'
           - ' ({condition})'
-
-    ENHANCEMENT_NOT_VALID:
-      whenAlone: catch-all
-      inList: service-message
 
     # ----------------------------------- BNG Service template lineage (BMD-1083)
     #
