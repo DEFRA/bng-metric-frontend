@@ -509,14 +509,14 @@ describe('area post intervention', () => {
 
     expect(headings('#retained thead th')).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Broad habitat',
       'Habitat type',
       'Distinctiveness',
       'Condition',
-      'Strategic significance',
-      'Status'
+      'Strategic significance'
     ])
     const targetAndTimeHeaders = [
       'Strategic significance',
@@ -525,11 +525,11 @@ describe('area post intervention', () => {
       'Advance',
       'Delay',
       'Final time to target',
-      'Standard difficulty',
-      'Status'
+      'Standard difficulty'
     ]
     expect(headings('#enhanced thead th')).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Broad habitat',
@@ -539,6 +539,7 @@ describe('area post intervention', () => {
     ])
     expect(headings('#created thead th')).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Broad habitat',
@@ -550,7 +551,7 @@ describe('area post intervention', () => {
     expect($('#created tbody').text()).toContain('Individual trees')
   })
 
-  test('ends each tab row with its status, tagging only an incomplete one (BMD-1102)', async () => {
+  test("shows each row's status as a tag after Ref on every tab (BMD-1102)", async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: {
@@ -575,18 +576,22 @@ describe('area post intervention', () => {
     })
 
     const $ = load(result)
-    const lastCell = (tab) => $(`#${tab} tbody .govuk-table__row td`).last()
+    const statusCell = (tab) =>
+      $(`#${tab} tbody .govuk-table__row`).first().find('td').eq(1)
 
     for (const tab of ['retained', 'enhanced', 'created']) {
-      expect($(`#${tab} thead th`).last().text()).toBe('Status')
-      expect($(`#${tab} tfoot td`).last().text()).toBe('')
+      const $heading = $(`#${tab} thead th`).eq(1)
+      expect($heading.text()).toBe('Status')
+      expect($heading.attr('data-sort-ties-by-ref')).toBe('true')
+      expect($(`#${tab} tfoot td`).eq(1).text()).toBe('')
     }
-    expect(lastCell('retained').text()).toBe('Complete')
-    expect(lastCell('retained').find('.govuk-tag')).toHaveLength(0)
-    expect(lastCell('enhanced').find('strong.govuk-tag--blue').text()).toBe(
+    expect(statusCell('retained').find('strong.govuk-tag--grey').text()).toBe(
+      'Complete'
+    )
+    expect(statusCell('enhanced').find('strong.govuk-tag--blue').text()).toBe(
       'Incomplete'
     )
-    expect(lastCell('created').find('strong.govuk-tag--blue').text()).toBe(
+    expect(statusCell('created').find('strong.govuk-tag--blue').text()).toBe(
       'Incomplete'
     )
   })

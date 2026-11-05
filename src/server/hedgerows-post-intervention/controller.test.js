@@ -387,13 +387,13 @@ describe('hedgerows post intervention', () => {
     expect(panel.find('h3').text()).toBe('Retained hedgerow habitats')
     expect(headers).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
       'Distinctiveness',
       'Condition',
-      'Strategic significance',
-      'Status'
+      'Strategic significance'
     ])
     expect(headers).not.toContain('Target condition')
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)

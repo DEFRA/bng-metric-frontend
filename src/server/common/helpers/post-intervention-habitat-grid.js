@@ -131,6 +131,7 @@ function sharedSizeColumns({
         ),
       total: () => boldCell(textCell(TOTALS_LABEL))
     },
+    STATUS_COLUMN,
     {
       text: 'Units',
       numeric: true,
@@ -277,8 +278,7 @@ function buildColumns({
     strategicSignificanceColumn(interventionType),
     ...(INTERVENTION_WITH_TARGET_FIELDS.has(interventionType)
       ? targetAndTimeColumns()
-      : []),
-    STATUS_COLUMN
+      : [])
   ]
 }
 

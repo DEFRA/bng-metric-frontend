@@ -292,6 +292,7 @@ describe('watercourses post intervention', () => {
 
     expect(headers).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
@@ -299,8 +300,7 @@ describe('watercourses post intervention', () => {
       'Condition',
       'Watercourse encroachment',
       'Riparian encroachment',
-      'Strategic significance',
-      'Status'
+      'Strategic significance'
     ])
     expect(panel.find('th[aria-sort="none"]')).toHaveLength(headers.length)
     expect(panel.find('tbody a').text()).toBe('W-A2')
@@ -339,6 +339,7 @@ describe('watercourses post intervention', () => {
 
     expect(headers).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
@@ -351,8 +352,7 @@ describe('watercourses post intervention', () => {
       'Advance',
       'Delay',
       'Final time to target',
-      'Standard difficulty',
-      'Status'
+      'Standard difficulty'
     ])
     expect(row).toContain('Minor (0.8)')
     expect(row).toContain('Minor/No Encroachment (0.98)')
