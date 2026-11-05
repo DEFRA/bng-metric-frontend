@@ -292,6 +292,7 @@ describe('watercourses post intervention', () => {
 
     expect(headers).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
@@ -338,6 +339,7 @@ describe('watercourses post intervention', () => {
 
     expect(headers).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
