@@ -23,6 +23,7 @@ const LOST_SIZE_FIELD = {
   hedgerows: 'lostSizeMetres',
   watercourses: 'lostSizeMetres'
 }
+const SQUARE_METRES_PER_HECTARE = 10_000
 
 function featureIds(features) {
   return new Set(features.map(({ featureId }) => featureId))
@@ -107,14 +108,14 @@ describe('service-template project fixtures', () => {
     }
   })
 
-  test('size each vertical area habitat by the face area typed in, in square metres, and keep it out of the site area', () => {
+  test('size each vertical area habitat by the face area typed in, in hectares, held in square metres, and keep it out of the site area', () => {
     for (const document of [baseline, postIntervention]) {
       expect(document.verticalHabitats.length).toBeGreaterThan(0)
       for (const vertical of document.verticalHabitats) {
         expect(vertical.sizeSquareMetres, vertical.ref).toBeGreaterThan(0)
-        // As typed into the template's Area column, not converted.
-        expect(vertical.sizeSquareMetres, vertical.ref).toBe(
-          vertical.properties.Area
+        // As typed into the template's Area column, in hectares.
+        expect(vertical.sizeSquareMetres, vertical.ref).toBeCloseTo(
+          vertical.properties.Area * SQUARE_METRES_PER_HECTARE
         )
       }
       const typed = document.verticalHabitats.reduce(

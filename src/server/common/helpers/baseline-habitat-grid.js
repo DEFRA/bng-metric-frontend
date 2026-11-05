@@ -41,8 +41,7 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
       text: 'Size',
       numeric: true,
       // The feature too, for a page whose rows differ in unit: a vertical
-      // area habitat's size is in square metres among area habitats in
-      // hectares.
+      // area habitat's size is in square metres as well as in hectares.
       cell: (feature) =>
         numericCell(formatSize(readSize(feature), feature), readSize(feature)),
       total: (totals) => boldCell(numericCell(formatSizeTotal(totals.size)))

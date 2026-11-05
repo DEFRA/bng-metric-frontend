@@ -430,7 +430,7 @@ describe('#resolveSingleErrorCopy', () => {
     })
   })
 
-  test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in square metres', () => {
+  test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in hectares', () => {
     const result = resolveSingleErrorCopy(
       {
         code: 'VERTICAL_HABITAT_AREA_NOT_POSITIVE',
@@ -444,7 +444,7 @@ describe('#resolveSingleErrorCopy', () => {
     )
     expect(result.h1).toBe('This vertical area habitat V001 contains an error')
     expect(result.messageBefore).toBe(
-      'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres and '
+      'The Area (ha) of a vertical area habitat must be a number above 0. Enter the area you estimated on site in hectares and '
     )
     expect(result.linkText).toBe('upload a new file')
   })
@@ -467,7 +467,7 @@ describe('#resolveSingleErrorCopy', () => {
   test.each([
     [
       'VERTICAL_HABITAT_AREA_NOT_POSITIVE',
-      'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres.'
+      'The Area (ha) of a vertical area habitat must be a number above 0. Enter the area you estimated on site in hectares.'
     ],
     [
       'VERTICAL_HABITATS_OUTSIDE_REDLINE',

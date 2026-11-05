@@ -100,7 +100,7 @@ describe('pi-habitat-details template (retained area habitat)', () => {
 })
 
 describe('pi-habitat-details template (vertical area habitat)', () => {
-  test('labels and shows the size in square metres, as entered', () => {
+  test('labels the size in hectares, and shows it in square metres too', () => {
     const html = renderTemplate(
       'habitat-details/pi-habitat-details.njk',
       buildAreaViewOnlyViewModel(
@@ -114,8 +114,7 @@ describe('pi-habitat-details template (vertical area habitat)', () => {
       )
     )
 
-    expect(html).toContain('>Size (square metres)</h3>')
-    expect(html).not.toContain('Size (hectares)')
-    expect(html).toContain('>37.5</p>')
+    expect(html).toContain('>Size (hectares)</h3>')
+    expect(html).toContain('>0.00375 (37.5m²)</p>')
   })
 })

@@ -1,3 +1,4 @@
+import { formatVerticalArea } from '../common/helpers/format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import {
   WHEN_ALONE,
@@ -75,8 +76,10 @@ function lineageValues(s) {
     childRefs: joinRefs(s?.childRefs),
     length: s?.lengthMetres,
     childLength: s?.childLengthMetres,
-    area: s?.areaSquareMetres,
-    childArea: s?.childAreaSquareMetres
+    // A vertical area habitat's, in hectares as the surveyor typed them and
+    // in square metres, as the habitat pages show them.
+    area: formatVerticalArea(s?.areaSquareMetres),
+    childArea: formatVerticalArea(s?.childAreaSquareMetres)
   }
 }
 
