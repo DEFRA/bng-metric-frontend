@@ -4,7 +4,6 @@ import { config } from '../../../config/config.js'
 import { statusCodes } from '../constants.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
-import { describeBackendError } from '../helpers/describe-backend-error.js'
 import { HABITAT_UPLOAD_TYPES } from '../helpers/habitat-upload-types.js'
 import { describeBackendFailure } from '../helpers/backend-failure.js'
 
@@ -106,17 +105,17 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
   } catch (error) {
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
-    const backendError = describeBackendError(error)
 
     // The status code alone is ambiguous — wreck gives its own timeout a 504
     // and a dropped connection a 502 — so say which failure this was, how long
     // it took and what answered, so the cause of a 502 can be read off the log.
+    // It gives only the safe fields of the backend's body, never its messages.
     const failure = describeBackendFailure(error, {
       elapsedMs: performance.now() - startedAt,
       timeoutMs
     })
     logger.error(
-      `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, ${failure}, backendError: ${backendError}, message: ${error?.message}`
+      `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, ${failure}, message: ${error?.message}`
     )
 
     // A busy validator means the file was never looked at. It is the one

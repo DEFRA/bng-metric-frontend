@@ -48,8 +48,31 @@ function backendFailureKind(error) {
 }
 
 /**
- * A response body as log text. JSON the backend sent is quoted whole, so a
- * long list of error codes keeps all of them. A body that is not JSON, such as
+ * The parts of a JSON body from the backend that are safe to log: the Boom
+ * reason phrase, the error code and every validation error's code, so a long
+ * list of codes keeps all of them. Anything else, the Boom `message` and each
+ * error's own message above all, is left out, because it can echo what the
+ * user uploaded or typed (BMD-1174). The backend logs its full error itself.
+ */
+function jsonBodySummary(payload) {
+  if (typeof payload !== 'object') {
+    return `${typeof payload} of ${String(payload).length} characters`
+  }
+  const summary = {}
+  for (const key of ['valid', 'error', 'code']) {
+    if (payload[key] !== undefined) {
+      summary[key] = payload[key]
+    }
+  }
+  if (Array.isArray(payload.errors)) {
+    summary.errorCodes = payload.errors.map((entry) => entry?.code ?? 'none')
+  }
+  return JSON.stringify(summary)
+}
+
+/**
+ * A response body as log text. JSON the backend sent is reduced to the fields
+ * that are safe to log (see jsonBodySummary). A body that is not JSON, such as
  * a proxy's error page, arrives as a Buffer, which JSON.stringify would turn
  * into an array of byte values: only its start is quoted, as text.
  */
@@ -58,7 +81,7 @@ function bodyText(payload) {
     return 'none'
   }
   if (!Buffer.isBuffer(payload)) {
-    return JSON.stringify(payload)
+    return jsonBodySummary(payload)
   }
   return payload
     .toString('utf8')
