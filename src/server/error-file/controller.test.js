@@ -1335,3 +1335,60 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     })
   })
 })
+
+describe('invalidFileController.handler — bullets a habitat cannot fill', () => {
+  async function blocksFor(errors) {
+    const store = {
+      baselineValidationErrors: errors,
+      baselineValidationErrorsProjectId: 'proj-1'
+    }
+    const h = { view: vi.fn().mockReturnThis() }
+    await invalidFileController.handler(
+      {
+        yar: {
+          get: vi.fn((key) => store[key] ?? null),
+          set: vi.fn(),
+          clear: vi.fn()
+        }
+      },
+      h
+    )
+    return h.view.mock.calls[0][1].errorBlocks
+  }
+
+  test('names a habitat with no distinctiveness as unknown, rather than leaving its bullet out', async () => {
+    const blocks = await blocksFor([
+      {
+        code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+        message: 'Out of scope: H1',
+        details: {
+          count: 1,
+          sample: [
+            {
+              feature_ref: 'H1',
+              habitat_type: 'Grassland',
+              distinctiveness: ''
+            }
+          ]
+        }
+      },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(blocks[0].items).toEqual(['Feature Ref H1 — Grassland (unknown)'])
+  })
+
+  test('names a habitat by its ref when no part of its bullet has its values', async () => {
+    const blocks = await blocksFor([
+      {
+        code: 'SLIVERS_OUTSIDE_REDLINE',
+        message: 'Slivers: x',
+        // A blank location leaves "~{area} sq m near {location}" unfilled.
+        details: { count: 1, sample: [{ feature_ref: 'S1', location_wkt: '' }] }
+      },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(blocks[0].items).toEqual(['Feature Ref S1'])
+  })
+})

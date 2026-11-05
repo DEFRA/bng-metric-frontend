@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, test, expect } from 'vitest'
 
 import { config } from '../../config/config.js'
+import { pageText } from './dropout-copy.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 import { renderTemplate } from '../test-helpers/render-template.js'
 
@@ -105,6 +106,7 @@ describe('#resolveSingleErrorCopy', () => {
 
   test('AC6b: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE renders the metric tool link in a new tab, and says so', () => {
     const html = renderTemplate('error-file/index.njk', {
+      page: pageText(),
       singleError: resolveSingleErrorCopy(
         { code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', message: 'x' },
         UPLOAD_HREF
@@ -619,6 +621,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
 
   test('renders the copy word for word, with no table of habitats', () => {
     const html = renderTemplate('error-file/index.njk', {
+      page: pageText(),
       singleError: resolveSingleErrorCopy(error, UPLOAD_HREF)
     })
 

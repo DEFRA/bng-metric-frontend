@@ -5,6 +5,7 @@ import { load } from 'cheerio'
 
 import * as filters from '../../config/nunjucks/filters/filters.js'
 import * as globals from '../../config/nunjucks/globals/globals.js'
+import { pageText } from './dropout-copy.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -32,6 +33,7 @@ function renderSingleError(code) {
     env.render('index.njk', {
       // The layout's asset helper, which the app's context supplies.
       getAssetPath: (asset) => asset,
+      page: pageText(),
       singleError,
       projectId: PROJECT_ID,
       uploadHref: UPLOAD_HREF

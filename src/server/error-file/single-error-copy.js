@@ -41,6 +41,11 @@ function valuesFor(error) {
   }
 }
 
+/** The {values} a page's title and body can name, for a test to check. */
+export function pageValueNames() {
+  return Object.keys(valuesFor({}))
+}
+
 // whenAlone may give several pages, the first whose title and body the error
 // can fill.
 function choosePage(pages, values) {

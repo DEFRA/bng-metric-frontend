@@ -6,7 +6,8 @@ import {
   fill,
   firstKnown,
   joinKnownParts,
-  listHeading
+  listHeading,
+  pageText
 } from './dropout-copy.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 
@@ -42,7 +43,7 @@ function displayBand(band) {
   return (
     (Object.hasOwn(dropoutCopy.distinctiveness, band ?? '')
       ? dropoutCopy.distinctiveness[band]
-      : band) ?? unknown.distinctiveness
+      : known(band)) ?? unknown.distinctiveness
   )
 }
 
@@ -84,53 +85,90 @@ function ambiguousParentValues(s) {
   return lineageValues({ ...s, ref: joinRefs(s?.refs) })
 }
 
-// The {values} each error's bullets name, by error code; any other code names
-// each habitat by its ref.
-const SAMPLE_VALUES = {
-  PARCEL_OVERLAPS: (s) => ({
+function overlapValues(s) {
+  return {
     featureA: featureName(s, '_a'),
     featureB: featureName(s, '_b')
-  }),
-  SLIVERS_OUTSIDE_REDLINE: (s) => ({
+  }
+}
+
+function sliverValues(s) {
+  return {
     area: squareMetres(s?.area_sqm ?? 0),
     location: s?.location_wkt ?? unknown.location
-  }),
-  AREA_PARCELS_TOO_SMALL: (s) => ({
+  }
+}
+
+function tooSmallValues(s) {
+  return { ...featureValues(s), area: squareMetres(s?.area_sqm) }
+}
+
+function outsideRedlineValues(s) {
+  const escaped = s?.escape_area_sqm != null && s?.escape_location_wkt != null
+  return {
     ...featureValues(s),
-    area: squareMetres(s?.area_sqm)
-  }),
-  AREA_PARCELS_OUTSIDE_REDLINE: (s) => {
-    const escaped = s?.escape_area_sqm != null && s?.escape_location_wkt != null
-    return {
-      ...featureValues(s),
-      area: escaped ? squareMetres(s.escape_area_sqm) : null,
-      location: escaped ? s.escape_location_wkt : null
-    }
-  },
-  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: (s) => ({
+    area: escaped ? squareMetres(s.escape_area_sqm) : null,
+    location: escaped ? s.escape_location_wkt : null
+  }
+}
+
+function distinctivenessValues(s) {
+  return {
     ...featureValues(s),
     habitatType: s?.habitat_type ?? unknown.habitatType,
     distinctiveness: displayBand(s?.distinctiveness)
-  }),
-  BASELINE_NOT_ENHANCEABLE: (s) => ({
+  }
+}
+
+function unenhanceableValues(s) {
+  return {
     ...featureValues(s),
     habitatType: s?.habitat_type ?? unknown.habitatType
-  }),
-  // A vertical area habitat's typed Area, with the value the file holds.
-  VERTICAL_HABITAT_AREA_NOT_POSITIVE: (s) => ({
-    ...featureValues(s),
-    area: known(s?.area) ?? unknown.area
-  }),
+  }
+}
+
+// A vertical area habitat's typed Area, with the value the file holds.
+function verticalAreaValues(s) {
+  return { ...featureValues(s), area: known(s?.area) ?? unknown.area }
+}
+
+// The {values} each error's bullets name, by error code; any other code names
+// each habitat by its ref.
+const SAMPLE_VALUES = {
+  PARCEL_OVERLAPS: overlapValues,
+  SLIVERS_OUTSIDE_REDLINE: sliverValues,
+  AREA_PARCELS_TOO_SMALL: tooSmallValues,
+  AREA_PARCELS_OUTSIDE_REDLINE: outsideRedlineValues,
+  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: distinctivenessValues,
+  BASELINE_NOT_ENHANCEABLE: unenhanceableValues,
+  VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaValues,
   STAGED_AMBIGUOUS_PARENT: ambiguousParentValues
 }
 
 const DEFAULT_ITEM = '{feature}'
 
+// How a code's bullets get their {values}. A code whose copy gives no item is
+// named by its ref, whatever it is.
 function valuesFor(code) {
-  if (SAMPLE_VALUES[code]) {
+  if (!inListCopy(code).item) {
+    return featureValues
+  }
+  if (Object.hasOwn(SAMPLE_VALUES, code)) {
     return SAMPLE_VALUES[code]
   }
-  return code?.startsWith('STAGED_') ? lineageValues : featureValues
+  return code.startsWith('STAGED_') ? lineageValues : featureValues
+}
+
+/**
+ * The {values} a code's bullets can name, so a test can check the copy names
+ * no other: a name the code does not supply would leave its part off every
+ * bullet.
+ *
+ * @param {string} code
+ * @returns {string[]}
+ */
+export function itemValueNames(code) {
+  return Object.keys(valuesFor(code)({}))
 }
 
 function inListCopy(code) {
@@ -153,10 +191,14 @@ function buildItems(err) {
     const idx = err.message.indexOf(': ')
     return idx === -1 ? [] : [err.message.slice(idx + 2)]
   }
-  const { item } = inListCopy(err.code)
-  const values = item ? valuesFor(err.code) : featureValues
-  return err.details.sample.map((s) =>
-    joinKnownParts(item ?? DEFAULT_ITEM, values(s))
+  const item = inListCopy(err.code).item ?? DEFAULT_ITEM
+  const values = valuesFor(err.code)
+  // A bullet whose every part lacks a value would be an empty line, so name
+  // the habitat by its ref instead.
+  return err.details.sample.map(
+    (s) =>
+      joinKnownParts(item, values(s)) ||
+      joinKnownParts(DEFAULT_ITEM, featureValues(s))
   )
 }
 
@@ -273,10 +315,10 @@ export const invalidFileController = {
       ? resolveSingleErrorCopy(visibleErrors[0], uploadHref)
       : null
 
-    const { page } = dropoutCopy
+    const page = pageText({ fileLabel: uploadType.label })
     return h.view('error-file/index', {
       pageTitle: singleError?.h1 ?? page.title,
-      listHeading: fill(page.listHeading, { fileLabel: uploadType.label }),
+      page,
       errorList,
       errorBlocks,
       singleError,

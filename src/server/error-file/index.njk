@@ -17,7 +17,7 @@
             {% if singleError.opensInNewTab === false %}
               {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}">{{ singleError.linkText }}</a>{{ singleError.helpTextAfter }}
             {% else %}
-              {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} {{ dropoutPage.opensInNewTab }}</a>{{ singleError.helpTextAfter }}
+              {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} {{ page.opensInNewTab }}</a>{{ singleError.helpTextAfter }}
             {% endif %}
           </p>
         {% elif singleError.variant == 'placeholder' or singleError.variant == 'text' %}
@@ -32,13 +32,13 @@
         {% endif %}
       {% elif errorList and errorList.length > 0 %}
         {{ govukErrorSummary({
-          titleText: dropoutPage.summaryTitle,
+          titleText: page.summaryTitle,
           errorList: errorList
         }) }}
 
-        <h1 class="govuk-heading-l">{{ listHeading }}</h1>
+        <h1 class="govuk-heading-l">{{ page.listHeading }}</h1>
 
-        <p class="govuk-body">{{ dropoutPage.listIntro }}</p>
+        <p class="govuk-body">{{ page.listIntro }}</p>
 
         {#
           Interim layout. The final formatting will be finalized in future stories.
@@ -54,14 +54,14 @@
                 <li>{{ item }}</li>
               {% endfor %}
               {% if block.more > 0 %}
-                <li class="govuk-hint">{{ dropoutPage.more | replace("{count}", block.more) }}</li>
+                <li class="govuk-hint">{{ page.more(block.more) }}</li>
               {% endif %}
             </ul>
           {% endif %}
         {% endfor %}
       {% else %}
-        <h1 class="govuk-heading-l">{{ dropoutPage.noErrorsHeading }}</h1>
-        <p class="govuk-body">{{ dropoutPage.noErrorsBody }}</p>
+        <h1 class="govuk-heading-l">{{ page.noErrorsHeading }}</h1>
+        <p class="govuk-body">{{ page.noErrorsBody }}</p>
       {% endif %}
 
       {#
@@ -73,12 +73,12 @@
         <div class="govuk-button-group govuk-!-margin-top-6">
           {% if projectId %}
             {{ govukButton({
-              text: dropoutPage.uploadButton,
+              text: page.uploadButton,
               href: uploadHref
             }) }}
-            <a class="govuk-link" href="/projects/{{ projectId }}/project-summary">{{ dropoutPage.backToProject }}</a>
+            <a class="govuk-link" href="/projects/{{ projectId }}/project-summary">{{ page.backToProject }}</a>
           {% else %}
-            <a class="govuk-link" href="/">{{ dropoutPage.backToStart }}</a>
+            <a class="govuk-link" href="/">{{ page.backToStart }}</a>
           {% endif %}
         </div>
       {% endif %}

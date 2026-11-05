@@ -13,42 +13,20 @@ import {
   firstKnown,
   joinKnownParts,
   listHeading,
+  pageText,
   parseDropoutCopy,
   splitLink
 } from './dropout-copy.js'
+import { itemValueNames } from './controller.js'
+import { pageValueNames } from './single-error-copy.js'
 
 const COPY_SOURCE = readFileSync(
   path.join(import.meta.dirname, 'dropout-copy.yaml'),
   'utf8'
 )
 
-// The {values} the code fills in, by where they appear. A name outside these
-// would be left blank on the page, so a typo such as {Ref} fails here.
-const PAGE_VALUES = new Set([
-  'ref',
-  'refA',
-  'refB',
-  'featureCount',
-  'maxFeatureCount'
-])
-const ITEM_VALUES = new Set([
-  'feature',
-  'featureA',
-  'featureB',
-  'reason',
-  'condition',
-  'area',
-  'location',
-  'habitatType',
-  'distinctiveness',
-  'table',
-  'name',
-  'parentRef',
-  'childRefs',
-  'length',
-  'childLength',
-  'childArea'
-])
+// The {values} the code fills in for names. A name outside these would be
+// left blank on the page, so a typo such as {Ref} fails here.
 const NAME_VALUES = new Set(['featureRef', 'fid', 'idx', 'ref'])
 
 function placeholders(templates) {
@@ -81,12 +59,14 @@ describe('dropout-copy.yaml', () => {
   test('names only the {values} the page fills in', () => {
     for (const page of allPages) {
       for (const name of placeholders([page.title, page.body].flat())) {
-        expect(PAGE_VALUES, `${page.title}: {${name}}`).toContain(name)
+        expect(pageValueNames(), `${page.title}: {${name}}`).toContain(name)
       }
     }
+    // Each code's bullets against the values the code supplies for that code,
+    // so {location} on a lineage bullet fails even though another code has it.
     for (const [code, { inList }] of entries) {
       for (const name of placeholders(inList.item ?? [])) {
-        expect(ITEM_VALUES, `${code}: {${name}}`).toContain(name)
+        expect(itemValueNames(code), `${code}: {${name}}`).toContain(name)
       }
     }
     for (const name of placeholders([
@@ -172,6 +152,19 @@ describe('parseDropoutCopy', () => {
     expect(() => parseDropoutCopy(broken)).toThrow(/not valid/)
   })
 
+  test.each([
+    ['page', 'listHeading'],
+    ['page', 'uploadButton'],
+    ['unknown', 'location']
+  ])('refuses copy with no %s.%s, which the page reads', (section, key) => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    delete copy[section][key]
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
+      new RegExp(`${section}\\.${key}.*required`)
+    )
+  })
+
   test('keeps the space that starts a bullet part', () => {
     expect(
       parseDropoutCopy(COPY_SOURCE).errors.AREA_PARCELS_INVALID_GEOMETRY.inList
@@ -220,6 +213,25 @@ describe('splitLink', () => {
 
   test('gives a sentence with no link whole', () => {
     expect(splitLink('Nothing to do.')).toEqual({ before: 'Nothing to do.' })
+  })
+
+  test('gives a sentence whole when its brackets are not a link', () => {
+    expect(splitLink('A [note] (aside).')).toEqual({
+      before: 'A [note] (aside).'
+    })
+    expect(splitLink('A [link](unclosed.')).toEqual({
+      before: 'A [link](unclosed.'
+    })
+  })
+})
+
+describe('pageText', () => {
+  test('fills in the stage and the count the page names', () => {
+    const page = pageText({ fileLabel: 'baseline' })
+
+    expect(page.listHeading).toBe("We couldn't accept your baseline file")
+    expect(page.more(3)).toBe('… and 3 more')
+    expect(page.uploadButton).toBe('Upload a different file')
   })
 })
 

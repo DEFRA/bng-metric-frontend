@@ -56,8 +56,34 @@ const errorEntry = Joi.object({
   ).required()
 })
 
+// Every key the page and the bullets read, so renaming or removing one fails
+// here rather than on a user's page.
+const required = (...keys) =>
+  Joi.object(Object.fromEntries(keys.map((key) => [key, text.required()])))
+
+const pageSchema = required(
+  'title',
+  'summaryTitle',
+  'listHeading',
+  'listIntro',
+  'more',
+  'uploadButton',
+  'backToProject',
+  'backToStart',
+  'opensInNewTab',
+  'noErrorsHeading',
+  'noErrorsBody'
+)
+
+const unknownSchema = required(
+  'location',
+  'habitatType',
+  'distinctiveness',
+  'area'
+)
+
 const copySchema = Joi.object({
-  page: Joi.object().pattern(Joi.string(), text).required(),
+  page: pageSchema.required(),
   links: Joi.object({
     [LINK_TARGETS.METRIC_TOOL]: Joi.string().uri().required()
   }).required(),
@@ -70,7 +96,7 @@ const copySchema = Joi.object({
     feature: options.required(),
     habitat: options.required()
   }).required(),
-  unknown: Joi.object().pattern(Joi.string(), text).required(),
+  unknown: unknownSchema.required(),
   distinctiveness: Joi.object().pattern(Joi.string(), text).required(),
   errors: Joi.object()
     .pattern(Joi.string().pattern(/^[A-Z][A-Z0-9_]*$/), errorEntry)
@@ -138,7 +164,9 @@ export function joinKnownParts(parts, values = {}) {
     .join('')
 }
 
-const LINK_PATTERN = /\[([^\]]+)\]\(([\w-]+)\)/
+const LINK_OPEN = '['
+const LINK_MIDDLE = ']('
+const LINK_CLOSE = ')'
 
 /**
  * Split a sentence at its [link text](target), or return it whole as
@@ -148,15 +176,33 @@ const LINK_PATTERN = /\[([^\]]+)\]\(([\w-]+)\)/
  * @returns {{ before: string, linkText?: string, target?: string, after?: string }}
  */
 export function splitLink(sentence) {
-  const match = LINK_PATTERN.exec(sentence)
-  if (!match) {
+  const open = sentence.indexOf(LINK_OPEN)
+  const middle = open === -1 ? -1 : sentence.indexOf(LINK_MIDDLE, open)
+  const close = middle === -1 ? -1 : sentence.indexOf(LINK_CLOSE, middle)
+  if (close === -1) {
     return { before: sentence }
   }
   return {
-    before: sentence.slice(0, match.index),
-    linkText: match[1],
-    target: match[2],
-    after: sentence.slice(match.index + match[0].length)
+    before: sentence.slice(0, open),
+    linkText: sentence.slice(open + LINK_OPEN.length, middle),
+    target: sentence.slice(middle + LINK_MIDDLE.length, close),
+    after: sentence.slice(close + LINK_CLOSE.length)
+  }
+}
+
+/**
+ * The page's own wording, filled in for this page, as the template reads it:
+ * `listHeading` names the file's stage, and `more(count)` says how many
+ * habitats a list leaves out.
+ *
+ * @param {{ fileLabel?: string }} [values]
+ */
+export function pageText({ fileLabel } = {}) {
+  const { page } = dropoutCopy
+  return {
+    ...page,
+    listHeading: fill(page.listHeading, { fileLabel }),
+    more: (count) => fill(page.more, { count })
   }
 }
 
