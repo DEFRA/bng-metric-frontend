@@ -214,6 +214,9 @@ test.each(['watercourseEncroachment', 'riparianEncroachment'])(
       expect(
         vm.fields[field].items.some((item) => item.value === 'unchanged')
       ).toBe(false)
+      expect(vm.fields[field].hint).toContain(
+        'saving without a new selection will clear this value'
+      )
     }
     const { broadHabitat: _broad, ...form } = vm.values
     await postController.handler(
@@ -410,6 +413,84 @@ describe('authenticated Created watercourse form', () => {
       expect(wreck.put).not.toHaveBeenCalled()
     }
   )
+  test('warns before default choices clear unsupported values and preserves valid fields on save and reload', async () => {
+    const stored = {
+      ...structuredClone(feature),
+      units: 0,
+      status: 'Incomplete',
+      proposed: {
+        ...feature.proposed,
+        delayYears: 2.5,
+        riparianEncroachment: 'Imported value'
+      }
+    }
+    const snapshot = structuredClone(stored)
+    mockFeature({ type: 'watercourse', feature: stored })
+    vi.mocked(wreck.put).mockImplementation(async (_url, { payload }) => {
+      const saved = JSON.parse(payload)
+      stored.ref = saved.ref
+      stored.proposed.type = saved.habitatType
+      for (const field of [
+        'condition',
+        'strategicSignificance',
+        'advanceYears',
+        'delayYears',
+        'watercourseEncroachment',
+        'riparianEncroachment'
+      ]) {
+        stored.proposed[field] =
+          ['advanceYears', 'delayYears'].includes(field) &&
+          saved[field] !== null
+            ? Number(saved[field])
+            : saved[field]
+      }
+      return { res: { statusCode: 200 }, payload: {} }
+    })
+    const get = () =>
+      server.inject({
+        method: 'GET',
+        url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
+        auth
+      })
+    const page = await get()
+    expect(page.statusCode).toBe(200)
+    const $ = load(page.payload)
+    for (const field of ['delayYears', 'riparianEncroachment']) {
+      expect($(`#${field}`).val()).toBe('')
+      expect($(`#${field}-hint`).text()).toContain('will clear this value')
+    }
+    expect(stored).toEqual(snapshot)
+    const { token: crumb, cookie } = await primeCrumb(server)
+    const saved = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: { ...renderedForm(page), ref: 'Renamed', crumb }
+    })
+    expect(saved.statusCode).toBe(302)
+    expect(stored.proposed).toMatchObject({
+      type: 'Ditches',
+      condition: 'Moderate',
+      strategicSignificance: 'Low',
+      advanceYears: 0,
+      watercourseEncroachment: 'Minor',
+      delayYears: null,
+      riparianEncroachment: null
+    })
+    const reloaded = await get()
+    const after = load(reloaded.payload)
+    expect(after('#ref').val()).toBe('Renamed')
+    for (const field of ['delayYears', 'riparianEncroachment']) {
+      expect(after(`#${field}`).val()).toBe('')
+      expect(after(`#${field}-hint`).text()).not.toContain(
+        'will clear this value'
+      )
+    }
+    expect(after('#habitatType').val()).toBe('Ditches')
+    expect(after('#watercourseEncroachment').val()).toBe('Minor')
+  })
+
   test('keeps unsupported saved types editable with default type and condition selections', async () => {
     const stored = {
       ...feature,
@@ -432,6 +513,10 @@ describe('authenticated Created watercourse form', () => {
     const $ = load(page.payload)
     expect($('#habitatType').val()).toBe('')
     expect($('#condition').val()).toBe('')
+    expect($('#habitatType-hint').text()).toContain('Legacy river type')
+    expect($('#habitatType-hint').text()).toContain('will clear this value')
+    expect($('#condition-hint').text()).toContain('Legacy condition')
+    expect($('#condition-hint').text()).toContain('will clear this value')
     expect($('button[type="submit"]').text()).toContain('Save')
     expect(stored).toEqual(snapshot)
     const { token: crumb, cookie } = await primeCrumb(server)
@@ -486,6 +571,12 @@ describe('authenticated Created watercourse form', () => {
       expect(page.statusCode).toBe(200)
       const $ = load(page.payload)
       expect($('#strategicSignificance').val()).toBe('')
+      expect($('#strategicSignificance-hint').text()).toContain(
+        stored.rejectedStrategicSignificance ?? stored.strategicSignificance
+      )
+      expect($('#strategicSignificance-hint').text()).toContain(
+        'will clear this value'
+      )
       expect($('#strategicSignificance option:selected').text()).toBe(
         'Choose strategic significance'
       )

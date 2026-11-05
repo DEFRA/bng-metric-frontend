@@ -21,7 +21,6 @@ import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
 import {
-  MAX_YEARS,
   UNCHANGED_VALUE,
   resolveCreatedTiming,
   createdAreaDerived,
@@ -38,8 +37,12 @@ import { formatLengthDisplay } from './view-only-shared.js'
 import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
-import { createdStrategicSignificance } from './created-strategic-significance.js'
-import { createdChoiceValues } from './created-choice-values.js'
+import {
+  createdAreaValues,
+  createdChoiceValues,
+  createdHintValues
+} from './created-choice-values.js'
+export { createdAreaValues } from './created-choice-values.js'
 
 export const CREATED_EDIT_KINDS = {
   habitat: {
@@ -217,38 +220,6 @@ function importedLinearCondition(reference, values) {
     : null
 }
 
-function yearValue(value, is30Plus) {
-  if (value === null || value === undefined) {
-    return ''
-  }
-  return is30Plus && Number(value) === MAX_YEARS ? '30+' : String(value)
-}
-
-export function createdAreaValues(feature) {
-  const proposed = feature.proposed ?? {}
-  return {
-    ref: String(feature.ref ?? ''),
-    broadHabitat: proposed.broadType ?? '',
-    habitatType: proposed.type ?? '',
-    condition: stripConditionPrefix(proposed.condition) ?? '',
-    strategicSignificance: createdStrategicSignificance(
-      proposed.strategicSignificanceCategory ??
-        proposed.strategicSignificance ??
-        ''
-    ),
-    advanceYears: yearValue(
-      proposed.advanceYears,
-      proposed.advanceYearsIs30Plus
-    ),
-    delayYears: yearValue(proposed.delayYears, proposed.delayYearsIs30Plus),
-    ...Object.fromEntries(
-      ENCROACHMENT_FIELDS.filter((field) => Object.hasOwn(proposed, field)).map(
-        (field) => [field, proposed[field] ?? '']
-      )
-    )
-  }
-}
-
 function validateReference(ref, errors) {
   if (!ref.trim() || !ref.isWellFormed() || ref.includes('\uFFFD')) {
     errors.ref = 'Enter a valid habitat reference.'
@@ -357,6 +328,25 @@ function createdAreaDisplayFields(feature, reference, values, base) {
   return { baselineCondition, ...derived }
 }
 
+function createdReferenceJson(reference, storedValues, storedDisplay, derived) {
+  return JSON.stringify({
+    ...reference,
+    storedPreview: {
+      values: storedValues,
+      labels: Object.fromEntries(
+        Object.keys(derived).map((field) => [field, storedDisplay[field]])
+      )
+    }
+  }).replaceAll('<', String.raw`\u003c`)
+}
+
+function createdUploadHref(ctx, feature, returnUrl) {
+  return uploadFileHref(
+    ctx.projectId,
+    `/post-intervention-habitat-details?${new URLSearchParams({ projectId: ctx.projectId, featureId: feature.featureId, returnUrl })}`
+  )
+}
+
 export function buildCreatedAreaEditViewModel(
   feature,
   reference,
@@ -376,6 +366,7 @@ export function buildCreatedAreaEditViewModel(
   const initialLoad = values === null
   const storedValues = createdEditValues(feature, reference)
   values ??= storedValues
+  const hintValues = createdHintValues(feature, reference, storedValues)
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
     feature,
     reference,
@@ -415,24 +406,18 @@ export function buildCreatedAreaEditViewModel(
       text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
       href: `#${field}`
     })),
-    fields: buildCreatedEditFields(reference, values, storedValues, kind),
-    referenceJson: JSON.stringify({
-      ...reference,
-      storedPreview: {
-        values: storedValues,
-        labels: Object.fromEntries(
-          Object.keys(derived).map((field) => [field, storedDisplay[field]])
-        )
-      }
-    }).replaceAll('<', String.raw`\u003c`),
+    fields: buildCreatedEditFields(reference, values, hintValues, kind),
+    referenceJson: createdReferenceJson(
+      reference,
+      storedValues,
+      storedDisplay,
+      derived
+    ),
     formAction: '/post-intervention-habitat-details',
     backHref,
     cancelHref: backHref,
     returnUrl: backHref,
-    uploadHref: uploadFileHref(
-      ctx.projectId,
-      `/post-intervention-habitat-details?${new URLSearchParams({ projectId: ctx.projectId, featureId: feature.featureId, returnUrl: backHref })}`
-    )
+    uploadHref: createdUploadHref(ctx, feature, backHref)
   }
 }
 

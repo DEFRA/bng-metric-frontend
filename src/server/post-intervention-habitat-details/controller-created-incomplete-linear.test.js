@@ -21,7 +21,7 @@ describe.each([
   beforeEach(() => _resetCreatedAreaReferenceCache())
 
   test.each([null, undefined, ''])(
-    'keeps a saved condition through rename and reload with type %s',
+    'applies the kind-specific saved condition policy through rename and reload with type %s',
     async (habitatType) => {
       const stored = {
         ...structuredClone(feature),
