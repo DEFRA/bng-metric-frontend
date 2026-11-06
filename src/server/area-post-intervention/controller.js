@@ -14,7 +14,6 @@ import { createHabitatPostInterventionController } from '../common/helpers/creat
 import { buildAreaLeadingExtraColumns } from '../common/helpers/area-post-intervention-grid.js'
 import {
   formatAreaHectares,
-  formatAreaSize,
   formatSummaryAreaSize
 } from '../common/helpers/format-habitat-values.js'
 import { asVerticalHabitats } from '../common/helpers/vertical-habitats.js'
@@ -83,7 +82,7 @@ export const getController = createHabitatPostInterventionController({
   habitatNoun: 'area',
   collectFeatures: collectAreaFeatures,
   readSize: (feature) => feature.sizeSquareMetres,
-  formatSize: formatAreaSize,
+  formatSize: formatAreaHectares,
   formatSizeTotal: formatAreaHectares,
   buildLeadingExtraColumns: buildAreaLeadingExtraColumns,
   buildAreaSize,
