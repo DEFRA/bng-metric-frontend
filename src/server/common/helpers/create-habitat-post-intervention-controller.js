@@ -121,7 +121,14 @@ function createHabitatPostInterventionController(config) {
       const project = await fetchProjectOrThrow(request, id)
 
       if (hasBaselineData(project)) {
-        const viewModel = buildHabitatPostIntervention(project, id, config)
+        const displayProject = config.prepareProjectForDisplay
+          ? await config.prepareProjectForDisplay(project)
+          : project
+        const viewModel = buildHabitatPostIntervention(
+          displayProject,
+          id,
+          config
+        )
 
         return h.view('common/templates/habitat-post-intervention-page', {
           pageTitle: config.pageHeading,
