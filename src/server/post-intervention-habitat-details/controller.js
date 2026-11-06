@@ -22,7 +22,6 @@ import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
   HABITAT_REF_ERROR,
-  HABITAT_REF_IN_USE_ERROR,
   isRefUnchanged,
   isValidHabitatRef
 } from '../common/helpers/habitat-ref.js'
@@ -399,7 +398,6 @@ async function renderDetailsPage(
   const backHref = postInterventionBackHref(projectId, type, returnUrl)
   const refEditFields = isRefEditable(type, retentionCategory)
     ? retainedRefEditFields({
-        type,
         feature,
         projectId,
         featureId,
@@ -515,9 +513,6 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
     featureId,
     ref: habitatRef
   })
-  if (saved.refInUse) {
-    return showRefused(HABITAT_REF_IN_USE_ERROR)
-  }
   if (saved.refInvalid) {
     return showRefused(HABITAT_REF_ERROR)
   }

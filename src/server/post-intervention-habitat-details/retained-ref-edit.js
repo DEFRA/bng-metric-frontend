@@ -19,10 +19,7 @@ import {
   backendStatusOf
 } from '../common/helpers/backend-save-error.js'
 import { statusCodes } from '../common/constants.js'
-import {
-  habitatRefFormFields,
-  isRefInUseError
-} from '../common/helpers/habitat-ref.js'
+import { habitatRefFormFields } from '../common/helpers/habitat-ref.js'
 import { RETENTION_RETAINED } from './retention.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
@@ -38,13 +35,12 @@ export const retainedRefPayloadSchema = Joi.object({
   crumb: Joi.string().optional()
 })
 
-// The page heading names the habitat by its saved reference, as the baseline
-// details pages do (BMD-1061).
-const HEADING_PREFIX_BY_TYPE = new Map([
-  ['habitat', 'Habitat'],
-  ['hedgerow', 'Hedgerow'],
-  ['watercourse', 'Watercourse']
-])
+/** The feature types whose Retained rows have an editable reference. */
+const REF_EDITABLE_TYPES = new Set(['habitat', 'hedgerow', 'watercourse'])
+
+// The page heading is "Habitat <saved reference>" for every type, hedgerows and
+// watercourses included, as the three designs show (PO, 3 Nov).
+const HEADING_PREFIX = 'Habitat'
 
 /**
  * Whether the page for this feature carries the reference input: Retained area
@@ -56,7 +52,7 @@ const HEADING_PREFIX_BY_TYPE = new Map([
  */
 export function isRefEditable(type, retentionCategory) {
   return (
-    retentionCategory === RETENTION_RETAINED && HEADING_PREFIX_BY_TYPE.has(type)
+    retentionCategory === RETENTION_RETAINED && REF_EDITABLE_TYPES.has(type)
   )
 }
 
@@ -66,11 +62,10 @@ export function isRefEditable(type, retentionCategory) {
  * (habitatRefFormFields), and what the form posts. `refusal` and
  * `submittedRef` are set when a save was refused.
  *
- * @param {{ type: string, feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
+ * @param {{ feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
  * @returns {object}
  */
 export function retainedRefEditFields({
-  type,
   feature,
   projectId,
   featureId,
@@ -79,8 +74,7 @@ export function retainedRefEditFields({
   submittedRef,
   refusal
 }) {
-  const heading =
-    `${HEADING_PREFIX_BY_TYPE.get(type)} ${feature.ref ?? ''}`.trimEnd()
+  const heading = `${HEADING_PREFIX} ${feature.ref ?? ''}`.trimEnd()
   return {
     heading,
     ...habitatRefFormFields({
@@ -101,14 +95,14 @@ export function retainedRefEditFields({
 
 /**
  * Save the reference. Resolves to the backend's `{ type, feature }`, or to
- * `{ refInUse: true }` when the backend refuses a reference another habitat
- * already carries, or `{ refInvalid: true }` when it refuses one this side
- * passed. Any other failure throws (backendSaveError).
+ * `{ refInvalid: true }` when the backend refuses one this side passed. A
+ * reference another habitat already carries is saved: references need not be
+ * unique (AC7). Any other failure throws (backendSaveError).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
  *   `ref` has passed isValidHabitatRef; it is sent trimmed
- * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true }>}
+ * @returns {Promise<{ type: string, feature: object } | { refInvalid: true }>}
  */
 export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   try {
@@ -123,9 +117,6 @@ export async function saveRetainedRef(request, { projectId, featureId, ref }) {
     )
     return payload
   } catch (err) {
-    if (isRefInUseError(err)) {
-      return { refInUse: true }
-    }
     if (backendStatusOf(err) === statusCodes.badRequest) {
       return { refInvalid: true }
     }

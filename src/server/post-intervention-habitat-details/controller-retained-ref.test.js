@@ -150,8 +150,8 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
   describe('GET', () => {
     test.each([
       ['habitat', 'Habitat A1', 'A1'],
-      ['hedgerow', 'Hedgerow H1', 'H1'],
-      ['watercourse', 'Watercourse W1', 'W1']
+      ['hedgerow', 'Habitat H1', 'H1'],
+      ['watercourse', 'Habitat W1', 'W1']
     ])(
       'shows a retained %s’s reference in an input, with Save and Cancel',
       async (type, heading, ref) => {
@@ -391,26 +391,15 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(wreck.put).not.toHaveBeenCalled()
     })
 
-    test('refuses a reference another habitat already uses, showing the error and what was typed', async () => {
+    test('saves a reference another habitat already uses: references need not be unique (AC7)', async () => {
       mockBackend()
-      const inUse = Boom.badData('in use')
-      inUse.data = {
-        res: { statusCode: 422 },
-        payload: { code: 'HABITAT_REF_IN_USE' }
-      }
-      vi.mocked(wreck.put).mockRejectedValue(inUse)
+      vi.mocked(wreck.put).mockImplementation(() => savedAs('habitat', 'A2'))
 
-      const { statusCode, result } = await post({ habitatRef: 'A2' })
+      const { statusCode } = await post({ habitatRef: 'A2' })
 
-      expect(statusCode).toBe(statusCodes.badRequest)
-      expect(result).toMatch(/<title>\s*Error: Habitat A1 -/)
-      expect(result).toContain(
-        '<a href="#habitatRef">You have entered a habitat reference that is already in use.</a>'
-      )
-      expect(result).toContain(
-        'Enter a habitat reference that is not already in use.'
-      )
-      expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
+      expect(statusCode).toBe(302)
+      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(payload)).toEqual({ ref: 'A2' })
     })
 
     test('shows a reference the backend refuses at the field, keeping what was typed', async () => {

@@ -9,9 +9,7 @@ import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
 import {
   HABITAT_REF_ERROR,
-  HABITAT_REF_IN_USE_ERROR,
   habitatRefFormFields,
-  isRefInUseError,
   isRefUnchanged,
   isValidHabitatRef
 } from './habitat-ref.js'
@@ -389,10 +387,6 @@ export async function saveHabitat(request, path, body, featureId) {
     }
     return payload
   } catch (err) {
-    // A reference another habitat already carries is for the form to show.
-    if (isRefInUseError(err)) {
-      throw err
-    }
     throw backendSaveError(err, featureId)
   }
 }
@@ -468,11 +462,7 @@ function createPostController(uploadType) {
         )
       } catch (err) {
         // The backend checks a reference again; if it refuses one this side
-        // passed, or one another habitat already carries, say so at the field
-        // rather than on an error page.
-        if (isRefInUseError(err)) {
-          return showRefused(HABITAT_REF_IN_USE_ERROR)
-        }
+        // passed, say so at the field rather than on an error page.
         if (
           refToSave !== undefined &&
           err.output?.statusCode === statusCodes.badRequest
