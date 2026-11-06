@@ -23,7 +23,12 @@
 # code missing from its section, or an entry for a code the backend no longer
 # has.
 #
-# "placeholder" anywhere below means the wording is awaiting UCD.
+# "placeholder" anywhere below means the wording is awaiting UCD, and the
+# page shows a placeholder or its generic message instead.
+#
+# "# AWAITING UCD" in a comment marks interim wording that the pages do show
+# but UCD has not reviewed. Search for both to find everything UCD still has
+# to word.
 #
 # What each upload rule checks, and which example file shows it:
 # https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md
@@ -601,8 +606,9 @@ upload:
     # Each is always shown as its list of habitats, even alone: the list is what
     # the user has to put right. Each bullet names a post-intervention row or a
     # baseline parent by its template layer, Habitat Ref and habitat type, then
-    # the parent it was copied from, or the rows copied from it. Interim copy
-    # until UCD's (BMD-1086).
+    # the parent it was copied from, or the rows copied from it.
+    #
+    # AWAITING UCD: interim copy for this whole group (BMD-1086).
     #
     # Each heading was copied word for word from the backend's message
     # (bng-metric-backend, src/validation/geopackage/service-template/lineage/
@@ -781,7 +787,8 @@ upload:
 edit:
   HABITAT_REF_IN_USE:
     # A rename onto a reference another baseline habitat in the same layer
-    # already carries. Placeholder wording until content design words it.
+    # already carries.
+    # AWAITING UCD: interim wording, shown until content design words it.
     summary: You have entered a habitat reference that is already in use.
     inline: Enter a habitat reference that is not already in use.
 
