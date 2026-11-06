@@ -436,7 +436,8 @@ describe('area post intervention', () => {
     expect(wallRow.find('a').attr('href')).toContain(
       `featureId=${enhancedWall.featureId}`
     )
-    expect(wallRow.text()).toContain('0.04ha (400m²)')
+    expect(wallRow.text()).toContain('0.04ha')
+    expect(wallRow.text()).not.toContain('m²')
   })
 
   test('treats a project of only vertical area habitats as having a baseline', async () => {

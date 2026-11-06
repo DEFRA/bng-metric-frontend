@@ -99,12 +99,13 @@ function formatVerticalAreaValue(squareMetres) {
 }
 
 /**
- * A size on an area habitat list: a vertical area habitat's in hectares and
- * square metres, and every other's in hectares. A list's total stays in
- * hectares, vertical area habitats included, as the total habitat area does.
+ * A size on an area habitat's details page: a vertical area habitat's in
+ * hectares and square metres, and every other's in hectares. The area habitat
+ * lists show every size, vertical area habitats included, in hectares only.
  *
  * @param {number|null|undefined} squareMetres
- * @param {object} [feature] the row's feature, marked by asVerticalHabitats
+ * @param {object} [feature] the page's feature, marked isVerticalHabitat by
+ *   the post-intervention details controller
  * @returns {string}
  */
 function formatAreaSize(squareMetres, feature) {
