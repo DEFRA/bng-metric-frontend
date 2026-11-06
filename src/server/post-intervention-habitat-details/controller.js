@@ -384,12 +384,7 @@ async function renderDetailsPage(
     })
   }
   const viewModel = page.buildViewModel(
-    {
-      ...feature,
-      retentionCategory,
-      // A vertical area habitat's size is shown in square metres too.
-      isVerticalHabitat: type === VERTICAL_HABITAT_TYPE
-    },
+    { ...feature, retentionCategory },
     {
       projectId,
       projectName,

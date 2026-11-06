@@ -2,9 +2,8 @@
  * Vertical area habitats: green walls and intertidal hard structures, drawn
  * in the BNG Service template as a line along the structure's base. They are
  * area habitats in every respect but their size, which is the face area the
- * surveyor estimated on site and entered in hectares. The area habitat lists
- * show it in hectares, as it was entered, and the details pages in hectares
- * and square metres.
+ * surveyor estimated on site and entered in hectares, and which the pages show
+ * in hectares, as it was entered.
  */
 
 /** The backend's feature-type discriminator for a vertical area habitat. */
@@ -35,14 +34,3 @@ export const VERTICAL_HABITATS = Object.freeze([
     name: 'Artificial hard structures with integrated greening of grey infrastructure (IGGI)'
   })
 ])
-
-/**
- * Whether a details page's feature is a vertical area habitat, as the
- * post-intervention details controller marks it.
- *
- * @param {object | undefined} feature
- * @returns {boolean}
- */
-export function isVerticalHabitat(feature) {
-  return feature?.isVerticalHabitat === true
-}
