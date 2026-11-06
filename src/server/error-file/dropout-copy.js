@@ -1,15 +1,13 @@
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-
 import Joi from 'joi'
 import { load } from 'js-yaml'
 
-// The drop-out page's copy lives in dropout-copy.yaml, for product, BAs and
-// UCD to review in one place. This module reads it once, checks its shape so a
-// slip in an edit fails the tests and the server's start rather than a user's
-// page, and fills in the {values} it names.
+import { errorText } from '../common/error-text/error-text.js'
 
-const COPY_FILE = path.join(import.meta.dirname, 'dropout-copy.yaml')
+// The drop-out page's copy is the upload section of error-text.yaml, where
+// product, BAs and UCD review every error message the service shows. This
+// module checks that section's shape, so a slip in an edit fails the tests and
+// the server's start rather than a user's page, and fills in the {values} it
+// names.
 
 /** What whenAlone can say in place of copy of its own. */
 export const WHEN_ALONE = Object.freeze({
@@ -102,22 +100,27 @@ const copySchema = Joi.object({
     .required()
 })
 
-/**
- * Read and check a copy file. Exported so a test can feed it a broken one.
- *
- * @param {string} source - YAML text
- */
-export function parseDropoutCopy(source) {
-  const { value, error } = copySchema.validate(load(source), {
-    abortEarly: false
-  })
+function checkDropoutCopy(section) {
+  const { value, error } = copySchema.validate(section, { abortEarly: false })
   if (error) {
-    throw new Error(`dropout-copy.yaml is not valid: ${error.message}`)
+    throw new Error(
+      `error-text.yaml's upload section is not valid: ${error.message}`
+    )
   }
   return value
 }
 
-export const dropoutCopy = parseDropoutCopy(readFileSync(COPY_FILE, 'utf8'))
+/**
+ * Read and check the drop-out page's copy: the upload section, as YAML.
+ * Exported so a test can feed it a broken one.
+ *
+ * @param {string} source - YAML text
+ */
+export function parseDropoutCopy(source) {
+  return checkDropoutCopy(load(source))
+}
+
+export const dropoutCopy = checkDropoutCopy(errorText.upload)
 
 const PLACEHOLDER_PATTERN = /\{(\w+)\}/g
 

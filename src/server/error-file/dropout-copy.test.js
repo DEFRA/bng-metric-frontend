@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-
+import { dump } from 'js-yaml'
 import { describe, test, expect } from 'vitest'
+
+import { errorText } from '../common/error-text/error-text.js'
 
 import {
   LINK_TARGETS,
@@ -21,10 +21,8 @@ import {
 import { NOTE_VALUE_NAMES, itemValueNames } from './controller.js'
 import { PLACEHOLDER_VALUE_NAMES, pageValueNames } from './single-error-copy.js'
 
-const COPY_SOURCE = readFileSync(
-  path.join(import.meta.dirname, 'dropout-copy.yaml'),
-  'utf8'
-)
+// The drop-out page's copy: error-text.yaml's upload section, as YAML.
+const COPY_SOURCE = dump(errorText.upload)
 
 // The {values} the code fills in for names. A name outside these would be
 // left blank on the page, so a typo such as {Ref} fails here.
@@ -48,7 +46,7 @@ const allPages = [
   dropoutCopy.catchAll.serviceTemplate
 ]
 
-describe('dropout-copy.yaml', () => {
+describe("error-text.yaml's upload section", () => {
   test('gives every error both layouts', () => {
     for (const [code, entry] of entries) {
       expect(entry.whenAlone, code).toBeDefined()

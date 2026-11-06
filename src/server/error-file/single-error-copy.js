@@ -11,8 +11,9 @@ import {
 
 // BMD-405: the drop-out page for a file with exactly one validation error,
 // keyed by the backend's ERROR_CODES
-// (backend/src/validation/geopackage/errors.js). The copy is in
-// dropout-copy.yaml; this module only picks the entry and fills it in.
+// (backend/src/validation/geopackage/errors.js). The copy is the upload
+// section of common/error-text/error-text.yaml; this module only picks the
+// entry and fills it in.
 
 function describeRef(sample, suffix = '') {
   const ref =
