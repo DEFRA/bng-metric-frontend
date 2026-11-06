@@ -16,7 +16,6 @@ import {
   formatAreaHectares,
   formatSummaryAreaSize
 } from '../common/helpers/format-habitat-values.js'
-import { asVerticalHabitats } from '../common/helpers/vertical-habitats.js'
 import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 
 const PAGE_HEADING = 'Post intervention for area habitats'
@@ -33,7 +32,7 @@ function collectAreaFeatures(project, phase) {
   const source = project?.[phase]
   return [
     ...(source?.habitats ?? []),
-    ...asVerticalHabitats(source?.verticalHabitats),
+    ...(source?.verticalHabitats ?? []),
     ...(source?.trees ?? [])
   ]
 }

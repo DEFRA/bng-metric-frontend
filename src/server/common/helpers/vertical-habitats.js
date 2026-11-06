@@ -2,8 +2,9 @@
  * Vertical area habitats: green walls and intertidal hard structures, drawn
  * in the BNG Service template as a line along the structure's base. They are
  * area habitats in every respect but their size, which is the face area the
- * surveyor estimated on site and entered in hectares, and which the pages show
- * in hectares, as it was entered, and in square metres.
+ * surveyor estimated on site and entered in hectares. The area habitat lists
+ * show it in hectares, as it was entered, and the details pages in hectares
+ * and square metres.
  */
 
 /** The backend's feature-type discriminator for a vertical area habitat. */
@@ -36,20 +37,9 @@ export const VERTICAL_HABITATS = Object.freeze([
 ])
 
 /**
- * A layer's vertical area habitats, each marked so a list page can show its
- * size in square metres as well as in hectares.
+ * Whether a details page's feature is a vertical area habitat, as the
+ * post-intervention details controller marks it.
  *
- * @param {object[] | undefined} features
- * @returns {object[]}
- */
-export function asVerticalHabitats(features) {
-  return (features ?? []).map((feature) => ({
-    ...feature,
-    isVerticalHabitat: true
-  }))
-}
-
-/**
  * @param {object | undefined} feature
  * @returns {boolean}
  */
