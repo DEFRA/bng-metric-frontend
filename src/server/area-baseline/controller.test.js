@@ -322,6 +322,43 @@ describe('area baseline', () => {
     expect(significanceCells).toEqual(['Low (1)', 'Low (1)', 'Low (1)'])
   })
 
+  test("shows each row's status as a tag after Ref (BMD-1101)", async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...projectWithHabitats.project,
+          baseline: {
+            ...projectWithHabitats.project.baseline,
+            habitats: [
+              { ...habitatP1, status: 'Complete' },
+              { ...habitatP2, status: 'Incomplete' }
+            ],
+            trees: []
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-baseline`,
+      auth
+    })
+
+    const $ = load(result)
+    const [p1Status, p2Status] = $('tbody .govuk-table__row')
+      .map((_, row) => $(row).find('td').eq(1))
+      .get()
+
+    expect($('thead th').eq(1).text()).toBe('Status')
+    expect($('thead th').eq(1).attr('data-sort-ties-by-ref')).toBe('true')
+    expect($(p1Status).find('strong.govuk-tag--grey').text()).toBe('Complete')
+    expect($(p1Status).attr('data-sort-value')).toBe('Complete')
+    expect($(p2Status).find('strong.govuk-tag--blue').text()).toBe('Incomplete')
+    expect($('tfoot td').eq(1).text()).toBe('')
+  })
+
   test('keeps the header, habitat rows and totals row the same width', async () => {
     const { result } = await server.inject({
       method: 'GET',
@@ -335,7 +372,7 @@ describe('area baseline', () => {
       .map((_, row) => $(row).find('td').length)
       .get()
 
-    expect(headerCount).toBe(8)
+    expect(headerCount).toBe(9)
     expect(bodyRowWidths).toEqual([headerCount, headerCount, headerCount])
     expect($('tfoot td')).toHaveLength(headerCount)
   })
@@ -374,11 +411,11 @@ describe('area baseline', () => {
     const firstRow = $('tbody .govuk-table__row').eq(0)
     const secondRow = $('tbody .govuk-table__row').eq(1)
 
-    expect(firstRow.find('td').eq(5).text()).toBe('')
-    expect(firstRow.find('td').eq(6).text()).toBe('Moderate')
-    expect(secondRow.find('td').eq(5).text()).toBe('')
+    expect(firstRow.find('td').eq(6).text()).toBe('')
+    expect(firstRow.find('td').eq(7).text()).toBe('Moderate')
+    expect(secondRow.find('td').eq(6).text()).toBe('')
     // Only habitatP1's 24 units count; habitatP2's null is skipped, not NaN.
-    expect($('tfoot td').eq(1).text()).toBe('24.00')
+    expect($('tfoot td').eq(2).text()).toBe('24.00')
   })
 
   test('falls back to Project when the project has no name', async () => {
@@ -558,7 +595,7 @@ describe('area baseline', () => {
 
     expect($('table').attr('data-module')).toBe('moj-sortable-table')
     expect($('table').hasClass('app-habitat-details-table')).toBe(true)
-    expect($('th[aria-sort="none"]')).toHaveLength(8)
+    expect($('th[aria-sort="none"]')).toHaveLength(9)
     expect($('th[aria-sort="ascending"]')).toHaveLength(0)
     expect($('.moj-scrollable-pane').attr('aria-label')).toBe(
       'Area habitat details'

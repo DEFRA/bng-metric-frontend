@@ -1,8 +1,11 @@
 {#- A cut-short cell (cell.truncated) shows its first characters and an
     ellipsis, keeps the rest visually hidden so assistive technology hears the
-    whole value, and hides the ellipsis from it. -#}
+    whole value, and hides the ellipsis from it. A tagged cell (cell.tag)
+    shows its text as a GOV.UK tag. -#}
 {% macro habitatDetailsCellContent(cell) -%}
-  {%- if cell.truncated -%}
+  {%- if cell.tag -%}
+    <strong class="govuk-tag {{ cell.tag.classes }}">{{ cell.text }}</strong>
+  {%- elif cell.truncated -%}
     <span>{{ cell.truncated.shown }}</span><span class="govuk-visually-hidden">{{ cell.truncated.hidden }}</span><span aria-hidden="true">{{ cell.truncated.mark }}</span>
   {%- else -%}
     {{ cell.text }}
@@ -19,7 +22,7 @@
       <thead class="govuk-table__head">
         <tr class="govuk-table__row">
           {% for column in params.columns %}
-            <th class="govuk-table__header{% if column.numeric %} govuk-table__header--numeric{% endif %}" scope="col" aria-sort="none">{{ column.text }}</th>
+            <th class="govuk-table__header{% if column.numeric %} govuk-table__header--numeric{% endif %}" scope="col" aria-sort="none"{% if column.attributes %}{% for attr, val in column.attributes %} {{ attr | escape }}="{{ val | escape }}"{% endfor %}{% endif %}>{{ column.text }}</th>
           {% endfor %}
         </tr>
       </thead>
