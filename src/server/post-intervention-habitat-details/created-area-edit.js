@@ -1,19 +1,30 @@
 import {
   loadCreatedAreaReference,
-  loadCreatedHedgerowReference
+  loadCreatedHedgerowReference,
+  loadCreatedWatercourseReference
 } from './created-edit-reference.js'
 export {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
+  loadCreatedWatercourseReference,
   _resetCreatedAreaReferenceCache
 } from './created-edit-reference.js'
+import {
+  buildCreatedEditFields,
+  ENCROACHMENT_FIELDS,
+  FIELD_ORDER,
+  ERROR_SUMMARY_TEXT,
+  keepImportedCondition
+} from './created-area-edit-fields.js'
+import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
+import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
 import {
-  MAX_YEARS,
   UNCHANGED_VALUE,
   resolveCreatedTiming,
   createdAreaDerived,
+  createdDerivedInputsUnchanged,
   selectedHabitat,
   YEAR_OPTIONS
 } from '../../shared/created-area-details.js'
@@ -26,11 +37,18 @@ import { formatLengthDisplay } from './view-only-shared.js'
 import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
-import { createdStrategicSignificance } from './created-strategic-significance.js'
+import {
+  createdAreaValues,
+  createdImportedChoices
+} from './created-choice-values.js'
+export { createdAreaValues } from './created-choice-values.js'
 
 export const CREATED_EDIT_KINDS = {
   habitat: {
     loadReference: loadCreatedAreaReference,
+    label: 'Area habitat',
+    optionalReference: false,
+    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
     buildBase: buildCreatedAreaViewOnlyViewModel,
     formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
     sizeLabel: 'Size (hectares)',
@@ -39,8 +57,28 @@ export const CREATED_EDIT_KINDS = {
     hasBroadHabitat: true,
     habitatTypeError: 'Choose a habitat type for the selected broad habitat'
   },
+  watercourse: {
+    loadReference: loadCreatedWatercourseReference,
+    label: 'Watercourse',
+    optionalReference: true,
+    readOnlyTemplate: 'habitat-details/pi-watercourse-details-created',
+    buildBase: buildCreatedWatercourseViewOnlyViewModel,
+    formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
+    sizeLabel: 'Length (km)',
+    backType: 'watercourse',
+    savePath: 'watercourses',
+    hasBroadHabitat: false,
+    hasEncroachments: true,
+    // Match the merged Created editors: imported choices are kept through omission.
+    preservesImportedType: true,
+    restoresLineageAdvance: true,
+    habitatTypeError: 'Choose a valid watercourse habitat type'
+  },
   hedgerow: {
     loadReference: loadCreatedHedgerowReference,
+    label: 'Hedgerow',
+    optionalReference: true,
+    readOnlyTemplate: 'habitat-details/pi-hedgerow-details-enhanced',
     buildBase: buildCreatedHedgerowViewOnlyViewModel,
     formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
     sizeLabel: 'Length (km)',
@@ -58,23 +96,6 @@ function createdKind(reference) {
     )
   }
   return CREATED_EDIT_KINDS[reference.featureType]
-}
-
-const FIELD_ORDER = [
-  'ref',
-  'broadHabitat',
-  'habitatType',
-  'strategicSignificance',
-  'condition',
-  'advanceYears',
-  'delayYears'
-]
-
-const ERROR_SUMMARY_TEXT = {
-  'Enter a valid habitat reference.':
-    'You have entered an invalid habitat reference.',
-  'Either the advance or delay field must be set at zero.':
-    'A habitat cannot be created both in advance and with a delay.'
 }
 
 export const createdAreaPayloadSchema = Joi.object({
@@ -100,6 +121,16 @@ export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
   (schema) => schema.forbidden()
 )
 
+export const createdWatercoursePayloadSchema =
+  createdHedgerowPayloadSchema.keys(
+    Object.fromEntries(
+      ENCROACHMENT_FIELDS.map((field) => [
+        field,
+        Joi.string().allow('').required()
+      ])
+    )
+  )
+
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
   reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
@@ -111,14 +142,22 @@ export function createdReferenceForFeature(reference, feature) {
       )
       .map((field) => [field, saved[field]])
   )
-  const importedCondition = importedHedgerowCondition(reference, saved)
+  const importedChoices = createdImportedChoices(feature, reference, kind)
+  const importedCondition = importedLinearCondition(reference, saved)
+  if (importedCondition && importedChoices.habitatType) {
+    importedCondition.habitatType = UNCHANGED_VALUE
+  }
   return {
     ...reference,
     importedYears,
     importedCondition,
+    importedChoices,
     importedCalculation: {
       values: {
         ...saved,
+        ...Object.fromEntries(
+          Object.keys(importedChoices).map((field) => [field, UNCHANGED_VALUE])
+        ),
         ...(importedCondition ? { condition: UNCHANGED_VALUE } : {}),
         ...Object.fromEntries(
           Object.keys(importedYears).map((field) => [field, UNCHANGED_VALUE])
@@ -132,7 +171,10 @@ export function createdReferenceForFeature(reference, feature) {
 
 function createdEditValues(feature, reference) {
   const saved = createdAreaValues(feature)
-  for (const field of Object.keys(reference.importedYears ?? {})) {
+  for (const field of [
+    ...Object.keys(reference.importedYears ?? {}),
+    ...Object.keys(reference.importedChoices ?? {})
+  ]) {
     saved[field] = UNCHANGED_VALUE
   }
   if (reference.importedCondition) {
@@ -141,45 +183,14 @@ function createdEditValues(feature, reference) {
   return saved
 }
 
-function importedHedgerowCondition(reference, values) {
-  if (reference.featureType !== 'hedgerow' || !values.condition) {
+function importedLinearCondition(reference, values) {
+  if (createdKind(reference).hasBroadHabitat || !values.condition) {
     return null
   }
   const type = selectedHabitat(reference, values)
-  return type && !type.conditions.some((c) => c.condition === values.condition)
+  return !type?.conditions.some((c) => c.condition === values.condition)
     ? { habitatType: values.habitatType, condition: values.condition }
     : null
-}
-
-function keepImportedCondition(reference, values) {
-  return reference.importedCondition?.habitatType === values.habitatType
-}
-
-function yearValue(value, is30Plus) {
-  if (value === null || value === undefined) {
-    return ''
-  }
-  return is30Plus && Number(value) === MAX_YEARS ? '30+' : String(value)
-}
-
-export function createdAreaValues(feature) {
-  const proposed = feature.proposed ?? {}
-  return {
-    ref: String(feature.ref ?? ''),
-    broadHabitat: proposed.broadType ?? '',
-    habitatType: proposed.type ?? '',
-    condition: stripConditionPrefix(proposed.condition) ?? '',
-    strategicSignificance: createdStrategicSignificance(
-      proposed.strategicSignificanceCategory ??
-        proposed.strategicSignificance ??
-        ''
-    ),
-    advanceYears: yearValue(
-      proposed.advanceYears,
-      proposed.advanceYearsIs30Plus
-    ),
-    delayYears: yearValue(proposed.delayYears, proposed.delayYearsIs30Plus)
-  }
 }
 
 function validateReference(ref, errors) {
@@ -212,6 +223,16 @@ function validateCreatedTiming(values, reference, errors) {
   }
 }
 
+function invalidChoice(value, options, reference, field) {
+  if (
+    value === UNCHANGED_VALUE &&
+    Object.hasOwn(reference.importedChoices ?? {}, field)
+  ) {
+    return false
+  }
+  return Boolean(value) && !options.includes(value)
+}
+
 export function validateCreatedArea(values, reference) {
   const errors = {}
   validateReference(values.ref, errors)
@@ -231,139 +252,27 @@ export function validateCreatedArea(values, reference) {
       ...(type?.conditions ?? []).map((c) => c.condition),
       ...(keepImportedCondition(reference, values) ? [UNCHANGED_VALUE] : [])
     ],
-    strategicSignificance: reference.strategicSignificance.map((s) => s.value)
+    strategicSignificance: reference.strategicSignificance.map((s) => s.value),
+    ...(kind.hasEncroachments
+      ? Object.fromEntries(
+          ENCROACHMENT_FIELDS.map((field) => [field, reference[field]])
+        )
+      : {})
   }
   for (const [field, options] of Object.entries(choices)) {
-    if (values[field] && !options.includes(values[field])) {
+    if (invalidChoice(values[field], options, reference, field)) {
       const messages = {
         broadHabitat: 'Choose a valid broad habitat',
         habitatType: kind.habitatTypeError,
         condition: 'Choose a target condition for the selected habitat type',
-        strategicSignificance: 'Choose a valid strategic significance'
+        strategicSignificance: 'Choose a valid strategic significance',
+        watercourseEncroachment: 'Choose a valid watercourse encroachment',
+        riparianEncroachment: 'Choose a valid riparian encroachment'
       }
       errors[field] = messages[field]
     }
   }
   return errors
-}
-
-function selectItems(options, value, label) {
-  return [
-    {
-      value: '',
-      text: `Choose ${label}`,
-      selected: !options.some((o) => o.value === value)
-    },
-    ...options.map((option) => ({
-      ...option,
-      selected: option.value === value
-    }))
-  ]
-}
-
-function choiceHint(id, items, value, initialLoad) {
-  const hints = []
-  if (id === 'strategicSignificance') {
-    hints.push(
-      "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
-    )
-  }
-  if (initialLoad && value && !items.some((item) => item.value === value)) {
-    hints.push(
-      `The imported value "${value}" is not available. Choose a valid option; saving without a new selection will clear this value.`
-    )
-  }
-  return hints.join(' ') || null
-}
-
-function createdFieldChoices(reference, values, type, kind) {
-  const options = (list) => list.map((value) => ({ value, text: value }))
-  return [
-    [
-      'broadHabitat',
-      'Broad habitat',
-      options(
-        [...new Set(reference.habitatTypes.map((t) => t.broad))].sort((a, b) =>
-          a.localeCompare(b)
-        )
-      )
-    ],
-    [
-      'habitatType',
-      'Habitat type',
-      options(
-        reference.habitatTypes
-          .filter(
-            (t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat
-          )
-          .map((t) => t.name)
-      )
-    ],
-    [
-      'condition',
-      'Target condition (multiplier)',
-      (type?.conditions ?? []).map((c) => ({
-        value: c.condition,
-        text: `${c.condition} (${c.score})`
-      }))
-    ],
-    [
-      'strategicSignificance',
-      'Strategic significance (multiplier)',
-      reference.strategicSignificance.map((s) => ({
-        value: s.value,
-        text: `${s.value} (${s.score})`
-      }))
-    ],
-    [
-      'advanceYears',
-      'Habitat created in advance (years)',
-      options(YEAR_OPTIONS)
-    ],
-    [
-      'delayYears',
-      'Delay in starting habitat creation (years)',
-      options(YEAR_OPTIONS)
-    ]
-  ]
-}
-
-function createdAreaFields(reference, values, type, initialLoad) {
-  const kind = createdKind(reference)
-  const fields = createdFieldChoices(reference, values, type, kind)
-  const placeholders = {
-    advanceYears: 'advance',
-    delayYears: 'delay',
-    condition: 'target condition',
-    strategicSignificance: 'strategic significance'
-  }
-  return fields
-    .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
-    .map(([id, label, items]) => {
-      const imported =
-        id === 'condition' && keepImportedCondition(reference, values)
-          ? reference.importedCondition.condition
-          : reference.importedYears?.[id]
-      if (imported !== undefined) {
-        items = [
-          ...items,
-          { value: UNCHANGED_VALUE, text: `${imported} (imported value)` }
-        ]
-      }
-      return {
-        id,
-        label,
-        hint:
-          imported !== undefined
-            ? `The imported value is ${imported}. Keep it unchanged, choose a new value, or choose the default option to clear it.`
-            : choiceHint(id, items, values[id], initialLoad),
-        items: selectItems(
-          items,
-          values[id],
-          placeholders[id] ?? label.toLowerCase()
-        )
-      }
-    })
 }
 
 function createdAreaDisplayFields(feature, reference, values, base) {
@@ -375,8 +284,15 @@ function createdAreaDisplayFields(feature, reference, values, base) {
     baselineCondition
   )
   const derived = createdAreaDerived(reference, values, baselineCondition)
+  const originalValues = createdEditValues(feature, reference)
   for (const field of Object.keys(derived)) {
+    const sameInputs = createdDerivedInputsUnchanged(
+      field,
+      values,
+      originalValues
+    )
     if (
+      sameInputs &&
       derived[field] &&
       derived[field] === originalDerived[field] &&
       base[field]
@@ -387,40 +303,22 @@ function createdAreaDisplayFields(feature, reference, values, base) {
   return { baselineCondition, ...derived }
 }
 
-function editFieldsWithImportHints(feature, reference, values) {
-  const originalValues = createdEditValues(feature, reference)
-  const originalFields = new Map(
-    createdAreaFields(
-      reference,
-      originalValues,
-      selectedHabitat(reference, originalValues),
-      true
-    ).map((field) => [field.id, field])
-  )
-  const fields = createdAreaFields(
-    reference,
-    values,
-    selectedHabitat(reference, values),
-    false
-  )
-  return Object.fromEntries(
-    fields.map((field) => {
-      const importedValue = originalValues[field.id]
-      const pendingClear =
-        importedValue &&
-        (!values[field.id] || values[field.id] === importedValue)
-      const importedField = originalFields.get(field.id)
-      const unavailable = !importedField.items.some(
-        (item) => item.value === importedValue
+function createdReferenceJson(reference, storedValues, storedDisplay, derived) {
+  return JSON.stringify({
+    ...reference,
+    storedPreview: {
+      values: storedValues,
+      labels: Object.fromEntries(
+        Object.keys(derived).map((field) => [field, storedDisplay[field]])
       )
-      return [
-        field.id,
-        {
-          ...field,
-          hint: pendingClear && unavailable ? importedField.hint : field.hint
-        }
-      ]
-    })
+    }
+  }).replaceAll('<', String.raw`\u003c`)
+}
+
+function createdUploadHref(ctx, feature, returnUrl) {
+  return uploadFileHref(
+    ctx.projectId,
+    `/post-intervention-habitat-details?${new URLSearchParams({ projectId: ctx.projectId, featureId: feature.featureId, returnUrl })}`
   )
 }
 
@@ -433,13 +331,26 @@ export function buildCreatedAreaEditViewModel(
 ) {
   reference = createdReferenceForFeature(reference, feature)
   const kind = createdKind(reference)
-  const base = kind.buildBase(feature, ctx)
+  const base = kind.buildBase(
+    {
+      ...feature,
+      retentionCategory: featureRetentionCategory(feature)
+    },
+    ctx
+  )
   const initialLoad = values === null
-  values ??= createdEditValues(feature, reference)
+  const storedValues = createdEditValues(feature, reference)
+  values ??= storedValues
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
     feature,
     reference,
     values,
+    base
+  )
+  const storedDisplay = createdAreaDisplayFields(
+    feature,
+    reference,
+    storedValues,
     base
   )
   const backHref = postInterventionBackHref(
@@ -469,52 +380,87 @@ export function buildCreatedAreaEditViewModel(
       text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
       href: `#${field}`
     })),
-    fields: editFieldsWithImportHints(feature, reference, values),
-    referenceJson: JSON.stringify(reference).replaceAll(
-      '<',
-      String.raw`\u003c`
+    fields: buildCreatedEditFields(reference, values, storedValues, kind),
+    referenceJson: createdReferenceJson(
+      reference,
+      storedValues,
+      storedDisplay,
+      derived
     ),
     formAction: '/post-intervention-habitat-details',
     backHref,
     cancelHref: backHref,
     returnUrl: backHref,
-    uploadHref: uploadFileHref(
-      ctx.projectId,
-      `/post-intervention-habitat-details?${new URLSearchParams({ projectId: ctx.projectId, featureId: feature.featureId, returnUrl: backHref })}`
-    )
+    uploadHref: createdUploadHref(ctx, feature, backHref)
   }
 }
 
-function timingPayload(values, field) {
-  if (values[field] === UNCHANGED_VALUE) {
+function timingPayload(values, field, keepBlank = false) {
+  if (
+    values[field] === UNCHANGED_VALUE ||
+    (keepBlank && values[field] === '')
+  ) {
     return {}
   }
   return { [field]: values[field] === '' ? null : values[field] }
 }
 
-function createdAreaSavePayload(values, kind) {
+function habitatTypePayload(values, kind, feature) {
+  if (
+    !kind.hasBroadHabitat &&
+    values.condition === UNCHANGED_VALUE &&
+    feature
+  ) {
+    // The backend compares types before preserving an omitted condition.
+    // Keep a stored empty string distinct from null on an unchanged-type save.
+    return feature.proposed?.type ?? null
+  }
+  return values.habitatType || null
+}
+
+function advancePayload(values, kind, feature) {
+  const hasPositiveDelay = Number.parseFloat(values.delayYears) > 0
+  // Preserve a lineage-hidden advance on rename, but clear it for a positive delay.
+  const keepBlank =
+    kind.restoresLineageAdvance &&
+    feature &&
+    feature.proposed?.advanceYears == null &&
+    !hasPositiveDelay
+  return timingPayload(values, 'advanceYears', keepBlank)
+}
+
+function createdAreaSavePayload(values, kind, feature) {
   return {
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
-    habitatType: values.habitatType || null,
+    ...(values.habitatType === UNCHANGED_VALUE
+      ? {}
+      : { habitatType: habitatTypePayload(values, kind, feature) }),
     ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_VALUE
       ? { condition: values.condition || null }
       : {}),
-    strategicSignificance: values.strategicSignificance || null,
-    ...timingPayload(values, 'advanceYears'),
-    ...timingPayload(values, 'delayYears')
+    ...timingPayload(values, 'strategicSignificance'),
+    ...advancePayload(values, kind, feature),
+    ...timingPayload(values, 'delayYears'),
+    ...(kind.hasEncroachments
+      ? Object.assign(
+          {},
+          ...ENCROACHMENT_FIELDS.map((field) => timingPayload(values, field))
+        )
+      : {})
   }
 }
 
 export async function saveCreatedArea(
   request,
   values,
-  kind = CREATED_EDIT_KINDS.habitat
+  kind = CREATED_EDIT_KINDS.habitat,
+  feature = null
 ) {
   const { projectId, featureId } = request.payload
   return saveHabitat(
     request,
     `projects/${projectId}/post-intervention/${kind.savePath}/${featureId}`,
-    createdAreaSavePayload(values, kind)
+    createdAreaSavePayload(values, kind, feature)
   )
 }

@@ -1,3 +1,4 @@
+import { watercourseCreationReference } from './created-watercourse-test-fixtures.js'
 import { vi } from 'vitest'
 
 import { wreck } from '../common/helpers/wreck-client.js'
@@ -45,6 +46,9 @@ export function isProjectUrl(url) {
  */
 export function mockFeature(featurePayload, projectResponse = projectPayload) {
   vi.mocked(wreck.get).mockImplementation((url) => {
+    if (url.endsWith('/reference/watercourse-creation')) {
+      return Promise.resolve({ payload: watercourseCreationReference })
+    }
     if (url.endsWith('/reference/hedgerow-creation')) {
       return Promise.resolve({ payload: hedgerowCreationReference })
     }
