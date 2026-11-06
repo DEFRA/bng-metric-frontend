@@ -179,23 +179,23 @@ describe('#postInterventionHabitatDetailsController', () => {
     [
       'Retained',
       'habitat-details/pi-habitat-details',
-      '0.004 (40m²)',
+      '0.004',
       'Size (hectares)'
     ],
     [
       'Created',
       'habitat-details/pi-habitat-details-enhanced',
-      '0.004ha (40m²)',
+      '0.004ha',
       undefined
     ],
     [
       'Enhanced',
       'habitat-details/pi-habitat-details-enhanced',
-      '0.004ha (40m²)',
+      '0.004ha',
       undefined
     ]
   ])(
-    'GET shows a %s vertical area habitat on the area page, read only, sized in hectares and square metres',
+    'GET shows a %s vertical area habitat on the area page, read only, sized in hectares',
     async (retentionCategory, template, sizeDisplay, sizeLabel) => {
       vi.mocked(wreck.get).mockImplementation((url) => {
         if (url.includes(`/post-intervention/features/${featureId}`)) {
