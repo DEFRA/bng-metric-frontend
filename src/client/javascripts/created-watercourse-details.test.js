@@ -40,19 +40,19 @@ beforeAll(() => {
 })
 beforeEach(() => render())
 
-test('defaults an invalid condition when the stored type is blank', () => {
+test('preserves an imported condition when the stored type is blank', () => {
   render({
     ...feature,
     proposed: { ...feature.proposed, type: null, condition: 'Good' }
   })
   expect(value('habitatType')).toBe('')
-  expect(value('condition')).toBe('')
+  expect(value('condition')).toBe('unchanged')
   change('ref', 'Renamed')
   expect(
     new FormData(document.getElementById('created-area-details-form')).get(
       'condition'
     )
-  ).toBe('')
+  ).toBe('unchanged')
   change('habitatType', 'Canals')
   expect(value('condition')).toBe('')
   expect(
@@ -61,7 +61,7 @@ test('defaults an invalid condition when the stored type is blank', () => {
   change('habitatType', '')
   expect(
     document.querySelector('#condition option[value="unchanged"]')
-  ).toBeNull()
+  ).not.toBeNull()
   const values = Object.fromEntries(
     new FormData(document.getElementById('created-area-details-form'))
   )
@@ -221,17 +221,17 @@ test('restores stored timing after validation redisplay instead of treating subm
   expect(text('finalTimeToTargetDisplay')).toBe('0 years (1)')
 })
 
-test('defaults unavailable encroachment independently when the habitat type changes', () => {
+test('preserves imported encroachment independently when the habitat type changes', () => {
   render({
     ...feature,
     proposed: { ...feature.proposed, riparianEncroachment: 'Imported value' }
   })
-  expect(value('riparianEncroachment')).toBe('')
+  expect(value('riparianEncroachment')).toBe('unchanged')
   expect(
     document.querySelector('#riparianEncroachment option[value="unchanged"]')
-  ).toBeNull()
+  ).not.toBeNull()
   change('habitatType', 'Canals')
-  expect(value('riparianEncroachment')).toBe('')
+  expect(value('riparianEncroachment')).toBe('unchanged')
   expect(value('watercourseEncroachment')).toBe('Minor')
 })
 

@@ -1,41 +1,7 @@
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { createdStrategicSignificance } from './created-strategic-significance.js'
-import {
-  selectedHabitat,
-  MAX_YEARS,
-  YEAR_OPTIONS
-} from '../../shared/created-area-details.js'
+import { MAX_YEARS } from '../../shared/created-area-details.js'
 import { ENCROACHMENT_FIELDS } from './created-area-edit-fields.js'
-import { unsupportedStoredSignificance } from './created-edit-read-only.js'
-
-export function createdChoiceValues(values, feature, reference, kind) {
-  if (!kind.clearsUnsupportedValuesOnSave) {
-    return values
-  }
-  const type = selectedHabitat(reference, values)
-  const choices = {
-    habitatType: reference.habitatTypes.map((item) => item.name),
-    condition: (type?.conditions ?? []).map((item) => item.condition),
-    strategicSignificance: reference.strategicSignificance.map(
-      (item) => item.value
-    ),
-    advanceYears: YEAR_OPTIONS,
-    delayYears: YEAR_OPTIONS,
-    ...(kind.hasEncroachments
-      ? Object.fromEntries(
-          ENCROACHMENT_FIELDS.map((field) => [field, reference[field]])
-        )
-      : {})
-  }
-  const result = { ...values }
-  for (const [field, options] of Object.entries(choices)) {
-    result[field] = options.includes(values[field]) ? values[field] : ''
-  }
-  if (unsupportedStoredSignificance(feature, reference) !== null) {
-    result.strategicSignificance = ''
-  }
-  return result
-}
 
 function yearValue(value, is30Plus) {
   if (value === null || value === undefined) {
@@ -51,11 +17,7 @@ export function createdAreaValues(feature) {
     broadHabitat: proposed.broadType ?? '',
     habitatType: proposed.type ?? '',
     condition: stripConditionPrefix(proposed.condition) ?? '',
-    strategicSignificance: createdStrategicSignificance(
-      proposed.strategicSignificanceCategory ??
-        proposed.strategicSignificance ??
-        ''
-    ),
+    strategicSignificance: significanceValue(proposed),
     advanceYears: yearValue(
       proposed.advanceYears,
       proposed.advanceYearsIs30Plus
@@ -69,18 +31,38 @@ export function createdAreaValues(feature) {
   }
 }
 
-export function createdHintValues(feature, reference, storedValues) {
-  const raw = createdAreaValues(feature)
-  const unsupported = unsupportedStoredSignificance(feature, reference)
-  if (unsupported !== null) {
-    raw.strategicSignificance = unsupported
+// Preserve unsupported imports; they are not offered as newly selectable valid values.
+export function createdImportedChoices(feature, reference, kind) {
+  const values = createdAreaValues(feature)
+  const choices = {
+    strategicSignificance: reference.strategicSignificance.map((s) => s.value),
+    ...(kind.preservesImportedType
+      ? { habitatType: reference.habitatTypes.map((t) => t.name) }
+      : {}),
+    ...(kind.hasEncroachments
+      ? {
+          ...Object.fromEntries(
+            ENCROACHMENT_FIELDS.map((field) => [field, reference[field]])
+          )
+        }
+      : {})
   }
   return Object.fromEntries(
-    Object.entries(storedValues).map(([field, value]) => [
-      field,
-      value === '' && raw[field] != null && raw[field] !== ''
-        ? String(raw[field])
-        : value
-    ])
+    Object.entries(choices)
+      .filter(
+        ([field, options]) => values[field] && !options.includes(values[field])
+      )
+      .map(([field]) => [field, values[field]])
+  )
+}
+
+function significanceValue(proposed) {
+  // Keep the merged editors' category precedence, including an explicit clear.
+  // Historical rejection metadata must never override a current saved choice.
+  return createdStrategicSignificance(
+    proposed.strategicSignificanceCategory ??
+      proposed.strategicSignificance ??
+      proposed.rejectedStrategicSignificance ??
+      ''
   )
 }

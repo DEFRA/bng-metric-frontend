@@ -121,6 +121,7 @@ function unchangedImportedFinalTime(reference, values) {
     'delayYears'
   ]
   if (
+    values.habitatType === UNCHANGED_VALUE ||
     (!Object.keys(reference.importedYears ?? {}).length &&
       !reference.importedCondition) ||
     !saved

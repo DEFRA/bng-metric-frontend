@@ -24,7 +24,6 @@ import {
 } from '../common/helpers/habitat-ref.js'
 import { PI_DETAILS_HEADING, MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
-import { createdReadOnlyReason } from './created-edit-read-only.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
@@ -311,9 +310,7 @@ async function renderCreatedFeature(
   const baselineFeatureId = createdBaselineFeatureId(project, type, feature)
   const kind = CREATED_EDIT_KINDS[type]
   const reference = await loadCreationReferenceForFeature(type, feature)
-  const readOnlyReason =
-    reference && createdReadOnlyReason(kind, feature, reference)
-  if (!reference || readOnlyReason) {
+  if (!reference) {
     return h.view(kind.readOnlyTemplate, {
       ...kind.buildBase(
         { ...feature, retentionCategory: RETENTION_CREATED },
@@ -323,8 +320,7 @@ async function renderCreatedFeature(
           baselineFeatureId
         }
       ),
-      backHref: postInterventionBackHref(projectId, type, returnUrl),
-      readOnlyReason
+      backHref: postInterventionBackHref(projectId, type, returnUrl)
     })
   }
   return h.view(
@@ -462,10 +458,6 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
     throw Boom.serverUnavailable(
       `${kind.label} editing is temporarily unavailable`
     )
-  }
-  const readOnlyReason = createdReadOnlyReason(kind, feature, reference)
-  if (readOnlyReason) {
-    throw Boom.badRequest(readOnlyReason)
   }
   const errors = validateCreatedArea(values, reference)
   if (Object.keys(errors).length) {

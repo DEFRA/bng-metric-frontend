@@ -184,7 +184,7 @@ test.each([
 )
 
 test.each(['watercourseEncroachment', 'riparianEncroachment'])(
-  'defaults unsupported condition, timing and %s and saves the selected defaults as null',
+  'preserves unsupported condition, timing and %s on an unrelated save',
   async (encroachment) => {
     mockFeature({
       type: 'watercourse',
@@ -203,20 +203,18 @@ test.each(['watercourseEncroachment', 'riparianEncroachment'])(
     await getController.handler({ query: { projectId, featureId } }, h)
     const vm = h.view.mock.calls[0][1]
     expect(vm.values).toMatchObject({
-      condition: '',
-      advanceYears: '',
-      [encroachment]: ''
+      condition: 'unchanged',
+      advanceYears: 'unchanged',
+      [encroachment]: 'unchanged'
     })
     for (const field of ['condition', 'advanceYears', encroachment]) {
       expect(vm.fields[field].items.find((item) => item.selected).value).toBe(
-        ''
+        'unchanged'
       )
       expect(
         vm.fields[field].items.some((item) => item.value === 'unchanged')
-      ).toBe(false)
-      expect(vm.fields[field].hint).toContain(
-        'saving without a new selection will clear this value'
-      )
+      ).toBe(true)
+      expect(vm.fields[field].hint).toContain('Keep it unchanged')
     }
     const { broadHabitat: _broad, ...form } = vm.values
     await postController.handler(
@@ -225,7 +223,7 @@ test.each(['watercourseEncroachment', 'riparianEncroachment'])(
     )
     const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
     for (const field of ['condition', 'advanceYears', encroachment]) {
-      expect(payload[field]).toBeNull()
+      expect(payload).not.toHaveProperty(field)
     }
   }
 )
@@ -413,7 +411,7 @@ describe('authenticated Created watercourse form', () => {
       expect(wreck.put).not.toHaveBeenCalled()
     }
   )
-  test('warns before default choices clear unsupported values and preserves valid fields on save and reload', async () => {
+  test('preserves imported values on rename and only clears them after an explicit selection', async () => {
     const stored = {
       ...structuredClone(feature),
       units: 0,
@@ -438,6 +436,7 @@ describe('authenticated Created watercourse form', () => {
         'watercourseEncroachment',
         'riparianEncroachment'
       ]) {
+        if (!Object.hasOwn(saved, field)) continue
         stored.proposed[field] =
           ['advanceYears', 'delayYears'].includes(field) &&
           saved[field] !== null
@@ -456,8 +455,8 @@ describe('authenticated Created watercourse form', () => {
     expect(page.statusCode).toBe(200)
     const $ = load(page.payload)
     for (const field of ['delayYears', 'riparianEncroachment']) {
-      expect($(`#${field}`).val()).toBe('')
-      expect($(`#${field}-hint`).text()).toContain('will clear this value')
+      expect($(`#${field}`).val()).toBe('unchanged')
+      expect($(`#${field}-hint`).text()).toContain('Keep it unchanged')
     }
     expect(stored).toEqual(snapshot)
     const { token: crumb, cookie } = await primeCrumb(server)
@@ -475,23 +474,40 @@ describe('authenticated Created watercourse form', () => {
       strategicSignificance: 'Low',
       advanceYears: 0,
       watercourseEncroachment: 'Minor',
-      delayYears: null,
-      riparianEncroachment: null
+      delayYears: 2.5,
+      riparianEncroachment: 'Imported value'
     })
     const reloaded = await get()
     const after = load(reloaded.payload)
     expect(after('#ref').val()).toBe('Renamed')
     for (const field of ['delayYears', 'riparianEncroachment']) {
-      expect(after(`#${field}`).val()).toBe('')
-      expect(after(`#${field}-hint`).text()).not.toContain(
-        'will clear this value'
-      )
+      expect(after(`#${field}`).val()).toBe('unchanged')
+      expect(after(`#${field}-hint`).text()).toContain('Keep it unchanged')
     }
+    const cleared = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: {
+        ...renderedForm(reloaded),
+        ref: 'Renamed',
+        delayYears: '',
+        riparianEncroachment: '',
+        crumb
+      }
+    })
+    expect(cleared.statusCode).toBe(302)
+    expect(stored.proposed.delayYears).toBeNull()
+    expect(stored.proposed.riparianEncroachment).toBeNull()
+    const clearedPage = load((await get()).payload)
+    expect(clearedPage('#delayYears').val()).toBe('')
+    expect(clearedPage('#riparianEncroachment').val()).toBe('')
     expect(after('#habitatType').val()).toBe('Ditches')
     expect(after('#watercourseEncroachment').val()).toBe('Minor')
   })
 
-  test('keeps unsupported saved types editable with default type and condition selections', async () => {
+  test('keeps unsupported saved types editable with imported type and condition selections', async () => {
     const stored = {
       ...feature,
       units: 0,
@@ -511,12 +527,12 @@ describe('authenticated Created watercourse form', () => {
     })
     expect(page.statusCode).toBe(200)
     const $ = load(page.payload)
-    expect($('#habitatType').val()).toBe('')
-    expect($('#condition').val()).toBe('')
+    expect($('#habitatType').val()).toBe('unchanged')
+    expect($('#condition').val()).toBe('unchanged')
     expect($('#habitatType-hint').text()).toContain('Legacy river type')
-    expect($('#habitatType-hint').text()).toContain('will clear this value')
+    expect($('#habitatType-hint').text()).toContain('Keep it unchanged')
     expect($('#condition-hint').text()).toContain('Legacy condition')
-    expect($('#condition-hint').text()).toContain('will clear this value')
+    expect($('#condition-hint').text()).toContain('Keep it unchanged')
     expect($('button[type="submit"]').text()).toContain('Save')
     expect(stored).toEqual(snapshot)
     const { token: crumb, cookie } = await primeCrumb(server)
@@ -528,10 +544,11 @@ describe('authenticated Created watercourse form', () => {
       payload: { ...renderedForm(page), ref: 'Renamed', crumb }
     })
     expect(saved.statusCode).toBe(302)
+    const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
+    expect(payload).not.toHaveProperty('habitatType')
+    expect(payload).not.toHaveProperty('condition')
     expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
       ref: 'Renamed',
-      habitatType: null,
-      condition: null,
       strategicSignificance: 'Low',
       watercourseEncroachment: 'Minor'
     })
@@ -539,8 +556,6 @@ describe('authenticated Created watercourse form', () => {
 
   test.each([
     { strategicSignificance: 'Medium' },
-    { strategicSignificance: 'Medium', strategicSignificanceCategory: 'Low' },
-    { strategicSignificance: 'Low', rejectedStrategicSignificance: 'Medium' },
     {
       strategicSignificance:
         'Location ecologically desirable but not in local strategy'
@@ -548,7 +563,7 @@ describe('authenticated Created watercourse form', () => {
     { strategicSignificance: null, rejectedStrategicSignificance: 'Medium' },
     { strategicSignificance: 'Unknown' }
   ])(
-    'defaults unsupported significance and permits an authenticated save: %j',
+    'preserves unsupported significance during an authenticated rename: %j',
     async (stored) => {
       const original = {
         ...structuredClone(feature),
@@ -570,15 +585,15 @@ describe('authenticated Created watercourse form', () => {
       })
       expect(page.statusCode).toBe(200)
       const $ = load(page.payload)
-      expect($('#strategicSignificance').val()).toBe('')
+      expect($('#strategicSignificance').val()).toBe('unchanged')
       expect($('#strategicSignificance-hint').text()).toContain(
         stored.rejectedStrategicSignificance ?? stored.strategicSignificance
       )
       expect($('#strategicSignificance-hint').text()).toContain(
-        'will clear this value'
+        'Keep it unchanged'
       )
       expect($('#strategicSignificance option:selected').text()).toBe(
-        'Choose strategic significance'
+        `${stored.rejectedStrategicSignificance ?? stored.strategicSignificance} (imported value)`
       )
       expect($('button[type="submit"]').text()).toContain('Save')
       expect(original).toEqual(snapshot)
@@ -591,11 +606,13 @@ describe('authenticated Created watercourse form', () => {
         payload: { ...renderedForm(page), ref: 'Renamed', crumb }
       })
       expect(saved.statusCode).toBe(302)
+      expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).not.toHaveProperty(
+        'strategicSignificance'
+      )
       expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
         ref: 'Renamed',
         habitatType: 'Ditches',
         condition: 'Moderate',
-        strategicSignificance: null,
         watercourseEncroachment: 'Minor',
         riparianEncroachment: 'Minor/No Encroachment'
       })
@@ -639,7 +656,7 @@ test.each([
   }
 )
 
-test('defaults an unsupported stored type and its condition without hiding the edit form', async () => {
+test('preserves an unsupported stored type and its condition without hiding the edit form', async () => {
   mockFeature({
     type: 'watercourse',
     feature: {
@@ -657,7 +674,10 @@ test('defaults an unsupported stored type and its condition without hiding the e
     'habitat-details/pi-habitat-details-created-edit'
   )
   const vm = h.view.mock.calls[0][1]
-  expect(vm.values).toMatchObject({ habitatType: '', condition: '' })
+  expect(vm.values).toMatchObject({
+    habitatType: 'unchanged',
+    condition: 'unchanged'
+  })
   for (const field of [
     'distinctivenessDisplay',
     'standardDifficultyDisplay',
@@ -669,10 +689,9 @@ test('defaults an unsupported stored type and its condition without hiding the e
   }
   const { broadHabitat: _broad, ...form } = vm.values
   await postController.handler(request(form), h)
-  expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
-    habitatType: null,
-    condition: null
-  })
+  const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
+  expect(payload).not.toHaveProperty('habitatType')
+  expect(payload).not.toHaveProperty('condition')
 })
 
 test('uses the selected habitat difficulty after a validation error even when the old reference difficulty matches', async () => {
@@ -727,28 +746,30 @@ test('validation redisplay restores a saved timing label only for the original a
   expect(wreck.put).not.toHaveBeenCalled()
 })
 
-test.each(['watercourseEncroachment', 'riparianEncroachment'])(
-  'rejects unchanged for %s without an imported value',
-  async (field) => {
-    const other =
-      field === 'watercourseEncroachment'
-        ? 'riparianEncroachment'
-        : 'watercourseEncroachment'
-    mockFeature({
-      type: 'watercourse',
-      feature: {
-        ...feature,
-        proposed: { ...feature.proposed, [other]: 'Imported value' }
-      }
-    })
-    const h = createMockH()
-    await postController.handler(request({ [field]: 'unchanged' }), h)
-    expect(h.view.mock.calls[0][1].errors[field]).toEqual(expect.any(String))
-    expect(wreck.put).not.toHaveBeenCalled()
-  }
-)
+test.each([
+  'watercourseEncroachment',
+  'riparianEncroachment',
+  'habitatType',
+  'strategicSignificance'
+])('rejects unchanged for %s without an imported value', async (field) => {
+  const other =
+    field === 'watercourseEncroachment'
+      ? 'riparianEncroachment'
+      : 'watercourseEncroachment'
+  mockFeature({
+    type: 'watercourse',
+    feature: {
+      ...feature,
+      proposed: { ...feature.proposed, [other]: 'Imported value' }
+    }
+  })
+  const h = createMockH()
+  await postController.handler(request({ [field]: 'unchanged' }), h)
+  expect(h.view.mock.calls[0][1].errors[field]).toEqual(expect.any(String))
+  expect(wreck.put).not.toHaveBeenCalled()
+})
 
-test('defaults invalid imported timing and rejects conflicting new selections on Save', async () => {
+test('preserves invalid imported timing and rejects conflicting new selections on Save', async () => {
   mockFeature({
     type: 'watercourse',
     feature: {
@@ -764,8 +785,8 @@ test('defaults invalid imported timing and rejects conflicting new selections on
   const loaded = createMockH()
   await getController.handler({ query: { projectId, featureId } }, loaded)
   expect(loaded.view.mock.calls[0][1].values).toMatchObject({
-    advanceYears: '',
-    delayYears: ''
+    advanceYears: 'unchanged',
+    delayYears: 'unchanged'
   })
   expect(loaded.view.mock.calls[0][1].finalTimeToTargetDisplay).toBe('')
   const refused = createMockH()
@@ -790,4 +811,27 @@ test('defaults invalid imported timing and rejects conflicting new selections on
     advanceYears: null,
     delayYears: null
   })
+})
+
+test('a supported current significance survives historical rejection metadata and a rename', async () => {
+  mockFeature({
+    type: 'watercourse',
+    feature: {
+      ...feature,
+      proposed: {
+        ...feature.proposed,
+        strategicSignificance: 'Low',
+        rejectedStrategicSignificance: 'Medium'
+      }
+    }
+  })
+  const h = createMockH()
+  await getController.handler({ query: { projectId, featureId } }, h)
+  const vm = h.view.mock.calls[0][1]
+  expect(vm.values.strategicSignificance).toBe('Low')
+  const { broadHabitat: _unused, ...form } = vm.values
+  await postController.handler(request({ ...form, ref: 'Renamed' }), h)
+  expect(
+    JSON.parse(wreck.put.mock.calls[0][1].payload).strategicSignificance
+  ).toBe('Low')
 })

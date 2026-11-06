@@ -23,7 +23,6 @@
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 {% from "habitat-ref-input/macro.njk" import appHabitatRefInput %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
-{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
 
 {% block beforeContent %}
   {{ super() }}
@@ -45,10 +44,6 @@
     text: heading,
     caption: caption
   }) }}
-
-  {% if readOnlyReason %}
-    {{ govukInsetText({ text: readOnlyReason }) }}
-  {% endif %}
 
   {% set details %}
     {% for section in sections %}

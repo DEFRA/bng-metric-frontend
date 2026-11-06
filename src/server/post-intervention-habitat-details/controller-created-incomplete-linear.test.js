@@ -21,7 +21,7 @@ describe.each([
   beforeEach(() => _resetCreatedAreaReferenceCache())
 
   test.each([null, undefined, ''])(
-    'applies the kind-specific saved condition policy through rename and reload with type %s',
+    'preserves imported condition through rename and reload with missing type %s',
     async (habitatType) => {
       const stored = {
         ...structuredClone(feature),
@@ -46,8 +46,7 @@ describe.each([
       await get()
       const vm = h.view.mock.calls[0][1]
       expect(vm.values.habitatType).toBe('')
-      const preservesCondition = type === 'hedgerow'
-      const expectedCondition = preservesCondition ? 'unchanged' : ''
+      const expectedCondition = 'unchanged'
       expect(vm.values.condition).toBe(expectedCondition)
       expect(vm.fields.condition.items).toContainEqual(
         expect.objectContaining({
@@ -64,20 +63,16 @@ describe.each([
       const saved = JSON.parse(wreck.put.mock.calls[0][1].payload)
       expect(saved).toMatchObject({
         ref: 'Renamed',
-        habitatType: preservesCondition ? (habitatType ?? null) : null
+        habitatType: habitatType ?? null
       })
-      if (preservesCondition) {
-        expect(saved).not.toHaveProperty('condition')
-      } else {
-        expect(saved.condition).toBeNull()
-      }
+      expect(saved).not.toHaveProperty('condition')
       await get()
       expect(h.view.mock.calls.at(-1)[1].values).toMatchObject({
         ref: 'Renamed',
         habitatType: '',
         condition: expectedCondition
       })
-      expect(stored.proposed.condition).toBe(preservesCondition ? 'Good' : null)
+      expect(stored.proposed.condition).toBe('Good')
 
       await postController.handler(
         {

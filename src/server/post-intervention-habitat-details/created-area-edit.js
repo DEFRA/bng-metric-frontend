@@ -39,8 +39,7 @@ import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import {
   createdAreaValues,
-  createdChoiceValues,
-  createdHintValues
+  createdImportedChoices
 } from './created-choice-values.js'
 export { createdAreaValues } from './created-choice-values.js'
 
@@ -50,8 +49,6 @@ export const CREATED_EDIT_KINDS = {
     label: 'Area habitat',
     optionalReference: false,
     readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
-    unsupportedSignificanceMessage:
-      'This habitat cannot be edited because its imported strategic significance is not supported. To change it, upload a new post-intervention file with supported strategic significance.',
     buildBase: buildCreatedAreaViewOnlyViewModel,
     formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
     sizeLabel: 'Size (hectares)',
@@ -72,10 +69,9 @@ export const CREATED_EDIT_KINDS = {
     savePath: 'watercourses',
     hasBroadHabitat: false,
     hasEncroachments: true,
+    // Match the merged Created editors: imported choices are kept through omission.
+    preservesImportedType: true,
     restoresLineageAdvance: true,
-    // BMD-1050 AC2 keeps incomplete watercourses editable; AC11 saves defaults as null.
-    // Area and hedgerow editors retain their existing imported-value policies.
-    clearsUnsupportedValuesOnSave: true,
     habitatTypeError: 'Choose a valid watercourse habitat type'
   },
   hedgerow: {
@@ -83,8 +79,6 @@ export const CREATED_EDIT_KINDS = {
     label: 'Hedgerow',
     optionalReference: true,
     readOnlyTemplate: 'habitat-details/pi-hedgerow-details-enhanced',
-    unsupportedSignificanceMessage:
-      'This hedgerow cannot be edited because its imported strategic significance is not supported. To change it, upload a new post-intervention file with supported strategic significance.',
     buildBase: buildCreatedHedgerowViewOnlyViewModel,
     formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
     sizeLabel: 'Length (km)',
@@ -140,12 +134,7 @@ export const createdWatercoursePayloadSchema =
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
   reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
-  const saved = createdChoiceValues(
-    createdAreaValues(feature),
-    feature,
-    reference,
-    kind
-  )
+  const saved = createdAreaValues(feature)
   const importedYears = Object.fromEntries(
     ['advanceYears', 'delayYears']
       .filter(
@@ -153,14 +142,22 @@ export function createdReferenceForFeature(reference, feature) {
       )
       .map((field) => [field, saved[field]])
   )
+  const importedChoices = createdImportedChoices(feature, reference, kind)
   const importedCondition = importedLinearCondition(reference, saved)
+  if (importedCondition && importedChoices.habitatType) {
+    importedCondition.habitatType = UNCHANGED_VALUE
+  }
   return {
     ...reference,
     importedYears,
     importedCondition,
+    importedChoices,
     importedCalculation: {
       values: {
         ...saved,
+        ...Object.fromEntries(
+          Object.keys(importedChoices).map((field) => [field, UNCHANGED_VALUE])
+        ),
         ...(importedCondition ? { condition: UNCHANGED_VALUE } : {}),
         ...Object.fromEntries(
           Object.keys(importedYears).map((field) => [field, UNCHANGED_VALUE])
@@ -173,13 +170,11 @@ export function createdReferenceForFeature(reference, feature) {
 }
 
 function createdEditValues(feature, reference) {
-  const saved = createdChoiceValues(
-    createdAreaValues(feature),
-    feature,
-    reference,
-    createdKind(reference)
-  )
-  for (const field of Object.keys(reference.importedYears ?? {})) {
+  const saved = createdAreaValues(feature)
+  for (const field of [
+    ...Object.keys(reference.importedYears ?? {}),
+    ...Object.keys(reference.importedChoices ?? {})
+  ]) {
     saved[field] = UNCHANGED_VALUE
   }
   if (reference.importedCondition) {
@@ -228,6 +223,16 @@ function validateCreatedTiming(values, reference, errors) {
   }
 }
 
+function invalidChoice(value, options, reference, field) {
+  if (
+    value === UNCHANGED_VALUE &&
+    Object.hasOwn(reference.importedChoices ?? {}, field)
+  ) {
+    return false
+  }
+  return Boolean(value) && !options.includes(value)
+}
+
 export function validateCreatedArea(values, reference) {
   const errors = {}
   validateReference(values.ref, errors)
@@ -255,7 +260,7 @@ export function validateCreatedArea(values, reference) {
       : {})
   }
   for (const [field, options] of Object.entries(choices)) {
-    if (values[field] && !options.includes(values[field])) {
+    if (invalidChoice(values[field], options, reference, field)) {
       const messages = {
         broadHabitat: 'Choose a valid broad habitat',
         habitatType: kind.habitatTypeError,
@@ -336,7 +341,6 @@ export function buildCreatedAreaEditViewModel(
   const initialLoad = values === null
   const storedValues = createdEditValues(feature, reference)
   values ??= storedValues
-  const hintValues = createdHintValues(feature, reference, storedValues)
   const { baselineCondition, ...derived } = createdAreaDisplayFields(
     feature,
     reference,
@@ -376,7 +380,7 @@ export function buildCreatedAreaEditViewModel(
       text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
       href: `#${field}`
     })),
-    fields: buildCreatedEditFields(reference, values, hintValues, kind),
+    fields: buildCreatedEditFields(reference, values, storedValues, kind),
     referenceJson: createdReferenceJson(
       reference,
       storedValues,
@@ -429,19 +433,19 @@ function createdAreaSavePayload(values, kind, feature) {
   return {
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
-    habitatType: habitatTypePayload(values, kind, feature),
+    ...(values.habitatType === UNCHANGED_VALUE
+      ? {}
+      : { habitatType: habitatTypePayload(values, kind, feature) }),
     ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_VALUE
       ? { condition: values.condition || null }
       : {}),
-    strategicSignificance: values.strategicSignificance || null,
+    ...timingPayload(values, 'strategicSignificance'),
     ...advancePayload(values, kind, feature),
     ...timingPayload(values, 'delayYears'),
     ...(kind.hasEncroachments
       ? Object.assign(
           {},
-          ...ENCROACHMENT_FIELDS.map((field) => ({
-            [field]: values[field] || null
-          }))
+          ...ENCROACHMENT_FIELDS.map((field) => timingPayload(values, field))
         )
       : {})
   }
