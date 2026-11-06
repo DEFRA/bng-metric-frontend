@@ -1,8 +1,5 @@
-import { formatSquareMetres } from '../../common/helpers/format-habitat-values.js'
-import {
-  VERTICAL_HABITATS,
-  VERTICAL_SIZE_LABEL
-} from '../../common/helpers/vertical-habitats.js'
+import { formatVerticalArea } from '../../common/helpers/format-habitat-values.js'
+import { VERTICAL_HABITATS } from '../../common/helpers/vertical-habitats.js'
 import { areaStrategy } from './area.js'
 
 const isVerticalChoice = (habitatType) =>
@@ -28,14 +25,13 @@ async function loadReference(habitat) {
 }
 
 /**
- * The area habitat page, with the size the surveyor typed in, in square
- * metres, rather than an area measured in hectares.
+ * The area habitat page, with the size the surveyor typed in, in hectares,
+ * and in square metres too, rather than an area measured from the map.
  */
 function buildViewModel(habitat, reference, ctx) {
   return {
     ...areaStrategy.buildViewModel(habitat, reference, ctx),
-    sizeDisplay: formatSquareMetres(habitat.sizeSquareMetres),
-    sizeLabel: VERTICAL_SIZE_LABEL
+    sizeDisplay: formatVerticalArea(habitat.sizeSquareMetres)
   }
 }
 

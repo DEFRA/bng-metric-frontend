@@ -3,10 +3,12 @@ import Boom from '@hapi/boom'
 import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
+import { describeBackendFailure } from '../helpers/backend-failure.js'
 
 const logger = createLogger()
 
 const backendUrl = config.get('backend').url
+const timeoutMs = config.get('backend').timeoutMs
 
 /**
  * Prepend the CDP uploader base URL for local development.
@@ -44,6 +46,7 @@ export async function initiateUpload(
   logger.info(
     `Initiating upload - url: ${url}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}`
   )
+  const startedAt = performance.now()
 
   try {
     const { payload } = await backendRequest(request, 'post', url, {
@@ -68,10 +71,14 @@ export async function initiateUpload(
     }
   } catch (error) {
     const statusCode = error?.output?.statusCode
-    const responsePayload = error?.data?.payload
+    // Gives only the safe fields of the backend's body, never its messages.
+    const failure = describeBackendFailure(error, {
+      elapsedMs: performance.now() - startedAt,
+      timeoutMs
+    })
 
     logger.error(
-      `Error initiating upload - url: ${url}, backendUrl: ${backendUrl}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error initiating upload - url: ${url}, backendUrl: ${backendUrl}, s3Bucket: ${s3Bucket}, s3Path: ${s3Path}, statusCode: ${statusCode}, ${failure}, message: ${error?.message}`
     )
 
     throw Boom.badGateway('Unable to initiate upload', error)
@@ -88,6 +95,7 @@ export async function getUploadStatus(request, uploadId) {
   const url = `${backendUrl}/upload/${uploadId}/status`
 
   logger.info(`Fetching upload status - url: ${url}, uploadId: ${uploadId}`)
+  const startedAt = performance.now()
 
   try {
     const { payload } = await backendRequest(request, 'get', url)
@@ -107,10 +115,14 @@ export async function getUploadStatus(request, uploadId) {
     }
   } catch (error) {
     const statusCode = error?.output?.statusCode
-    const responsePayload = error?.data?.payload
+    // Gives only the safe fields of the backend's body, never its messages.
+    const failure = describeBackendFailure(error, {
+      elapsedMs: performance.now() - startedAt,
+      timeoutMs
+    })
 
     logger.error(
-      `Error fetching upload status - url: ${url}, backendUrl: ${backendUrl}, uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error fetching upload status - url: ${url}, backendUrl: ${backendUrl}, uploadId: ${uploadId}, statusCode: ${statusCode}, ${failure}, message: ${error?.message}`
     )
 
     // Return an error status rather than throwing Boom — the caller retries

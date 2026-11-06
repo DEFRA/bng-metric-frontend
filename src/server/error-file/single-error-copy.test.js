@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, test, expect } from 'vitest'
 
 import { config } from '../../config/config.js'
+import { pageText } from './dropout-copy.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 import { renderTemplate } from '../test-helpers/render-template.js'
 
@@ -105,6 +106,7 @@ describe('#resolveSingleErrorCopy', () => {
 
   test('AC6b: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE renders the metric tool link in a new tab, and says so', () => {
     const html = renderTemplate('error-file/index.njk', {
+      page: pageText(),
       singleError: resolveSingleErrorCopy(
         { code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', message: 'x' },
         UPLOAD_HREF
@@ -379,29 +381,6 @@ describe('#resolveSingleErrorCopy', () => {
     expect(result.linkText).toBe('upload a new file')
   })
 
-  test('ADVANCE_AND_DELAY_BOTH_SET names the advance/delay problem and fix', () => {
-    const result = resolveSingleErrorCopy(
-      { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
-      UPLOAD_HREF
-    )
-    expect(result.h1).toBe('Your Geopackage (.gpkg) file contains an error')
-    expect(result.messageBefore).toBe(
-      'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each and '
-    )
-    expect(result.linkText).toBe('upload a new file')
-  })
-
-  test('ADVANCE_AND_DELAY_BOTH_SET reads as a full sentence when uploadHref is null', () => {
-    const result = resolveSingleErrorCopy(
-      { code: 'ADVANCE_AND_DELAY_BOTH_SET', message: 'x' },
-      null
-    )
-    expect(result.linkText).toBeNull()
-    expect(result.messageBefore).toBe(
-      'A habitat has both advance and delayed creation set. Select either advance or delayed creation but not both. To create a habitat in stages, add a separate row for each.'
-    )
-  })
-
   test('HABITAT_REF_MISSING (BMD-1058) is one file-level error, in the dropout spreadsheet copy', () => {
     const result = resolveSingleErrorCopy(
       {
@@ -451,7 +430,7 @@ describe('#resolveSingleErrorCopy', () => {
     })
   })
 
-  test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in square metres', () => {
+  test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in hectares', () => {
     const result = resolveSingleErrorCopy(
       {
         code: 'VERTICAL_HABITAT_AREA_NOT_POSITIVE',
@@ -465,7 +444,7 @@ describe('#resolveSingleErrorCopy', () => {
     )
     expect(result.h1).toBe('This vertical area habitat V001 contains an error')
     expect(result.messageBefore).toBe(
-      'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres and '
+      'The Area (ha) of a vertical area habitat must be a number above 0. Enter the area you estimated on site in hectares and '
     )
     expect(result.linkText).toBe('upload a new file')
   })
@@ -488,7 +467,7 @@ describe('#resolveSingleErrorCopy', () => {
   test.each([
     [
       'VERTICAL_HABITAT_AREA_NOT_POSITIVE',
-      'The Area (m²) of a vertical area habitat must be a number above 0. Enter the face area you estimated on site in square metres.'
+      'The Area (ha) of a vertical area habitat must be a number above 0. Enter the area you estimated on site in hectares.'
     ],
     [
       'VERTICAL_HABITATS_OUTSIDE_REDLINE',
@@ -536,6 +515,53 @@ describe('#resolveSingleErrorCopy', () => {
   })
 
   test.each([
+    [
+      'COMMENT_INVALID_CHARACTERS',
+      'A comment contains characters that are not allowed. Remove those characters and ',
+      'A comment contains characters that are not allowed. Remove those characters.'
+    ],
+    [
+      'COMMENT_TOO_LONG',
+      'A comment is longer than 999 characters. Shorten the comment and ',
+      'A comment is longer than 999 characters. Shorten the comment.'
+    ]
+  ])(
+    'AC7: %s names the comment problem and links to a new upload',
+    (code, messageBefore, messageWithoutLink) => {
+      const result = resolveSingleErrorCopy(
+        { code, message: 'backend message for ' + code },
+        UPLOAD_HREF
+      )
+      expect(result).toEqual({
+        variant: 'standard',
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore,
+        linkText: 'upload a new file',
+        messageAfter: '.',
+        uploadHref: UPLOAD_HREF
+      })
+
+      const withoutUpload = resolveSingleErrorCopy(
+        { code, message: 'backend message for ' + code },
+        null
+      )
+      expect(withoutUpload.linkText).toBeNull()
+      expect(withoutUpload.messageBefore).toBe(messageWithoutLink)
+      expect(withoutUpload.messageAfter).toBe('')
+
+      const html = renderTemplate('error-file/index.njk', {
+        singleError: result
+      })
+      expect(html).toContain(
+        '<h1 class="govuk-heading-l">Your Geopackage (.gpkg) file contains an error</h1>'
+      )
+      expect(html).toContain(
+        `${messageBefore}<a class="govuk-link" href="${UPLOAD_HREF}">upload a new file</a>.`
+      )
+    }
+  )
+
+  test.each([
     'REDLINE_OUTSIDE_ENGLAND',
     'REDLINE_AREA_TOO_LARGE',
     'IGGIS_OUTSIDE_REDLINE',
@@ -572,7 +598,7 @@ describe('#resolveSingleErrorCopy', () => {
       UPLOAD_HREF
     )
     expect(result.variant).toBe('placeholder')
-    expect(result.helpText).toBe('PLACEHOLDER - undefined')
+    expect(result.helpText).toBe('PLACEHOLDER')
   })
 })
 
@@ -642,6 +668,7 @@ describe('#resolveSingleErrorCopy — BMD-1182 BASELINE_NOT_ENHANCEABLE', () => 
 
   test('renders the copy word for word, with no table of habitats', () => {
     const html = renderTemplate('error-file/index.njk', {
+      page: pageText(),
       singleError: resolveSingleErrorCopy(error, UPLOAD_HREF)
     })
 

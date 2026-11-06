@@ -1,4 +1,5 @@
 import { vi, describe, test, beforeAll, afterAll, expect } from 'vitest'
+import { load } from 'cheerio'
 
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
@@ -59,7 +60,8 @@ describe('#invalidFileController', () => {
     expect(result).toEqual(
       expect.stringContaining('There is a problem with your file')
     )
-    expect(result).toEqual(expect.stringContaining("couldn't accept your file"))
+    // The copy is escaped as any text is, so read it as the user does.
+    expect(load(result)('main').text()).toContain("couldn't accept your file")
   })
 
   test('redirects unauthenticated requests', async () => {
@@ -88,6 +90,41 @@ describe('invalidFileController.handler — populated session', () => {
   }
 
   const makeH = () => ({ view: vi.fn().mockReturnThis() })
+
+  test('shows a heading for each comment validation error', async () => {
+    const errors = [
+      {
+        code: 'COMMENT_INVALID_CHARACTERS',
+        message:
+          'One or more comments contain characters that are not valid UTF-8: areas fid 1'
+      },
+      {
+        code: 'COMMENT_TOO_LONG',
+        message:
+          'One or more comments are longer than 999 characters: areas fid 2'
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'error-file/index',
+      expect.objectContaining({
+        singleError: null,
+        errorBlocks: [
+          expect.objectContaining({
+            heading:
+              'One or more comments contain characters that are not valid UTF-8'
+          }),
+          expect.objectContaining({
+            heading: 'One or more comments are longer than 999 characters'
+          })
+        ]
+      })
+    )
+  })
 
   test('passes errorList and projectId to the view from session', async () => {
     const errors = [
@@ -1126,11 +1163,11 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each vertical area habitat whose rows together have more face area than it, with both areas', async () => {
+  test('lists each vertical area habitat whose rows together have more area than it, with both areas in hectares and square metres', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_VERTICAL_CHILDREN_TOO_LARGE',
-        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        'One or more baseline vertical area habitats have a smaller Area (ha) than the post-intervention vertical area habitats linked to them together',
         [
           {
             layer: 'verticalHabitats',
@@ -1158,9 +1195,9 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more baseline vertical area habitats have a smaller Area (m²) than the post-intervention vertical area habitats linked to them together',
+        'One or more baseline vertical area habitats have a smaller Area (ha) than the post-intervention vertical area habitats linked to them together',
         [
-          'Vertical Area Habitats Baseline V001 — Facade-bound green wall, copied to V001a, V001b (40 m², linked 50.1 m²)',
+          'Vertical Area Habitats Baseline V001 — Facade-bound green wall, copied to V001a, V001b; Area 0.004ha (40m²), linked 0.00501ha (50.1m²)',
           'Vertical Area Habitats Baseline V002 — Ground based green wall, copied to V002a'
         ]
       ]
@@ -1331,5 +1368,78 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       helpText:
         'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
     })
+  })
+})
+
+describe('invalidFileController.handler — bullets a habitat cannot fill', () => {
+  async function blocksFor(errors) {
+    const store = {
+      baselineValidationErrors: errors,
+      baselineValidationErrorsProjectId: 'proj-1'
+    }
+    const h = { view: vi.fn().mockReturnThis() }
+    await invalidFileController.handler(
+      {
+        yar: {
+          get: vi.fn((key) => store[key] ?? null),
+          set: vi.fn(),
+          clear: vi.fn()
+        }
+      },
+      h
+    )
+    return h.view.mock.calls[0][1].errorBlocks
+  }
+
+  test('names a habitat with no distinctiveness as unknown, rather than leaving its bullet out', async () => {
+    const blocks = await blocksFor([
+      {
+        code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+        message: 'Out of scope: H1',
+        details: {
+          count: 1,
+          sample: [
+            {
+              feature_ref: 'H1',
+              habitat_type: 'Grassland',
+              distinctiveness: ''
+            }
+          ]
+        }
+      },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(blocks[0].items).toEqual(['Feature Ref H1 — Grassland (unknown)'])
+  })
+
+  test('names a blank habitat type as unknown, so the bullet keeps the habitat and its condition', async () => {
+    const blocks = await blocksFor([
+      {
+        code: 'BASELINE_NOT_ENHANCEABLE',
+        message: 'Not enhanceable: H2',
+        details: {
+          count: 1,
+          sample: [{ feature_ref: 'H2', habitat_type: '', condition: 'Good' }]
+        }
+      },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(blocks[0].items).toEqual(['Feature Ref H2 — unknown habitat (Good)'])
+  })
+
+  test('names a habitat by its ref when no part of its bullet has its values', async () => {
+    const blocks = await blocksFor([
+      {
+        code: 'SLIVERS_OUTSIDE_REDLINE',
+        message: 'Slivers: x',
+        // A blank location leaves "~{area} sq m near {location}" unfilled.
+        details: { count: 1, sample: [{ feature_ref: 'S1', location_wkt: '' }] }
+      },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(blocks[0].items).toEqual(['Feature Ref S1'])
   })
 })

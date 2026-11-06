@@ -1,0 +1,814 @@
+# Error text
+#
+# Every message a customer can see when the BNG service refuses something,
+# in one place, so that product, BAs and UCD can review it and propose
+# changes here by pull request. The pages' code reads it; it holds no wording
+# of its own.
+#
+# Sections
+#
+#   upload   the drop-out page (/error-file), shown when an uploaded
+#            GeoPackage is refused. Keyed by the backend's error code.
+#            A code met only on an edit has no entry here.
+#   edit     refusals of a change made to a habitat on screen, after the file
+#            was accepted. Keyed by the backend's error code.
+#   forms    a form field's own validation, before anything reaches the
+#            backend. Keyed by field, then by rule.
+#
+# Which section a backend code belongs in is the backend's to say
+# (bng-metric-backend, src/validation/geopackage/errors.js,
+# ERROR_CODE_SURFACES): an upload code needs an entry under upload.errors, an
+# edit code one under edit, and a code that is both, one in each. A nightly
+# check in bng-metric-harness (npm run check:dropout-copy) fails on a backend
+# code missing from its section, or an entry for a code the backend no longer
+# has.
+#
+# "placeholder" anywhere below means the wording is awaiting UCD, and the
+# page shows a placeholder or its generic message instead.
+#
+# "# AWAITING UCD" in a comment marks interim wording that the pages do show
+# but UCD has not reviewed. Search for both to find everything UCD still has
+# to word.
+#
+# What each upload rule checks, and which example file shows it:
+# https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md
+
+# ------------------------------------------------------------------ upload
+#
+# The drop-out page.
+#
+# How to read it
+#
+# - The page has two layouts:
+#     - "whenAlone": the file has exactly one problem. The page shows a title,
+#       an optional subheading and a sentence.
+#     - "inList": the file has more than one problem, or the problem is one
+#       that always lists the habitats it names. The page shows a heading for
+#       each problem and, under it, a bullet for each habitat.
+#
+# - {braces} are filled in from the uploaded file: a Habitat Ref, a count, a
+#   length. Everything else is shown word for word.
+#
+# - Where a line gives a list of options, the first whose {values} are all
+#   known is used. So "This parcel {ref} contains an error" is shown when the
+#   service knows the parcel's ref, and the next option when it does not.
+#
+# - A bullet ("item") given as a list of parts shows each part only when all
+#   of that part's {values} are known, so a habitat with no habitat type is
+#   shown without the " — {habitatType}" part.
+#
+# - [link text](upload) is the link back to the upload page. When the page has
+#   nowhere to link to, the sentence ends at the word before " and", with a
+#   full stop. [link text](metric-tool) links to the statutory metric tool.
+#
+# - whenAlone can instead be:
+#     catch-all    the problem has no copy of its own, so the page shows the
+#                  catch-all copy under "catchAll" below
+#     placeholder  the copy is awaiting UCD, so the page shows "placeholder"
+#     list         the page shows the inList layout even for this problem alone
+#
+# - inList: service-message, or no heading, means the page shows the
+#   service's own technical message as the heading. These have no reviewed
+#   copy yet.
+
+upload:
+  page:
+    title: There is a problem with your file
+    summaryTitle: There is a problem with your file
+    listHeading: We couldn't accept your {fileLabel} file
+    listIntro: >-
+      Your file is a valid GeoPackage, but we found problems with its contents.
+      Fix the issues listed below and upload it again.
+    more: … and {count} more
+    uploadButton: Upload a different file
+    backToProject: Back to project
+    backToStart: Back to start
+    opensInNewTab: (opens in a new tab)
+    # Shown when the page is opened with no problems to show, such as after a
+    # refresh.
+    noErrorsHeading: There is a problem with your file
+    noErrorsBody: We couldn't accept your file. Please try again.
+
+  links:
+    metric-tool: https://www.gov.uk/government/publications/statutory-biodiversity-metric-tools-and-guides
+
+  # The copy for a problem that has none of its own (BMD-339). Every file
+  # structure error lands here. The service-template flag decides which.
+  catchAll:
+    legacyTemplate:
+      title: Your Geopackage (.gpkg) file contains an error
+      body: >-
+        The layer names and column names do not match what is required by
+        Natural England. Rename the layers and columns and
+        [upload a new file](upload).
+    serviceTemplate:
+      title: Your Geopackage (.gpkg) file contains an error
+      body: >-
+        The layer names and column names do not match the BNG Service template.
+        Rename the layers and columns and [upload a new file](upload).
+
+  # Copy awaiting UCD (BMD-592). {serviceMessage} is the service's own message.
+  placeholder:
+    title: PLACEHOLDER (AWAITING UCD)
+    # The service's message when it sent one, and the title alone when it did not.
+    body:
+      - PLACEHOLDER - {serviceMessage}
+      - PLACEHOLDER
+
+  # How a bullet names a habitat, the first option whose values are known.
+  names:
+    # Most problems.
+    feature:
+      - Feature Ref {featureRef}
+      - fid {fid}
+      - 'feature #{idx}'
+      - feature
+    # BNG Service template lineage problems.
+    habitat:
+      - '{ref}'
+      - fid {fid}
+      - a habitat
+
+  # Shown in place of a value the file does not give.
+  unknown:
+    location: unknown location
+    habitatType: unknown habitat
+    distinctiveness: unknown
+    area: blank
+
+  # Distinctiveness bands as the user reads them.
+  distinctiveness:
+    V.High: Very high
+    High: High
+    Medium: Medium
+    Low: Low
+    V.Low: Very low
+
+  errors:
+    # ---------------------------------------------------------------- file name
+
+    INVALID_FILENAME:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          The file name contains characters we cannot accept. Rename the file
+          using letters, numbers, spaces, hyphens, underscores or brackets and
+          [upload the renamed file](upload).
+      inList: service-message
+
+    FILENAME_TOO_LONG:
+      whenAlone: catch-all
+      inList: service-message
+
+    INVALID_FILE_METADATA:
+      whenAlone: catch-all
+      inList: service-message
+
+    # -------------------------------------------------------------- file format
+
+    GPKG_INVALID_FILE:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_NOT_A_GEOPACKAGE:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_MISSING_SYSTEM_TABLE:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_TOO_MANY_FEATURES:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains too many features
+        body:
+          - >-
+            This file contains {featureCount} features. This service can check up
+            to {maxFeatureCount}. Reduce the number of features and
+            [upload a new file](upload).
+          - >-
+            This file contains more features than this service can check. Reduce
+            the number of features and [upload a new file](upload).
+      inList: service-message
+
+    # --------------------------------------------------------- layers and columns
+
+    GPKG_MISSING_LAYER:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_UNEXPECTED_FEATURE_LAYER:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_CONTENTS_DATA_TYPE:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_SRS_ID:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_GPKG_SRS_INCONSISTENT:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_GEOMETRY_TYPE_NAME:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_MISSING_COLUMN:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_COLUMN_SQLITE_TYPE:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_COLUMN_NOT_NULL:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_COLUMN_PRIMARY_KEY:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING:
+      whenAlone: catch-all
+      inList: service-message
+
+    # ---------------------------------------------------------- BNG Service template
+
+    LEGACY_TEMPLATE_NOT_ACCEPTED:
+      whenAlone:
+        title: There is a problem with your file
+        subheading: Template
+        body: >-
+          Your file is using the legacy Natural England template. The service now
+          uses the BNG service template.
+      inList: service-message
+
+    TEMPLATE_VERSION_MISSING:
+      whenAlone: list
+      inList: service-message
+
+    TEMPLATE_VERSION_DUPLICATED:
+      whenAlone: list
+      inList: service-message
+
+    TEMPLATE_VERSION_INVALID:
+      whenAlone: list
+      inList: service-message
+
+    TEMPLATE_VERSION_UNSUPPORTED:
+      whenAlone: list
+      inList: service-message
+
+    POST_INTERVENTION_TABLES_EMPTY:
+      whenAlone: list
+      inList: service-message
+
+    # ------------------------------------------------------- red line boundary
+
+    NO_REDLINE:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          The redline boundary is missing. Draw the red line boundary and
+          [upload a new file](upload).
+      inList: service-message
+
+    GPKG_RLB_NO_POLYGON:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          The redline boundary is missing. Draw the red line boundary and
+          [upload a new file](upload).
+      inList: service-message
+
+    GPKG_RLB_TOO_MANY_POLYGONS:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This file contains multiple red line boundaries. Draw the red line
+          boundary again and [upload a new file](upload).
+      inList: service-message
+
+    GPKG_RLB_NO_GEOMETRY_COLUMN:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_RLB_UNREADABLE_GEOMETRY:
+      whenAlone: catch-all
+      inList: service-message
+
+    REDLINE_INVALID_GEOMETRY:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          The redline boundary is overlapping itself. Draw the boundary again and
+          [upload a new file](upload).
+      inList: service-message
+
+    REDLINE_OUTSIDE_ENGLAND:
+      whenAlone: placeholder
+      inList: service-message
+
+    REDLINE_AREA_TOO_LARGE:
+      whenAlone: placeholder
+      inList: service-message
+
+    # ------------------------------------------------------------ area habitats
+
+    NO_HABITAT_AREAS:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          The file doesn't contain any parcels. Draw parcels within your red line
+          boundary and [upload a new file](upload).
+      inList: service-message
+
+    GPKG_HABITATS_NO_GEOMETRY_COLUMN:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_HABITATS_UNREADABLE_GEOMETRY:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_HABITATS_WRONG_GEOMETRY_TYPE:
+      whenAlone: catch-all
+      inList: service-message
+
+    AREA_PARCELS_INVALID_GEOMETRY:
+      whenAlone:
+        title:
+          - This parcel {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This parcel is overlapping itself. Draw the parcel again and
+          [upload a new file](upload).
+      inList:
+        item:
+          - '{feature}'
+          - ' ({reason})'
+
+    PARCEL_OVERLAPS:
+      whenAlone:
+        # Both parcels' refs known, then not.
+        - title: These parcels {refA}, {refB} contain an error
+          body: >-
+            These parcels are overlapping. Draw the parcels again and
+            [upload a new file](upload).
+        - title: Your Geopackage (.gpkg) file contains an error
+          body: >-
+            Some parcels in this file are overlapping. Draw the affected parcels
+            again and [upload a new file](upload).
+      inList:
+        item: '{featureA} ↔ {featureB}'
+
+    # The check is on area alone; the 1 square metre is MIN_PARCEL_AREA_SQ_M in
+    # the backend (validation/geopackage/postgis/index.js). Change both together.
+    AREA_PARCELS_TOO_SMALL:
+      whenAlone:
+        title:
+          - This parcel {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This parcel is smaller than 1 square metre. Draw the parcel again and
+          [upload a new file](upload).
+      inList:
+        item:
+          - '{feature}'
+          - ' — ~{area} sq m'
+
+    SLIVERS_OUTSIDE_REDLINE:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This parcel is a sliver (a thin strip of land). Draw the parcel again
+          and [upload a new file](upload).
+      # Hidden when AREA_PARCELS_OUTSIDE_REDLINE is shown, which reports the same
+      # problem parcel by parcel.
+      inList:
+        item: '~{area} sq m near {location}'
+
+    AREA_PARCELS_OUTSIDE_REDLINE:
+      whenAlone:
+        title:
+          - This parcel {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This parcel is outside the red line boundary. Draw the parcel again and
+          [upload a new file](upload).
+      inList:
+        item:
+          - '{feature}'
+          - ' — ~{area} sq m near {location}'
+
+    AREA_SUM_MISMATCH:
+      whenAlone: placeholder
+      inList: service-message
+
+    NO_DERIVED_BASELINE_HABITATS:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This file has no baseline area habitats. Add baseline habitats and
+          [upload a new file](upload).
+      inList: service-message
+
+    BASELINE_TYPE_MISSING:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          Some retained or enhanced habitats have no baseline habitat type. Add a
+          baseline habitat type for each of them and [upload a new file](upload).
+      inList: service-message
+
+    # --------------------------------------------------------------- hedgerows
+
+    GPKG_HEDGEROWS_UNREADABLE_GEOMETRY:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_HEDGEROWS_NO_LINESTRING_GEOMETRY:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_HEDGEROWS_WRONG_GEOMETRY_TYPE:
+      whenAlone: catch-all
+      inList: service-message
+
+    HEDGEROWS_OUTSIDE_REDLINE:
+      whenAlone:
+        title:
+          - This hedgerow {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This hedgerow is outside the red line boundary. Draw the hedgerow again
+          and [upload a new file](upload).
+      inList: service-message
+
+    # ------------------------------------------------------------ watercourses
+
+    GPKG_RIVERS_UNREADABLE_GEOMETRY:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_RIVERS_NO_LINESTRING_GEOMETRY:
+      whenAlone: catch-all
+      inList: service-message
+
+    GPKG_RIVERS_WRONG_GEOMETRY_TYPE:
+      whenAlone: catch-all
+      inList: service-message
+
+    WATERCOURSES_OUTSIDE_REDLINE:
+      whenAlone:
+        title:
+          - This watercourse {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This watercourse is outside the red line boundary. Draw the watercourse
+          again and [upload a new file](upload).
+      inList: service-message
+
+    # -------------------------------------------------- vertical area habitats
+
+    VERTICAL_HABITAT_AREA_NOT_POSITIVE:
+      whenAlone:
+        title:
+          - This vertical area habitat {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          The Area (ha) of a vertical area habitat must be a number above 0.
+          Enter the area you estimated on site in hectares and
+          [upload a new file](upload).
+      inList:
+        item: '{feature} (Area: {area})'
+
+    VERTICAL_HABITATS_OUTSIDE_REDLINE:
+      whenAlone:
+        title:
+          - This vertical area habitat {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          This vertical area habitat is outside the red line boundary. Draw the
+          vertical area habitat again and [upload a new file](upload).
+      inList: service-message
+
+    # ------------------------------------------------------- trees and IGGIs
+
+    TREE_COUNT_NOT_WHOLE:
+      whenAlone:
+        title:
+          - This tree {ref} contains an error
+          - Your Geopackage (.gpkg) file contains an error
+        body: >-
+          The Count for a tree is not a whole number of trees. Leave Count blank
+          for one tree, or enter how many trees the point stands for and
+          [upload a new file](upload).
+      inList: service-message
+
+    TREES_OUTSIDE_REDLINE:
+      whenAlone: placeholder
+      inList: service-message
+
+    IGGIS_OUTSIDE_REDLINE:
+      whenAlone: placeholder
+      inList: service-message
+
+    # --------------------------------------------------------------- comments
+    # The 999 character figure mirrors MAX_COMMENT_LENGTH in the backend
+    # (validation/geopackage/comment-check.js); change both together. A file
+    # with several problems lists the service's own message.
+
+    COMMENT_INVALID_CHARACTERS:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          A comment contains characters that are not allowed. Remove those
+          characters and [upload a new file](upload).
+      inList: service-message
+
+    COMMENT_TOO_LONG:
+      whenAlone:
+        title: Your Geopackage (.gpkg) file contains an error
+        body: >-
+          A comment is longer than 999 characters. Shorten the comment and
+          [upload a new file](upload).
+      inList: service-message
+
+    # ------------------------------------------------------------ habitat refs
+
+    HABITAT_REF_MISSING:
+      whenAlone:
+        title: There is a problem with your project
+        subheading: Habitat parcels
+        body: Your file contains a habitat with no habitat reference.
+      # One heading for every habitat it applies to: a habitat with no reference
+      # has nothing to list it by.
+      inList:
+        heading: Your file contains a habitat with no habitat reference
+        listsHabitats: false
+
+    HABITAT_REF_INVALID_CHARACTERS:
+      whenAlone:
+        title: There is a problem with your project
+        subheading: Habitat parcels
+        body: This habitat reference contains characters that are not allowed.
+      inList:
+        heading: This habitat reference contains characters that are not allowed
+        listsHabitats: false
+
+    # --------------------------------------------------- habitat eligibility
+
+    HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
+      whenAlone:
+        title: >-
+          Very high and high distinctiveness habitats are not yet included in
+          this service
+        body: >-
+          Use the [metric tool (spreadsheet)](metric-tool) to calculate
+          biodiversity value.
+      inList:
+        item: '{feature} — {habitatType} ({distinctiveness})'
+        # {bands} are the distinctiveness bands the service takes.
+        note: 'Allowed distinctiveness: {bands}.'
+
+    BASELINE_NOT_ENHANCEABLE:
+      whenAlone:
+        title: There is a problem with your project
+        subheading: Service eligibility
+        body: >-
+          Your project contains habitats that have been enhanced to a level which
+          is not yet included in this service. Use the
+          [metric tool (spreadsheet)](metric-tool) to calculate biodiversity
+          value.
+        # The link opens in this tab, and says nothing about a new one.
+        opensInNewTab: false
+      inList:
+        item:
+          - '{feature} — {habitatType}'
+          - ' ({condition})'
+
+    # ----------------------------------- BNG Service template lineage (BMD-1083)
+    #
+    # Each is always shown as its list of habitats, even alone: the list is what
+    # the user has to put right. Each bullet names a post-intervention row or a
+    # baseline parent by its template layer, Habitat Ref and habitat type, then
+    # the parent it was copied from, or the rows copied from it.
+    #
+    # AWAITING UCD: interim copy for this whole group (BMD-1086).
+    #
+    # Each heading was copied word for word from the backend's message
+    # (bng-metric-backend, src/validation/geopackage/service-template/lineage/
+    # lineage-rules.js and parent-links.js). The page shows the heading here,
+    # not the backend's message, so when the backend changes what a lineage
+    # rule asks for, change its heading here in the same change. The nightly
+    # check compares only the codes, not the wording.
+
+    STAGED_PARENT_LINK_MISSING:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more Retained or Enhanced post-intervention habitats do not name
+          the baseline habitat they continue
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+
+    STAGED_UNKNOWN_PARENT_REF:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more post-intervention habitats name a baseline habitat that is
+          not in the file
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+
+    STAGED_AMBIGUOUS_PARENT:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more post-intervention habitats name a baseline habitat whose
+          feature_uuid more than one baseline habitat has
+        # {name} is every baseline habitat that shares the identity.
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', named by {childRefs}'
+
+    STAGED_BASELINE_DRIFTED:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more baseline habitats do not have the shape their
+          post-intervention habitats were copied from
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+
+    STAGED_HEDGEROW_CHILDREN_TOO_LONG:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more baseline hedgerows are shorter than the post-intervention
+          hedgerows linked to them together
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+          - ' ({length} m, linked {childLength} m)'
+
+    STAGED_VERTICAL_CHILDREN_TOO_LARGE:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more baseline vertical area habitats have a smaller Area (ha)
+          than the post-intervention vertical area habitats linked to them
+          together
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+          - '; Area {area}, linked {childArea}'
+
+    STAGED_WATERCOURSE_RETAINED_AND_CREATED:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more baseline watercourses have both a Retained or Enhanced part
+          and a Created part, so their length cannot be split between what
+          continues and what is lost. Draw each as two baseline watercourses, one
+          for each part
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+
+    STAGED_NATURAL_WATERCOURSE_LOST:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more baseline watercourses have no post-intervention habitat,
+          but only a canal or a ditch can be permanently lost. Record each as
+          Retained, Enhanced or Created
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+
+    STAGED_DEGRADE_NOT_WORSE:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more habitats are Created in their baseline habitat type without
+          a lower condition. A habitat that is kept should be Retained or
+          Enhanced; one lost for a time and put back should give its delay in
+          starting habitat creation
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied from {parentRef}'
+
+    STAGED_DEGRADE_ADVANCE_NOT_30_PLUS:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more habitats recorded as lost and created again in a lower
+          condition are not created 30+ years in advance, as the Metric guide
+          asks
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied from {parentRef}'
+
+    STAGED_WATERCOURSE_NO_INTERVENTION:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more watercourses are Created in their baseline River Type with
+          no lower condition, more encroachment or shorter length. A watercourse
+          with no intervention should be Retained; one lost for a time and put
+          back should give its delay in starting habitat creation
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied from {parentRef}'
+
+    # ------------------------------------------------------ while uploading
+
+    SIZING_FAILED:
+      whenAlone: catch-all
+      inList: service-message
+
+    VALIDATION_FAILED:
+      whenAlone: catch-all
+      inList: service-message
+
+    VALIDATION_BUSY:
+      whenAlone: catch-all
+      inList: service-message
+
+    VALIDATION_UNAVAILABLE:
+      whenAlone: catch-all
+      inList: service-message
+
+# -------------------------------------------------------------------- edit
+#
+# A refusal of a change made on screen. "summary" is shown in the error
+# summary at the top of the page and "inline" by the field; content design
+# words them differently on purpose. An edit code the pages do not show yet
+# is a placeholder: the page shows its generic error.
+
+edit:
+  HABITAT_REF_IN_USE:
+    # A rename onto a reference another baseline habitat in the same layer
+    # already carries.
+    # AWAITING UCD: interim wording, shown until content design words it.
+    summary: You have entered a habitat reference that is already in use.
+    inline: Enter a habitat reference that is not already in use.
+
+  # An edit that would leave an enhanced habitat that is not a valid
+  # enhancement of its baseline. Not shown by the pages yet.
+  ENHANCEMENT_NOT_VALID: placeholder
+
+  # A habitat type chosen on screen whose distinctiveness is out of the
+  # service's scope. Not shown by the pages yet.
+  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: placeholder
+
+# ------------------------------------------------------------------- forms
+#
+# A form field's own validation, by field, then rule. "summary" and "inline"
+# as for edit.
+
+forms:
+  habitatRef:
+    # Blank, whitespace only or not UTF-8, on the baseline details page and
+    # the retained post-intervention details page alike.
+    invalid:
+      summary: You have entered an invalid habitat reference.
+      inline: Enter a valid habitat reference.

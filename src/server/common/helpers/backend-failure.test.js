@@ -84,24 +84,42 @@ describe('#describeBackendFailure', () => {
     )
   })
 
-  test("quotes the backend's own JSON body", () => {
+  test("gives the error codes from the backend's own JSON body", () => {
     const error = responseError(500, {
       headers: { 'content-type': 'application/json' },
       payload: { valid: false, errors: [{ code: 'VALIDATION_FAILED' }] }
     })
 
     expect(describeBackendFailure(error, TIMING)).toContain(
-      'body: {"valid":false,"errors":[{"code":"VALIDATION_FAILED"}]}'
+      'body: {"valid":false,"errorCodes":["VALIDATION_FAILED"]}'
     )
   })
 
-  test('quotes a long JSON body whole, so no error code is lost', () => {
+  test('keeps every error code from a long JSON body', () => {
     const errors = Array.from({ length: 40 }, (_, i) => ({ code: `CODE_${i}` }))
     const error = responseError(422, { payload: { valid: false, errors } })
 
     expect(describeBackendFailure(error, TIMING)).toContain(
-      `body: ${JSON.stringify({ valid: false, errors })}`
+      `body: ${JSON.stringify({ valid: false, errorCodes: errors.map((e) => e.code) })}`
     )
+  })
+
+  test('leaves out messages, which can echo what the user sent', () => {
+    const error = responseError(400, {
+      payload: {
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'echoed user input jane@example.com',
+        errors: [{ code: 'INVALID_NAME', message: 'Name "jane@example.com"' }]
+      }
+    })
+
+    const logged = describeBackendFailure(error, TIMING)
+
+    expect(logged).toContain(
+      'body: {"error":"Bad Request","errorCodes":["INVALID_NAME"]}'
+    )
+    expect(logged).not.toContain('jane@example.com')
   })
 
   test('caps a long raw body', () => {

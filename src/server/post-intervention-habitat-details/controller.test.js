@@ -179,23 +179,23 @@ describe('#postInterventionHabitatDetailsController', () => {
     [
       'Retained',
       'habitat-details/pi-habitat-details',
-      '40',
-      'Size (square metres)'
+      '0.004 (40m²)',
+      'Size (hectares)'
     ],
     [
       'Created',
       'habitat-details/pi-habitat-details-enhanced',
-      '40m²',
-      'Size (square metres)'
+      '0.004ha (40m²)',
+      undefined
     ],
     [
       'Enhanced',
       'habitat-details/pi-habitat-details-enhanced',
-      '40m²',
-      'Size (square metres)'
+      '0.004ha (40m²)',
+      undefined
     ]
   ])(
-    'GET shows a %s vertical area habitat on the area page, read only, sized in square metres',
+    'GET shows a %s vertical area habitat on the area page, read only, sized in hectares and square metres',
     async (retentionCategory, template, sizeDisplay, sizeLabel) => {
       vi.mocked(wreck.get).mockImplementation((url) => {
         if (url.includes(`/post-intervention/features/${featureId}`)) {
@@ -234,7 +234,8 @@ describe('#postInterventionHabitatDetailsController', () => {
           broadHabitatDisplay: 'Urban',
           habitatTypeDisplay: 'Facade-bound green wall',
           backHref: `/projects/${projectId}/area-post-intervention`,
-          sizeLabel
+          // Created and Enhanced pages label every area habitat's size "Area".
+          ...(sizeLabel && { sizeLabel })
         })
       )
     }

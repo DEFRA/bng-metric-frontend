@@ -54,37 +54,53 @@ function formatAreaHectaresValue(squareMetres) {
 }
 
 /**
- * A vertical area habitat's face area, in square metres, as the surveyor
- * entered it: not converted, and rounded only to 10 significant figures to
- * drop floating-point noise. Returns '' for null/undefined/non-finite.
- *
- * @param {number|null|undefined} squareMetres
- * @returns {string}
- */
-function formatSquareMetresValue(squareMetres) {
-  if (!isUsableNumber(squareMetres)) {
-    return EMPTY_DISPLAY
-  }
-  return Number(squareMetres.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()
-}
-
-/**
- * As formatSquareMetresValue, with the "m²" suffix (no space), as the hectare
- * values carry "ha".
+ * An area in square metres, rounded to 10 significant figures to drop
+ * floating-point noise, with the "m²" suffix (no space), as the hectare values
+ * carry "ha". Returns '' for null/undefined/non-finite.
  *
  * @param {number|null|undefined} squareMetres
  * @returns {string}
  */
 function formatSquareMetres(squareMetres) {
-  const value = formatSquareMetresValue(squareMetres)
-  return value === EMPTY_DISPLAY
-    ? EMPTY_DISPLAY
-    : `${value}${SQUARE_METRES_UNIT}`
+  if (!isUsableNumber(squareMetres)) {
+    return EMPTY_DISPLAY
+  }
+  const value = Number(squareMetres.toPrecision(AREA_SIGNIFICANT_FIGURES))
+  return `${value}${SQUARE_METRES_UNIT}`
 }
 
 /**
- * A size on an area habitat list: a vertical area habitat's in square metres,
- * as entered, and every other's in hectares. A list's total stays in
+ * A vertical area habitat's size: in hectares, as the surveyor entered it,
+ * then in square metres, as a green wall or a hard structure is more easily
+ * pictured, e.g. "0.04ha (400m²)". Returns '' for null/undefined/non-finite.
+ *
+ * @param {number|null|undefined} squareMetres
+ * @returns {string}
+ */
+function formatVerticalArea(squareMetres) {
+  if (!isUsableNumber(squareMetres)) {
+    return EMPTY_DISPLAY
+  }
+  return `${formatAreaHectares(squareMetres)} (${formatSquareMetres(squareMetres)})`
+}
+
+/**
+ * As formatVerticalArea but without the "ha" suffix, for rows whose label
+ * already names the unit ("Size (hectares)"), e.g. "0.04 (400m²)".
+ *
+ * @param {number|null|undefined} squareMetres
+ * @returns {string}
+ */
+function formatVerticalAreaValue(squareMetres) {
+  if (!isUsableNumber(squareMetres)) {
+    return EMPTY_DISPLAY
+  }
+  return `${formatAreaHectaresValue(squareMetres)} (${formatSquareMetres(squareMetres)})`
+}
+
+/**
+ * A size on an area habitat list: a vertical area habitat's in hectares and
+ * square metres, and every other's in hectares. A list's total stays in
  * hectares, vertical area habitats included, as the total habitat area does.
  *
  * @param {number|null|undefined} squareMetres
@@ -93,7 +109,7 @@ function formatSquareMetres(squareMetres) {
  */
 function formatAreaSize(squareMetres, feature) {
   return feature?.isVerticalHabitat
-    ? formatSquareMetres(squareMetres)
+    ? formatVerticalArea(squareMetres)
     : formatAreaHectares(squareMetres)
 }
 
@@ -211,7 +227,8 @@ export {
   formatAreaHectaresValue,
   formatAreaSize,
   formatSquareMetres,
-  formatSquareMetresValue,
+  formatVerticalArea,
+  formatVerticalAreaValue,
   formatBaselineTotalLengthSize,
   formatLengthKm,
   formatLengthKmDisplay,
