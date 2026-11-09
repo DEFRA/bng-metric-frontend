@@ -751,6 +751,10 @@ describe('invalidFileController.handler — populated session', () => {
     // service's message names no bullet. The point of this test is just to
     // exercise the `sample?.length ?? 0` branch in buildBlock.
     expect(view.errorBlocks[0].items).toEqual([])
+    // Alone, the code shows its placeholder, which keeps the list's count.
+    expect(view.singleError.helpText).toBe(
+      'PLACEHOLDER - One or more trees are not entirely within the redline boundary (and 5 more)'
+    )
   })
 
   test("errorBlocks: a code the copy gives a heading shows none of the service's message", async () => {
@@ -800,6 +804,22 @@ describe('invalidFileController.handler — populated session', () => {
     expect(view.errorBlocks[1].heading).toBe(
       'GeoPackage contains 12,345 features across its boundary, habitat, hedgerow and watercourse layers; the maximum this service can validate is 10,000'
     )
+  })
+
+  test("errorBlocks: a heading whose counts the details lack is the service's message", async () => {
+    const message =
+      'GeoPackage contains 12,345 features across its boundary, habitat, hedgerow and watercourse layers; the maximum this service can validate is 10,000'
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      { code: 'GPKG_TOO_MANY_FEATURES', message }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1].heading).toBe(message)
   })
 
   test("singleError: a placeholder page names the copy's heading and bullets, not the service's message", async () => {

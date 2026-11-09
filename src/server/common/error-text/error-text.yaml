@@ -73,6 +73,11 @@
 #   lists, or whose message names values the service does not send apart from
 #   it, such as a layer name or an area, so its heading cannot be written here
 #   yet.
+#
+# - A heading that was the service's message is copied from the backend word
+#   for word, so nothing fails when the backend changes that message or a
+#   limit it names. A comment beside a heading names any backend constant it
+#   repeats. Change both together.
 
 upload:
   page:
@@ -558,6 +563,8 @@ upload:
 
     # -------------------------------------------------- vertical area habitats
 
+    # "Area (ha)" in the heading mirrors AREA_COLUMN in the backend
+    # (validation/geopackage/vertical-area-check.js); change both together.
     VERTICAL_HABITAT_AREA_NOT_POSITIVE:
       whenAlone:
         title:
@@ -588,6 +595,9 @@ upload:
 
     # ------------------------------------------------------- trees and IGGIs
 
+    # "Count" and "(1 or more)" in the heading mirror COUNT_COLUMN and
+    # MIN_TREE_COUNT in the backend (validation/geopackage/tree-count-check.js);
+    # change both together.
     TREE_COUNT_NOT_WHOLE:
       whenAlone:
         title:
@@ -628,8 +638,7 @@ upload:
 
     # --------------------------------------------------------------- comments
     # The 999 character figure mirrors MAX_COMMENT_LENGTH in the backend
-    # (validation/geopackage/comment-check.js); change both together. A file
-    # with several problems lists the service's own message.
+    # (validation/geopackage/comment-check.js); change both together.
 
     COMMENT_INVALID_CHARACTERS:
       whenAlone:

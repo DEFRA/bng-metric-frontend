@@ -2,6 +2,7 @@ import { formatVerticalArea } from '../common/helpers/format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import {
   WHEN_ALONE,
+  canFill,
   dropoutCopy,
   errorCopy,
   fill,
@@ -246,11 +247,13 @@ function headingValues(err) {
 }
 
 // The copy's heading for the error, or else the part of the service's message
-// before its first ": ".
+// before its first ": ", as for one whose details lack a value the heading
+// names.
 function buildHeading(err) {
   const heading = listHeading(err.code)
-  if (heading) {
-    return fill(heading, headingValues(err))
+  const values = headingValues(err)
+  if (heading && canFill(heading, values)) {
+    return fill(heading, values)
   }
   const idx = err.message.indexOf(': ')
   return idx === -1 ? err.message : err.message.slice(0, idx)
@@ -301,13 +304,13 @@ function placeholderMessage(err, block) {
   if (!listHeading(err.code)) {
     return err.message
   }
-  if (block.items.length === 0) {
-    return block.heading
-  }
   const more =
     block.more > 0
       ? fill(dropoutCopy.placeholder.more, { count: block.more })
       : ''
+  if (block.items.length === 0) {
+    return `${block.heading}${more}`
+  }
   return `${block.heading}: ${block.items.join(', ')}${more}`
 }
 
