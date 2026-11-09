@@ -212,7 +212,7 @@ function variantsOf(err) {
   return Array.isArray(variants) ? variants : []
 }
 
-// A number written as the backend's message writes it.
+// Each value as the backend's message writes it.
 const asText = (value) => (value == null || value === '' ? null : String(value))
 const asList = (value) => (Array.isArray(value) ? value.join(', ') : null)
 const asNumber = (format) => (value) =>
@@ -222,8 +222,13 @@ const wholeNumber = asNumber((n) => n.toFixed(0))
 const twoDecimals = asNumber((n) => n.toFixed(2))
 const hexadecimal = asNumber((n) => n.toString(16).toUpperCase())
 // A type label with its article: "a Text", "an Integer".
-const withArticle = (value) =>
-  value ? `${/^[aeiou]/i.test(value) ? 'an' : 'a'} ${value}` : null
+function withArticle(value) {
+  if (!value) {
+    return null
+  }
+  const article = /^[aeiou]/i.test(value) ? 'an' : 'a'
+  return `${article} ${value}`
+}
 
 /**
  * The values each error's heading and bullets name from its details, when it
@@ -317,8 +322,10 @@ function buildItems(err) {
   // An error that names no habitats has one bullet at most: its copy's item,
   // filled from its details, when it gives one and any of it is known.
   if (!err.details?.sample) {
-    const { item } = inListCopy(err.code, variantsOf(err))
-    const bullet = item ? joinKnownParts(item, detailValues(err)) : ''
+    const detailItem = inListCopy(err.code, variantsOf(err)).item
+    const bullet = detailItem
+      ? joinKnownParts(detailItem, detailValues(err))
+      : ''
     return bullet ? [bullet] : []
   }
   const item = inListCopy(err.code).item ?? DEFAULT_ITEM
