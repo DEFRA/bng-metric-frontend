@@ -1,6 +1,9 @@
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { sourceValue } from '../common/helpers/post-intervention-habitat-grid.js'
-import { isFiniteNumber } from '../common/helpers/unit-summary.js'
+import {
+  needsCreatedZeroUnits,
+  withCreatedZeroUnits
+} from '../common/helpers/created-zero-units-display.js'
 import { loadCreatedAreaReference } from '../post-intervention-habitat-details/created-edit-reference.js'
 import { createdStrategicSignificance } from '../post-intervention-habitat-details/created-strategic-significance.js'
 import {
@@ -56,12 +59,8 @@ function needsReference(feature) {
   )
 }
 
-function needsZeroUnits(feature) {
-  return isCreated(feature) && !isFiniteNumber(feature.units)
-}
-
 function needsDisplayProjection(feature) {
-  return needsReference(feature) || needsZeroUnits(feature)
+  return needsReference(feature) || needsCreatedZeroUnits(feature)
 }
 
 function withReferenceFields(feature, reference) {
@@ -99,8 +98,7 @@ function withReferenceFields(feature, reference) {
 }
 
 function displayFeature(feature, reference) {
-  const projected = withReferenceFields(feature, reference)
-  return needsZeroUnits(projected) ? { ...projected, units: 0 } : projected
+  return withCreatedZeroUnits(withReferenceFields(feature, reference))
 }
 
 // The derived values are optional display data, so a reference outage must not

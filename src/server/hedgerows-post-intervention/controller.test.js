@@ -463,6 +463,46 @@ describe('hedgerows post intervention', () => {
     expect(footer).toContain('0.6km')
   })
 
+  test('shows an incomplete Created hedgerow as 0.00 units, leaving other incomplete rows blank', async () => {
+    const project = structuredClone(populatedProject)
+    const created = project.project.postIntervention.hedgerows.find(
+      (h) => h.ref === 'P-A1'
+    )
+    Object.assign(created, { units: null, status: 'Incomplete' })
+    const enhanced = project.project.postIntervention.hedgerows.find(
+      (h) => h.ref === 'P-A3'
+    )
+    Object.assign(enhanced, { units: null, status: 'Incomplete' })
+    const snapshot = structuredClone(project)
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: project
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const unitsCell = (panelId, ref) => {
+      const panel = $(panelId)
+      const columns = panel
+        .find('thead th')
+        .map((_, el) => $(el).text().trim())
+        .get()
+      const row = panel
+        .find('tbody tr')
+        .filter((_, tr) => $(tr).find('a').first().text() === ref)
+      return row.find('td').eq(columns.indexOf('Units'))
+    }
+    expect(unitsCell('#created', 'P-A1').text().trim()).toBe('0.00')
+    expect(unitsCell('#created', 'P-A1').attr('data-sort-value')).toBe('0')
+    expect(unitsCell('#enhanced', enhanced.ref).text().trim()).toBe('')
+    expect(project).toEqual(snapshot)
+  })
+
   test('hides tabs that have no matching habitats', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
