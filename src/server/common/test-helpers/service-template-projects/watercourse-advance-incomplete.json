@@ -9312,9 +9312,7 @@
           "layer": "habitats",
           "outcome": "lostAndRecreated",
           "featureId": "ee3f55c1-f385-439f-a186-5a4400967816",
-          "recreatedAs": [
-            "34d1b2d7-4395-4b92-b74b-d3c29b0b68c3"
-          ],
+          "recreatedAs": ["34d1b2d7-4395-4b92-b74b-d3c29b0b68c3"],
           "lostSizeSquareMetres": 6215.334054082034
         },
         {
@@ -9368,9 +9366,7 @@
           "layer": "verticalHabitats",
           "outcome": "lostAndRecreated",
           "featureId": "d789d2de-d41d-4fea-8921-0f3784f19bc2",
-          "recreatedAs": [
-            "85d1428a-f807-4951-9e98-c1dea1b062e0"
-          ],
+          "recreatedAs": ["85d1428a-f807-4951-9e98-c1dea1b062e0"],
           "lostSizeSquareMetres": 41
         },
         {
@@ -9495,9 +9491,7 @@
           "layer": "hedgerows",
           "outcome": "lostAndRecreated",
           "featureId": "93c4f14f-4a81-4aef-af1b-27e2fc023338",
-          "recreatedAs": [
-            "997fbf8a-6392-4051-8c8b-3408f9d1c172"
-          ],
+          "recreatedAs": ["997fbf8a-6392-4051-8c8b-3408f9d1c172"],
           "lostSizeMetres": 59.12040885538707
         },
         {
@@ -9506,9 +9500,7 @@
           "layer": "hedgerows",
           "outcome": "lostAndRecreated",
           "featureId": "e30b7a7f-f04b-4d36-b6f4-45ee62d0a8d5",
-          "recreatedAs": [
-            "405a25cb-2c7d-498c-8eb2-62b5defc4570"
-          ],
+          "recreatedAs": ["405a25cb-2c7d-498c-8eb2-62b5defc4570"],
           "lostSizeMetres": 54.54061510865709
         },
         {
@@ -9526,9 +9518,7 @@
           "layer": "watercourses",
           "outcome": "lostAndRecreated",
           "featureId": "553e6b6e-8443-45ed-bde8-fdd18fe96d07",
-          "recreatedAs": [
-            "c4c19086-ff98-43a7-9fc7-4e68631fe091"
-          ],
+          "recreatedAs": ["c4c19086-ff98-43a7-9fc7-4e68631fe091"],
           "lostSizeMetres": 130.06474619730474
         },
         {
@@ -9537,9 +9527,7 @@
           "layer": "watercourses",
           "outcome": "lostAndRecreated",
           "featureId": "aa081c4f-334c-40f8-b741-88f38a20548d",
-          "recreatedAs": [
-            "fedab618-6936-4cfa-9bb7-d6f91e5cff0f"
-          ],
+          "recreatedAs": ["fedab618-6936-4cfa-9bb7-d6f91e5cff0f"],
           "lostSizeMetres": 108.55448932855977
         },
         {

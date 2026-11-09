@@ -123,6 +123,12 @@ upload:
       - fid {fid}
       - 'feature #{idx}'
       - feature
+    # A BNG Service template tree, by the template's Habitat Ref column.
+    tree:
+      - Habitat Ref {featureRef}
+      - fid {fid}
+      - 'feature #{idx}'
+      - a tree
     # BNG Service template lineage problems.
     habitat:
       - '{ref}'
@@ -532,7 +538,7 @@ upload:
           does not accept irreplaceable trees, such as ancient and veteran trees
         item:
           - '{table} '
-          - '{feature}'
+          - '{tree}'
 
     IGGIS_OUTSIDE_REDLINE:
       whenAlone: placeholder

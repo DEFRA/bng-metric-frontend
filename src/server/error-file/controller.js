@@ -139,9 +139,17 @@ function verticalAreaValues(s) {
   return { ...featureValues(s), area: known(s?.area) ?? unknown.area }
 }
 
-// An irreplaceable tree, in the table of the stage that marks it.
+// An irreplaceable tree, by its Habitat Ref, in the table of the stage that
+// marks it.
 function irreplaceableTreeValues(s) {
-  return { table: known(s?.table), ...featureValues(s) }
+  return {
+    table: known(s?.table),
+    tree: firstKnown(names.tree, {
+      featureRef: known(s?.feature_ref),
+      fid: known(s?.fid),
+      idx: s?.idx
+    })
+  }
 }
 
 // The {values} each error's bullets name, by error code; any other code names

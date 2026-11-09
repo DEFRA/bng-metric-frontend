@@ -1266,7 +1266,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       [
         'One or more trees are marked as irreplaceable habitat. The service does not accept irreplaceable trees, such as ancient and veteran trees',
         [
-          'Individual Trees Baseline Feature Ref T001',
+          'Individual Trees Baseline Habitat Ref T001',
           'Individual Trees Baseline fid 7'
         ]
       ]

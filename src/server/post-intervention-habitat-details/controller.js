@@ -69,7 +69,7 @@ const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
 // view-only whatever their retention: neither can be edited after
 // intervention yet. A Created one shows its timing and difficulty, as a
 // Created area habitat's edit page does.
-const VERTICAL_RETENTION_PAGES = new Map([
+const READ_ONLY_AREA_RETENTION_PAGES = new Map([
   [RETENTION_ENHANCED, ENHANCED_AREA_PAGE],
   [
     RETENTION_CREATED,
@@ -114,8 +114,8 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 // some retention categories rather than always using the single-list page.
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
-  [VERTICAL_HABITAT_TYPE, VERTICAL_RETENTION_PAGES],
-  [TREE_TYPE, VERTICAL_RETENTION_PAGES],
+  [VERTICAL_HABITAT_TYPE, READ_ONLY_AREA_RETENTION_PAGES],
+  [TREE_TYPE, READ_ONLY_AREA_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
