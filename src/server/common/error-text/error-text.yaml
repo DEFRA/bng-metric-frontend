@@ -252,8 +252,8 @@ upload:
         title: There is a problem with your file
         subheading: Template
         body: >-
-          Your file is using the legacy Natural England template. The service now
-          uses the BNG service template.
+          Your file is using the legacy template. The service now uses the BNG
+          service template.
       inList: service-message
 
     TEMPLATE_VERSION_MISSING:

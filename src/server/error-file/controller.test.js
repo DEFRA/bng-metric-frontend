@@ -1366,7 +1366,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       h1: 'There is a problem with your file',
       subheading: 'Template',
       helpText:
-        'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
+        'Your file is using the legacy template. The service now uses the BNG service template.'
     })
   })
 })
