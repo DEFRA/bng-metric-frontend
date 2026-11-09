@@ -16,9 +16,9 @@
     caption: caption
   }) }}
 
-  {# Individual trees and IGGIs are excluded from the retained-area details
-     page (BMD-608). Until their own details pages exist, show a placeholder
-     message rather than the area layout. #}
+  {# IGGIs, and any feature type without a details page of its own, are
+     excluded from the area details pages. Until their own details pages
+     exist, show a placeholder message rather than the area layout. #}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
       <p class="govuk-body">{{ message }}</p>

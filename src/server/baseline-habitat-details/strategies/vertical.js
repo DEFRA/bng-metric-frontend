@@ -1,4 +1,3 @@
-import { formatVerticalArea } from '../../common/helpers/format-habitat-values.js'
 import { VERTICAL_HABITATS } from '../../common/helpers/vertical-habitats.js'
 import { areaStrategy } from './area.js'
 
@@ -24,20 +23,10 @@ async function loadReference(habitat) {
   }
 }
 
-/**
- * The area habitat page, with the size the surveyor typed in, in hectares,
- * and in square metres too, rather than an area measured from the map.
- */
-function buildViewModel(habitat, reference, ctx) {
-  return {
-    ...areaStrategy.buildViewModel(habitat, reference, ctx),
-    sizeDisplay: formatVerticalArea(habitat.sizeSquareMetres)
-  }
-}
-
 /** @type {import('./area.js').Strategy} */
 export const verticalStrategy = {
   loadReference,
-  buildViewModel,
+  // The area habitat page: the size the surveyor typed in, in hectares.
+  buildViewModel: areaStrategy.buildViewModel,
   payloadSchema: areaStrategy.payloadSchema
 }

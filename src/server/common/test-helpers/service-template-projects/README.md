@@ -15,16 +15,30 @@ They aren't written by hand. Each is a real upload through the backend, with
 | `baseline-only.json`                  | `valid/default-site-baseline.gpkg`                             | `POST /baseline/validate/{id}`          | A project with only a baseline: no `postIntervention` key                                                                                                          |
 | `watercourse-advance-incomplete.json` | `incomplete/degrade-watercourse-advance-not-encroachment.gpkg` | `POST /post-intervention/validate/{id}` | A degraded watercourse created 10 years in advance, which the backend clears and saves Incomplete                                                                  |
 
-Captured at bng-metric-backend `a4462c1` (bng-library `93f8d08`). The
-template's vertical area habitat Area is now in hectares (BMD-1084), so each
-vertical area habitat's `properties.Area` was then changed by hand from the
-square metres it was captured in to hectares; `sizeSquareMetres`, which the
-backend converts it to, is unchanged. Capture them again once the backend
-reads hectares. Both
-documents carry `template: { name: 'bng-service', version: '1.0' }`, and every
-area habitat its `irreplaceable` status. Each holds `verticalHabitats`, sized by
-the face area typed in. Individual trees (BMD-1172) aren't read yet, so `trees`
-is empty.
+Captured from bng-metric-backend at `1e93e65` (DEFRA/bng-metric-backend#616, bng-library
+`b332ab2`), which reads individual trees. Both documents carry
+`template: { name: 'bng-service', version: '1.0' }`, and every area habitat and
+tree its `irreplaceable` status. Each holds `verticalHabitats`, sized by the
+face area typed in, in hectares, and `trees`, each sized by the tree helper's
+area for its size class times its Count. The template has no Count column yet
+(BMD-1171), so every tree here stands for one. Each post-intervention tree with
+a parent names it by `parentFeatureId`, and `lostHabitats` lists each felled
+tree with the number of trees it loses.
+
+## Driving pages from them
+
+`backend-stub.js` stands in for the backend: `serviceTemplateBackend(body)`
+answers `wreck.get` with the project, its features by featureId and the
+reference lists the details pages read, built from the fixture's own
+features. It throws on any other URL, so a page that starts calling something
+new fails its test. `pages.js` starts the server and renders a page against a
+fixture.
+
+`src/server/service-template-pages/` uses them to render every page of these
+projects: grids, details pages and summaries, at both stages and for a
+baseline-only project. A project's data, not the service-template flag,
+decides how its pages render, so those tests expect the same in both of CI's
+flag states.
 
 ## Regenerating them
 

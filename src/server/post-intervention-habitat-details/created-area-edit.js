@@ -33,7 +33,7 @@ import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
 import { buildCreatedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
-import { formatLengthDisplay } from './view-only-shared.js'
+import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
 import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
@@ -361,6 +361,7 @@ export function buildCreatedAreaEditViewModel(
   return {
     ...base,
     ...derived,
+    habitatUnitsDisplay: createdUnitsDisplay(feature),
     sizeDisplay: kind.formatSize(feature),
     sizeLabel: kind.sizeLabel,
     pageTitle: `${Object.keys(errors).length ? 'Error: ' : ''}${base.pageTitle}`,

@@ -123,6 +123,12 @@ upload:
       - fid {fid}
       - 'feature #{idx}'
       - feature
+    # A BNG Service template tree, by the template's Habitat Ref column.
+    tree:
+      - Habitat Ref {featureRef}
+      - fid {fid}
+      - 'feature #{idx}'
+      - a tree
     # BNG Service template lineage problems.
     habitat:
       - '{ref}'
@@ -252,8 +258,8 @@ upload:
         title: There is a problem with your file
         subheading: Template
         body: >-
-          Your file is using the legacy Natural England template. The service now
-          uses the BNG service template.
+          Your file is using the legacy template. The service now uses the BNG
+          service template.
       inList: service-message
 
     TEMPLATE_VERSION_MISSING:
@@ -523,6 +529,17 @@ upload:
       whenAlone: placeholder
       inList: service-message
 
+    # AWAITING UCD
+    IRREPLACEABLE_TREE:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more trees are marked as irreplaceable habitat. The service
+          does not accept irreplaceable trees, such as ancient and veteran trees
+        item:
+          - '{table} '
+          - '{tree}'
+
     IGGIS_OUTSIDE_REDLINE:
       whenAlone: placeholder
       inList: service-message
@@ -690,6 +707,21 @@ upload:
           - ' — {habitatType}'
           - ', copied to {childRefs}'
           - '; Area {area}, linked {childArea}'
+
+    # AWAITING UCD
+    STAGED_TREE_CHILDREN_TOO_MANY:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more baseline trees have fewer trees than the Retained and
+          Enhanced post-intervention trees linked to them together. A tree that
+          is kept cannot be more trees than it was
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+          - '; Count {count}, linked {childCount}'
 
     STAGED_WATERCOURSE_RETAINED_AND_CREATED:
       whenAlone: list

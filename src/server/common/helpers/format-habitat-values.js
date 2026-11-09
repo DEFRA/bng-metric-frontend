@@ -70,9 +70,10 @@ function formatSquareMetres(squareMetres) {
 }
 
 /**
- * A vertical area habitat's size: in hectares, as the surveyor entered it,
- * then in square metres, as a green wall or a hard structure is more easily
- * pictured, e.g. "0.04ha (400m²)". Returns '' for null/undefined/non-finite.
+ * A vertical area habitat's size on the drop-out page: in hectares, as the
+ * surveyor entered it, then in square metres, as a green wall or a hard
+ * structure is more easily pictured, e.g. "0.04ha (400m²)". Returns '' for
+ * null/undefined/non-finite.
  *
  * @param {number|null|undefined} squareMetres
  * @returns {string}
@@ -82,35 +83,6 @@ function formatVerticalArea(squareMetres) {
     return EMPTY_DISPLAY
   }
   return `${formatAreaHectares(squareMetres)} (${formatSquareMetres(squareMetres)})`
-}
-
-/**
- * As formatVerticalArea but without the "ha" suffix, for rows whose label
- * already names the unit ("Size (hectares)"), e.g. "0.04 (400m²)".
- *
- * @param {number|null|undefined} squareMetres
- * @returns {string}
- */
-function formatVerticalAreaValue(squareMetres) {
-  if (!isUsableNumber(squareMetres)) {
-    return EMPTY_DISPLAY
-  }
-  return `${formatAreaHectaresValue(squareMetres)} (${formatSquareMetres(squareMetres)})`
-}
-
-/**
- * A size on an area habitat list: a vertical area habitat's in hectares and
- * square metres, and every other's in hectares. A list's total stays in
- * hectares, vertical area habitats included, as the total habitat area does.
- *
- * @param {number|null|undefined} squareMetres
- * @param {object} [feature] the row's feature, marked by asVerticalHabitats
- * @returns {string}
- */
-function formatAreaSize(squareMetres, feature) {
-  return feature?.isVerticalHabitat
-    ? formatVerticalArea(squareMetres)
-    : formatAreaHectares(squareMetres)
 }
 
 /**
@@ -225,10 +197,8 @@ function formatBaselineTotalLengthSize(metres) {
 export {
   formatAreaHectares,
   formatAreaHectaresValue,
-  formatAreaSize,
   formatSquareMetres,
   formatVerticalArea,
-  formatVerticalAreaValue,
   formatBaselineTotalLengthSize,
   formatLengthKm,
   formatLengthKmDisplay,

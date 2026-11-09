@@ -12,7 +12,8 @@ const LINKED_LAYERS = [
   'habitats',
   'verticalHabitats',
   'hedgerows',
-  'watercourses'
+  'watercourses',
+  'trees'
 ]
 const RETENTION_CATEGORIES = ['Retained', 'Enhanced', 'Created']
 const LOST_OUTCOMES = ['removed', 'lostAndRecreated', 'lost']
@@ -21,7 +22,16 @@ const LOST_SIZE_FIELD = {
   habitats: 'lostSizeSquareMetres',
   verticalHabitats: 'lostSizeSquareMetres',
   hedgerows: 'lostSizeMetres',
-  watercourses: 'lostSizeMetres'
+  watercourses: 'lostSizeMetres',
+  trees: 'lostSizeSquareMetres'
+}
+// The tree helper's area for each size class, in square metres (the Metric
+// User Guide, Table 15).
+const TREE_SQUARE_METRES = {
+  Small: 41,
+  Medium: 163,
+  Large: 366,
+  'Very large': 765
 }
 const SQUARE_METRES_PER_HECTARE = 10_000
 
@@ -155,9 +165,31 @@ describe('service-template project fixtures', () => {
     }
   })
 
-  test('read no individual trees yet (BMD-1172)', () => {
-    expect(baseline.trees).toEqual([])
-    expect(postIntervention.trees).toEqual([])
+  test('size each individual tree by the tree helper’s area for its size class times its Count, at both stages', () => {
+    const sized = [
+      ...baseline.trees.map((tree) => [tree, tree.treeSize]),
+      ...postIntervention.trees.map((tree) => [tree, tree.proposed.treeSize])
+    ]
+    expect(baseline.trees.length).toBeGreaterThan(0)
+    expect(postIntervention.trees.length).toBeGreaterThan(0)
+    for (const [tree, size] of sized) {
+      expect(tree.sizeSquareMetres, tree.ref).toBe(
+        TREE_SQUARE_METRES[size] * (tree.count ?? 1)
+      )
+      expect(tree.irreplaceable, tree.ref).toBe(false)
+    }
+    expect(baseline.units.treesTotal).toBeGreaterThan(0)
+    expect(postIntervention.units.treesTotal).toBeGreaterThan(0)
+  })
+
+  test('give each lost tree the number of trees it loses', () => {
+    const lostTrees = postIntervention.lostHabitats.filter(
+      ({ layer }) => layer === 'trees'
+    )
+    expect(lostTrees.length).toBeGreaterThan(0)
+    for (const lost of lostTrees) {
+      expect(lost.lostTreeCount, lost.ref).toBeGreaterThan(0)
+    }
   })
 
   test('hand out a fresh copy each time', () => {

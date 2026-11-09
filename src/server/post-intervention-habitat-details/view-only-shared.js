@@ -27,6 +27,7 @@ import {
 } from './constants.js'
 import { interventionDisplay, RETENTION_RETAINED } from './retention.js'
 import { habitatDetailsDestination } from '../common/helpers/habitat-details-destination.js'
+import { isFiniteNumber } from '../common/helpers/unit-summary.js'
 
 // Retained features carry their baseline strategic significance, which the
 // service fixes at Low (1) — matching the baseline details pages. Created and
@@ -195,6 +196,17 @@ export function formatStandardTimeToTarget(
  * @param {number|null|undefined} sizeMetres
  * @returns {string}
  */
+/**
+ * "Habitat units delivered" on a Created edit page. BMD-1048 AC2: an
+ * incomplete habitat shows zero, whether its units are stored as zero or null.
+ *
+ * @param {{ units?: unknown }} feature
+ * @returns {string}
+ */
+export function createdUnitsDisplay(feature) {
+  return formatHabitatUnits(isFiniteNumber(feature.units) ? feature.units : 0)
+}
+
 export function formatLengthDisplay(sizeMetres) {
   const length = formatLengthKm(sizeMetres)
   if (length === EMPTY_PLACEHOLDER) {
