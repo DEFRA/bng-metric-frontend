@@ -221,12 +221,13 @@ const grouped = asNumber((n) => n.toLocaleString('en-GB'))
 const wholeNumber = asNumber((n) => n.toFixed(0))
 const twoDecimals = asNumber((n) => n.toFixed(2))
 const hexadecimal = asNumber((n) => n.toString(16).toUpperCase())
-// An srs_id the file holds, or the copy's word for one it does not.
-const srsId = (value) => asText(value) ?? unknown.srsId
-// A geometry type the file registers, or the copy's word for a blank or null
-// one. A value the details do not carry at all is missing, as for any other.
-const geometryType = (value) =>
-  value === undefined ? null : (asText(value) ?? unknown.geometryType)
+// A value the file holds, or the copy's word for one it leaves blank or
+// unset (the backend sends that as null). A value the details do not carry at
+// all is missing, as for any other: the file did not say it was blank.
+const fileValue = (blankWord) => (value) =>
+  value === undefined ? null : (asText(value) ?? blankWord)
+const srsId = fileValue(unknown.srsId)
+const fileText = fileValue(unknown.blank)
 // A type label with its article: "a Text", "an Integer".
 function withArticle(value) {
   if (!value) {
@@ -249,7 +250,7 @@ const DETAIL_VALUES = {
   GPKG_BASELINE_CONTENTS_DATA_TYPE: {
     layer: asText,
     expected: asText,
-    found: asText
+    found: fileText
   },
   GPKG_BASELINE_SRS_ID: {
     layer: asText,
@@ -265,16 +266,17 @@ const DETAIL_VALUES = {
   },
   GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME: {
     layer: asText,
-    column: asText,
+    column: fileText,
     expected: asText
   },
   GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS: { layer: asText, found: asText },
   GPKG_BASELINE_GEOMETRY_TYPE_NAME: {
     layer: asText,
     expected: asText,
-    found: geometryType
+    found: fileText
   },
-  GPKG_BASELINE_MISSING_COLUMN: { layer: asText, column: asText },
+  // The geometry variant's column is the name the file registers.
+  GPKG_BASELINE_MISSING_COLUMN: { layer: asText, column: fileText },
   GPKG_BASELINE_COLUMN_SQLITE_TYPE: {
     layer: asText,
     column: asText,

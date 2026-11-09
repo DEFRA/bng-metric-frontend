@@ -1757,14 +1757,18 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     return h.view.mock.calls[0][1].errorBlocks
   }
 
-  describe('a geometry type the file leaves blank', () => {
-    const geometryTypeError = (found) => ({
-      code: 'GPKG_BASELINE_GEOMETRY_TYPE_NAME',
-      message: 'Not shown',
-      details: { layer: 'Habitats', expected: 'MULTIPOLYGON', found }
-    })
-    const EXPECTED_ITEM =
+  describe('a value the file holds', () => {
+    const NOT_LISTED = { code: 'NO_REDLINE', message: 'No redline' }
+    const GEOMETRY_TYPE_ITEM =
       'expected geometry type "MULTIPOLYGON" in gpkg_geometry_columns but found'
+
+    async function blockFor(code, details) {
+      const [block] = await blocksFor([
+        { code, message: 'Not shown', details },
+        NOT_LISTED
+      ])
+      return block
+    }
 
     test.each([
       ['blank', ''],
@@ -1772,39 +1776,134 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     ])(
       "names a %s geometry type with the copy's word, keeping the bullet",
       async (_, found) => {
-        const blocks = await blocksFor([
-          geometryTypeError(found),
-          { code: 'NO_REDLINE', message: 'No redline' }
-        ])
-
-        expect(blocks[0]).toEqual({
+        expect(
+          await blockFor('GPKG_BASELINE_GEOMETRY_TYPE_NAME', {
+            layer: 'Habitats',
+            expected: 'MULTIPOLYGON',
+            found
+          })
+        ).toEqual({
           heading: 'Layer "Habitats" baseline mismatch',
-          items: [`${EXPECTED_ITEM} "blank"`],
+          items: [`${GEOMETRY_TYPE_ITEM} "blank"`],
           more: 0
         })
       }
     )
 
     test('names a geometry type the file registers as it is', async () => {
-      const blocks = await blocksFor([
-        geometryTypeError('POINT'),
-        { code: 'NO_REDLINE', message: 'No redline' }
-      ])
+      const block = await blockFor('GPKG_BASELINE_GEOMETRY_TYPE_NAME', {
+        layer: 'Habitats',
+        expected: 'MULTIPOLYGON',
+        found: 'POINT'
+      })
 
-      expect(blocks[0].items).toEqual([`${EXPECTED_ITEM} "POINT"`])
+      expect(block.items).toEqual([`${GEOMETRY_TYPE_ITEM} "POINT"`])
     })
 
     test('leaves the bullet out when the details do not carry the type', async () => {
-      const blocks = await blocksFor([
-        {
-          code: 'GPKG_BASELINE_GEOMETRY_TYPE_NAME',
-          message: 'Not shown',
-          details: { layer: 'Habitats', expected: 'MULTIPOLYGON' }
-        },
-        { code: 'NO_REDLINE', message: 'No redline' }
-      ])
+      const block = await blockFor('GPKG_BASELINE_GEOMETRY_TYPE_NAME', {
+        layer: 'Habitats',
+        expected: 'MULTIPOLYGON'
+      })
 
-      expect(blocks[0].items).toEqual([])
+      expect(block.items).toEqual([])
+    })
+
+    test("names a blank data_type with the copy's word", async () => {
+      const block = await blockFor('GPKG_BASELINE_CONTENTS_DATA_TYPE', {
+        layer: 'Habitats',
+        expected: 'features',
+        found: ''
+      })
+
+      expect(block.items).toEqual([
+        'expected data_type "features" in gpkg_contents but found "blank"'
+      ])
+    })
+
+    test('heads a blank geometry column name with its own heading, not the catch-all', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME', {
+          layer: 'Habitats',
+          column: ''
+        })
+      ).toEqual({
+        heading:
+          'Layer "Habitats" geometry column "blank" has an invalid name in gpkg_geometry_columns',
+        items: [],
+        more: 0
+      })
+    })
+
+    test('keeps the bullet for a blank geometry column name the template names', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME', {
+          layer: 'Red Line Boundary',
+          column: '',
+          expected: 'geom',
+          variants: ['named']
+        })
+      ).toEqual({
+        heading:
+          'Layer "Red Line Boundary" does not match the BNG Service template',
+        items: ['its geometry column is named "blank" but should be "geom"'],
+        more: 0
+      })
+    })
+
+    test('names a blank registered geometry column that is missing', async () => {
+      const block = await blockFor('GPKG_BASELINE_MISSING_COLUMN', {
+        layer: 'Habitats',
+        column: '',
+        variants: ['geometry']
+      })
+
+      expect(block.items).toEqual(['missing geometry column "blank"'])
+    })
+
+    test('words srs_ids the file leaves unset, in the unreadable variant', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_SRS_ID', {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: null,
+          geometryColumnsSrsId: null,
+          variants: ['unreadable', 'bng-service']
+        })
+      ).toEqual({
+        heading: 'Layer "Habitats" does not match the BNG Service template',
+        items: [
+          'expected srs_id 27700 but could not read a valid integer srs_id from gpkg_contents (unset) nor gpkg_geometry_columns (unset)'
+        ],
+        more: 0
+      })
+    })
+
+    test('says nothing of srs_ids an error does not carry', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_GPKG_SRS_INCONSISTENT', undefined)
+      ).toEqual({
+        heading: 'Your Geopackage (.gpkg) file contains an error',
+        items: [],
+        more: 0
+      })
+    })
+
+    test('words a column with no declared type, naming no actual type', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_COLUMN_SQLITE_TYPE', {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Float',
+          variants: ['undeclared']
+        })
+      ).toEqual({
+        heading: 'Layer "Habitats" baseline mismatch',
+        items: [
+          'column "Area" has no SQLite column type declared but Float was expected'
+        ],
+        more: 0
+      })
     })
   })
 

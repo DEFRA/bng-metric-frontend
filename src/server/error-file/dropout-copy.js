@@ -85,7 +85,7 @@ const unknownSchema = required(
   'distinctiveness',
   'area',
   'srsId',
-  'geometryType'
+  'blank'
 )
 
 const copySchema = Joi.object({
