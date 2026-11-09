@@ -76,7 +76,7 @@ function tableRows($, table) {
     .map((_, row) => {
       const values = $(row)
         .find('th, td')
-        .map((_, cell) => cellText($, cell))
+        .map((_index, cell) => cellText($, cell))
         .get()
       return {
         ref: cellText($, $(row).find('a').first()),

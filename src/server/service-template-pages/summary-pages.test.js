@@ -67,7 +67,16 @@ const ALL_PROJECTS = [
   ['a baseline-only project', 'baselineOnly']
 ]
 
-const TRADING_RULE_VERDICTS = new Set(['Met', 'Not met'])
+/** Each distinctiveness band: its row label, its key in the verdicts, its section. */
+const BANDS = [
+  { label: 'Medium', key: 'medium', section: 'medium-distinctiveness-heading' },
+  { label: 'Low', key: 'low', section: 'low-distinctiveness-heading' },
+  {
+    label: 'Very low',
+    key: 'veryLow',
+    section: 'very-low-distinctiveness-heading'
+  }
+]
 
 const units = (value) => `${value.toFixed(DECIMAL_PLACES)} units`
 const percentage = (value) => `${value.toFixed(DECIMAL_PLACES)}%`
@@ -80,6 +89,30 @@ function tilesByHeading($, section) {
       { figure: figure.replaceAll(/\s+/gu, ' ').trim(), tag: tag.trim() }
     ])
   )
+}
+
+/** The trading summary table's status for each band, by its label. */
+function bandStatuses($) {
+  return Object.fromEntries(
+    $('.app-trading-summary__status tbody tr')
+      .map((_, row) => [
+        $(row)
+          .find('th, td')
+          .map((_index, cell) => $(cell).text().trim())
+          .get()
+      ])
+      .get()
+  )
+}
+
+/** The verdict tags on a band's tiles, which must be there to be read. */
+function sectionVerdicts($, band) {
+  const section = $(`section[aria-labelledby="${band.section}"]`)
+  expect(section, band.label).toHaveLength(1)
+  return section
+    .find('.app-unit-type-summary__tile .govuk-tag')
+    .map((_, tag) => $(tag).text().trim())
+    .get()
 }
 
 /** The figures the backend stored for one unit type, as the tiles show them. */
@@ -207,9 +240,10 @@ describe('summary pages of a BNG Service template project', () => {
 
   describe.each(TWO_STAGE_PROJECTS)('on %s', (_, fixture) => {
     test.each(UNIT_TYPES)(
-      'the $name trading summary renders a verdict on every tile that carries one',
+      'the $name trading summary shows each band’s verdict as the backend gave it',
       async (unitType) => {
         const body = serviceTemplateProject(fixture)
+        const statuses = body.tradingRuleStatuses[unitType.status]
 
         const { statusCode, $ } = await renderPage(
           body,
@@ -217,11 +251,17 @@ describe('summary pages of a BNG Service template project', () => {
         )
 
         expect(statusCode).toBe(statusCodes.ok)
-        const tags = tilesIn($, $('main'))
-          .map(([, , tag]) => tag.trim())
-          .filter(Boolean)
-        expect(tags.length).toBeGreaterThan(0)
-        expect(tags.every((tag) => TRADING_RULE_VERDICTS.has(tag))).toBe(true)
+        const shown = bandStatuses($)
+        const given = BANDS.filter((band) => statuses[band.key])
+        expect(given.length).toBeGreaterThan(0)
+        for (const band of given) {
+          expect(shown[band.label], band.label).toBe(statuses[band.key])
+        }
+        for (const band of BANDS.filter((b) => b.label in shown)) {
+          expect(sectionVerdicts($, band), band.label).toEqual(
+            statuses[band.key] ? [statuses[band.key]] : []
+          )
+        }
         expect($('main').text()).not.toMatch(/NaN|undefined/u)
       }
     )

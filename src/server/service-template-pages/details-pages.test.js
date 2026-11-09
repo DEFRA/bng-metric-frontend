@@ -39,6 +39,8 @@ const TIME_TO_TARGET_HEADING = 'Time to target / difficulty'
 const VIEW_BASELINE_LINK = 'View baseline details'
 const SIGNIFICANCE_KEY = 'Strategic significance'
 const LOW = 'Low (1)'
+const HIGH_SCORE = 1.15
+const UNKNOWN_FEATURE_ID = '00000000-0000-4000-8000-000000000000'
 
 const normalise = (text) => text.replaceAll(/\s+/gu, ' ').trim()
 
@@ -170,6 +172,22 @@ describe('details pages of a BNG Service template project', () => {
       }
     )
 
+    test('renders a Retained feature at Low (1), even one whose stored significance says High', async () => {
+      const body = serviceTemplateProject('twoStages')
+      const retained = body.project.postIntervention.habitats.find(
+        (f) => f.retentionCategory === 'Retained'
+      )
+      retained.proposed.strategicSignificanceCategory = 'High'
+      retained.proposed.strategicSignificanceScore = HIGH_SCORE
+
+      const $ = await render(
+        body,
+        postInterventionDetailsUrl(body, retained.featureId)
+      )
+
+      expect(fieldValue($, SIGNIFICANCE_KEY)).toBe(LOW)
+    })
+
     test.each(cases.filter(([, layer, f]) => isEditable(layer, f)))(
       'renders %s on the Created edit form, with its significance chosen',
       async (_label, _layer, { featureId, proposed }) => {
@@ -182,7 +200,9 @@ describe('details pages of a BNG Service template project', () => {
 
         expect(fieldNames($)).toContain('strategicSignificance')
         expect(headings($)).toContain(TIME_TO_TARGET_HEADING)
-        expect(selectedSignificance($)).toBe(proposed.strategicSignificance)
+        expect(selectedSignificance($)).toBe(
+          proposed.strategicSignificanceCategory
+        )
       }
     )
 
@@ -191,7 +211,7 @@ describe('details pages of a BNG Service template project', () => {
         ([, layer, f]) =>
           f.retentionCategory !== 'Retained' &&
           !isEditable(layer, f) &&
-          f.proposed?.strategicSignificanceScore != null
+          f.proposed?.strategicSignificanceCategory
       )
     )(
       'renders %s read-only, with the significance the file set',
@@ -206,7 +226,7 @@ describe('details pages of a BNG Service template project', () => {
         expect(fieldNames($)).toEqual([])
         expect(headings($)).toContain(TIME_TO_TARGET_HEADING)
         expect(fieldValue($, SIGNIFICANCE_KEY)).toBe(
-          significanceDisplay(proposed.strategicSignificance)
+          significanceDisplay(proposed.strategicSignificanceCategory)
         )
       }
     )
@@ -230,6 +250,7 @@ describe('details pages of a BNG Service template project', () => {
 
     test('a feature with no parent shows no link, and there is one', async () => {
       const unlinked = cases.filter(([, , f]) => !f.parentFeatureId)
+      expect(unlinked.length).toBeGreaterThan(0)
       const body = serviceTemplateProject('twoStages')
       const [, , feature] = unlinked[0]
 
@@ -238,7 +259,6 @@ describe('details pages of a BNG Service template project', () => {
         postInterventionDetailsUrl(body, feature.featureId)
       )
 
-      expect(unlinked.length).toBeGreaterThan(0)
       expect(viewBaselineHref($)).toBeUndefined()
     })
 
@@ -298,4 +318,22 @@ describe('details pages of a BNG Service template project', () => {
       baselineDetailsUrl(body, watercourse.parentFeatureId)
     )
   })
+
+  test.each([
+    ['baseline', baselineDetailsUrl],
+    ['post-intervention', postInterventionDetailsUrl]
+  ])(
+    'the %s details page answers 404 for a feature the project does not hold',
+    async (_stage, detailsUrl) => {
+      const body = serviceTemplateProject('twoStages')
+      serveProject(body)
+
+      const { statusCode } = await getPage(
+        server,
+        detailsUrl(body, UNKNOWN_FEATURE_ID)
+      )
+
+      expect(statusCode).toBe(statusCodes.notFound)
+    }
+  )
 })

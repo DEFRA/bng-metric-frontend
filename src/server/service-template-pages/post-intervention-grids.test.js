@@ -39,6 +39,8 @@ const SECTIONS = [
 
 const SIGNIFICANCE = 'Strategic significance'
 
+const HIGH_SCORE = 1.15
+
 const DETAILS_PATH = '/post-intervention-habitat-details'
 
 const featureIdOf = (href) =>
@@ -101,14 +103,13 @@ describe('post-intervention grids of a BNG Service template project', () => {
   )
 
   test.each(GRIDS)(
-    'the %s grid shows each priced Created and Enhanced feature at the significance set in the file, Low (1) or High (1.15)',
+    'the %s grid shows each Created and Enhanced feature at the significance the backend priced, Low (1) or High (1.15)',
     async (_kind, page, layers) => {
       const body = serviceTemplateProject('twoStages')
       const features = postInterventionFeatures(body, layers).filter(
         (f) =>
           f.retentionCategory !== 'Retained' &&
-          f.status === 'Complete' &&
-          f.proposed?.strategicSignificance
+          f.proposed?.strategicSignificanceCategory
       )
 
       const sections = await renderGrid(body, page)
@@ -119,7 +120,7 @@ describe('post-intervention grids of a BNG Service template project', () => {
           (r) => r.ref === feature.ref
         )
         expect(row.cells[SIGNIFICANCE], feature.ref).toBe(
-          significanceDisplay(feature.proposed.strategicSignificance)
+          significanceDisplay(feature.proposed.strategicSignificanceCategory)
         )
       }
     }
@@ -144,7 +145,8 @@ describe('post-intervention grids of a BNG Service template project', () => {
       const [edited] = postInterventionFeatures(body, layers).filter(
         (f) => f.retentionCategory === 'Retained'
       )
-      edited.proposed.strategicSignificance = 'High'
+      edited.proposed.strategicSignificanceCategory = 'High'
+      edited.proposed.strategicSignificanceScore = HIGH_SCORE
 
       const sections = await renderGrid(body, page)
 

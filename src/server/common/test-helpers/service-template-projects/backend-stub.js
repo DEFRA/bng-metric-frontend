@@ -1,3 +1,5 @@
+import Boom from '@hapi/boom'
+
 import { statusCodes } from '../../constants.js'
 
 /**
@@ -61,6 +63,20 @@ const LOCAL_PLANNING_AUTHORITIES = Object.freeze([
 ])
 
 const ok = (payload) => ({ res: { statusCode: statusCodes.ok }, payload })
+
+/** A URL's path, without its origin or query: the backend URL is absolute. */
+const pathOf = (url) => url.replace(/^[a-z]+:\/\/[^/]+/u, '').split('?')[0]
+
+/**
+ * What `@hapi/wreck` rejects with for a 404: a Boom error carrying the
+ * response, which callers such as fetchFeature turn into their own 404.
+ */
+const notFound = (url) =>
+  Boom.notFound(`Response Error: 404 Not Found for ${url}`, {
+    isResponseError: true,
+    res: { statusCode: statusCodes.notFound },
+    payload: null
+  })
 
 /** Every feature of one stage, with the type the feature endpoint names it. */
 function featuresOf(stage) {
@@ -132,9 +148,12 @@ function serviceTemplateBackend(body) {
   const baseline = featuresOf(project.baseline)
   const postIntervention = featuresOf(project.postIntervention)
 
-  const routes = [
-    [`${projectPath}/post-intervention/features/`, postIntervention],
-    [`${projectPath}/features/`, baseline]
+  const featureRoutes = [
+    {
+      prefix: `${projectPath}/post-intervention/features/`,
+      features: postIntervention
+    },
+    { prefix: `${projectPath}/features/`, features: baseline }
   ]
   const references = new Map([
     ['/reference/habitat-types-by-broad', () => typesByBroad(project)],
@@ -153,15 +172,19 @@ function serviceTemplateBackend(body) {
   ])
 
   return async (url) => {
-    const path = new URL(url, 'http://backend').pathname
-    for (const [prefix, features] of routes) {
-      if (path.includes(prefix)) {
-        const featureId = path.slice(path.indexOf(prefix) + prefix.length)
-        const match = features.find((f) => f.feature.featureId === featureId)
-        return match
-          ? ok(match)
-          : { res: { statusCode: statusCodes.notFound }, payload: null }
+    const path = pathOf(url)
+    const route = featureRoutes.find(({ prefix }) => path.includes(prefix))
+    if (route) {
+      const featureId = path.slice(
+        path.indexOf(route.prefix) + route.prefix.length
+      )
+      const match = route.features.find(
+        (f) => f.feature.featureId === featureId
+      )
+      if (!match) {
+        throw notFound(url)
       }
+      return ok(match)
     }
     if (path.endsWith(projectPath)) {
       return ok(body)
