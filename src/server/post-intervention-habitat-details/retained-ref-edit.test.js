@@ -104,6 +104,27 @@ describe('saveRetainedRef', () => {
     ).resolves.toEqual({ refInUse: true })
   })
 
+  test('gives the page-level refusal when the habitat holds a value saved before BMD-1175', async () => {
+    vi.mocked(backendRequest).mockRejectedValue({
+      data: {
+        res: { statusCode: 422 },
+        payload: {
+          code: 'STORED_VALUE_NOT_ALLOWED',
+          message:
+            'This habitat holds a value saved before the service checked text lengths and lists (proposed.condition). Upload the file again, with the value corrected, to update it.'
+        }
+      }
+    })
+
+    await expect(
+      saveRetainedRef({}, { projectId, featureId, ref: 'A2' })
+    ).resolves.toEqual({
+      storedValueRefusal: {
+        summaryOnly: expect.stringContaining('in its proposed condition.')
+      }
+    })
+  })
+
   test('passes an expired session through untouched', async () => {
     const expired = Boom.unauthorized('expired')
     expired.data = { sessionExpired: true }

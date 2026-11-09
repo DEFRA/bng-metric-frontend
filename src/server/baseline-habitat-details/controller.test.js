@@ -1470,6 +1470,50 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     })
   })
 
+  describe('on Save of a habitat holding a value saved before BMD-1175', () => {
+    const storedValueRefusal = (fields) => ({
+      isBoom: true,
+      output: { statusCode: 422 },
+      data: {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message: `This habitat holds a value saved before the service checked text lengths and lists (${fields}). Upload the file again, with the value corrected, to update it.`,
+          code: 'STORED_VALUE_NOT_ALLOWED'
+        }
+      }
+    })
+
+    test('Shows the page again with the refusal in the error summary, naming the fields, after a drop-down-only save', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(
+        storedValueRefusal('ref, condition')
+      )
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+      expect(result).toMatch(
+        /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its habitat reference and condition\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+      )
+      // No one field is to blame, so nothing is marked at a field.
+      expect(result).not.toContain('<a href="#habitatRef">')
+      expect(result).not.toContain('govuk-input--error')
+      expect(result).toMatch(/<option value="Poor" selected>/)
+    })
+
+    test('Escapes a field path it does not know, showing it as it is', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(storedValueRefusal('<b>odd</b>'))
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain('in its &lt;b&gt;odd&lt;/b&gt;.')
+      expect(result).not.toContain('<b>odd</b>')
+    })
+  })
+
   describe('when opened from a post-intervention details page', () => {
     const piHref = `/post-intervention-habitat-details?featureId=${postInterventionFeatureId}&projectId=${projectId}`
     const piHrefInHtml = piHref.replace('&', '&amp;')

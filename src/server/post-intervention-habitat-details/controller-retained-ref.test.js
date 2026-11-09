@@ -444,6 +444,32 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
     })
 
+    test('refuses a save of a habitat holding a value saved before BMD-1175, naming the fields in the error summary', async () => {
+      mockBackend()
+      const stored = Boom.badData('stored value')
+      stored.data = {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message:
+            'This habitat holds a value saved before the service checked text lengths and lists (proposed.condition, comment). Upload the file again, with the value corrected, to update it.',
+          code: 'STORED_VALUE_NOT_ALLOWED'
+        }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(stored)
+
+      const { statusCode, result } = await post({ habitatRef: 'A2' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title>\s*Error: Habitat A1 -/)
+      expect(result).toMatch(
+        /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its proposed condition and comment\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+      )
+      expect(result).not.toContain('govuk-input--error')
+      expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
+    })
+
     test('shows a reference the backend refuses at the field, keeping what was typed', async () => {
       mockBackend()
       vi.mocked(wreck.put).mockRejectedValue(Boom.badRequest('invalid ref'))

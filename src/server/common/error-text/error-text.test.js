@@ -18,9 +18,13 @@ describe('error-text.yaml', () => {
     expect(Object.keys(errorText)).toEqual(['upload', 'edit', 'forms'])
   })
 
-  test('words every edit refusal with a summary and an inline message, or marks it a placeholder', () => {
+  test('words every edit refusal with a summary and an inline message, or a summary-only message, or marks it a placeholder', () => {
     for (const [code, entry] of Object.entries(errorText.edit)) {
       if (entry === PLACEHOLDER) {
+        continue
+      }
+      if (Object.hasOwn(entry, 'summaryOnly')) {
+        expect(entry.summaryOnly, code).toMatch(/\S/)
         continue
       }
       expect(entry.summary, code).toMatch(/\S/)
@@ -49,6 +53,14 @@ describe('parseErrorText', () => {
     )
   })
 
+  test('refuses a summary-only edit entry that also has field wording', () => {
+    const text = parseErrorText(SOURCE)
+    text.edit.STORED_VALUE_NOT_ALLOWED.inline = 'Inline.'
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /STORED_VALUE_NOT_ALLOWED.*inline.*not allowed/
+    )
+  })
+
   test('refuses an edit entry that is neither wording nor a placeholder', () => {
     const text = parseErrorText(SOURCE)
     text.edit.ENHANCEMENT_NOT_VALID = 'placholder'
@@ -61,6 +73,12 @@ describe('editErrorText', () => {
     expect(editErrorText('HABITAT_REF_IN_USE')).toEqual({
       summary: 'You have entered a habitat reference that is already in use.',
       inline: 'Enter a habitat reference that is not already in use.'
+    })
+  })
+
+  test('gives the summary-only wording for an edit code no one field can put right', () => {
+    expect(editErrorText('STORED_VALUE_NOT_ALLOWED')).toEqual({
+      summaryOnly: expect.stringContaining('{fields}')
     })
   })
 

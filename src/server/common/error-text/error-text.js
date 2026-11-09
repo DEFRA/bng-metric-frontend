@@ -25,6 +25,11 @@ const message = Joi.object({
   inline: text.required()
 })
 
+// A refusal no one field can put right: shown in the error summary only.
+const summaryOnlyMessage = Joi.object({
+  summaryOnly: text.required()
+})
+
 const errorTextSchema = Joi.object({
   upload: Joi.object().required(),
   // Chosen by type, so a slip names the field it is in: "inline is required"
@@ -34,7 +39,10 @@ const errorTextSchema = Joi.object({
       code,
       Joi.alternatives().conditional(Joi.string(), {
         then: Joi.string().valid(PLACEHOLDER),
-        otherwise: message
+        otherwise: Joi.alternatives().conditional(
+          Joi.object({ summaryOnly: Joi.exist() }).unknown(),
+          { then: summaryOnlyMessage, otherwise: message }
+        )
       })
     )
     .required(),
@@ -63,10 +71,11 @@ export const errorText = parseErrorText(readFileSync(ERROR_TEXT_FILE, 'utf8'))
 
 /**
  * The wording for an edit the backend refused with `errorCode`, or null when
- * it has none yet: a placeholder, or no entry.
+ * it has none yet: a placeholder, or no entry. A refusal no one field can put
+ * right has `summaryOnly` in place of `summary` and `inline`.
  *
  * @param {string} errorCode
- * @returns {{ summary: string, inline: string } | null}
+ * @returns {{ summary: string, inline: string } | { summaryOnly: string } | null}
  */
 export function editErrorText(errorCode) {
   const entry = Object.hasOwn(errorText.edit, errorCode ?? '')

@@ -38,9 +38,9 @@ export const HABITAT_REF_TOO_LONG_ERROR = Object.freeze(
 // carries, which the backend refuses with HABITAT_REF_IN_USE: error-text.yaml's
 // edit section.
 const refInUse = editErrorText(HABITAT_REF_IN_USE_CODE)
-if (!refInUse) {
+if (!refInUse?.inline) {
   throw new Error(
-    `error-text.yaml's edit section has no wording for ${HABITAT_REF_IN_USE_CODE}`
+    `error-text.yaml's edit section has no summary and inline wording for ${HABITAT_REF_IN_USE_CODE}`
   )
 }
 export const HABITAT_REF_IN_USE_ERROR = Object.freeze(refInUse)
@@ -104,15 +104,33 @@ export function isRefInUseError(err) {
 }
 
 /**
+ * The error summary's list for a refusal: one linked to the reference input,
+ * or, for a refusal no one field can put right (`summaryOnly`, as
+ * stored-value-refusal.js gives), one linked to nothing.
+ *
+ * @param {{ summary: string, inline: string } | { summaryOnly: string } | undefined} refusal
+ * @returns {Array<{ text: string, href?: string }>}
+ */
+function refusalErrors(refusal) {
+  if (!refusal) {
+    return []
+  }
+  if (refusal.summaryOnly) {
+    return [{ text: refusal.summaryOnly }]
+  }
+  return [{ text: refusal.summary, href: `#${HABITAT_REF_FIELD_ID}` }]
+}
+
+/**
  * The page title, error summary and reference input for a form holding the
- * habitat reference. `refusal` (HABITAT_REF_ERROR, HABITAT_REF_TOO_LONG_ERROR
- * or HABITAT_REF_IN_USE_ERROR)
+ * habitat reference. `refusal` (HABITAT_REF_ERROR, HABITAT_REF_TOO_LONG_ERROR,
+ * HABITAT_REF_IN_USE_ERROR or a stored value refusal)
  * is set when a save was refused: the input then shows what was typed, and the
  * page carries the error. The heading names the habitat by its saved
  * reference either way.
  *
- * @param {{ heading: string, savedRef?: string | number | null, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
- * @returns {{ pageTitle: string, errors: Array<{ text: string, href: string }>, habitatRefInput: { id: string, value: string, error?: { text: string }, maxLength: number } }}
+ * @param {{ heading: string, savedRef?: string | number | null, submittedRef?: string, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
+ * @returns {{ pageTitle: string, errors: Array<{ text: string, href?: string }>, habitatRefInput: { id: string, value: string, error?: { text: string }, maxLength: number } }}
  */
 export function habitatRefFormFields({
   heading,
@@ -122,13 +140,11 @@ export function habitatRefFormFields({
 }) {
   return {
     pageTitle: refusal ? `Error: ${heading}` : heading,
-    errors: refusal
-      ? [{ text: refusal.summary, href: `#${HABITAT_REF_FIELD_ID}` }]
-      : [],
+    errors: refusalErrors(refusal),
     habitatRefInput: {
       id: HABITAT_REF_FIELD_ID,
       value: submittedRef ?? storedRefText(savedRef),
-      error: refusal ? { text: refusal.inline } : undefined,
+      error: refusal?.inline ? { text: refusal.inline } : undefined,
       maxLength: MAX_HABITAT_REF_LENGTH
     }
   }

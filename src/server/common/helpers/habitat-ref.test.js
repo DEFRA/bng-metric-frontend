@@ -152,6 +152,26 @@ describe('habitatRefFormFields', () => {
       }
     })
   })
+
+  test('shows a refusal no one field can put right in the error summary only, keeping what was typed', () => {
+    expect(
+      habitatRefFormFields({
+        heading: 'Habitat A1',
+        savedRef: 'A1',
+        submittedRef: 'A2',
+        refusal: { summaryOnly: 'Upload the file again.' }
+      })
+    ).toEqual({
+      pageTitle: 'Error: Habitat A1',
+      errors: [{ text: 'Upload the file again.' }],
+      habitatRefInput: {
+        id: 'habitatRef',
+        value: 'A2',
+        error: undefined,
+        maxLength: 99
+      }
+    })
+  })
 })
 
 describe('storedRefText', () => {

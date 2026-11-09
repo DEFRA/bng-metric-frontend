@@ -26,6 +26,10 @@ import {
   habitatRefRefusal,
   isRefUnchanged
 } from '../common/helpers/habitat-ref.js'
+import {
+  isStoredValueRefusal,
+  storedValueRefusal
+} from '../common/helpers/stored-value-refusal.js'
 import { PI_DETAILS_HEADING } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
@@ -452,8 +456,8 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
   if (!reference) {
     throw Boom.serverUnavailable('Hedgerow editing is temporarily unavailable')
   }
-  const errors = validateCreatedArea(values, reference)
-  if (Object.keys(errors).length) {
+  // Shows the page again with what the user chose, and why it was refused.
+  const showRefused = async ({ errors = {}, refusal } = {}) => {
     const project = await fetchProject(request, projectId)
     return h.view(
       'habitat-details/pi-habitat-details-created-edit',
@@ -464,14 +468,29 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
           projectId,
           projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
           baselineFeatureId: createdBaselineFeatureId(project, type, feature),
-          returnUrl
+          returnUrl,
+          refusal
         },
         values,
         errors
       )
     )
   }
-  await saveCreatedArea(request, values, CREATED_EDIT_KINDS[type])
+  const errors = validateCreatedArea(values, reference)
+  if (Object.keys(errors).length) {
+    return showRefused({ errors })
+  }
+  try {
+    await saveCreatedArea(request, values, CREATED_EDIT_KINDS[type])
+  } catch (err) {
+    // A value saved before the service checked text lengths and lists
+    // refuses any save of the habitat, whatever was changed.
+    if (isStoredValueRefusal(err)) {
+      const response = await showRefused({ refusal: storedValueRefusal(err) })
+      return response.code(statusCodes.badRequest)
+    }
+    throw err
+  }
   return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
 }
 
@@ -514,6 +533,9 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
   }
   if (saved.refInvalid) {
     return showRefused(HABITAT_REF_ERROR)
+  }
+  if (saved.storedValueRefusal) {
+    return showRefused(saved.storedValueRefusal)
   }
   return h.redirect(postInterventionBackHref(projectId, saved.type, returnUrl))
 }

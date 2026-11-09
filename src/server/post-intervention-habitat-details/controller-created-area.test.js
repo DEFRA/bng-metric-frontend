@@ -660,6 +660,36 @@ describe('Created area authenticated form', () => {
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
+  test('shows the page again, naming the fields, when the backend refuses a habitat holding a value saved before BMD-1175', async () => {
+    const stored = Boom.badData('stored value')
+    stored.data = {
+      res: { statusCode: 422 },
+      payload: {
+        statusCode: 422,
+        error: 'Unprocessable Entity',
+        message:
+          'This habitat holds a value saved before the service checked text lengths and lists (ref, proposed.condition, broadType). Upload the file again, with the value corrected, to update it.',
+        code: 'STORED_VALUE_NOT_ALLOWED'
+      }
+    }
+    vi.mocked(wreck.put).mockRejectedValue(stored)
+    const { token, cookie } = await primeCrumb(server)
+    const response = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: { ...request().payload, crumb: token }
+    })
+    expect(response.statusCode).toBe(400)
+    expect(response.payload).toMatch(/<title>\s*Error: /)
+    expect(response.payload).toMatch(
+      /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its habitat reference, proposed condition and broad habitat\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+    )
+    expect(response.payload).not.toContain('govuk-input--error')
+    expect(response.payload).toContain(`value="${values.ref}"`)
+  })
+
   test('renders the CSRF token and saves a protected form submission', async () => {
     const { token, cookie } = await primeCrumb(server)
     const page = await server.inject({

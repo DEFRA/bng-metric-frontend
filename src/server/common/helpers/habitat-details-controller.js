@@ -15,6 +15,10 @@ import {
   isRefInUseError,
   isRefUnchanged
 } from './habitat-ref.js'
+import {
+  isStoredValueRefusal,
+  storedValueRefusal
+} from './stored-value-refusal.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -243,9 +247,10 @@ function withSubmittedChoices(feature, submitted, reference) {
  * @param {import('@hapi/hapi').Request} request
  * @param {import('@hapi/hapi').ResponseToolkit} h
  * @param {object} uploadType
- * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, refusal?: { summary: string, inline: string } }} params
+ * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
  *   `piBackHref` is the post-intervention page the user came from, if any.
- *   `refusal` is why the reference was refused (habitat-ref.js), when it was.
+ *   `refusal` is why the save was refused (habitat-ref.js,
+ *   stored-value-refusal.js), when it was.
  */
 async function renderDetailsPage(
   request,
@@ -361,8 +366,10 @@ function createGetController(uploadType) {
 /**
  * Save a habitat, so a refusal keeps its meaning instead of always reading as
  * an upstream failure (backendSaveError): an expired session passes through,
- * and 409, 404 and 400 keep theirs. Shared by the baseline and Created-area
- * forms.
+ * and 409, 404 and 400 keep theirs. A reference another habitat carries, or a
+ * value the habitat has held since before the service checked text lengths
+ * and lists (stored-value-refusal.js), is thrown as it is, for the form to
+ * show. Shared by the baseline and Created-area forms.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {string} path backend path, without the base URL
@@ -388,8 +395,9 @@ export async function saveHabitat(request, path, body, featureId) {
     }
     return payload
   } catch (err) {
-    // A reference another habitat already carries is for the form to show.
-    if (isRefInUseError(err)) {
+    // A reference another habitat already carries, or an older stored value,
+    // is for the form to show.
+    if (isRefInUseError(err) || isStoredValueRefusal(err)) {
       throw err
     }
     throw backendSaveError(err, featureId)
@@ -475,6 +483,11 @@ function createPostController(uploadType) {
         // rather than on an error page.
         if (isRefInUseError(err)) {
           return showRefused(HABITAT_REF_IN_USE_ERROR)
+        }
+        // A value saved before the service checked text lengths and lists
+        // refuses any save of the habitat, whatever was changed.
+        if (isStoredValueRefusal(err)) {
+          return showRefused(storedValueRefusal(err))
         }
         if (
           refToSave !== undefined &&

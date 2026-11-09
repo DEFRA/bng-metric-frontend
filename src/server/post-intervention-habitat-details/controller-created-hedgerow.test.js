@@ -170,6 +170,33 @@ describe('authenticated hedgerow form', () => {
       `/projects/${projectId}/hedgerows-post-intervention`
     )
   })
+  test('shows the page again, naming the fields, when the backend refuses a hedgerow holding a value saved before BMD-1175', async () => {
+    const stored = Boom.badData('stored value')
+    stored.data = {
+      res: { statusCode: 422 },
+      payload: {
+        statusCode: 422,
+        error: 'Unprocessable Entity',
+        message:
+          'This habitat holds a value saved before the service checked text lengths and lists (baseline.condition, strategicSignificance). Upload the file again, with the value corrected, to update it.',
+        code: 'STORED_VALUE_NOT_ALLOWED'
+      }
+    }
+    vi.mocked(wreck.put).mockRejectedValue(stored)
+    const { token: crumb, cookie } = await primeCrumb(server)
+    const response = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: { ...request().payload, crumb }
+    })
+    expect(response.statusCode).toBe(400)
+    expect(response.payload).toMatch(
+      /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its baseline condition and strategic significance\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+    )
+    expect(response.payload).not.toContain('govuk-input--error')
+  })
 })
 
 test('uses the requested kind even when the reference response omits its discriminator', async () => {

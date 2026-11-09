@@ -424,6 +424,12 @@ function editFieldsWithImportHints(feature, reference, values) {
   )
 }
 
+/**
+ * The Created edit page's view model. `values` and `errors` are set when the
+ * form's own checks refused a save, and `ctx.refusal` when the backend refused
+ * one for a reason no one field can put right (`summaryOnly`, as
+ * stored-value-refusal.js gives), which the error summary shows unlinked.
+ */
 export function buildCreatedAreaEditViewModel(
   feature,
   reference,
@@ -452,7 +458,7 @@ export function buildCreatedAreaEditViewModel(
     ...derived,
     sizeDisplay: kind.formatSize(feature),
     sizeLabel: kind.sizeLabel,
-    pageTitle: `${Object.keys(errors).length ? 'Error: ' : ''}${base.pageTitle}`,
+    pageTitle: `${Object.keys(errors).length || ctx.refusal ? 'Error: ' : ''}${base.pageTitle}`,
     projectId: ctx.projectId,
     featureId: feature.featureId,
     values,
@@ -462,13 +468,16 @@ export function buildCreatedAreaEditViewModel(
       initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
         : null,
-    errorList: FIELD_ORDER.filter(
-      (field) =>
-        errors[field] && (field !== 'delayYears' || !errors.advanceYears)
-    ).map((field) => ({
-      text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
-      href: `#${field}`
-    })),
+    errorList: [
+      ...(ctx.refusal ? [{ text: ctx.refusal.summaryOnly }] : []),
+      ...FIELD_ORDER.filter(
+        (field) =>
+          errors[field] && (field !== 'delayYears' || !errors.advanceYears)
+      ).map((field) => ({
+        text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
+        href: `#${field}`
+      }))
+    ],
     fields: editFieldsWithImportHints(feature, reference, values),
     referenceJson: JSON.stringify(reference).replaceAll(
       '<',

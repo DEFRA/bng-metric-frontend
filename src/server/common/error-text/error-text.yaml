@@ -815,6 +815,11 @@ upload:
 # summary at the top of the page and "inline" by the field; content design
 # words them differently on purpose. An edit code the pages do not show yet
 # is a placeholder: the page shows its generic error.
+#
+# A refusal that no one field on the page can put right has "summaryOnly"
+# instead of "summary" and "inline": it is shown in the error summary only,
+# linked to no field. {braces} in it are filled in by the page, as each
+# entry's comment says.
 
 edit:
   HABITAT_REF_IN_USE:
@@ -835,8 +840,16 @@ edit:
   # An edit to a habitat saved before the service checked text lengths and
   # lists (BMD-1175): it holds a value over its limit or outside its list,
   # which the backend names. Uploading the file again, corrected, updates it.
-  # Not shown by the pages yet.
-  STORED_VALUE_NOT_ALLOWED: placeholder
+  # Any save of such a habitat is refused, even one that leaves the value as
+  # it is, so no field on the page is to blame.
+  # {fields} is the fields the backend names, in plain words, as in
+  # "habitat reference and proposed condition".
+  # AWAITING UCD: interim wording, shown until content design words it.
+  STORED_VALUE_NOT_ALLOWED:
+    summaryOnly: >-
+      This habitat holds a value saved before the service checked text
+      lengths and lists, in its {fields}. Upload the file again, with the
+      value corrected, to update this habitat.
 
 # ------------------------------------------------------------------- forms
 #

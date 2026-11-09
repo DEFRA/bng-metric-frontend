@@ -23,6 +23,10 @@ import {
   habitatRefFormFields,
   isRefInUseError
 } from '../common/helpers/habitat-ref.js'
+import {
+  isStoredValueRefusal,
+  storedValueRefusal
+} from '../common/helpers/stored-value-refusal.js'
 import { RETENTION_RETAINED } from './retention.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
@@ -66,7 +70,7 @@ export function isRefEditable(type, retentionCategory) {
  * (habitatRefFormFields), and what the form posts. `refusal` and
  * `submittedRef` are set when a save was refused.
  *
- * @param {{ type: string, feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string, refusal?: { summary: string, inline: string } }} params
+ * @param {{ type: string, feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
  * @returns {object}
  */
 export function retainedRefEditFields({
@@ -102,13 +106,15 @@ export function retainedRefEditFields({
 /**
  * Save the reference. Resolves to the backend's `{ type, feature }`, or to
  * `{ refInUse: true }` when the backend refuses a reference another habitat
- * already carries, or `{ refInvalid: true }` when it refuses one this side
- * passed. Any other failure throws (backendSaveError).
+ * already carries, `{ refInvalid: true }` when it refuses one this side
+ * passed, or `{ storedValueRefusal }` when the habitat holds a value saved
+ * before the service checked text lengths and lists
+ * (stored-value-refusal.js). Any other failure throws (backendSaveError).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
  *   `ref` has passed habitatRefRefusal; it is sent trimmed
- * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true }>}
+ * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true } | { storedValueRefusal: { summaryOnly: string } }>}
  */
 export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   try {
@@ -125,6 +131,9 @@ export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   } catch (err) {
     if (isRefInUseError(err)) {
       return { refInUse: true }
+    }
+    if (isStoredValueRefusal(err)) {
+      return { storedValueRefusal: storedValueRefusal(err) }
     }
     if (backendStatusOf(err) === statusCodes.badRequest) {
       return { refInvalid: true }
