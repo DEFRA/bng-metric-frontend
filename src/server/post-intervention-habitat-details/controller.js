@@ -62,9 +62,15 @@ const CREATED_EDIT_TYPES = [AREA_HABITAT_TYPE, HEDGEROW_TYPE]
 const WATERCOURSE_TYPE = 'watercourse'
 const TREE_TYPE = 'tree'
 
+// The area habitat details templates, shared by vertical area habitats and
+// individual trees: the single-section page, and the two-section page with
+// time to target and difficulty.
+const AREA_DETAILS_TEMPLATE = 'habitat-details/pi-habitat-details'
+const AREA_SECTIONS_TEMPLATE = 'habitat-details/pi-habitat-details-enhanced'
+
 // Enhanced areas use the view-only layout; Created areas use the edit page.
 const ENHANCED_AREA_PAGE = {
-  template: 'habitat-details/pi-habitat-details-enhanced',
+  template: AREA_SECTIONS_TEMPLATE,
   buildViewModel: buildEnhancedAreaViewOnlyViewModel
 }
 const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
@@ -77,7 +83,7 @@ const VERTICAL_RETENTION_PAGES = new Map([
   [
     RETENTION_CREATED,
     {
-      template: 'habitat-details/pi-habitat-details-enhanced',
+      template: AREA_SECTIONS_TEMPLATE,
       buildViewModel: buildCreatedAreaViewOnlyViewModel
     }
   ]
@@ -87,7 +93,7 @@ const VERTICAL_RETENTION_PAGES = new Map([
 // trees, view-only whatever its retention: it cannot be edited after
 // intervention. Enhanced and Created ones show their timing and difficulty.
 const TREE_SECTIONS_PAGE = {
-  template: 'habitat-details/pi-habitat-details-enhanced',
+  template: AREA_SECTIONS_TEMPLATE,
   buildViewModel: buildTreeSectionsViewOnlyViewModel
 }
 const TREE_RETENTION_PAGES = new Map([
@@ -139,7 +145,7 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
 // template — they share chrome via layouts/pi-view-only-sections-page.njk and
 // differ in the rows they show (BMD-845).
 const AREA_VIEW_ONLY_PAGE = {
-  template: 'habitat-details/pi-habitat-details',
+  template: AREA_DETAILS_TEMPLATE,
   buildViewModel: buildAreaViewOnlyViewModel
 }
 
@@ -149,7 +155,7 @@ const VIEW_ONLY_PAGES = new Map([
   [
     TREE_TYPE,
     {
-      template: 'habitat-details/pi-habitat-details',
+      template: AREA_DETAILS_TEMPLATE,
       buildViewModel: buildRetainedTreeViewOnlyViewModel
     }
   ],
