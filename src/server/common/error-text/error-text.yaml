@@ -164,6 +164,8 @@ upload:
     habitatType: unknown habitat
     distinctiveness: unknown
     area: blank
+    # A table's spatial reference system id when the file sets none.
+    srsId: unset
 
   # Distinctiveness bands as the user reads them.
   distinctiveness:

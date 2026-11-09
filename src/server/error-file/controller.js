@@ -221,6 +221,8 @@ const grouped = asNumber((n) => n.toLocaleString('en-GB'))
 const wholeNumber = asNumber((n) => n.toFixed(0))
 const twoDecimals = asNumber((n) => n.toFixed(2))
 const hexadecimal = asNumber((n) => n.toString(16).toUpperCase())
+// An srs_id the file holds, or the copy's word for one it does not.
+const srsId = (value) => asText(value) ?? unknown.srsId
 // A type label with its article: "a Text", "an Integer".
 function withArticle(value) {
   if (!value) {
@@ -249,13 +251,13 @@ const DETAIL_VALUES = {
     layer: asText,
     expectedSrsId: asText,
     foundSrsId: asText,
-    contentsSrsId: asText,
-    geometryColumnsSrsId: asText
+    contentsSrsId: srsId,
+    geometryColumnsSrsId: srsId
   },
   GPKG_BASELINE_GPKG_SRS_INCONSISTENT: {
     layer: asText,
-    contentsSrsId: asText,
-    geometryColumnsSrsId: asText
+    contentsSrsId: srsId,
+    geometryColumnsSrsId: srsId
   },
   GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME: {
     layer: asText,

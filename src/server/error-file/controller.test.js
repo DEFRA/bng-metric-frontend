@@ -843,6 +843,31 @@ describe('invalidFileController.handler — populated session', () => {
     })
   })
 
+  test('errorBlocks: an srs_id the file does not set is shown as the copy words it', async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      {
+        code: 'GPKG_BASELINE_SRS_ID',
+        message: 'Not shown',
+        details: {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: null,
+          variants: ['contents']
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1].items).toEqual([
+      'expected srs_id 27700 but gpkg_contents has unset'
+    ])
+  })
+
   test('errorBlocks: a variant named in details replaces the heading or item it words', async () => {
     const errors = [
       {

@@ -82,7 +82,8 @@ const unknownSchema = required(
   'location',
   'habitatType',
   'distinctiveness',
-  'area'
+  'area',
+  'srsId'
 )
 
 const copySchema = Joi.object({
