@@ -25,7 +25,13 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 // the BNG Service template, from the backend's own JSON. The data, not the
 // flag, decides how they render, so they hold in both of CI's flag states.
 
-const LAYERS = ['habitats', 'verticalHabitats', 'hedgerows', 'watercourses']
+const LAYERS = [
+  'habitats',
+  'verticalHabitats',
+  'hedgerows',
+  'watercourses',
+  'trees'
+]
 
 // The layers whose Created features open on the edit form; the others render
 // read-only.
@@ -132,6 +138,50 @@ describe('details pages of a BNG Service template project', () => {
         expect(fieldValue($, SIGNIFICANCE_KEY)).toBe(LOW)
       }
     )
+  })
+
+  test('baseline details of a tree show its size class and number of trees', async () => {
+    const body = serviceTemplateProject('twoStages')
+    const [tree] = body.project.baseline.trees
+
+    const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
+
+    expect(fieldValue($, 'Tree size')).toBe(tree.treeSize)
+    expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
+  })
+
+  // A Created area habitat opens on its edit form; a Created vertical area
+  // habitat uses the read-only Created page the trees share.
+  test.each([
+    ['habitats', 'Retained'],
+    ['habitats', 'Enhanced'],
+    ['verticalHabitats', 'Created']
+  ])(
+    'post-intervention details of %s (%s) have no tree rows',
+    async (layer, retentionCategory) => {
+      const body = serviceTemplateProject('twoStages')
+      const habitat = body.project.postIntervention[layer].find(
+        (f) => f.retentionCategory === retentionCategory
+      )
+
+      const $ = await render(
+        body,
+        postInterventionDetailsUrl(body, habitat.featureId)
+      )
+
+      expect(fieldValue($, 'Broad habitat')).toBeDefined()
+      expect(fieldValue($, 'Tree size')).toBeUndefined()
+      expect(fieldValue($, 'Number of trees')).toBeUndefined()
+    }
+  )
+
+  test('baseline details of an area habitat have no tree rows', async () => {
+    const body = serviceTemplateProject('twoStages')
+    const [habitat] = body.project.baseline.habitats
+
+    const $ = await render(body, baselineDetailsUrl(body, habitat.featureId))
+
+    expect(fieldValue($, 'Tree size')).toBeUndefined()
   })
 
   test.each(LAYERS)(
@@ -279,6 +329,34 @@ describe('details pages of a BNG Service template project', () => {
         baselineDetailsUrl(body, hedgerow.parentFeatureId)
       )
     })
+
+    test.each(['Retained', 'Enhanced', 'Created'])(
+      'a %s individual tree renders in the area layout, sized in hectares',
+      async (retentionCategory) => {
+        const body = serviceTemplateProject('twoStages')
+        const tree = body.project.postIntervention.trees.find(
+          (f) => f.retentionCategory === retentionCategory
+        )
+
+        const $ = await render(
+          body,
+          postInterventionDetailsUrl(body, tree.featureId)
+        )
+
+        expect(normalise($('h1').text())).toContain(tree.ref)
+        expect(normalise($('main').text())).not.toContain('not yet supported')
+        expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
+        expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
+        expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
+        expect(fieldValue($, 'Habitat type')).toBe(tree.proposed.type)
+        expect(fieldNames($)).toEqual([])
+        expect(viewBaselineHref($)).toBe(
+          tree.parentFeatureId
+            ? baselineDetailsUrl(body, tree.parentFeatureId)
+            : undefined
+        )
+      }
+    )
 
     test('a Created watercourse saved Incomplete, with no values, renders', async () => {
       const body = serviceTemplateProject('twoStages')

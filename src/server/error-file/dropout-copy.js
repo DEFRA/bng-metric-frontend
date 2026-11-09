@@ -91,6 +91,7 @@ const copySchema = Joi.object({
   placeholder: pageCopy.required(),
   names: Joi.object({
     feature: options.required(),
+    tree: options.required(),
     habitat: options.required()
   }).required(),
   unknown: unknownSchema.required(),

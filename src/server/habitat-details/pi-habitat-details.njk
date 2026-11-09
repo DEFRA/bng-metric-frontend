@@ -1,6 +1,7 @@
 {% extends 'layouts/pi-view-only-sections-page.njk' %}
 
-{# View-only page: retained post-intervention area habitat — stacked
+{# View-only page: retained post-intervention area habitat, or individual
+   tree, which adds its size class and number of trees — stacked
    label-over-value layout. The parcel ref is the H1;
    "Post-intervention habitat details" is the single section heading. The
    sections layout renders the "View baseline details" link after the first
@@ -11,6 +12,8 @@
     rows: [
       { label: "Intervention", value: interventionDisplay },
       { label: sizeLabel, value: sizeDisplay },
+      { label: "Tree size", value: treeSizeDisplay, when: showTreeRows },
+      { label: "Number of trees", value: treeCountDisplay, when: showTreeRows },
       { label: "Broad habitat", value: broadHabitatDisplay },
       { label: "Habitat type", value: habitatTypeDisplay },
       { label: "Distinctiveness", value: distinctivenessDisplay },
