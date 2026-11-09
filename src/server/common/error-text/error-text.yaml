@@ -375,7 +375,7 @@ upload:
           service template.
       inList:
         heading: 'This file is in the legacy Natural England template. The service now takes the BNG Service template'
-        item: 'convert the file with the QGIS plugin, then upload it again.'
+        detail: 'convert the file with the QGIS plugin, then upload it again.'
 
     TEMPLATE_VERSION_MISSING:
       whenAlone: list

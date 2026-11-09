@@ -77,6 +77,15 @@ describe("error-text.yaml's upload section", () => {
         .filter(Boolean)
         .flat()
     for (const [code, { inList }] of entries) {
+      // An item is shown once for each habitat, so one that names none of the
+      // habitat's values says the same thing every time: it is a detail.
+      const items = [inList.item, ...variantsOf(inList).map((v) => v.item)]
+      for (const item of items.filter(Boolean)) {
+        expect(
+          placeholders([item].flat()),
+          `${code} item: ${item}`
+        ).not.toEqual([])
+      }
       for (const name of placeholders(bulletsOf(inList, 'item'))) {
         expect(itemValueNames(code), `${code} item: {${name}}`).toContain(name)
       }
