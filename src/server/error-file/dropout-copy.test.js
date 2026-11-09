@@ -13,7 +13,6 @@ import {
   fill,
   firstKnown,
   joinKnownParts,
-  listHeading,
   pageText,
   parseDropoutCopy,
   splitLink
@@ -176,7 +175,7 @@ describe("error-text.yaml's upload section", () => {
     expect(lineage.length).toBeGreaterThan(0)
     for (const [code, entry] of lineage) {
       expect(entry.whenAlone, code).toBe(WHEN_ALONE.LIST)
-      expect(listHeading(code), code).toBeTruthy()
+      expect(entry.inList?.heading, code).toBeTruthy()
     }
   })
 })
@@ -287,14 +286,13 @@ describe('pageText', () => {
   })
 })
 
-describe('errorCopy and listHeading', () => {
-  test('give nothing for a code the copy does not know', () => {
+describe('errorCopy', () => {
+  test('gives nothing for a code the copy does not know', () => {
     expect(errorCopy('NOT_A_CODE')).toBeNull()
     expect(errorCopy(undefined)).toBeNull()
-    expect(listHeading('NOT_A_CODE')).toBeNull()
   })
 
-  test('give no heading where the list shows the catch-all title', () => {
-    expect(listHeading('INVALID_FILENAME')).toBeNull()
+  test('gives no heading where the list shows the catch-all title', () => {
+    expect(errorCopy('INVALID_FILENAME').inList).toBe('catch-all')
   })
 })

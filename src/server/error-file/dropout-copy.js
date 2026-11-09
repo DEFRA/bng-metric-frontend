@@ -2,6 +2,7 @@ import Joi from 'joi'
 import { load } from 'js-yaml'
 
 import { errorText } from '../common/error-text/error-text.js'
+import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 
 // The drop-out page's copy is the upload section of error-text.yaml, where
 // product, BAs and UCD review every error message the service shows. This
@@ -83,7 +84,8 @@ const unknownSchema = required(
   'habitatType',
   'distinctiveness',
   'area',
-  'srsId'
+  'srsId',
+  'geometryType'
 )
 
 const copySchema = Joi.object({
@@ -233,8 +235,13 @@ export function errorCopy(code) {
     : null
 }
 
-/** The heading the copy gives a code in a list, or null for the catch-all. */
-export function listHeading(code) {
-  const inList = errorCopy(code)?.inList
-  return typeof inList === 'object' ? (inList.heading ?? null) : null
+/**
+ * The catch-all copy for the template the service reads: its title heads the
+ * list for a problem with no heading of its own, and its page is the
+ * single-error page for one with no copy of its own.
+ */
+export function catchAllPage() {
+  return isServiceTemplateEnabled()
+    ? dropoutCopy.catchAll.serviceTemplate
+    : dropoutCopy.catchAll.legacyTemplate
 }

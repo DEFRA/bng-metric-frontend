@@ -1757,6 +1757,57 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     return h.view.mock.calls[0][1].errorBlocks
   }
 
+  describe('a geometry type the file leaves blank', () => {
+    const geometryTypeError = (found) => ({
+      code: 'GPKG_BASELINE_GEOMETRY_TYPE_NAME',
+      message: 'Not shown',
+      details: { layer: 'Habitats', expected: 'MULTIPOLYGON', found }
+    })
+    const EXPECTED_ITEM =
+      'expected geometry type "MULTIPOLYGON" in gpkg_geometry_columns but found'
+
+    test.each([
+      ['blank', ''],
+      ['null', null]
+    ])(
+      "names a %s geometry type with the copy's word, keeping the bullet",
+      async (_, found) => {
+        const blocks = await blocksFor([
+          geometryTypeError(found),
+          { code: 'NO_REDLINE', message: 'No redline' }
+        ])
+
+        expect(blocks[0]).toEqual({
+          heading: 'Layer "Habitats" baseline mismatch',
+          items: [`${EXPECTED_ITEM} "blank"`],
+          more: 0
+        })
+      }
+    )
+
+    test('names a geometry type the file registers as it is', async () => {
+      const blocks = await blocksFor([
+        geometryTypeError('POINT'),
+        { code: 'NO_REDLINE', message: 'No redline' }
+      ])
+
+      expect(blocks[0].items).toEqual([`${EXPECTED_ITEM} "POINT"`])
+    })
+
+    test('leaves the bullet out when the details do not carry the type', async () => {
+      const blocks = await blocksFor([
+        {
+          code: 'GPKG_BASELINE_GEOMETRY_TYPE_NAME',
+          message: 'Not shown',
+          details: { layer: 'Habitats', expected: 'MULTIPOLYGON' }
+        },
+        { code: 'NO_REDLINE', message: 'No redline' }
+      ])
+
+      expect(blocks[0].items).toEqual([])
+    })
+  })
+
   test('names a habitat with no distinctiveness as unknown, rather than leaving its bullet out', async () => {
     const blocks = await blocksFor([
       {

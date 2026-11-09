@@ -166,6 +166,8 @@ upload:
     area: blank
     # A table's spatial reference system id when the file sets none.
     srsId: unset
+    # The geometry type a layer registers when the file leaves it blank.
+    geometryType: blank
 
   # Distinctiveness bands as the user reads them.
   distinctiveness:

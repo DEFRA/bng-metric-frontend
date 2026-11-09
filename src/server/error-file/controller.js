@@ -3,6 +3,7 @@ import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import {
   WHEN_ALONE,
   canFill,
+  catchAllPage,
   dropoutCopy,
   errorCopy,
   fill,
@@ -10,7 +11,6 @@ import {
   joinKnownParts,
   pageText
 } from './dropout-copy.js'
-import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 
 // The drop-out page for a file with more than one problem: a heading for each
@@ -223,6 +223,10 @@ const twoDecimals = asNumber((n) => n.toFixed(2))
 const hexadecimal = asNumber((n) => n.toString(16).toUpperCase())
 // An srs_id the file holds, or the copy's word for one it does not.
 const srsId = (value) => asText(value) ?? unknown.srsId
+// A geometry type the file registers, or the copy's word for a blank or null
+// one. A value the details do not carry at all is missing, as for any other.
+const geometryType = (value) =>
+  value === undefined ? null : (asText(value) ?? unknown.geometryType)
 // A type label with its article: "a Text", "an Integer".
 function withArticle(value) {
   if (!value) {
@@ -268,7 +272,7 @@ const DETAIL_VALUES = {
   GPKG_BASELINE_GEOMETRY_TYPE_NAME: {
     layer: asText,
     expected: asText,
-    found: asText
+    found: geometryType
   },
   GPKG_BASELINE_MISSING_COLUMN: { layer: asText, column: asText },
   GPKG_BASELINE_COLUMN_SQLITE_TYPE: {
@@ -345,11 +349,7 @@ function buildItems(err) {
 // catch-all, or none in the copy), or one whose details lack a value its
 // heading names.
 function catchAllHeading() {
-  const { catchAll } = dropoutCopy
-  const page = isServiceTemplateEnabled()
-    ? catchAll.serviceTemplate
-    : catchAll.legacyTemplate
-  return firstKnown(page.title)
+  return firstKnown(catchAllPage().title)
 }
 
 function buildHeading(err) {
