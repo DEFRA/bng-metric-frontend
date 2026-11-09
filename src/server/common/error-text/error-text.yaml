@@ -660,8 +660,8 @@ upload:
       whenAlone: list
       inList:
         heading: >-
-          One or more post-intervention habitats name a baseline habitat whose
-          feature_uuid more than one baseline habitat has
+          One or more post-intervention habitats have a parent that matches more
+          than one baseline habitat
         # {name} is every baseline habitat that shares the identity.
         item:
           - '{table} '
