@@ -26,6 +26,21 @@ area habitat its `irreplaceable` status. Each holds `verticalHabitats`, sized by
 the face area typed in. Individual trees (BMD-1172) aren't read yet, so `trees`
 is empty.
 
+## Driving pages from them
+
+`backend-stub.js` stands in for the backend: `serviceTemplateBackend(body)`
+answers `wreck.get` with the project, its features by featureId and the
+reference lists the details pages read, built from the fixture's own
+features. It throws on any other URL, so a page that starts calling something
+new fails its test. `pages.js` starts the server and renders a page against a
+fixture.
+
+`src/server/service-template-pages/` uses them to render every page of these
+projects: grids, details pages and summaries, at both stages and for a
+baseline-only project. A project's data, not the service-template flag,
+decides how its pages render, so those tests expect the same in both of CI's
+flag states.
+
 ## Regenerating them
 
 When the backend changes the project JSON for this template, capture them
