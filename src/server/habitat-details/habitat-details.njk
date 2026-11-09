@@ -6,6 +6,7 @@
 {% from "habitat-ref-input/macro.njk" import appHabitatRefInput %}
 {% from "govuk/components/select/macro.njk" import govukSelect %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
 
 {% block beforeContent %}
   {{ super() }}
@@ -154,6 +155,24 @@
               value: { text: habitatUnitsDisplay }
             }
           ]
+        }) }}
+
+        {# commentInput is absent when a test renders the template directly. #}
+        {% set supportingInformation = commentInput if commentInput else { "value": "" } %}
+        {{ govukTextarea({
+          id: "comment",
+          name: "comment",
+          rows: 5,
+          label: {
+            text: "Supporting information",
+            classes: "govuk-label--m"
+          },
+          hint: {
+            text: "Add information to help the Local Planning Authority understand the baseline metric."
+          },
+          value: supportingInformation.value,
+          errorMessage: supportingInformation.error,
+          classes: "govuk-!-margin-top-6"
         }) }}
 
         <div class="govuk-button-group">

@@ -7,6 +7,11 @@ import {
 } from '../../client/javascripts/baseline-habitat-details.js'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import {
+  COMMENT_INVALID_CHARACTERS_ERROR,
+  COMMENT_TOO_LONG_ERROR,
+  MAX_COMMENT_LENGTH
+} from '../common/helpers/habitat-comment.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
 import { _resetReferenceCache } from './controller.js'
@@ -1926,6 +1931,96 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(statusCode).toBe(statusCodes.forbidden)
     })
   })
+
+  describe('supporting information (BMD-1112)', () => {
+    const overLimit = 'a'.repeat(MAX_COMMENT_LENGTH + 1)
+
+    test('Shows an empty supporting information box when none is stored', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toMatch(
+        /<label class="govuk-label govuk-label--m" for="comment">\s*Supporting information\s*<\/label>/
+      )
+      expect(result).toContain(
+        'Add information to help the Local Planning Authority understand the baseline metric.'
+      )
+      expect(result).toMatch(
+        /<textarea class="govuk-textarea govuk-!-margin-top-6" id="comment" name="comment" rows="5"[^>]*><\/textarea>/
+      )
+    })
+
+    test('Fills the box from the saved comment, keeping line breaks', async () => {
+      vi.mocked(wreck.get).mockImplementation((requestUrl) => {
+        if (requestUrl.endsWith(`/features/${habitatId}`)) {
+          return Promise.resolve({
+            res: { statusCode: 200 },
+            payload: {
+              type: 'habitat',
+              feature: { ...mockHabitat, comment: 'A note\nwith a break' }
+            }
+          })
+        }
+        return Promise.resolve(routeWreck(requestUrl))
+      })
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toContain('>A note\nwith a break</textarea>')
+    })
+
+    test('Saves a trimmed comment and sends null for a whitespace-only one', async () => {
+      const saved = await postRef({ comment: '  kept  note  ' })
+      expect(saved.statusCode).toBe(302)
+      const [, savedOptions] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(savedOptions.payload).comment).toBe('kept  note')
+
+      const cleared = await postRef({ comment: ' \n\t ' })
+      expect(cleared.statusCode).toBe(302)
+      const [, clearedOptions] = vi.mocked(wreck.put).mock.calls[1]
+      expect(JSON.parse(clearedOptions.payload).comment).toBeNull()
+    })
+
+    test('Re-renders a comment of 1000 characters without saving, keeping what was typed', async () => {
+      const { statusCode, result } = await postRef({
+        comment: overLimit,
+        habitatType: 'Bracken'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+      expect(result).toContain(
+        `<a href="#comment">${COMMENT_TOO_LONG_ERROR.summary}</a>`
+      )
+      expect(result).toContain(COMMENT_TOO_LONG_ERROR.inline)
+      expect(result).toContain(`>${overLimit}</textarea>`)
+      expect(result).toMatch(/<option value="Bracken" selected>/)
+    })
+
+    test('Shows a bad reference and a bad comment as two summary entries, reference first', async () => {
+      const { statusCode, result } = await postRef({
+        habitatRef: ' ',
+        comment: `\uFFFD${overLimit}`
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      const referenceAt = result.indexOf('href="#habitatRef"')
+      const commentAt = result.indexOf('href="#comment"')
+      expect(referenceAt).toBeGreaterThan(-1)
+      expect(commentAt).toBeGreaterThan(referenceAt)
+      expect(result).toContain(COMMENT_INVALID_CHARACTERS_ERROR.summary)
+      expect(result).toContain(COMMENT_TOO_LONG_ERROR.summary)
+      expect(result).toContain(
+        `${COMMENT_INVALID_CHARACTERS_ERROR.inline}<br>${COMMENT_TOO_LONG_ERROR.inline}`
+      )
+    })
+  })
 })
 
 describe('#baselineHabitatDetails - refused reference on hedgerow and watercourse pages (BMD-1061)', () => {
@@ -1943,7 +2038,8 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     distinctivenessScore: 2,
     condition: 'Good',
     sizeMetres: 1000,
-    units: 4
+    units: 4,
+    comment: 'Hedge note'
   }
   const mockWatercourse = {
     featureId: watercourseId,
@@ -1955,7 +2051,8 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     watercourseEncroachment: 'No Encroachment',
     riparianEncroachment: 'No Encroachment',
     sizeMetres: 500,
-    units: 2
+    units: 2,
+    comment: 'River note'
   }
   const payloads = [
     [
@@ -2116,6 +2213,60 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     })
 
     expect(result).toContain('<span id="distinctivenessDisplay"></span>')
+  })
+
+  test('Shows the saved comment on a hedgerow and a watercourse', async () => {
+    const hedgerow = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${hedgerowId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+    const watercourse = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${watercourseId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(hedgerow.result).toContain('>Hedge note</textarea>')
+    expect(watercourse.result).toContain('>River note</textarea>')
+  })
+
+  test('Saves a trimmed hedgerow comment', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'hedgerow', feature: mockHedgerow }
+    })
+    const { statusCode, headers } = await post(hedgerowId, {
+      habitatType: 'Native hedgerow',
+      condition: 'Good',
+      comment: '  hedge note  '
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(`/projects/${projectId}/hedgerows-baseline`)
+    const [, options] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(options.payload).comment).toBe('hedge note')
+  })
+
+  test('Shows a watercourse comment error beside a bad reference and keeps the typed text', async () => {
+    const typed = 'w'.repeat(MAX_COMMENT_LENGTH + 1)
+    const { statusCode, result } = await post(watercourseId, {
+      habitatRef: ' ',
+      habitatType: 'Canals',
+      condition: 'Poor',
+      watercourseEncroachment: 'Major',
+      riparianEncroachment: 'Minor/Minor',
+      comment: typed
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    expect(result.indexOf('href="#habitatRef"')).toBeGreaterThan(-1)
+    expect(result.indexOf('href="#habitatRef"')).toBeLessThan(
+      result.indexOf('href="#comment"')
+    )
+    expect(result).toContain(`>${typed}</textarea>`)
+    expect(result).toMatch(/<option value="Canals" selected>/)
   })
 })
 

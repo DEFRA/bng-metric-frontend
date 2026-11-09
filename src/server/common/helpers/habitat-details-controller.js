@@ -7,6 +7,7 @@ import { backendRequest } from './auth/backend-request.js'
 import { backendSaveError } from './backend-save-error.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
+import { commentFormFields, commentRefusals } from './habitat-comment.js'
 import {
   HABITAT_REF_ERROR,
   HABITAT_REF_IN_USE_ERROR,
@@ -101,7 +102,8 @@ function buildSaveBody({
   habitatType,
   condition,
   watercourseEncroachment,
-  riparianEncroachment
+  riparianEncroachment,
+  comment
 }) {
   // The backend keeps the stored ref when none is sent, so a form without the
   // reference field never clears it.
@@ -117,6 +119,11 @@ function buildSaveBody({
   }
   if (riparianEncroachment !== undefined) {
     body.riparianEncroachment = riparianEncroachment || null
+  }
+  // A form without the comment field must not clear a stored comment.
+  // Whitespace-only is stored as no value.
+  if (comment !== undefined) {
+    body.comment = comment.trim() || null
   }
   return body
 }
@@ -248,16 +255,17 @@ function withSubmittedChoices(feature, submitted, reference) {
  * @param {import('@hapi/hapi').Request} request
  * @param {import('@hapi/hapi').ResponseToolkit} h
  * @param {object} uploadType
- * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
+ * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, refusals?: { habitatRef?: { summary: string, inline: string } | { summaryOnly: string }, comment?: Array<{ summary: string, inline: string }> } }} params
  *   `piBackHref` is the post-intervention page the user came from, if any.
- *   `refusal` is why the save was refused (habitat-ref.js,
- *   stored-value-refusal.js), when it was.
+ *   `refusals` names the fields a save refused, when it did. A habitat
+ *   reference refusal may be a stored value the service no longer accepts
+ *   (stored-value-refusal.js).
  */
 async function renderDetailsPage(
   request,
   h,
   uploadType,
-  { projectId, featureId, piBackHref = null, submitted = null, refusal }
+  { projectId, featureId, piBackHref = null, submitted = null, refusals }
 ) {
   const [{ type, feature: rawFeature }, projectName] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
@@ -282,16 +290,27 @@ async function renderDetailsPage(
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.
   const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
+  const refFields = habitatRefFormFields({
+    heading,
+    savedRef: viewModel.habitatRef,
+    submittedRef: submitted?.habitatRef,
+    refusal: refusals?.habitatRef
+  })
+  const commentFields = commentFormFields({
+    savedComment: storedFeature.comment,
+    submittedComment: submitted?.comment,
+    refusals: refusals?.comment ?? []
+  })
+  // Page order: the reference sits above the comment.
+  const errors = [...refFields.errors, ...commentFields.errors]
   return h.view('habitat-details/habitat-details', {
     heading,
     caption: projectName,
     ...viewModel,
-    ...habitatRefFormFields({
-      heading,
-      savedRef: viewModel.habitatRef,
-      submittedRef: submitted?.habitatRef,
-      refusal
-    }),
+    ...refFields,
+    ...commentFields,
+    errors,
+    pageTitle: errors.length > 0 ? `Error: ${heading}` : heading,
     formAction: `/${uploadType.detailsRoute}`,
     detailsSectionHeading: uploadType.detailsSectionHeading,
     // Carried through the form so a refused save keeps Back and Cancel.
@@ -409,6 +428,9 @@ const habitatDetailsPayload = Joi.object({
   projectId: Joi.string().uuid().required(),
   featureId: Joi.string().uuid().required(),
   habitatRef: Joi.string().allow('').optional(),
+  // No length limit here: a long comment must reach the handler and become a
+  // field error, not a flat 400 error page.
+  comment: Joi.string().allow('').optional(),
   broadHabitat: Joi.string().allow('').optional(),
   habitatType: Joi.string().allow('').optional(),
   condition: Joi.string().allow('').optional(),
@@ -455,7 +477,8 @@ function createPostController(uploadType) {
         habitatType,
         condition,
         watercourseEncroachment,
-        riparianEncroachment
+        riparianEncroachment,
+        comment
       } = request.payload
 
       const { ref: refToSave, refusal } = await submittedRefToSave(
@@ -467,9 +490,9 @@ function createPostController(uploadType) {
           habitatRef
         }
       )
-      // A refused reference shows the page again with the error, keeping
-      // what the user typed and chose, and the way back they came in by.
-      const showRefused = async (refusalToShow) => {
+      // A refused reference or comment shows the page again with the error,
+      // keeping what the user typed and chose, and the way back they came in by.
+      const showRefused = async (refusedFields) => {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
@@ -478,12 +501,21 @@ function createPostController(uploadType) {
             projectId
           ),
           submitted: request.payload,
-          refusal: refusalToShow
+          refusals: refusedFields
         })
         return response.code(statusCodes.badRequest)
       }
+      // A bad reference and a bad comment are reported together.
+      const fieldRefusals = {}
       if (refusal) {
-        return showRefused(refusal)
+        fieldRefusals.habitatRef = refusal
+      }
+      const commentProblems = commentRefusals(comment)
+      if (commentProblems.length > 0) {
+        fieldRefusals.comment = commentProblems
+      }
+      if (Object.keys(fieldRefusals).length > 0) {
+        return showRefused(fieldRefusals)
       }
 
       const body = buildSaveBody({
@@ -492,7 +524,8 @@ function createPostController(uploadType) {
         habitatType,
         condition,
         watercourseEncroachment,
-        riparianEncroachment
+        riparianEncroachment,
+        comment
       })
 
       let payload
@@ -506,7 +539,7 @@ function createPostController(uploadType) {
       } catch (err) {
         const saveRefusal = saveErrorRefusal(err, refToSave)
         if (saveRefusal) {
-          return showRefused(saveRefusal)
+          return showRefused({ habitatRef: saveRefusal })
         }
         throw err
       }
