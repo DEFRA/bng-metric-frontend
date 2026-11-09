@@ -1,4 +1,6 @@
+import { createLogger } from '../common/helpers/logging/logger.js'
 import { sourceValue } from '../common/helpers/post-intervention-habitat-grid.js'
+import { isFiniteNumber } from '../common/helpers/unit-summary.js'
 import { loadCreatedAreaReference } from '../post-intervention-habitat-details/created-edit-reference.js'
 import { createdStrategicSignificance } from '../post-intervention-habitat-details/created-strategic-significance.js'
 import {
@@ -6,8 +8,14 @@ import {
   RETENTION_CREATED
 } from '../post-intervention-habitat-details/retention.js'
 
+const logger = createLogger()
+
 function missing(value) {
   return value == null || value === ''
+}
+
+function isCreated(feature) {
+  return featureRetentionCategory(feature) === RETENTION_CREATED
 }
 
 function missingTypeFields(feature) {
@@ -17,7 +25,9 @@ function missingTypeFields(feature) {
 }
 
 function needsReference(feature) {
-  if (featureRetentionCategory(feature) !== RETENTION_CREATED) return false
+  if (!isCreated(feature)) {
+    return false
+  }
   const proposed = feature.proposed ?? {}
   const type = sourceValue(feature, proposed, 'type')
   const significance =
@@ -31,8 +41,18 @@ function needsReference(feature) {
   )
 }
 
+function needsZeroUnits(feature) {
+  return isCreated(feature) && !isFiniteNumber(feature.units)
+}
+
+function needsDisplayProjection(feature) {
+  return needsReference(feature) || needsZeroUnits(feature)
+}
+
 function withReferenceFields(feature, reference) {
-  if (!needsReference(feature)) return feature
+  if (!reference || !needsReference(feature)) {
+    return feature
+  }
   const proposed = feature.proposed ?? {}
   const type = reference.habitatTypes.find(
     (t) =>
@@ -68,19 +88,42 @@ function withReferenceFields(feature, reference) {
   }
 }
 
+function displayFeature(feature, reference) {
+  const projected = withReferenceFields(feature, reference)
+  return needsZeroUnits(projected) ? { ...projected, units: 0 } : projected
+}
+
+// The derived values are optional display data, so a reference outage must not
+// make the list unavailable: the rows then show only what the project holds.
+async function loadReferenceForDisplay() {
+  try {
+    return await loadCreatedAreaReference()
+  } catch (error) {
+    logger.warn(
+      `Created area reference unavailable for list display: ${error.message}`
+    )
+    return null
+  }
+}
+
 // Complete unit calculations are not needed to display independently known attributes.
 // Project data and calculation status remain unchanged; this is a display-only projection.
+// Only area parcels (`habitats`) are projected: Created area editing and
+// /reference/area-creation cover the `habitat` feature type, not green walls
+// (`verticalHabitats`) or individual trees.
 export async function prepareCreatedAreaListDisplay(project) {
   const features = project?.postIntervention?.habitats ?? []
-  if (!features.some(needsReference)) return project
-  const reference = await loadCreatedAreaReference()
+  if (!features.some(needsDisplayProjection)) {
+    return project
+  }
+  const reference = features.some(needsReference)
+    ? await loadReferenceForDisplay()
+    : null
   return {
     ...project,
     postIntervention: {
       ...project.postIntervention,
-      habitats: features.map((feature) =>
-        withReferenceFields(feature, reference)
-      )
+      habitats: features.map((feature) => displayFeature(feature, reference))
     }
   }
 }

@@ -133,10 +133,8 @@ function sharedSizeColumns({
     {
       text: 'Units',
       numeric: true,
-      cell: (feature) => {
-        const units = isFiniteNumber(feature.units) ? feature.units : 0
-        return numericCell(formatHabitatUnits(units), units)
-      },
+      cell: (feature) =>
+        numericCell(formatHabitatUnits(feature.units), feature.units),
       total: (totals) => boldCell(numericCell(formatHabitatUnits(totals.units)))
     },
     {

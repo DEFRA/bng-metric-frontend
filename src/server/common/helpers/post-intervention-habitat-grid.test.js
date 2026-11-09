@@ -243,17 +243,3 @@ describe('buildPostInterventionHabitatGrid', () => {
     expect(grid.habitatRows[0][3].text).toBe('Grassland')
   })
 })
-
-test.each([null, undefined, Number.NaN])(
-  'shows uncalculable PI units %s as 0.00 with numeric zero sorting',
-  (units) => {
-    const feature = { units, status: 'Incomplete', proposed: {} }
-    const grid = buildGrid('Created', [feature])
-    expect(grid.habitatRows[0][1]).toMatchObject({
-      text: '0.00',
-      attributes: { 'data-sort-value': 0 }
-    })
-    expect(grid.totalsRow[1].text).toBe('0.00')
-    expect(feature.units).toBe(units)
-  }
-)

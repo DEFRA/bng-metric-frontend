@@ -38,16 +38,16 @@ const feature = {
   }
 }
 const projectWith = (feature) => ({ postIntervention: { habitats: [feature] } })
-beforeEach(() =>
+beforeEach(() => {
   vi.mocked(loadCreatedAreaReference).mockResolvedValue(reference)
-)
+})
 
-test('derives independently known fields for an incomplete pond without changing its units, status or stored project', async () => {
+test('derives independently known fields and zero display units for an incomplete pond without changing its status or stored project', async () => {
   const project = projectWith(structuredClone(feature))
   const snapshot = structuredClone(project)
   const displayed = await prepareCreatedAreaListDisplay(project)
   expect(displayed.postIntervention.habitats[0]).toMatchObject({
-    units: null,
+    units: 0,
     status: 'Incomplete',
     proposed: {
       distinctiveness: 'Medium',
@@ -114,6 +114,7 @@ test('does not load reference data for complete saved fields or other interventi
     { ...feature, retentionCategory: 'Enhanced' },
     {
       ...feature,
+      units: 1.5,
       proposed: {
         ...feature.proposed,
         distinctiveness: 'Medium',
@@ -161,4 +162,52 @@ test('keeps an explicit cleared significance and a zero distinctiveness score', 
     strategicSignificanceCategory: '',
     strategicSignificanceScore: null
   })
+})
+
+test.each([null, undefined, Number.NaN])(
+  'shows Created units %s as zero without loading reference data when no fields are missing',
+  async (units) => {
+    const row = {
+      ...feature,
+      units,
+      proposed: {
+        ...feature.proposed,
+        distinctiveness: 'Medium',
+        distinctivenessScore: 4,
+        strategicSignificanceCategory: 'Low',
+        strategicSignificanceScore: 1
+      }
+    }
+    const project = projectWith(row)
+    const displayed = (await prepareCreatedAreaListDisplay(project))
+      .postIntervention.habitats[0]
+    expect(displayed.units).toBe(0)
+    expect(displayed.status).toBe('Incomplete')
+    expect(project.postIntervention.habitats[0].units).toBe(units)
+    expect(loadCreatedAreaReference).not.toHaveBeenCalled()
+  }
+)
+
+test('keeps calculated Created units unchanged', async () => {
+  const project = projectWith({ ...feature, units: 2.25 })
+  const displayed = (await prepareCreatedAreaListDisplay(project))
+    .postIntervention.habitats[0]
+  expect(displayed.units).toBe(2.25)
+})
+
+test('does not project units for Retained or Enhanced rows', async () => {
+  for (const retentionCategory of ['Retained', 'Enhanced']) {
+    const project = projectWith({ ...feature, retentionCategory })
+    expect(await prepareCreatedAreaListDisplay(project)).toBe(project)
+  }
+})
+
+test('shows the stored row with zero units when the reference data cannot be loaded', async () => {
+  vi.mocked(loadCreatedAreaReference).mockImplementation(async () => {
+    throw new Error('Invalid area creation reference response')
+  })
+  const project = projectWith(structuredClone(feature))
+  const displayed = (await prepareCreatedAreaListDisplay(project))
+    .postIntervention.habitats[0]
+  expect(displayed).toEqual({ ...feature, units: 0 })
 })

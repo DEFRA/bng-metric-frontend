@@ -225,6 +225,48 @@ describe('area post intervention', () => {
     expect(project).toEqual(snapshot)
   })
 
+  test('still renders an incomplete created pond with zero units when the creation reference is unavailable', async () => {
+    const project = structuredClone(populatedProject)
+    project.project.postIntervention.habitats = [
+      {
+        featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        ref: 'P2-7',
+        retentionCategory: 'Created',
+        units: null,
+        status: 'Incomplete',
+        sizeSquareMetres: 242.8732997,
+        proposed: {
+          broadType: 'Lakes',
+          type: 'Ponds (non-priority habitat)',
+          strategicSignificance: 'Low',
+          distinctiveness: null,
+          distinctivenessScore: null
+        }
+      }
+    ]
+    vi.mocked(wreck.get).mockImplementation(async (url) =>
+      url.endsWith('/reference/area-creation')
+        ? { res: { statusCode: statusCodes.internalServerError }, payload: {} }
+        : { res: { statusCode: statusCodes.ok }, payload: project }
+    )
+    const response = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+    expect(response.statusCode).toBe(statusCodes.ok)
+    const $ = load(response.result)
+    const row = $('#created tbody tr').filter(
+      (_, row) => $(row).find('a').first().text() === 'P2-7'
+    )
+    const columns = $('#created thead th')
+      .map((_, el) => $(el).text().trim())
+      .get()
+    const cell = (label) => row.find('td').eq(columns.indexOf(label))
+    expect(cell('Units').text().trim()).toBe('0.00')
+    expect(cell('Distinctiveness').text().trim()).toBe('')
+  })
+
   test('renders the upload action with a return URL back to this page', async () => {
     const { result } = await server.inject({
       method: 'GET',
