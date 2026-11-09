@@ -426,8 +426,9 @@ describe('#resolveSingleErrorCopy', () => {
       h1: 'There is a problem with your file',
       subheading: 'Template',
       helpText:
-        'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
+        'Your file is using the legacy template. The service now uses the BNG service template.'
     })
+    expect(JSON.stringify(result)).not.toContain('Natural England')
   })
 
   test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in hectares', () => {
