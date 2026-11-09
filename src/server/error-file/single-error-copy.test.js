@@ -518,13 +518,13 @@ describe('#resolveSingleErrorCopy', () => {
   test.each([
     [
       'COMMENT_INVALID_CHARACTERS',
-      'A comment contains characters that are not allowed. Remove those characters and ',
-      'A comment contains characters that are not allowed. Remove those characters.'
+      'The file contains a comment that uses non-UTF8 characters. Remove those characters and ',
+      'The file contains a comment that uses non-UTF8 characters. Remove those characters.'
     ],
     [
       'COMMENT_TOO_LONG',
-      'A comment is longer than 999 characters. Shorten the comment and ',
-      'A comment is longer than 999 characters. Shorten the comment.'
+      'The file contains a comment with more than 999 characters. Shorten the comment and ',
+      'The file contains a comment with more than 999 characters. Shorten the comment.'
     ]
   ])(
     'AC7: %s names the comment problem and links to a new upload',
