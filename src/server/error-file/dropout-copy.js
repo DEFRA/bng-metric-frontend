@@ -2,6 +2,7 @@ import Joi from 'joi'
 import { load } from 'js-yaml'
 
 import { errorText } from '../common/error-text/error-text.js'
+import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 
 // The drop-out page's copy is the upload section of error-text.yaml, where
 // product, BAs and UCD review every error message the service shows. This
@@ -16,8 +17,8 @@ export const WHEN_ALONE = Object.freeze({
   LIST: 'list'
 })
 
-/** The inList value that shows the service's own message as the heading. */
-const SERVICE_MESSAGE = 'service-message'
+/** The inList value that heads the list with the catch-all title. */
+const CATCH_ALL = 'catch-all'
 
 /** The link targets a sentence can name, as [link text](target). */
 export const LINK_TARGETS = Object.freeze({
@@ -43,12 +44,18 @@ const errorEntry = Joi.object({
     Joi.array().items(pageCopy).min(1)
   ).required(),
   inList: Joi.alternatives(
-    Joi.string().valid(SERVICE_MESSAGE),
+    Joi.string().valid(CATCH_ALL),
     Joi.object({
-      heading: text,
+      heading: text.required(),
       listsHabitats: Joi.boolean(),
       item: options,
-      note: text
+      note: text,
+      // Another way the backend words the problem, named by the error's
+      // details.variants: its heading or item replaces the code's own.
+      variants: Joi.object().pattern(
+        Joi.string().pattern(/^[a-z][a-z0-9-]*$/),
+        Joi.object({ heading: text, item: options }).min(1)
+      )
     })
   ).required()
 })
@@ -76,7 +83,9 @@ const unknownSchema = required(
   'location',
   'habitatType',
   'distinctiveness',
-  'area'
+  'area',
+  'srsId',
+  'blank'
 )
 
 const copySchema = Joi.object({
@@ -226,8 +235,13 @@ export function errorCopy(code) {
     : null
 }
 
-/** The heading the copy gives a code in a list, or null for the service's. */
-export function listHeading(code) {
-  const inList = errorCopy(code)?.inList
-  return typeof inList === 'object' ? (inList.heading ?? null) : null
+/**
+ * The catch-all copy for the template the service reads: its title heads the
+ * list for a problem with no heading of its own, and its page is the
+ * single-error page for one with no copy of its own.
+ */
+export function catchAllPage() {
+  return isServiceTemplateEnabled()
+    ? dropoutCopy.catchAll.serviceTemplate
+    : dropoutCopy.catchAll.legacyTemplate
 }

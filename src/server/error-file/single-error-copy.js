@@ -1,8 +1,8 @@
-import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 import {
   LINK_TARGETS,
   WHEN_ALONE,
   canFill,
+  catchAllPage,
   dropoutCopy,
   errorCopy,
   firstKnown,
@@ -58,12 +58,6 @@ function choosePage(pages, values) {
   )
 }
 
-function catchAllPage() {
-  return isServiceTemplateEnabled()
-    ? dropoutCopy.catchAll.serviceTemplate
-    : dropoutCopy.catchAll.legacyTemplate
-}
-
 // The page's fields for its variant, from where its sentence links: to the
 // upload page, to the metric tool, or nowhere.
 function buildPage(page, values) {
@@ -116,13 +110,9 @@ function placeholderPage(message) {
  * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
  * @param {string} [placeholderMessage] what a placeholder page says of the
- *   error; the service's message when not given
+ *   error: its heading and bullets as the list shows them
  */
-export function resolveSingleErrorCopy(
-  error,
-  uploadHref,
-  placeholderMessage = error?.message
-) {
+export function resolveSingleErrorCopy(error, uploadHref, placeholderMessage) {
   const whenAlone = errorCopy(error?.code)?.whenAlone
 
   if (whenAlone === WHEN_ALONE.PLACEHOLDER) {

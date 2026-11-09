@@ -3,12 +3,12 @@ import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import {
   WHEN_ALONE,
   canFill,
+  catchAllPage,
   dropoutCopy,
   errorCopy,
   fill,
   firstKnown,
   joinKnownParts,
-  listHeading,
   pageText
 } from './dropout-copy.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
@@ -193,9 +193,132 @@ export function itemValueNames(code) {
   return Object.keys(valuesFor(code)({}))
 }
 
-function inListCopy(code) {
+// The copy for an error in a list. A code that words a problem more than one
+// way names the way in details.variants, and each variant's heading or item
+// replaces the code's own.
+function inListCopy(code, variants = []) {
   const inList = errorCopy(code)?.inList
-  return typeof inList === 'object' ? inList : {}
+  if (typeof inList !== 'object') {
+    return {}
+  }
+  return variants.reduce(
+    (copy, variant) => ({ ...copy, ...inList.variants?.[variant] }),
+    inList
+  )
+}
+
+function variantsOf(err) {
+  const variants = err.details?.variants
+  return Array.isArray(variants) ? variants : []
+}
+
+// Each value as the backend's message writes it.
+const asText = (value) => (value == null || value === '' ? null : String(value))
+const asList = (value) => (Array.isArray(value) ? value.join(', ') : null)
+const asNumber = (format) => (value) =>
+  Number.isFinite(value) ? format(value) : null
+const grouped = asNumber((n) => n.toLocaleString('en-GB'))
+const wholeNumber = asNumber((n) => n.toFixed(0))
+const twoDecimals = asNumber((n) => n.toFixed(2))
+const hexadecimal = asNumber((n) => n.toString(16).toUpperCase())
+// A value the file holds, or the copy's word for one it leaves blank or
+// unset (the backend sends that as null). A value the details do not carry at
+// all is missing, as for any other: the file did not say it was blank.
+const fileValue = (blankWord) => (value) =>
+  value === undefined ? null : (asText(value) ?? blankWord)
+const srsId = fileValue(unknown.srsId)
+const fileText = fileValue(unknown.blank)
+// A type label with its article: "a Text", "an Integer".
+function withArticle(value) {
+  if (!value) {
+    return null
+  }
+  const article = /^[aeiou]/i.test(value) ? 'an' : 'a'
+  return `${article} ${value}`
+}
+
+/**
+ * The values each error's heading and bullets name from its details, when it
+ * names no habitats: the backend sends them raw (its ERROR_CODE_DETAILS), and
+ * this formats each as the backend's message does.
+ */
+const DETAIL_VALUES = {
+  GPKG_NOT_A_GEOPACKAGE: { applicationId: hexadecimal },
+  GPKG_MISSING_SYSTEM_TABLE: { table: asText },
+  GPKG_MISSING_LAYER: { layer: asText },
+  // The name of a table the file adds.
+  GPKG_UNEXPECTED_FEATURE_LAYER: { layer: fileText },
+  GPKG_BASELINE_CONTENTS_DATA_TYPE: {
+    layer: asText,
+    expected: asText,
+    found: fileText
+  },
+  GPKG_BASELINE_SRS_ID: {
+    layer: asText,
+    expectedSrsId: asText,
+    foundSrsId: asText,
+    contentsSrsId: srsId,
+    geometryColumnsSrsId: srsId
+  },
+  GPKG_BASELINE_GPKG_SRS_INCONSISTENT: {
+    layer: asText,
+    contentsSrsId: srsId,
+    geometryColumnsSrsId: srsId
+  },
+  GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME: {
+    layer: asText,
+    column: fileText,
+    expected: asText
+  },
+  GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS: { layer: asText, found: asText },
+  GPKG_BASELINE_GEOMETRY_TYPE_NAME: {
+    layer: asText,
+    expected: asText,
+    found: fileText
+  },
+  // The geometry variant's column is the name the file registers.
+  GPKG_BASELINE_MISSING_COLUMN: { layer: asText, column: fileText },
+  // For a geometry column, column is the name the file registers.
+  GPKG_BASELINE_COLUMN_SQLITE_TYPE: {
+    layer: asText,
+    column: fileText,
+    expectedType: asText,
+    actualType: withArticle
+  },
+  GPKG_BASELINE_COLUMN_NOT_NULL: { layer: asText, column: asText },
+  GPKG_BASELINE_COLUMN_PRIMARY_KEY: { layer: asText, column: asText },
+  GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING: { layer: asText },
+  GPKG_TOO_MANY_FEATURES: { featureCount: grouped, maxFeatureCount: grouped },
+  TEMPLATE_VERSION_DUPLICATED: { recordCount: asText },
+  TEMPLATE_VERSION_UNSUPPORTED: { version: asText, supportedVersions: asList },
+  REDLINE_AREA_TOO_LARGE: { areaSqM: wholeNumber },
+  REDLINE_INVALID_GEOMETRY: { reason: asText, location: asText },
+  AREA_SUM_MISMATCH: {
+    habitatsAreaSqM: twoDecimals,
+    redlineAreaSqM: twoDecimals
+  },
+  BASELINE_TYPE_MISSING: { rowCount: asText }
+}
+
+function detailValues(err) {
+  const formats = DETAIL_VALUES[err.code] ?? {}
+  return Object.fromEntries(
+    Object.entries(formats).map(([name, format]) => [
+      name,
+      format(err.details?.[name])
+    ])
+  )
+}
+
+/**
+ * The {values} a code's heading, and its bullets when it names no habitats,
+ * can name, for a test to check.
+ *
+ * @param {string} code
+ * @returns {string[]}
+ */
+export function detailValueNames(code) {
+  return Object.keys(DETAIL_VALUES[code] ?? {})
 }
 
 function listsHabitats(code) {
@@ -206,16 +329,14 @@ function buildItems(err) {
   if (!listsHabitats(err.code)) {
     return []
   }
-  // Non-list errors don't carry details. A code the copy gives a heading
-  // shows that alone. One it does not shows the part of the service's message
-  // after the first ": " as the single sub-line; if there's no separator, the
-  // heading already says everything (no items).
+  // An error that names no habitats has one bullet at most: its copy's item,
+  // filled from its details, when it gives one and any of it is known.
   if (!err.details?.sample) {
-    if (listHeading(err.code)) {
-      return []
-    }
-    const idx = err.message.indexOf(': ')
-    return idx === -1 ? [] : [err.message.slice(idx + 2)]
+    const detailItem = inListCopy(err.code, variantsOf(err)).item
+    const bullet = detailItem
+      ? joinKnownParts(detailItem, detailValues(err))
+      : ''
+    return bullet ? [bullet] : []
   }
   const item = inListCopy(err.code).item ?? DEFAULT_ITEM
   const values = valuesFor(err.code)
@@ -228,35 +349,19 @@ function buildItems(err) {
   )
 }
 
-/** The {values} a list's heading can name, for a test to check. */
-export const HEADING_VALUE_NAMES = Object.freeze([
-  'featureCount',
-  'maxFeatureCount'
-])
-
-// The counts ride on the error's details, as the backend's message gives them.
-function headingValues(err) {
-  const count = (key) => {
-    const value = err.details?.[key]
-    return Number.isFinite(value) ? value.toLocaleString('en-GB') : null
-  }
-  return {
-    featureCount: count('featureCount'),
-    maxFeatureCount: count('maxFeatureCount')
-  }
+// The catch-all title, for a code with no heading of its own (inList:
+// catch-all, or none in the copy), or one whose details lack a value its
+// heading names.
+function catchAllHeading() {
+  return firstKnown(catchAllPage().title)
 }
 
-// The copy's heading for the error, or else the part of the service's message
-// before its first ": ", as for one whose details lack a value the heading
-// names.
 function buildHeading(err) {
-  const heading = listHeading(err.code)
-  const values = headingValues(err)
-  if (heading && canFill(heading, values)) {
-    return fill(heading, values)
-  }
-  const idx = err.message.indexOf(': ')
-  return idx === -1 ? err.message : err.message.slice(0, idx)
+  const { heading } = inListCopy(err.code, variantsOf(err))
+  const values = detailValues(err)
+  return heading && canFill(heading, values)
+    ? fill(heading, values)
+    : catchAllHeading()
 }
 
 function joinWithAnd(items) {
@@ -297,13 +402,28 @@ function buildBlock(err) {
   return block
 }
 
+// Two errors the page words the same way, such as two the copy has no
+// heading for, say nothing new the second time: show each block once.
+function distinctBlocks(blocks) {
+  const seen = new Set()
+  return blocks.filter((block) => {
+    const key = JSON.stringify([
+      block.heading,
+      block.items,
+      block.more,
+      block.note ?? null
+    ])
+    if (seen.has(key)) {
+      return false
+    }
+    seen.add(key)
+    return true
+  })
+}
+
 // What a placeholder page says of the error: its heading and bullets as the
-// list shows them, or the service's message for a code the copy gives no
-// heading.
-function placeholderMessage(err, block) {
-  if (!listHeading(err.code)) {
-    return err.message
-  }
+// list shows them.
+function placeholderMessage(block) {
   const more =
     block.more > 0
       ? fill(dropoutCopy.placeholder.more, { count: block.more })
@@ -363,7 +483,7 @@ export const invalidFileController = {
       ? validationErrors.filter((e) => e.code !== 'SLIVERS_OUTSIDE_REDLINE')
       : validationErrors
 
-    const errorBlocks = visibleErrors.map(buildBlock)
+    const errorBlocks = distinctBlocks(visibleErrors.map(buildBlock))
     const errorList = errorBlocks.map((b) => ({
       text: b.note ? `${b.heading}. ${b.note}` : b.heading
     }))
@@ -381,7 +501,7 @@ export const invalidFileController = {
       ? resolveSingleErrorCopy(
           visibleErrors[0],
           uploadHref,
-          placeholderMessage(visibleErrors[0], errorBlocks[0])
+          placeholderMessage(errorBlocks[0])
         )
       : null
 
