@@ -528,9 +528,8 @@ upload:
       inList: service-message
 
     # --------------------------------------------------------------- comments
-    # The 999 character figure mirrors MAX_COMMENT_LENGTH in the backend
-    # (validation/geopackage/comment-check.js); change both together. A file
-    # with several problems lists the service's own message.
+    # A file with several problems lists the service's own message. A comment
+    # that is too long is TEXT_TOO_LONG, under "text values" below.
 
     COMMENT_INVALID_CHARACTERS:
       whenAlone:
@@ -540,12 +539,45 @@ upload:
           characters and [upload a new file](upload).
       inList: service-message
 
-    COMMENT_TOO_LONG:
-      whenAlone:
-        title: Your Geopackage (.gpkg) file contains an error
-        body: >-
-          A comment is longer than 999 characters. Shorten the comment and
-          [upload a new file](upload).
+    # ------------------------------------------------------------ text values
+    # BMD-1175. One error for each value that fails, and the service's message
+    # names the table, the habitat (by its reference, or "row N" when it has
+    # no usable one), the column and the problem, for example "Habitats, H1:
+    # Comment has 1,240 characters. The maximum is 999." So the page lists the
+    # service's message even for one problem alone: copy of our own could not
+    # say which value to fix. When more than 50 values fail, the 51st error
+    # counts the rest ("N more values have a problem of this kind.").
+    # AWAITING UCD: these show the service's own message until UCD words them.
+
+    # A text value is longer than its column allows, counted in characters
+    # once spaces at the start and end are removed: 99 for a reference,
+    # Location and every drop-down or filled-in column, 255 for Spatial risk
+    # category, and 999 for a comment and the other Red Line Boundary details.
+    # The limits are the backend's (validation/geopackage/text-limits.js).
+    TEXT_TOO_LONG:
+      whenAlone: list
+      inList: service-message
+
+    # A drop-down or filled-in column holds a value that none of its lists
+    # offers.
+    VALUE_NOT_ALLOWED:
+      whenAlone: list
+      inList: service-message
+
+    # A BNG Service template baseline feature's feature_uuid is not a UUID.
+    FEATURE_UUID_INVALID:
+      whenAlone: list
+      inList: service-message
+
+    # A post-intervention feature's parent_uuid is not a UUID.
+    PARENT_UUID_INVALID:
+      whenAlone: list
+      inList: service-message
+
+    # A post-intervention feature's parent_geom is not WKT of its table's
+    # shape.
+    PARENT_GEOM_INVALID:
+      whenAlone: list
       inList: service-message
 
     # ------------------------------------------------------------ habitat refs
@@ -812,3 +844,10 @@ forms:
     invalid:
       summary: You have entered an invalid habitat reference.
       inline: Enter a valid habitat reference.
+    # Longer than 99 characters once trimmed (BMD-1175), which the backend
+    # refuses rather than cuts. 99 mirrors MAX_HABITAT_REF_LENGTH
+    # (common/helpers/habitat-ref.js); change both together.
+    # AWAITING UCD
+    tooLong:
+      summary: You have entered a habitat reference that is too long.
+      inline: Enter a habitat reference of 99 characters or fewer.

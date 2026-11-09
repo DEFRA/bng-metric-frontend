@@ -99,9 +99,16 @@ describe('invalidFileController.handler — populated session', () => {
           'One or more comments contain characters that are not valid UTF-8: areas fid 1'
       },
       {
-        code: 'COMMENT_TOO_LONG',
+        code: 'TEXT_TOO_LONG',
         message:
-          'One or more comments are longer than 999 characters: areas fid 2'
+          'Habitats, H2: Comment has 1,240 characters. The maximum is 999.',
+        details: {
+          table: 'Habitats',
+          fid: 2,
+          column: 'Comment',
+          limit: 999,
+          length: 1240
+        }
       }
     ]
     const request = makeRequest({ baselineValidationErrors: errors })
@@ -119,7 +126,9 @@ describe('invalidFileController.handler — populated session', () => {
               'One or more comments contain characters that are not valid UTF-8'
           }),
           expect.objectContaining({
-            heading: 'One or more comments are longer than 999 characters'
+            heading: 'Habitats, H2',
+            items: ['Comment has 1,240 characters. The maximum is 999.'],
+            more: 0
           })
         ]
       })
@@ -1352,6 +1361,46 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       ])
     }
   )
+  test.each([
+    [
+      'TEXT_TOO_LONG',
+      'Habitats, H1: Comment has 1,240 characters. The maximum is 999.',
+      'Comment has 1,240 characters. The maximum is 999.'
+    ],
+    [
+      'VALUE_NOT_ALLOWED',
+      'Habitats, row 3: Condition has "Excellent", which is not in its list.',
+      'Condition has "Excellent", which is not in its list.'
+    ],
+    [
+      'FEATURE_UUID_INVALID',
+      'Habitats, H1: feature_uuid is not a valid UUID.',
+      'feature_uuid is not a valid UUID.'
+    ],
+    [
+      'PARENT_UUID_INVALID',
+      'Habitats Post-Intervention, H1: parent_uuid is not a valid UUID.',
+      'parent_uuid is not a valid UUID.'
+    ],
+    [
+      'PARENT_GEOM_INVALID',
+      'Habitats Post-Intervention, H1: parent_geom is not the shape of a multipolygon written as WKT.',
+      'parent_geom is not the shape of a multipolygon written as WKT.'
+    ]
+  ])(
+    'shows a lone %s as the habitat it names and what is wrong with the value',
+    async (code, message, item) => {
+      const view = await viewFor([
+        { code, message, details: { table: 'Habitats', fid: 1 } }
+      ])
+
+      expect(view.singleError).toBeNull()
+      expect(view.errorBlocks).toEqual([
+        { heading: message.split(': ')[0], items: [item], more: 0 }
+      ])
+    }
+  )
+
   test('shows a lone LEGACY_TEMPLATE_NOT_ACCEPTED as single-error copy, not split at its colon', async () => {
     const view = await viewFor([
       {

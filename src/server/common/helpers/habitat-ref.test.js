@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  HABITAT_REF_ERROR,
+  HABITAT_REF_TOO_LONG_ERROR,
   habitatRefFormFields,
+  habitatRefRefusal,
+  isHabitatRefTooLong,
   isRefInUseError,
   isRefUnchanged,
   isValidHabitatRef,
@@ -13,7 +17,7 @@ describe('isValidHabitatRef', () => {
     ['a reference', 'B-A1'],
     ['a reference with surrounding spaces', '  B-A1  '],
     [
-      'a reference over 100 characters, which the save truncates',
+      'a reference over 99 characters, whose length habitatRefRefusal checks',
       'x'.repeat(150)
     ],
     ['non-Latin text', 'Ŵ-ŷ 1']
@@ -30,6 +34,50 @@ describe('isValidHabitatRef', () => {
     ['a lone surrogate', 'B-A\uD800']
   ])('refuses %s', (_label, value) => {
     expect(isValidHabitatRef(value)).toBe(false)
+  })
+})
+
+describe('isHabitatRefTooLong', () => {
+  test.each([
+    ['99 characters', 'x'.repeat(99)],
+    ['99 characters with surrounding spaces', `  ${'x'.repeat(99)}  `],
+    [
+      '99 characters outside the Basic Multilingual Plane',
+      '\u{1F33F}'.repeat(99)
+    ],
+    ['a value that is not text', undefined]
+  ])('is false for %s', (_label, value) => {
+    expect(isHabitatRefTooLong(value)).toBe(false)
+  })
+
+  test('is true for 100 characters', () => {
+    expect(isHabitatRefTooLong('x'.repeat(100))).toBe(true)
+  })
+})
+
+describe('habitatRefRefusal', () => {
+  test.each([
+    ['a valid reference', 'B-A1', null],
+    ['a blank reference', ' ', HABITAT_REF_ERROR],
+    [
+      'a reference over 99 characters',
+      'x'.repeat(100),
+      HABITAT_REF_TOO_LONG_ERROR
+    ],
+    [
+      'an over-long reference that is not UTF-8',
+      `${'x'.repeat(100)}\uFFFD`,
+      HABITAT_REF_ERROR
+    ]
+  ])('answers for %s', (_label, value, expected) => {
+    expect(habitatRefRefusal(value)).toBe(expected)
+  })
+
+  test('asks the user to shorten a reference that is too long', () => {
+    expect(HABITAT_REF_TOO_LONG_ERROR).toEqual({
+      summary: 'You have entered a habitat reference that is too long.',
+      inline: 'Enter a habitat reference of 99 characters or fewer.'
+    })
   })
 })
 
@@ -73,7 +121,7 @@ describe('habitatRefFormFields', () => {
         id: 'habitatRef',
         value: '12',
         error: undefined,
-        maxLength: 100
+        maxLength: 99
       }
     })
   })
@@ -100,7 +148,7 @@ describe('habitatRefFormFields', () => {
         id: 'habitatRef',
         value: ' ',
         error: { text: 'Inline.' },
-        maxLength: 100
+        maxLength: 99
       }
     })
   })

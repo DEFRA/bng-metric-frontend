@@ -81,8 +81,8 @@ describe('formErrorText', () => {
   })
 
   test('throws for a rule the file does not word', () => {
-    expect(() => formErrorText('habitatRef', 'tooLong')).toThrow(
-      /no forms\.habitatRef\.tooLong/
+    expect(() => formErrorText('habitatRef', 'notARule')).toThrow(
+      /no forms\.habitatRef\.notARule/
     )
   })
 })

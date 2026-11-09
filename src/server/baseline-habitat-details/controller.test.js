@@ -1358,7 +1358,7 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
         /<label class="govuk-label govuk-label--s" for="habitatRef">\s*Habitat reference\s*<\/label>/
       )
       expect(result).toMatch(
-        /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="100">/
+        /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="99">/
       )
     })
 
@@ -1417,11 +1417,13 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       )
     })
 
-    test('Sends a reference over 100 characters for the backend to truncate, as on import', async () => {
-      await postRef({ habitatRef: 'x'.repeat(120) })
+    test('Saves a reference of 99 characters, counted as characters once trimmed', async () => {
+      const ref = '\u{1F33F}'.repeat(99)
+      const { statusCode } = await postRef({ habitatRef: ` ${ref} ` })
 
+      expect(statusCode).toBe(302)
       const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
-      expect(JSON.parse(payload).ref).toBe('x'.repeat(120))
+      expect(JSON.parse(payload).ref).toBe(ref)
     })
 
     test('Leaves a reference another habitat may use for the backend to judge', async () => {
@@ -1537,7 +1539,7 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     test.each([
       ['characters that are not UTF-8', 'A\uFFFD1'],
       ['surrounding spaces', '  A1  '],
-      ['more than 100 characters', 'x'.repeat(120)]
+      ['more than 99 characters', 'x'.repeat(120)]
     ])(
       'Saves the dropdowns without checking or sending a reference holding %s that was left as it is',
       async (_label, storedRef) => {
@@ -1584,6 +1586,44 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
 
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+
+    test('Shows an over-long stored reference whole, for the user to shorten', async () => {
+      withStoredRef('x'.repeat(120))
+
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+
+      expect(result).toMatch(
+        new RegExp(
+          `id="habitatRef"[^>]*value="${'x'.repeat(120)}"[^>]*maxlength="99"`
+        )
+      )
+    })
+
+    test('Refuses a changed reference that is still over 99 characters, asking the user to shorten it', async () => {
+      withStoredRef('x'.repeat(120))
+
+      const { statusCode, result } = await postRef({
+        habitatRef: 'y'.repeat(100)
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toContain(
+        '<a href="#habitatRef">You have entered a habitat reference that is too long.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference of 99 characters or fewer.'
+      )
+      expect(result).toMatch(
+        new RegExp(
+          `id="habitatRef" name="habitatRef"[^>]*value="${'y'.repeat(100)}"`
+        )
+      )
     })
   })
 

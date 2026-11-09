@@ -519,11 +519,6 @@ describe('#resolveSingleErrorCopy', () => {
       'COMMENT_INVALID_CHARACTERS',
       'A comment contains characters that are not allowed. Remove those characters and ',
       'A comment contains characters that are not allowed. Remove those characters.'
-    ],
-    [
-      'COMMENT_TOO_LONG',
-      'A comment is longer than 999 characters. Shorten the comment and ',
-      'A comment is longer than 999 characters. Shorten the comment.'
     ]
   ])(
     'AC7: %s names the comment problem and links to a new upload',

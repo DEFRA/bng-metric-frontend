@@ -3,17 +3,20 @@
  * (BMD-1061) and the retained post-intervention details page (BMD-1180), so the
  * two forms cannot drift apart.
  *
- * They mirror the backend's import rules (BMD-1058), which the backend applies
- * again on save: a reference must have at least one character that is not
- * whitespace and must be UTF-8 text. A reference longer than the limit is
- * trimmed and truncated on save rather than refused, so length is not an error
- * here — the input stops at the limit anyway.
+ * They mirror the backend's import rules (BMD-1058, BMD-1175), which the
+ * backend applies again on save: a reference must have at least one character
+ * that is not whitespace, must be UTF-8 text, and must be no longer than
+ * MAX_HABITAT_REF_LENGTH characters once trimmed. A longer one is refused,
+ * never cut. The input stops typing at the limit, but a habitat imported
+ * before BMD-1175 may already hold a longer one, which the input shows whole.
  */
 
 import { editErrorText, formErrorText } from '../error-text/error-text.js'
 import { backendStatusOf } from './backend-save-error.js'
 
-export const MAX_HABITAT_REF_LENGTH = 100
+// In characters (Unicode code points), as the backend counts them. The
+// tooLong wording in error-text.yaml names the same number.
+export const MAX_HABITAT_REF_LENGTH = 99
 
 // The input's id and name on both forms, which the error summary links to.
 export const HABITAT_REF_FIELD_ID = 'habitatRef'
@@ -24,6 +27,11 @@ const HABITAT_REF_IN_USE_CODE = 'HABITAT_REF_IN_USE'
 // UTF-8), from error-text.yaml's forms section.
 export const HABITAT_REF_ERROR = Object.freeze(
   formErrorText(HABITAT_REF_FIELD_ID, 'invalid')
+)
+
+// A reference longer than MAX_HABITAT_REF_LENGTH characters once trimmed.
+export const HABITAT_REF_TOO_LONG_ERROR = Object.freeze(
+  formErrorText(HABITAT_REF_FIELD_ID, 'tooLong')
 )
 
 // A rename onto a reference another baseline habitat in the same layer already
@@ -55,6 +63,33 @@ export function isValidHabitatRef(value) {
 }
 
 /**
+ * Whether a reference is longer than MAX_HABITAT_REF_LENGTH characters once
+ * trimmed, counted as the backend counts them.
+ *
+ * @param {unknown} value the submitted habitat reference
+ * @returns {boolean}
+ */
+export function isHabitatRefTooLong(value) {
+  return (
+    typeof value === 'string' &&
+    Array.from(value.trim()).length > MAX_HABITAT_REF_LENGTH
+  )
+}
+
+/**
+ * Why a submitted reference cannot be saved, or null when it can.
+ *
+ * @param {unknown} value the submitted habitat reference
+ * @returns {{ summary: string, inline: string } | null}
+ */
+export function habitatRefRefusal(value) {
+  if (!isValidHabitatRef(value)) {
+    return HABITAT_REF_ERROR
+  }
+  return isHabitatRefTooLong(value) ? HABITAT_REF_TOO_LONG_ERROR : null
+}
+
+/**
  * Whether a failed save is the backend refusing the new reference because
  * another habitat already carries it.
  *
@@ -70,7 +105,8 @@ export function isRefInUseError(err) {
 
 /**
  * The page title, error summary and reference input for a form holding the
- * habitat reference. `refusal` (HABITAT_REF_ERROR or HABITAT_REF_IN_USE_ERROR)
+ * habitat reference. `refusal` (HABITAT_REF_ERROR, HABITAT_REF_TOO_LONG_ERROR
+ * or HABITAT_REF_IN_USE_ERROR)
  * is set when a save was refused: the input then shows what was typed, and the
  * page carries the error. The heading names the habitat by its saved
  * reference either way.

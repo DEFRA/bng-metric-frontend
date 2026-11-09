@@ -107,7 +107,7 @@ export function retainedRefEditFields({
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
- *   `ref` has passed isValidHabitatRef; it is sent trimmed
+ *   `ref` has passed habitatRefRefusal; it is sent trimmed
  * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true }>}
  */
 export async function saveRetainedRef(request, { projectId, featureId, ref }) {

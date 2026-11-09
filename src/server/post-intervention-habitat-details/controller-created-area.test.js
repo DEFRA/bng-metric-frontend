@@ -205,10 +205,10 @@ describe('Created area controller', () => {
 
   test('rejects a reference over the Unicode character limit without saving', async () => {
     const h = createMockH()
-    await postController.handler(request({ ref: 'x'.repeat(101) }), h)
+    await postController.handler(request({ ref: 'x'.repeat(100) }), h)
     expect(wreck.put).not.toHaveBeenCalled()
     expect(h.view.mock.calls[0][1].errors.ref).toContain(
-      '100 characters or fewer'
+      '99 characters or fewer'
     )
     expect(h.view.mock.calls[0][1].referenceHint).toBeNull()
     expect(h.view.mock.calls[0][1].errorList[0]).toEqual({
@@ -217,7 +217,7 @@ describe('Created area controller', () => {
     })
     expect(
       validateCreatedArea(
-        { ...values, ref: '\u{1F33F}'.repeat(100) },
+        { ...values, ref: '\u{1F33F}'.repeat(99) },
         creationReference
       )
     ).toEqual({})
@@ -621,7 +621,7 @@ describe('Created area authenticated form', () => {
   })
 
   test('explains the limit without truncating a legacy imported reference on GET', async () => {
-    const ref = 'x'.repeat(101)
+    const ref = 'x'.repeat(100)
     mockFeature({
       type: 'habitat',
       feature: { ...structuredClone(createdAreaFeature), ref }
@@ -634,10 +634,10 @@ describe('Created area authenticated form', () => {
     expect(page.statusCode).toBe(200)
     expect(page.payload).toContain(`value="${ref}"`)
     expect(page.payload).toContain(
-      'This imported reference exceeds 100 characters.'
+      'This imported reference exceeds 99 characters.'
     )
     expect(page.payload).toContain(
-      'Shorten it to 100 characters or fewer before saving.'
+      'Shorten it to 99 characters or fewer before saving.'
     )
     expect(page.payload).toContain('aria-describedby="ref-hint"')
     expect(wreck.put).not.toHaveBeenCalled()

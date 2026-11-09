@@ -33,7 +33,7 @@ const baselineFeatureId = 'aa0e8400-e29b-41d4-a716-446655440002'
 const pageUrl = `/post-intervention-habitat-details?featureId=${featureId}&projectId=${projectId}`
 const saveUrl = `/projects/${projectId}/post-intervention/features/${featureId}`
 
-const MAX_REF_LENGTH = 100
+const MAX_REF_LENGTH = 99
 
 const FEATURES = {
   habitat: {
@@ -294,7 +294,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
 
     test.each([
       ['surrounding spaces', '  A1  ', '  A1  '],
-      ['more than 100 characters', 'x'.repeat(120), 'x'.repeat(120)],
+      ['more than 99 characters', 'x'.repeat(120), 'x'.repeat(120)],
       ['characters that are not UTF-8', 'A\uFFFD1', 'A\uFFFD1'],
       ['no reference', null, ''],
       ['a line break the browser drops', 'A\n1', 'A1']
@@ -361,6 +361,37 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
         )
       }
     )
+
+    test('refuses a reference over 99 characters, asking the user to shorten it', async () => {
+      mockBackend()
+      const ref = 'x'.repeat(MAX_REF_LENGTH + 1)
+
+      const { statusCode, result } = await post({ habitatRef: ref })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(wreck.put).not.toHaveBeenCalled()
+      expect(result).toContain(
+        '<a href="#habitatRef">You have entered a habitat reference that is too long.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference of 99 characters or fewer.'
+      )
+      expect(result).toMatch(
+        new RegExp(`<input[^>]*id="habitatRef"[^>]*value="${ref}"`, 's')
+      )
+    })
+
+    test('saves a reference of 99 characters', async () => {
+      mockBackend()
+      const ref = 'x'.repeat(MAX_REF_LENGTH)
+      vi.mocked(wreck.put).mockImplementation(() => savedAs('habitat', ref))
+
+      const { statusCode } = await post({ habitatRef: ref })
+
+      expect(statusCode).toBe(statusCodes.redirect)
+      const [, options] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(options.payload)).toEqual({ ref })
+    })
 
     test('keeps the heading on the saved reference when a save is refused', async () => {
       mockBackend()
