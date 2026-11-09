@@ -246,7 +246,8 @@ const DETAIL_VALUES = {
   GPKG_NOT_A_GEOPACKAGE: { applicationId: hexadecimal },
   GPKG_MISSING_SYSTEM_TABLE: { table: asText },
   GPKG_MISSING_LAYER: { layer: asText },
-  GPKG_UNEXPECTED_FEATURE_LAYER: { layer: asText },
+  // The name of a table the file adds.
+  GPKG_UNEXPECTED_FEATURE_LAYER: { layer: fileText },
   GPKG_BASELINE_CONTENTS_DATA_TYPE: {
     layer: asText,
     expected: asText,
@@ -277,9 +278,10 @@ const DETAIL_VALUES = {
   },
   // The geometry variant's column is the name the file registers.
   GPKG_BASELINE_MISSING_COLUMN: { layer: asText, column: fileText },
+  // For a geometry column, column is the name the file registers.
   GPKG_BASELINE_COLUMN_SQLITE_TYPE: {
     layer: asText,
-    column: asText,
+    column: fileText,
     expectedType: asText,
     actualType: withArticle
   },

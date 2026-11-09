@@ -4,6 +4,7 @@ import { load } from 'cheerio'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { invalidFileController } from './controller.js'
+import { dropoutCopy } from './dropout-copy.js'
 
 const authCredentials = {
   sub: 'test-user-123',
@@ -1861,6 +1862,29 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
       expect(block.items).toEqual(['missing geometry column "blank"'])
     })
 
+    test('names a blank registered geometry column whose type is wrong', async () => {
+      const block = await blockFor('GPKG_BASELINE_COLUMN_SQLITE_TYPE', {
+        layer: 'Habitats',
+        column: '',
+        expectedType: 'MultiPolygon geometry',
+        actualType: 'Text'
+      })
+
+      expect(block.items).toEqual([
+        'column "blank" has a Text data type but MultiPolygon geometry was expected'
+      ])
+    })
+
+    test('names a blank unexpected layer', async () => {
+      const block = await blockFor('GPKG_UNEXPECTED_FEATURE_LAYER', {
+        layer: ''
+      })
+
+      expect(block.heading).toBe(
+        'Unexpected feature layer "blank" — not listed in baseline template schema'
+      )
+    })
+
     test('words srs_ids the file leaves unset, in the unreadable variant', async () => {
       expect(
         await blockFor('GPKG_BASELINE_SRS_ID', {
@@ -1905,6 +1929,186 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
         more: 0
       })
     })
+  })
+
+  describe('each variant the copy words', () => {
+    const BASELINE = 'Layer "Habitats" baseline mismatch'
+    const SERVICE = 'Layer "Habitats" does not match the BNG Service template'
+
+    // One error the backend can send with each variant, and the block the
+    // list shows for it.
+    const CASES = {
+      'GPKG_UNEXPECTED_FEATURE_LAYER bng-service': [
+        { layer: 'Extra' },
+        [
+          'Unexpected feature layer "Extra" — not a table of the BNG Service template',
+          []
+        ]
+      ],
+      'GPKG_BASELINE_CONTENTS_DATA_TYPE bng-service': [
+        { layer: 'Habitats', expected: 'features', found: 'tiles' },
+        [
+          SERVICE,
+          ['expected data_type "features" in gpkg_contents but found "tiles"']
+        ]
+      ],
+      'GPKG_BASELINE_SRS_ID bng-service': [
+        { layer: 'Habitats', expectedSrsId: 27700, foundSrsId: 4326 },
+        [SERVICE, ['expected srs_id 27700 but GeoPackage srs_id is 4326']]
+      ],
+      'GPKG_BASELINE_SRS_ID contents': [
+        { layer: 'Habitats', expectedSrsId: 27700, contentsSrsId: 4326 },
+        [BASELINE, ['expected srs_id 27700 but gpkg_contents has 4326']]
+      ],
+      'GPKG_BASELINE_SRS_ID unreadable': [
+        {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: 'abc',
+          geometryColumnsSrsId: 'def'
+        },
+        [
+          BASELINE,
+          [
+            'expected srs_id 27700 but could not read a valid integer srs_id from gpkg_contents (abc) nor gpkg_geometry_columns (def)'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME named': [
+        { layer: 'Habitats', column: 'geometry', expected: 'geom' },
+        [
+          SERVICE,
+          ['its geometry column is named "geometry" but should be "geom"']
+        ]
+      ],
+      'GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS bng-service': [
+        { layer: 'Habitats', found: 2 },
+        [
+          SERVICE,
+          [
+            'expected exactly one geometry column in the feature table but found 2'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS registered': [
+        { layer: 'Habitats', found: 2 },
+        [
+          BASELINE,
+          [
+            'expected exactly one geometry column in gpkg_geometry_columns but found 2'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_GEOMETRY_TYPE_NAME bng-service': [
+        { layer: 'Habitats', expected: 'POLYGON', found: 'MULTIPOLYGON' },
+        [
+          SERVICE,
+          [
+            'expected geometry type "POLYGON" in gpkg_geometry_columns but found "MULTIPOLYGON"'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_MISSING_COLUMN bng-service': [
+        { layer: 'Habitats', column: 'Habitat Ref' },
+        [SERVICE, ['missing column "Habitat Ref"']]
+      ],
+      'GPKG_BASELINE_MISSING_COLUMN geometry': [
+        { layer: 'Habitats', column: 'geom' },
+        [BASELINE, ['missing geometry column "geom"']]
+      ],
+      'GPKG_BASELINE_COLUMN_SQLITE_TYPE bng-service': [
+        {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Float',
+          actualType: 'Text'
+        },
+        [SERVICE, ['column "Area" has a Text data type but Float was expected']]
+      ],
+      'GPKG_BASELINE_COLUMN_SQLITE_TYPE not-scalar': [
+        {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Float',
+          actualType: 'Point geometry'
+        },
+        [
+          BASELINE,
+          ['column "Area" has a Point geometry but Float was expected']
+        ]
+      ],
+      'GPKG_BASELINE_COLUMN_SQLITE_TYPE undeclared': [
+        { layer: 'Habitats', column: 'Area', expectedType: 'Float' },
+        [
+          BASELINE,
+          [
+            'column "Area" has no SQLite column type declared but Float was expected'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_COLUMN_NOT_NULL bng-service': [
+        { layer: 'Habitats', column: 'Area' },
+        [SERVICE, ['column "Area" NOT NULL (required) does not match file']]
+      ],
+      'GPKG_BASELINE_COLUMN_NOT_NULL optional': [
+        { layer: 'Habitats', column: 'Comments' },
+        [
+          BASELINE,
+          ['column "Comments" NOT NULL (optional) does not match file']
+        ]
+      ],
+      'GPKG_BASELINE_COLUMN_PRIMARY_KEY bng-service': [
+        { layer: 'Habitats', column: 'fid' },
+        [SERVICE, ['primary key expectation for "fid" does not match file']]
+      ],
+      'GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING bng-service': [
+        { layer: 'Habitats' },
+        [SERVICE, ['no geometry column registered in gpkg_geometry_columns']]
+      ],
+      'GPKG_RLB_NO_GEOMETRY_COLUMN bng-service': [
+        {},
+        ['The Red Line Boundary table has no geometry column', []]
+      ],
+      'NO_HABITAT_AREAS structure': [
+        {},
+        ['Zero area habitat parcels in GeoPackage (expecting at least one)', []]
+      ],
+      'NO_DERIVED_BASELINE_HABITATS read': [
+        {},
+        [
+          'The Area Habitats Baseline table in this file has no habitats, so it cannot replace the project baseline',
+          []
+        ]
+      ]
+    }
+
+    test('has a case for every variant in the copy', () => {
+      const worded = Object.entries(dropoutCopy.errors).flatMap(
+        ([code, entry]) =>
+          Object.keys(entry.inList?.variants ?? {}).map(
+            (variant) => `${code} ${variant}`
+          )
+      )
+
+      expect(Object.keys(CASES).sort()).toEqual(worded.sort())
+    })
+
+    test.each(Object.entries(CASES))(
+      'words %s',
+      async (key, [details, [heading, items]]) => {
+        const [code, variant] = key.split(' ')
+        const [block] = await blocksFor([
+          {
+            code,
+            message: 'Not shown',
+            details: { ...details, variants: [variant] }
+          },
+          { code: 'NO_REDLINE', message: 'No redline' }
+        ])
+
+        expect(block).toEqual({ heading, items, more: 0 })
+      }
+    )
   })
 
   test('names a habitat with no distinctiveness as unknown, rather than leaving its bullet out', async () => {
