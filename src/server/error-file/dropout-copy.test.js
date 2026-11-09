@@ -18,7 +18,11 @@ import {
   parseDropoutCopy,
   splitLink
 } from './dropout-copy.js'
-import { NOTE_VALUE_NAMES, itemValueNames } from './controller.js'
+import {
+  HEADING_VALUE_NAMES,
+  NOTE_VALUE_NAMES,
+  itemValueNames
+} from './controller.js'
 import { PLACEHOLDER_VALUE_NAMES, pageValueNames } from './single-error-copy.js'
 
 // The drop-out page's copy: error-text.yaml's upload section, as YAML.
@@ -90,12 +94,20 @@ describe("error-text.yaml's upload section", () => {
       for (const name of placeholders(inList.note ?? [])) {
         expect(NOTE_VALUE_NAMES, `${code} note: {${name}}`).toContain(name)
       }
-      expect(placeholders(inList.heading ?? []), `${code} heading`).toEqual([])
+      for (const name of placeholders(inList.heading ?? [])) {
+        expect(HEADING_VALUE_NAMES, `${code} heading: {${name}}`).toContain(
+          name
+        )
+      }
     }
     const { title, body } = dropoutCopy.placeholder
     for (const name of placeholders([title, body].flat())) {
       expect(PLACEHOLDER_VALUE_NAMES, `placeholder: {${name}}`).toContain(name)
     }
+    expect(
+      placeholders(dropoutCopy.placeholder.more),
+      'placeholder.more'
+    ).toEqual(['count'])
     for (const section of ['unknown', 'distinctiveness', 'links']) {
       expect(
         placeholders(Object.values(dropoutCopy[section])),
@@ -270,6 +282,6 @@ describe('errorCopy and listHeading', () => {
   })
 
   test('give no heading where the list shows the service message', () => {
-    expect(listHeading('NO_REDLINE')).toBeNull()
+    expect(listHeading('REDLINE_AREA_TOO_LARGE')).toBeNull()
   })
 })

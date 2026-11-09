@@ -2,6 +2,7 @@ import { formatVerticalArea } from '../common/helpers/format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import {
   WHEN_ALONE,
+  canFill,
   dropoutCopy,
   errorCopy,
   fill,
@@ -205,10 +206,14 @@ function buildItems(err) {
   if (!listsHabitats(err.code)) {
     return []
   }
-  // Non-list errors don't carry details. Use the part of the message after
-  // the first ": " as the single sub-line; if there's no separator, the
+  // Non-list errors don't carry details. A code the copy gives a heading
+  // shows that alone. One it does not shows the part of the service's message
+  // after the first ": " as the single sub-line; if there's no separator, the
   // heading already says everything (no items).
   if (!err.details?.sample) {
+    if (listHeading(err.code)) {
+      return []
+    }
     const idx = err.message.indexOf(': ')
     return idx === -1 ? [] : [err.message.slice(idx + 2)]
   }
@@ -223,12 +228,32 @@ function buildItems(err) {
   )
 }
 
+/** The {values} a list's heading can name, for a test to check. */
+export const HEADING_VALUE_NAMES = Object.freeze([
+  'featureCount',
+  'maxFeatureCount'
+])
+
+// The counts ride on the error's details, as the backend's message gives them.
+function headingValues(err) {
+  const count = (key) => {
+    const value = err.details?.[key]
+    return Number.isFinite(value) ? value.toLocaleString('en-GB') : null
+  }
+  return {
+    featureCount: count('featureCount'),
+    maxFeatureCount: count('maxFeatureCount')
+  }
+}
+
 // The copy's heading for the error, or else the part of the service's message
-// before its first ": ".
+// before its first ": ", as for one whose details lack a value the heading
+// names.
 function buildHeading(err) {
   const heading = listHeading(err.code)
-  if (heading) {
-    return heading
+  const values = headingValues(err)
+  if (heading && canFill(heading, values)) {
+    return fill(heading, values)
   }
   const idx = err.message.indexOf(': ')
   return idx === -1 ? err.message : err.message.slice(0, idx)
@@ -270,6 +295,23 @@ function buildBlock(err) {
     block.note = note
   }
   return block
+}
+
+// What a placeholder page says of the error: its heading and bullets as the
+// list shows them, or the service's message for a code the copy gives no
+// heading.
+function placeholderMessage(err, block) {
+  if (!listHeading(err.code)) {
+    return err.message
+  }
+  const more =
+    block.more > 0
+      ? fill(dropoutCopy.placeholder.more, { count: block.more })
+      : ''
+  if (block.items.length === 0) {
+    return `${block.heading}${more}`
+  }
+  return `${block.heading}: ${block.items.join(', ')}${more}`
 }
 
 const SINGLE_VALIDATION_ERROR = 1
@@ -336,7 +378,11 @@ export const invalidFileController = {
     // be judged against visibleErrors — the same de-duplicated list the multi-error
     // view already renders — or AC10's personalised copy could never be reached.
     const singleError = isShownAsSingleError(visibleErrors)
-      ? resolveSingleErrorCopy(visibleErrors[0], uploadHref)
+      ? resolveSingleErrorCopy(
+          visibleErrors[0],
+          uploadHref,
+          placeholderMessage(visibleErrors[0], errorBlocks[0])
+        )
       : null
 
     const page = pageText({ fileLabel: uploadType.label })

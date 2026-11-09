@@ -88,7 +88,7 @@ const copySchema = Joi.object({
     legacyTemplate: pageCopy.required(),
     serviceTemplate: pageCopy.required()
   }).required(),
-  placeholder: pageCopy.required(),
+  placeholder: pageCopy.keys({ more: text.required() }).required(),
   names: Joi.object({
     feature: options.required(),
     tree: options.required(),

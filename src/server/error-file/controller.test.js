@@ -148,11 +148,15 @@ describe('invalidFileController.handler — populated session', () => {
     )
   })
 
-  test('errorBlocks: heading is the message prefix; items list per-feature offenders from details.sample', async () => {
+  test("errorBlocks: heading is the copy's, or the message prefix; items list per-feature offenders from details.sample", async () => {
     const errors = [
-      // Non-list error with no ":" separator — heading is the full message,
-      // items is empty.
-      { code: 'NO_REDLINE', message: 'Baseline file contains no redline' },
+      // Non-list error with no ":" separator and no heading in the copy —
+      // heading is the full message, items is empty.
+      {
+        code: 'REDLINE_AREA_TOO_LARGE',
+        message:
+          'Redline boundary area (123456789 sq m) exceeds the 100 sq km limit'
+      },
       // Non-list error WITH a ":" separator — heading is the prefix, items
       // is the right side as a single line.
       {
@@ -212,7 +216,8 @@ describe('invalidFileController.handler — populated session', () => {
       expect.objectContaining({
         errorBlocks: [
           {
-            heading: 'Baseline file contains no redline',
+            heading:
+              'Redline boundary area (123456789 sq m) exceeds the 100 sq km limit',
             items: [],
             more: 0
           },
@@ -742,10 +747,117 @@ describe('invalidFileController.handler — populated session', () => {
 
     const view = h.view.mock.calls[0][1]
     expect(view.errorBlocks[0].more).toBe(5)
-    // sample is missing → buildItems falls through to message-split path,
-    // so items is the post-colon remainder rather than []. The point of this
-    // test is just to exercise the `sample?.length ?? 0` branch in buildBlock.
-    expect(view.errorBlocks[0].items).toEqual(['…'])
+    // sample is missing, and the copy gives the code a heading, so the
+    // service's message names no bullet. The point of this test is just to
+    // exercise the `sample?.length ?? 0` branch in buildBlock.
+    expect(view.errorBlocks[0].items).toEqual([])
+    // Alone, the code shows its placeholder, which keeps the list's count.
+    expect(view.singleError.helpText).toBe(
+      'PLACEHOLDER - One or more trees are not entirely within the redline boundary (and 5 more)'
+    )
+  })
+
+  test("errorBlocks: a code the copy gives a heading shows none of the service's message", async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown: nor this' },
+      {
+        code: 'COMMENT_TOO_LONG',
+        message: 'Not shown: nor this',
+        details: { count: 1, sample: [{ layer: 'areas', fid: 2, idx: 1 }] }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading: 'Baseline file contains no redline boundary polygon',
+        items: [],
+        more: 0
+      },
+      {
+        heading: 'One or more comments are longer than 999 characters',
+        items: ['fid 2'],
+        more: 0
+      }
+    ])
+  })
+
+  test("errorBlocks: fills a heading's counts from details, as the service writes them", async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      {
+        code: 'GPKG_TOO_MANY_FEATURES',
+        message: 'Not shown',
+        details: { featureCount: 12345, maxFeatureCount: 10000 }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1].heading).toBe(
+      'GeoPackage contains 12,345 features across its boundary, habitat, hedgerow and watercourse layers; the maximum this service can validate is 10,000'
+    )
+  })
+
+  test("errorBlocks: a heading whose counts the details lack is the service's message", async () => {
+    const message =
+      'GeoPackage contains 12,345 features across its boundary, habitat, hedgerow and watercourse layers; the maximum this service can validate is 10,000'
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      { code: 'GPKG_TOO_MANY_FEATURES', message }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1].heading).toBe(message)
+  })
+
+  test("singleError: a placeholder page names the copy's heading and bullets, not the service's message", async () => {
+    const errors = [
+      {
+        code: 'TREES_OUTSIDE_REDLINE',
+        message: 'Not shown',
+        details: { count: 3, sample: [{ feature_ref: 'T1' }, { fid: 4 }] }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError.helpText).toBe(
+      'PLACEHOLDER - One or more trees are not entirely within the redline boundary: Feature Ref T1, fid 4 (and 1 more)'
+    )
+  })
+
+  test("singleError: a placeholder page for a code with no heading in the copy names the service's message", async () => {
+    const errors = [
+      {
+        code: 'AREA_SUM_MISMATCH',
+        message:
+          'Sum of area habitat polygons (100.12 sq m) does not equal redline boundary area (99.00 sq m)'
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError.helpText).toBe(
+      'PLACEHOLDER - Sum of area habitat polygons (100.12 sq m) does not equal redline boundary area (99.00 sq m)'
+    )
   })
 
   test('errorBlocks: describeFeature falls through to the bare "feature" label when no identifying fields are present', async () => {

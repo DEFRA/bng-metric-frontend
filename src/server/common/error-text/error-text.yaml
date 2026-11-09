@@ -67,9 +67,17 @@
 #     placeholder  the copy is awaiting UCD, so the page shows "placeholder"
 #     list         the page shows the inList layout even for this problem alone
 #
-# - inList: service-message, or no heading, means the page shows the
-#   service's own technical message as the heading. These have no reviewed
-#   copy yet.
+# - A heading here is shown word for word, with any {braces} filled in.
+#   inList: service-message means the page shows the service's own technical
+#   message as the heading instead. That is left for a problem the page never
+#   lists, or whose message names values the service does not send apart from
+#   it, such as a layer name or an area, so its heading cannot be written here
+#   yet.
+#
+# - A heading that was the service's message is copied from the backend word
+#   for word, so nothing fails when the backend changes that message or a
+#   limit it names. A comment beside a heading names any backend constant it
+#   repeats. Change both together.
 
 upload:
   page:
@@ -107,13 +115,17 @@ upload:
         The layer names and column names do not match the BNG Service template.
         Rename the layers and columns and [upload a new file](upload).
 
-  # Copy awaiting UCD (BMD-592). {serviceMessage} is the service's own message.
+  # Copy awaiting UCD (BMD-592). {message} is the problem's heading as the
+  # list shows it, then its bullets, or the service's own message for a
+  # problem that has no heading here.
   placeholder:
     title: PLACEHOLDER (AWAITING UCD)
-    # The service's message when it sent one, and the title alone when it did not.
+    # The message when there is one, and the title alone when there is not.
     body:
-      - PLACEHOLDER - {serviceMessage}
+      - PLACEHOLDER - {message}
       - PLACEHOLDER
+    # After the bullets, when the list leaves some out.
+    more: ' (and {count} more)'
 
   # How a bullet names a habitat, the first option whose values are known.
   names:
@@ -195,7 +207,11 @@ upload:
           - >-
             This file contains more features than this service can check. Reduce
             the number of features and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          GeoPackage contains {featureCount} features across its boundary,
+          habitat, hedgerow and watercourse layers; the maximum this service can
+          validate is {maxFeatureCount}
 
     # --------------------------------------------------------- layers and columns
 
@@ -264,7 +280,10 @@ upload:
 
     TEMPLATE_VERSION_MISSING:
       whenAlone: list
-      inList: service-message
+      inList:
+        heading: >-
+          The file has no template version record, so it is not a BNG Service
+          template file.
 
     TEMPLATE_VERSION_DUPLICATED:
       whenAlone: list
@@ -272,7 +291,10 @@ upload:
 
     TEMPLATE_VERSION_INVALID:
       whenAlone: list
-      inList: service-message
+      inList:
+        heading: >-
+          The file's template version record cannot be read, so its template
+          version is unknown.
 
     TEMPLATE_VERSION_UNSUPPORTED:
       whenAlone: list
@@ -280,7 +302,11 @@ upload:
 
     POST_INTERVENTION_TABLES_EMPTY:
       whenAlone: list
-      inList: service-message
+      inList:
+        heading: >-
+          The Post-Intervention tables in this file are all empty, so it has no
+          post-intervention habitats to upload. Upload it as a baseline, or add
+          the post-intervention habitats and upload it again.
 
     # ------------------------------------------------------- red line boundary
 
@@ -290,7 +316,9 @@ upload:
         body: >-
           The redline boundary is missing. Draw the red line boundary and
           [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          Baseline file contains no redline boundary polygon
 
     GPKG_RLB_NO_POLYGON:
       whenAlone:
@@ -298,7 +326,9 @@ upload:
         body: >-
           The redline boundary is missing. Draw the red line boundary and
           [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          Zero red line boundaries in GeoPackage (expecting one)
 
     GPKG_RLB_TOO_MANY_POLYGONS:
       whenAlone:
@@ -306,7 +336,9 @@ upload:
         body: >-
           This file contains multiple red line boundaries. Draw the red line
           boundary again and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          Too many red line boundaries in GeoPackage (expecting one)
 
     GPKG_RLB_NO_GEOMETRY_COLUMN:
       whenAlone: catch-all
@@ -314,7 +346,9 @@ upload:
 
     GPKG_RLB_UNREADABLE_GEOMETRY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Red Line Boundary contains unreadable geometry
 
     REDLINE_INVALID_GEOMETRY:
       whenAlone:
@@ -326,7 +360,9 @@ upload:
 
     REDLINE_OUTSIDE_ENGLAND:
       whenAlone: placeholder
-      inList: service-message
+      inList:
+        heading: >-
+          Redline boundary is outside England
 
     REDLINE_AREA_TOO_LARGE:
       whenAlone: placeholder
@@ -344,15 +380,22 @@ upload:
 
     GPKG_HABITATS_NO_GEOMETRY_COLUMN:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Habitats layer has no registered geometry column in
+          gpkg_geometry_columns
 
     GPKG_HABITATS_UNREADABLE_GEOMETRY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Habitats contains unreadable geometry
 
     GPKG_HABITATS_WRONG_GEOMETRY_TYPE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Habitats contains feature(s) with non-polygon geometry
 
     AREA_PARCELS_INVALID_GEOMETRY:
       whenAlone:
@@ -363,6 +406,8 @@ upload:
           This parcel is overlapping itself. Draw the parcel again and
           [upload a new file](upload).
       inList:
+        heading: >-
+          One or more area habitat polygons have invalid geometry
         item:
           - '{feature}'
           - ' ({reason})'
@@ -379,6 +424,8 @@ upload:
             Some parcels in this file are overlapping. Draw the affected parcels
             again and [upload a new file](upload).
       inList:
+        heading: >-
+          One or more area habitat parcels overlap with other parcels
         item: '{featureA} ↔ {featureB}'
 
     # The check is on area alone; the 1 square metre is MIN_PARCEL_AREA_SQ_M in
@@ -392,6 +439,8 @@ upload:
           This parcel is smaller than 1 square metre. Draw the parcel again and
           [upload a new file](upload).
       inList:
+        heading: >-
+          One or more area habitat parcels are smaller than 1 square metre
         item:
           - '{feature}'
           - ' — ~{area} sq m'
@@ -405,6 +454,9 @@ upload:
       # Hidden when AREA_PARCELS_OUTSIDE_REDLINE is shown, which reports the same
       # problem parcel by parcel.
       inList:
+        heading: >-
+          Baseline file contains habitat parcel parts outside the redline
+          boundary
         item: '~{area} sq m near {location}'
 
     AREA_PARCELS_OUTSIDE_REDLINE:
@@ -416,6 +468,9 @@ upload:
           This parcel is outside the red line boundary. Draw the parcel again and
           [upload a new file](upload).
       inList:
+        heading: >-
+          One or more area habitat polygons are not entirely within the redline
+          boundary
         item:
           - '{feature}'
           - ' — ~{area} sq m near {location}'
@@ -444,15 +499,21 @@ upload:
 
     GPKG_HEDGEROWS_UNREADABLE_GEOMETRY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Hedgerows contains unreadable geometry
 
     GPKG_HEDGEROWS_NO_LINESTRING_GEOMETRY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Hedgerows has feature(s) but no readable linestring geometry
 
     GPKG_HEDGEROWS_WRONG_GEOMETRY_TYPE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Hedgerows contains feature(s) with non-linestring geometry
 
     HEDGEROWS_OUTSIDE_REDLINE:
       whenAlone:
@@ -462,21 +523,30 @@ upload:
         body: >-
           This hedgerow is outside the red line boundary. Draw the hedgerow again
           and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          One or more hedgerow habitats are not entirely within the redline
+          boundary
 
     # ------------------------------------------------------------ watercourses
 
     GPKG_RIVERS_UNREADABLE_GEOMETRY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Rivers contains unreadable geometry
 
     GPKG_RIVERS_NO_LINESTRING_GEOMETRY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Rivers has feature(s) but no readable linestring geometry
 
     GPKG_RIVERS_WRONG_GEOMETRY_TYPE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: >-
+          Rivers contains feature(s) with non-linestring geometry
 
     WATERCOURSES_OUTSIDE_REDLINE:
       whenAlone:
@@ -486,10 +556,15 @@ upload:
         body: >-
           This watercourse is outside the red line boundary. Draw the watercourse
           again and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          One or more watercourse habitats are not entirely within the redline
+          boundary
 
     # -------------------------------------------------- vertical area habitats
 
+    # "Area (ha)" in the heading mirrors AREA_COLUMN in the backend
+    # (validation/geopackage/vertical-area-check.js); change both together.
     VERTICAL_HABITAT_AREA_NOT_POSITIVE:
       whenAlone:
         title:
@@ -500,6 +575,9 @@ upload:
           Enter the area you estimated on site in hectares and
           [upload a new file](upload).
       inList:
+        heading: >-
+          One or more vertical area habitats have an "Area (ha)" that is not a
+          number above 0. Enter the area you estimated on site, in hectares
         item: '{feature} (Area: {area})'
 
     VERTICAL_HABITATS_OUTSIDE_REDLINE:
@@ -510,10 +588,16 @@ upload:
         body: >-
           This vertical area habitat is outside the red line boundary. Draw the
           vertical area habitat again and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          One or more vertical area habitats are not entirely within the redline
+          boundary
 
     # ------------------------------------------------------- trees and IGGIs
 
+    # "Count" and "(1 or more)" in the heading mirror COUNT_COLUMN and
+    # MIN_TREE_COUNT in the backend (validation/geopackage/tree-count-check.js);
+    # change both together.
     TREE_COUNT_NOT_WHOLE:
       whenAlone:
         title:
@@ -523,11 +607,17 @@ upload:
           The Count for a tree is not a whole number of trees. Leave Count blank
           for one tree, or enter how many trees the point stands for and
           [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          One or more trees have a "Count" that is not a whole number of trees
+          (1 or more). Enter how many trees each point stands for, or leave it
+          blank for one tree
 
     TREES_OUTSIDE_REDLINE:
       whenAlone: placeholder
-      inList: service-message
+      inList:
+        heading: >-
+          One or more trees are not entirely within the redline boundary
 
     # AWAITING UCD
     IRREPLACEABLE_TREE:
@@ -542,12 +632,13 @@ upload:
 
     IGGIS_OUTSIDE_REDLINE:
       whenAlone: placeholder
-      inList: service-message
+      inList:
+        heading: >-
+          One or more IGGIs are not entirely within the redline boundary
 
     # --------------------------------------------------------------- comments
     # The 999 character figure mirrors MAX_COMMENT_LENGTH in the backend
-    # (validation/geopackage/comment-check.js); change both together. A file
-    # with several problems lists the service's own message.
+    # (validation/geopackage/comment-check.js); change both together.
 
     COMMENT_INVALID_CHARACTERS:
       whenAlone:
@@ -555,7 +646,9 @@ upload:
         body: >-
           The file contains a comment that uses non-UTF8 characters. Remove those
           characters and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          One or more comments contain characters that are not valid UTF-8
 
     COMMENT_TOO_LONG:
       whenAlone:
@@ -563,7 +656,9 @@ upload:
         body: >-
           The file contains a comment with more than 999 characters. Shorten the
           comment and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: >-
+          One or more comments are longer than 999 characters
 
     # ------------------------------------------------------------ habitat refs
 
@@ -598,6 +693,9 @@ upload:
           Use the [metric tool (spreadsheet)](metric-tool) to calculate
           biodiversity value.
       inList:
+        heading: >-
+          One or more habitats have a distinctiveness that is out of scope for
+          the BNG Beta service
         item: '{feature} — {habitatType} ({distinctiveness})'
         # {bands} are the distinctiveness bands the service takes.
         note: 'Allowed distinctiveness: {bands}.'
@@ -614,6 +712,9 @@ upload:
         # The link opens in this tab, and says nothing about a new one.
         opensInNewTab: false
       inList:
+        heading: >-
+          One or more habitats are enhanced, but their baseline habitat cannot
+          be enhanced in this service
         item:
           - '{feature} — {habitatType}'
           - ' ({condition})'
