@@ -19,8 +19,8 @@ import {
   splitLink
 } from './dropout-copy.js'
 import {
-  HEADING_VALUE_NAMES,
   NOTE_VALUE_NAMES,
+  detailValueNames,
   itemValueNames
 } from './controller.js'
 import { PLACEHOLDER_VALUE_NAMES, pageValueNames } from './single-error-copy.js'
@@ -39,6 +39,11 @@ function placeholders(templates) {
 }
 
 const entries = Object.entries(dropoutCopy.errors)
+
+/** A code's inList variants, as a list. */
+function variantsOf(inList) {
+  return Object.values(inList.variants ?? {})
+}
 
 function pagesOf(entry) {
   return typeof entry.whenAlone === 'object' ? [entry.whenAlone].flat() : []
@@ -66,9 +71,13 @@ describe("error-text.yaml's upload section", () => {
     }
     // Each code's bullets against the values the code supplies for that code,
     // so {location} on a lineage bullet fails even though another code has it.
+    // A bullet names a habitat's values, or the error's details when it names
+    // no habitats, in any of its variants.
     for (const [code, { inList }] of entries) {
-      for (const name of placeholders(inList.item ?? [])) {
-        expect(itemValueNames(code), `${code}: {${name}}`).toContain(name)
+      const items = [inList.item, ...variantsOf(inList).map((v) => v.item)]
+      const names = [...itemValueNames(code), ...detailValueNames(code)]
+      for (const name of placeholders(items.filter(Boolean).flat())) {
+        expect(names, `${code}: {${name}}`).toContain(name)
       }
     }
     for (const name of placeholders([
@@ -94,8 +103,12 @@ describe("error-text.yaml's upload section", () => {
       for (const name of placeholders(inList.note ?? [])) {
         expect(NOTE_VALUE_NAMES, `${code} note: {${name}}`).toContain(name)
       }
-      for (const name of placeholders(inList.heading ?? [])) {
-        expect(HEADING_VALUE_NAMES, `${code} heading: {${name}}`).toContain(
+      const headings = [
+        inList.heading,
+        ...variantsOf(inList).map((v) => v.heading)
+      ]
+      for (const name of placeholders(headings.filter(Boolean))) {
+        expect(detailValueNames(code), `${code} heading: {${name}}`).toContain(
           name
         )
       }
@@ -281,7 +294,7 @@ describe('errorCopy and listHeading', () => {
     expect(listHeading('NOT_A_CODE')).toBeNull()
   })
 
-  test('give no heading where the list shows the service message', () => {
-    expect(listHeading('REDLINE_AREA_TOO_LARGE')).toBeNull()
+  test('give no heading where the list shows the catch-all title', () => {
+    expect(listHeading('INVALID_FILENAME')).toBeNull()
   })
 })

@@ -116,13 +116,9 @@ function placeholderPage(message) {
  * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
  * @param {string} [placeholderMessage] what a placeholder page says of the
- *   error; the service's message when not given
+ *   error: its heading and bullets as the list shows them
  */
-export function resolveSingleErrorCopy(
-  error,
-  uploadHref,
-  placeholderMessage = error?.message
-) {
+export function resolveSingleErrorCopy(error, uploadHref, placeholderMessage) {
   const whenAlone = errorCopy(error?.code)?.whenAlone
 
   if (whenAlone === WHEN_ALONE.PLACEHOLDER) {

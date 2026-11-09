@@ -128,8 +128,8 @@ describe('invalidFileController.handler — populated session', () => {
 
   test('passes errorList and projectId to the view from session', async () => {
     const errors = [
-      { code: 'NO_HABITAT_AREAS', message: 'No habitat areas' },
-      { code: 'REDLINE_INVALID_GEOMETRY', message: 'Redline invalid' }
+      { code: 'NO_HABITAT_AREAS', message: 'not shown' },
+      { code: 'REDLINE_INVALID_GEOMETRY', message: 'not shown' }
     ]
     const request = makeRequest({
       baselineValidationErrors: errors,
@@ -142,27 +142,28 @@ describe('invalidFileController.handler — populated session', () => {
     expect(h.view).toHaveBeenCalledWith(
       'error-file/index',
       expect.objectContaining({
-        errorList: [{ text: 'No habitat areas' }, { text: 'Redline invalid' }],
+        errorList: [
+          { text: 'Baseline file contains no area habitat polygons' },
+          { text: 'Redline boundary geometry is invalid' }
+        ],
         projectId: 'proj-456'
       })
     )
   })
 
-  test("errorBlocks: heading is the copy's, or the message prefix; items list per-feature offenders from details.sample", async () => {
+  test("errorBlocks: heading and bullet are the copy's, filled from details; items list per-feature offenders from details.sample", async () => {
     const errors = [
-      // Non-list error with no ":" separator and no heading in the copy —
-      // heading is the full message, items is empty.
+      // Non-list error — heading filled from details, no items.
       {
         code: 'REDLINE_AREA_TOO_LARGE',
-        message:
-          'Redline boundary area (123456789 sq m) exceeds the 100 sq km limit'
+        message: 'not shown',
+        details: { areaSqM: 123456789.4 }
       },
-      // Non-list error WITH a ":" separator — heading is the prefix, items
-      // is the right side as a single line.
+      // Non-list error with an item — one bullet, from details.
       {
         code: 'REDLINE_INVALID_GEOMETRY',
-        message:
-          'Redline boundary geometry is invalid: Self-intersection at POINT(0 0)'
+        message: 'not shown',
+        details: { reason: 'Self-intersection', location: 'POINT(0 0)' }
       },
       // List error — items rendered from details.sample using "Feature Ref"
       // labels and the (and N more) tail when count > sample.length.
@@ -806,12 +807,10 @@ describe('invalidFileController.handler — populated session', () => {
     )
   })
 
-  test("errorBlocks: a heading whose counts the details lack is the service's message", async () => {
-    const message =
-      'GeoPackage contains 12,345 features across its boundary, habitat, hedgerow and watercourse layers; the maximum this service can validate is 10,000'
+  test("errorBlocks: a heading whose values the details lack is the catch-all title, never the service's message", async () => {
     const errors = [
       { code: 'NO_REDLINE', message: 'Not shown' },
-      { code: 'GPKG_TOO_MANY_FEATURES', message }
+      { code: 'GPKG_TOO_MANY_FEATURES', message: 'Not shown: nor this' }
     ]
     const request = makeRequest({ baselineValidationErrors: errors })
     const h = makeH()
@@ -819,7 +818,72 @@ describe('invalidFileController.handler — populated session', () => {
     await invalidFileController.handler(request, h)
 
     const view = h.view.mock.calls[0][1]
-    expect(view.errorBlocks[1].heading).toBe(message)
+    expect(view.errorBlocks[1]).toEqual({
+      heading: 'Your Geopackage (.gpkg) file contains an error',
+      items: [],
+      more: 0
+    })
+  })
+
+  test('errorBlocks: a code the copy does not have is headed by the catch-all title', async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown: nor this' }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1]).toEqual({
+      heading: 'Your Geopackage (.gpkg) file contains an error',
+      items: [],
+      more: 0
+    })
+  })
+
+  test('errorBlocks: a variant named in details replaces the heading or item it words', async () => {
+    const errors = [
+      {
+        code: 'GPKG_BASELINE_SRS_ID',
+        message: 'Not shown',
+        details: {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: '4326',
+          variants: ['contents', 'bng-service']
+        }
+      },
+      {
+        code: 'GPKG_BASELINE_COLUMN_SQLITE_TYPE',
+        message: 'Not shown',
+        details: {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Real',
+          actualType: 'Integer'
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading: 'Layer "Habitats" does not match the BNG Service template',
+        items: ['expected srs_id 27700 but gpkg_contents has 4326'],
+        more: 0
+      },
+      {
+        heading: 'Layer "Habitats" baseline mismatch',
+        items: ['column "Area" has an Integer data type but Real was expected'],
+        more: 0
+      }
+    ])
   })
 
   test("singleError: a placeholder page names the copy's heading and bullets, not the service's message", async () => {
@@ -841,12 +905,12 @@ describe('invalidFileController.handler — populated session', () => {
     )
   })
 
-  test("singleError: a placeholder page for a code with no heading in the copy names the service's message", async () => {
+  test('singleError: a placeholder page fills its heading from details, as the service writes the numbers', async () => {
     const errors = [
       {
         code: 'AREA_SUM_MISMATCH',
-        message:
-          'Sum of area habitat polygons (100.12 sq m) does not equal redline boundary area (99.00 sq m)'
+        message: 'Not shown',
+        details: { habitatsAreaSqM: 100.123, redlineAreaSqM: 99 }
       }
     ]
     const request = makeRequest({ baselineValidationErrors: errors })
@@ -1498,39 +1562,39 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
   test.each([
     [
       'TEMPLATE_VERSION_MISSING',
-      'The file has no template version record, so it is not a BNG Service template file.',
-      []
+      undefined,
+      'The file has no template version record, so it is not a BNG Service template file.'
     ],
     [
       'TEMPLATE_VERSION_DUPLICATED',
-      'The file has 2 template version records, so its template version is unclear. It should have one.',
-      []
+      { recordCount: 2 },
+      'The file has 2 template version records, so its template version is unclear. It should have one.'
     ],
     [
       'TEMPLATE_VERSION_INVALID',
-      "The file's template version record cannot be read, so its template version is unknown.",
-      []
+      undefined,
+      "The file's template version record cannot be read, so its template version is unknown."
     ],
     [
       'TEMPLATE_VERSION_UNSUPPORTED',
-      'The file is in version 2.0 of the BNG Service template, which the service does not read. It reads version 1.0.',
-      []
+      { version: '2.0', supportedVersions: ['1.0', '1.1'] },
+      'The file is in version 2.0 of the BNG Service template, which the service does not read. It reads version 1.0, 1.1.'
     ],
     [
       'POST_INTERVENTION_TABLES_EMPTY',
-      'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.',
-      []
+      { template: { name: 'bng-service', version: '1.0' } },
+      'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.'
     ]
   ])(
-    'shows a lone %s under the backend’s message, with no placeholder title',
-    async (code, message, items) => {
-      const view = await viewFor([{ code, message }])
+    'shows a lone %s under its heading, with no placeholder title',
+    async (code, details, heading) => {
+      const view = await viewFor([
+        { code, message: 'not shown', ...(details && { details }) }
+      ])
 
       expect(view.singleError).toBeNull()
       expect(view.pageTitle).toBe('There is a problem with your file')
-      expect(view.errorBlocks).toEqual([
-        { heading: message.split(': ')[0], items, more: 0 }
-      ])
+      expect(view.errorBlocks).toEqual([{ heading, items: [], more: 0 }])
     }
   )
   test('shows a lone LEGACY_TEMPLATE_NOT_ACCEPTED as single-error copy, not split at its colon', async () => {

@@ -67,12 +67,23 @@
 #     placeholder  the copy is awaiting UCD, so the page shows "placeholder"
 #     list         the page shows the inList layout even for this problem alone
 #
-# - A heading here is shown word for word, with any {braces} filled in.
-#   inList: service-message means the page shows the service's own technical
-#   message as the heading instead. That is left for a problem the page never
-#   lists, or whose message names values the service does not send apart from
-#   it, such as a layer name or an area, so its heading cannot be written here
-#   yet.
+# - A heading here is shown word for word, with any {braces} filled in. A
+#   problem that names no habitats has one bullet at most, its item, filled in
+#   the same way. The {braces} of such a problem are values the service sends
+#   with it (bng-metric-backend, src/validation/geopackage/errors.js,
+#   ERROR_CODE_DETAILS); a heading whose values the service did not send shows
+#   the catch-all title instead.
+#
+# - "variants" words a problem the service words more than one way. The
+#   service names the way it chose, and that variant's heading or item
+#   replaces the problem's own. bng-service is the BNG Service template's
+#   wording of a check the legacy template shares.
+#
+# - inList: catch-all heads the list with the catch-all title below. It is
+#   for a problem the page never lists: the service refuses it alone, or does
+#   not refuse a file with it at all.
+#
+# - The page never shows the service's own message. It is for its logs.
 #
 # - A heading that was the service's message is copied from the backend word
 #   for word, so nothing fails when the backend changes that message or a
@@ -172,29 +183,33 @@ upload:
           The file name contains characters we cannot accept. Rename the file
           using letters, numbers, spaces, hyphens, underscores or brackets and
           [upload the renamed file](upload).
-      inList: service-message
+      inList: catch-all
 
     FILENAME_TOO_LONG:
       whenAlone: catch-all
-      inList: service-message
+      inList: catch-all
 
     INVALID_FILE_METADATA:
       whenAlone: catch-all
-      inList: service-message
+      inList: catch-all
 
     # -------------------------------------------------------------- file format
 
     GPKG_INVALID_FILE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'File is not a valid GeoPackage'
 
     GPKG_NOT_A_GEOPACKAGE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'File is not a GeoPackage (application_id 0x{applicationId} is not a recognised GeoPackage identifier)'
 
     GPKG_MISSING_SYSTEM_TABLE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Missing required GeoPackage system table'
+        item: '{table}'
 
     GPKG_TOO_MANY_FEATURES:
       whenAlone:
@@ -217,55 +232,127 @@ upload:
 
     GPKG_MISSING_LAYER:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Missing required feature layer in GeoPackage'
+        item: '{layer}'
 
     GPKG_UNEXPECTED_FEATURE_LAYER:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Unexpected feature layer "{layer}" — not listed in baseline template schema'
+        variants:
+          bng-service:
+            heading: 'Unexpected feature layer "{layer}" — not a table of the BNG Service template'
 
     GPKG_BASELINE_CONTENTS_DATA_TYPE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'expected data_type "{expected}" in gpkg_contents but found "{found}"'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
 
     GPKG_BASELINE_SRS_ID:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'expected srs_id {expectedSrsId} but GeoPackage srs_id is {foundSrsId}'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
+          contents:
+            item: 'expected srs_id {expectedSrsId} but gpkg_contents has {contentsSrsId}'
+          unreadable:
+            item: 'expected srs_id {expectedSrsId} but could not read a valid integer srs_id from gpkg_contents ({contentsSrsId}) nor gpkg_geometry_columns ({geometryColumnsSrsId})'
 
     GPKG_BASELINE_GPKG_SRS_INCONSISTENT:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" GeoPackage srs_id inconsistent'
+        item: 'gpkg_contents has {contentsSrsId} but gpkg_geometry_columns has {geometryColumnsSrsId}'
 
     GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" geometry column "{column}" has an invalid name in gpkg_geometry_columns'
+        variants:
+          named:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
+            item: 'its geometry column is named "{column}" but should be "{expected}"'
 
     GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'expected exactly one geometry column in the feature table but found {found}'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
+          registered:
+            item: 'expected exactly one geometry column in gpkg_geometry_columns but found {found}'
 
     GPKG_BASELINE_GEOMETRY_TYPE_NAME:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'expected geometry type "{expected}" in gpkg_geometry_columns but found "{found}"'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
 
     GPKG_BASELINE_MISSING_COLUMN:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'missing column "{column}"'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
+          geometry:
+            item: 'missing geometry column "{column}"'
 
     GPKG_BASELINE_COLUMN_SQLITE_TYPE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'column "{column}" has {actualType} data type but {expectedType} was expected'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
+          not-scalar:
+            item: 'column "{column}" has {actualType} but {expectedType} was expected'
+          undeclared:
+            item: 'column "{column}" has no SQLite column type declared but {expectedType} was expected'
 
     GPKG_BASELINE_COLUMN_NOT_NULL:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'column "{column}" NOT NULL (required) does not match file'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
+          optional:
+            item: 'column "{column}" NOT NULL (optional) does not match file'
 
     GPKG_BASELINE_COLUMN_PRIMARY_KEY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'primary key expectation for "{column}" does not match file'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
 
     GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Layer "{layer}" baseline mismatch'
+        item: 'no geometry column registered in gpkg_geometry_columns'
+        variants:
+          bng-service:
+            heading: 'Layer "{layer}" does not match the BNG Service template'
 
     # ---------------------------------------------------------- BNG Service template
 
@@ -276,7 +363,9 @@ upload:
         body: >-
           Your file is using the legacy template. The service now uses the BNG
           service template.
-      inList: service-message
+      inList:
+        heading: 'This file is in the legacy Natural England template. The service now takes the BNG Service template'
+        item: 'convert the file with the QGIS plugin, then upload it again.'
 
     TEMPLATE_VERSION_MISSING:
       whenAlone: list
@@ -287,7 +376,8 @@ upload:
 
     TEMPLATE_VERSION_DUPLICATED:
       whenAlone: list
-      inList: service-message
+      inList:
+        heading: 'The file has {recordCount} template version records, so its template version is unclear. It should have one.'
 
     TEMPLATE_VERSION_INVALID:
       whenAlone: list
@@ -298,7 +388,8 @@ upload:
 
     TEMPLATE_VERSION_UNSUPPORTED:
       whenAlone: list
-      inList: service-message
+      inList:
+        heading: 'The file is in version {version} of the BNG Service template, which the service does not read. It reads version {supportedVersions}.'
 
     POST_INTERVENTION_TABLES_EMPTY:
       whenAlone: list
@@ -342,7 +433,11 @@ upload:
 
     GPKG_RLB_NO_GEOMETRY_COLUMN:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Red Line Boundary layer has no registered geometry column in gpkg_geometry_columns'
+        variants:
+          bng-service:
+            heading: 'The Red Line Boundary table has no geometry column'
 
     GPKG_RLB_UNREADABLE_GEOMETRY:
       whenAlone: catch-all
@@ -356,7 +451,11 @@ upload:
         body: >-
           The redline boundary is overlapping itself. Draw the boundary again and
           [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: 'Redline boundary geometry is invalid'
+        item:
+          - '{reason}'
+          - ' at {location}'
 
     REDLINE_OUTSIDE_ENGLAND:
       whenAlone: placeholder
@@ -366,7 +465,8 @@ upload:
 
     REDLINE_AREA_TOO_LARGE:
       whenAlone: placeholder
-      inList: service-message
+      inList:
+        heading: 'Redline boundary area ({areaSqM} sq m) exceeds the 100 sq km limit'
 
     # ------------------------------------------------------------ area habitats
 
@@ -376,7 +476,11 @@ upload:
         body: >-
           The file doesn't contain any parcels. Draw parcels within your red line
           boundary and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: 'Baseline file contains no area habitat polygons'
+        variants:
+          structure:
+            heading: 'Zero area habitat parcels in GeoPackage (expecting at least one)'
 
     GPKG_HABITATS_NO_GEOMETRY_COLUMN:
       whenAlone: catch-all
@@ -477,7 +581,8 @@ upload:
 
     AREA_SUM_MISMATCH:
       whenAlone: placeholder
-      inList: service-message
+      inList:
+        heading: 'Sum of area habitat polygons ({habitatsAreaSqM} sq m) does not equal redline boundary area ({redlineAreaSqM} sq m)'
 
     NO_DERIVED_BASELINE_HABITATS:
       whenAlone:
@@ -485,7 +590,11 @@ upload:
         body: >-
           This file has no baseline area habitats. Add baseline habitats and
           [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: 'This post-intervention file has no baseline area habitats, so it cannot replace the project baseline'
+        variants:
+          read:
+            heading: 'The Area Habitats Baseline table in this file has no habitats, so it cannot replace the project baseline'
 
     BASELINE_TYPE_MISSING:
       whenAlone:
@@ -493,7 +602,8 @@ upload:
         body: >-
           Some retained or enhanced habitats have no baseline habitat type. Add a
           baseline habitat type for each of them and [upload a new file](upload).
-      inList: service-message
+      inList:
+        heading: '{rowCount} retained or enhanced rows have no baseline habitat type, so the baseline cannot be derived from this file'
 
     # --------------------------------------------------------------- hedgerows
 
@@ -896,19 +1006,22 @@ upload:
 
     SIZING_FAILED:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'Unable to calculate habitat sizes'
 
     VALIDATION_FAILED:
       whenAlone: catch-all
-      inList: service-message
+      inList: catch-all
 
     VALIDATION_BUSY:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'The service is busy checking other files. Please try again in a few moments.'
 
     VALIDATION_UNAVAILABLE:
       whenAlone: catch-all
-      inList: service-message
+      inList:
+        heading: 'The file checking service is currently unavailable. Please try again later.'
 
 # -------------------------------------------------------------------- edit
 #
