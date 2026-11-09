@@ -211,3 +211,27 @@ test('shows the stored row with zero units when the reference data cannot be loa
     .postIntervention.habitats[0]
   expect(displayed).toEqual({ ...feature, units: 0 })
 })
+
+test.each([
+  [
+    'a saved zero score with a missing label',
+    { distinctiveness: null, distinctivenessScore: 0 },
+    { distinctiveness: 'Medium', distinctivenessScore: 0 }
+  ],
+  [
+    'a saved label with a missing score',
+    { distinctiveness: 'High', distinctivenessScore: null },
+    { distinctiveness: 'High', distinctivenessScore: 4 }
+  ]
+])(
+  'fills only the missing half of distinctiveness for %s',
+  async (_, saved, expected) => {
+    const project = projectWith({
+      ...feature,
+      proposed: { ...feature.proposed, ...saved }
+    })
+    const displayed = (await prepareCreatedAreaListDisplay(project))
+      .postIntervention.habitats[0]
+    expect(displayed.proposed).toMatchObject(expected)
+  }
+)

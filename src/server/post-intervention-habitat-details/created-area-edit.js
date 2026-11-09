@@ -20,13 +20,9 @@ import {
 import { saveHabitat } from '../common/helpers/habitat-details-controller.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
-import {
-  formatAreaHectaresValue,
-  formatHabitatUnits
-} from '../common/helpers/format-habitat-values.js'
-import { isFiniteNumber } from '../common/helpers/unit-summary.js'
+import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
 import { buildCreatedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
-import { formatLengthDisplay } from './view-only-shared.js'
+import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
 import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
@@ -426,12 +422,6 @@ function editFieldsWithImportHints(feature, reference, values) {
       ]
     })
   )
-}
-
-// AC2: an incomplete habitat shows zero units delivered. Display only: units
-// that could not be calculated stay null in the project.
-function createdUnitsDisplay(feature) {
-  return formatHabitatUnits(isFiniteNumber(feature.units) ? feature.units : 0)
 }
 
 export function buildCreatedAreaEditViewModel(

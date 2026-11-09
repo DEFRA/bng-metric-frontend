@@ -18,9 +18,24 @@ function isCreated(feature) {
   return featureRetentionCategory(feature) === RETENTION_CREATED
 }
 
+const TYPE_FIELDS = ['distinctiveness', 'distinctivenessScore']
+
 function missingTypeFields(feature) {
-  return ['distinctiveness', 'distinctivenessScore'].some((field) =>
+  return TYPE_FIELDS.some((field) =>
     missing(sourceValue(feature, feature.proposed, field))
+  )
+}
+
+// Each half of the pair is filled only where its own saved value is missing,
+// so a saved label or a saved zero score is never replaced.
+function typeFieldsFromReference(feature, type) {
+  if (!type) {
+    return {}
+  }
+  return Object.fromEntries(
+    TYPE_FIELDS.filter((field) =>
+      missing(sourceValue(feature, feature.proposed, field))
+    ).map((field) => [field, type[field]])
   )
 }
 
@@ -73,12 +88,7 @@ function withReferenceFields(feature, reference) {
     ...feature,
     proposed: {
       ...proposed,
-      ...(type && missingTypeFields(feature)
-        ? {
-            distinctiveness: type.distinctiveness,
-            distinctivenessScore: type.distinctivenessScore
-          }
-        : {}),
+      ...typeFieldsFromReference(feature, type),
       ...Object.fromEntries(
         Object.entries(independentFields).filter(
           ([field, value]) => missing(proposed[field]) && value != null
