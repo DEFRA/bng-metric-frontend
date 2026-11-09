@@ -426,8 +426,9 @@ describe('#resolveSingleErrorCopy', () => {
       h1: 'There is a problem with your file',
       subheading: 'Template',
       helpText:
-        'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
+        'Your file is using the legacy template. The service now uses the BNG service template.'
     })
+    expect(JSON.stringify(result)).not.toContain('Natural England')
   })
 
   test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in hectares', () => {
@@ -517,8 +518,8 @@ describe('#resolveSingleErrorCopy', () => {
   test.each([
     [
       'COMMENT_INVALID_CHARACTERS',
-      'A comment contains characters that are not allowed. Remove those characters and ',
-      'A comment contains characters that are not allowed. Remove those characters.'
+      'The file contains a comment that uses non-UTF8 characters. Remove those characters and ',
+      'The file contains a comment that uses non-UTF8 characters. Remove those characters.'
     ]
   ])(
     'AC7: %s names the comment problem and links to a new upload',

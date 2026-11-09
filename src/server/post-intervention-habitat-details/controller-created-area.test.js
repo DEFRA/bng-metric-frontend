@@ -109,7 +109,7 @@ describe('Created area controller', () => {
       expect(vm.fields.strategicSignificance.hint).not.toContain(
         'not available'
       )
-      expect(vm.habitatUnitsDisplay).toBe('')
+      expect(vm.habitatUnitsDisplay).toBe('0.00')
 
       // Submit the prefilled form without touching significance or missing fields.
       await postController.handler(

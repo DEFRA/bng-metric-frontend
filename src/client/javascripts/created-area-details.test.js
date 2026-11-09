@@ -97,7 +97,7 @@ describe('Created area editing', () => {
         document
           .querySelector('.app-units-delivered .govuk-summary-list__value')
           .textContent.trim()
-      ).toBe('')
+      ).toBe('0.00')
 
       // Clearing is still an explicit user choice, not a fallback to the raw label.
       change('strategicSignificance', '')

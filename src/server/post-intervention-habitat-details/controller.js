@@ -19,6 +19,10 @@ import {
 } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
+import {
+  buildRetainedTreeViewOnlyViewModel,
+  buildTreeSectionsViewOnlyViewModel
+} from './tree-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
   HABITAT_REF_ERROR,
@@ -60,10 +64,17 @@ const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const CREATED_EDIT_TYPES = [AREA_HABITAT_TYPE, HEDGEROW_TYPE]
 const WATERCOURSE_TYPE = 'watercourse'
+const TREE_TYPE = 'tree'
+
+// The area habitat details templates, shared by vertical area habitats and
+// individual trees: the single-section page, and the two-section page with
+// time to target and difficulty.
+const AREA_DETAILS_TEMPLATE = 'habitat-details/pi-habitat-details'
+const AREA_SECTIONS_TEMPLATE = 'habitat-details/pi-habitat-details-enhanced'
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
 const ENHANCED_AREA_PAGE = {
-  template: 'habitat-details/pi-habitat-details-enhanced',
+  template: AREA_SECTIONS_TEMPLATE,
   buildViewModel: buildEnhancedAreaViewOnlyViewModel
 }
 const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
@@ -76,10 +87,22 @@ const VERTICAL_RETENTION_PAGES = new Map([
   [
     RETENTION_CREATED,
     {
-      template: 'habitat-details/pi-habitat-details-enhanced',
+      template: AREA_SECTIONS_TEMPLATE,
       buildViewModel: buildCreatedAreaViewOnlyViewModel
     }
   ]
+])
+
+// An individual tree uses the area layout with its size class and number of
+// trees, view-only whatever its retention: it cannot be edited after
+// intervention. Enhanced and Created ones show their timing and difficulty.
+const TREE_SECTIONS_PAGE = {
+  template: AREA_SECTIONS_TEMPLATE,
+  buildViewModel: buildTreeSectionsViewOnlyViewModel
+}
+const TREE_RETENTION_PAGES = new Map([
+  [RETENTION_ENHANCED, TREE_SECTIONS_PAGE],
+  [RETENTION_CREATED, TREE_SECTIONS_PAGE]
 ])
 
 // Created/Enhanced hedgerows also use a two-section layout, keyed by
@@ -117,6 +140,7 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
   [VERTICAL_HABITAT_TYPE, VERTICAL_RETENTION_PAGES],
+  [TREE_TYPE, TREE_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
@@ -125,13 +149,20 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
 // template — they share chrome via layouts/pi-view-only-sections-page.njk and
 // differ in the rows they show (BMD-845).
 const AREA_VIEW_ONLY_PAGE = {
-  template: 'habitat-details/pi-habitat-details',
+  template: AREA_DETAILS_TEMPLATE,
   buildViewModel: buildAreaViewOnlyViewModel
 }
 
 const VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
   [VERTICAL_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
+  [
+    TREE_TYPE,
+    {
+      template: AREA_DETAILS_TEMPLATE,
+      buildViewModel: buildRetainedTreeViewOnlyViewModel
+    }
+  ],
   [
     HEDGEROW_TYPE,
     {
@@ -148,8 +179,7 @@ const VIEW_ONLY_PAGES = new Map([
   ]
 ])
 
-const UNSUPPORTED_MESSAGE =
-  'Individual tree and IGGI features are not yet supported in this view.'
+const UNSUPPORTED_MESSAGE = 'IGGI features are not yet supported in this view.'
 
 const DEFAULT_PROJECT_NAME = 'Project'
 
@@ -172,7 +202,7 @@ function comparableRef(ref) {
 const BASELINE_LAYER_BY_TYPE = new Map([
   [AREA_HABITAT_TYPE, 'habitats'],
   [VERTICAL_HABITAT_TYPE, 'verticalHabitats'],
-  ['tree', 'trees'],
+  [TREE_TYPE, 'trees'],
   [HEDGEROW_TYPE, 'hedgerows'],
   [WATERCOURSE_TYPE, 'watercourses']
 ])
@@ -377,7 +407,7 @@ async function renderDetailsPage(
   }
   const page = resolveViewOnlyPage(type, retentionCategory)
   if (!page) {
-    // Trees, IGGIs and any new feature type without a view-only page.
+    // IGGIs and any new feature type without a view-only page.
     return renderUnsupportedFeature(h, {
       projectId,
       projectName,

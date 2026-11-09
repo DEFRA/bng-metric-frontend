@@ -1,3 +1,4 @@
+import { prepareCreatedAreaListDisplay } from './created-area-list-display.js'
 import {
   AREA_BASELINE_PATH,
   AREA_HABITATS_TEXT,
@@ -80,6 +81,7 @@ export const getController = createHabitatPostInterventionController({
   label: AREA_HABITATS_TEXT,
   habitatNoun: 'area',
   collectFeatures: collectAreaFeatures,
+  prepareProjectForDisplay: prepareCreatedAreaListDisplay,
   readSize: (feature) => feature.sizeSquareMetres,
   formatSize: formatAreaHectares,
   formatSizeTotal: formatAreaHectares,

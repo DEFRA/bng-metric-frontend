@@ -241,37 +241,67 @@ describe('#postInterventionHabitatDetailsController', () => {
     }
   )
 
-  test('GET shows the unsupported-feature message for an individual tree', async () => {
-    vi.mocked(wreck.get).mockImplementation((url) => {
-      if (url.includes(`/post-intervention/features/${featureId}`)) {
-        return Promise.resolve({
-          payload: { type: 'tree', feature: { featureId, ref: 'T-1' } }
-        })
-      }
-      if (isProjectUrl(url)) {
-        return Promise.resolve(projectPayload)
-      }
-      throw new Error(`Unexpected URL ${url}`)
-    })
-
-    const h = createMockH()
-    await getController.handler({ query: { projectId, featureId } }, h)
-
-    expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-feature-unsupported',
-      expect.objectContaining({
-        caption: 'Test Project',
-        message: expect.stringContaining('not yet supported'),
-        backHref: `/projects/${projectId}/area-post-intervention`
+  test.each([
+    ['Retained', 'habitat-details/pi-habitat-details'],
+    ['Enhanced', 'habitat-details/pi-habitat-details-enhanced'],
+    ['Created', 'habitat-details/pi-habitat-details-enhanced']
+  ])(
+    'GET renders a %s individual tree read-only in the area layout, with its size class and number of trees',
+    async (retentionCategory, template) => {
+      vi.mocked(wreck.get).mockImplementation((url) => {
+        if (url.includes(`/post-intervention/features/${featureId}`)) {
+          return Promise.resolve({
+            payload: {
+              type: 'tree',
+              feature: {
+                featureId,
+                ref: 'T-1',
+                retentionCategory,
+                sizeSquareMetres: 326,
+                count: 2,
+                units: 0.13,
+                proposed: {
+                  treeSize: 'Medium',
+                  type: 'Urban tree',
+                  broadType: 'Individual trees',
+                  condition: 'Moderate'
+                }
+              }
+            }
+          })
+        }
+        if (isProjectUrl(url)) {
+          return Promise.resolve(projectPayload)
+        }
+        throw new Error(`Unexpected URL ${url}`)
       })
-    )
-  })
 
-  test('GET sends an unsupported tree back to the return URL it was linked from', async () => {
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      expect(h.view).toHaveBeenCalledWith(
+        template,
+        expect.objectContaining({
+          caption: 'Test Project',
+          heading: 'T-1',
+          interventionDisplay: retentionCategory,
+          broadHabitatDisplay: 'Individual trees',
+          habitatTypeDisplay: 'Urban tree',
+          treeSizeDisplay: 'Medium',
+          treeCountDisplay: '2',
+          showTreeRows: true,
+          backHref: `/projects/${projectId}/area-post-intervention`
+        })
+      )
+      expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
+    }
+  )
+
+  test('GET sends an unsupported feature back to the return URL it was linked from', async () => {
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {
         return Promise.resolve({
-          payload: { type: 'tree', feature: { featureId, ref: 'T-1' } }
+          payload: { type: 'iggi', feature: { featureId, ref: 'I-1' } }
         })
       }
       if (isProjectUrl(url)) {
@@ -302,7 +332,7 @@ describe('#postInterventionHabitatDetailsController', () => {
       vi.mocked(wreck.get).mockImplementation((url) => {
         if (url.includes(`/post-intervention/features/${featureId}`)) {
           return Promise.resolve({
-            payload: { type: 'tree', feature: { featureId, ref: 'T-1' } }
+            payload: { type: 'iggi', feature: { featureId, ref: 'I-1' } }
           })
         }
         if (isProjectUrl(url)) {
