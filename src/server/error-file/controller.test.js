@@ -843,6 +843,102 @@ describe('invalidFileController.handler — populated session', () => {
     })
   })
 
+  describe('errorBlocks: a block the page words the same way twice', () => {
+    const CATCH_ALL_BLOCK = {
+      heading: 'Your Geopackage (.gpkg) file contains an error',
+      items: [],
+      more: 0
+    }
+
+    const outsideRedline = (featureRef, count = 1) => ({
+      code: 'AREA_PARCELS_OUTSIDE_REDLINE',
+      message: 'Not shown',
+      details: {
+        count,
+        sample: [{ idx: 0, fid: '1', feature_ref: featureRef }]
+      }
+    })
+
+    const outOfScope = (allowedBands) => ({
+      code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+      message: 'Not shown',
+      details: {
+        count: 1,
+        sample: [
+          {
+            idx: 0,
+            fid: '1',
+            feature_ref: 'H001',
+            habitat_type: 'Woodland and forest - Wet woodland',
+            distinctiveness: 'High'
+          }
+        ],
+        allowedBands
+      }
+    })
+
+    async function viewFor(errors) {
+      const request = makeRequest({ baselineValidationErrors: errors })
+      const h = makeH()
+      await invalidFileController.handler(request, h)
+      return h.view.mock.calls[0][1]
+    }
+
+    test('is shown once, in the blocks and the list alike', async () => {
+      const view = await viewFor([
+        { code: 'NO_REDLINE', message: 'Not shown' },
+        { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' },
+        { code: 'ANOTHER_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' }
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[1]).toEqual(CATCH_ALL_BLOCK)
+      expect(view.errorList).toEqual(
+        view.errorBlocks.map((block) => ({ text: block.heading }))
+      )
+      expect(view.singleError).toBeNull()
+    })
+
+    test('keeps a catch-all block beside one with its own heading', async () => {
+      const view = await viewFor([
+        { code: 'NO_REDLINE', message: 'Not shown' },
+        { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' }
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[0].heading).not.toBe(CATCH_ALL_BLOCK.heading)
+    })
+
+    test('keeps the same code twice when its bullets differ', async () => {
+      const view = await viewFor([
+        outsideRedline('H001'),
+        outsideRedline('H002')
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[0].heading).toBe(view.errorBlocks[1].heading)
+    })
+
+    test('keeps a shared heading when the count of more habitats differs', async () => {
+      const view = await viewFor([
+        outsideRedline('H001'),
+        outsideRedline('H001', 3)
+      ])
+
+      expect(view.errorBlocks.map((block) => block.more)).toEqual([0, 2])
+    })
+
+    test('keeps a shared heading when the note differs', async () => {
+      const view = await viewFor([
+        outOfScope(['Medium', 'Low', 'V.Low']),
+        outOfScope(['Low'])
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[0].note).not.toBe(view.errorBlocks[1].note)
+    })
+  })
+
   test('errorBlocks: an srs_id the file does not set is shown as the copy words it', async () => {
     const errors = [
       { code: 'NO_REDLINE', message: 'Not shown' },

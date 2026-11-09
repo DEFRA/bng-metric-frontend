@@ -398,6 +398,25 @@ function buildBlock(err) {
   return block
 }
 
+// Two errors the page words the same way, such as two the copy has no
+// heading for, say nothing new the second time: show each block once.
+function distinctBlocks(blocks) {
+  const seen = new Set()
+  return blocks.filter((block) => {
+    const key = JSON.stringify([
+      block.heading,
+      block.items,
+      block.more,
+      block.note ?? null
+    ])
+    if (seen.has(key)) {
+      return false
+    }
+    seen.add(key)
+    return true
+  })
+}
+
 // What a placeholder page says of the error: its heading and bullets as the
 // list shows them.
 function placeholderMessage(block) {
@@ -460,7 +479,7 @@ export const invalidFileController = {
       ? validationErrors.filter((e) => e.code !== 'SLIVERS_OUTSIDE_REDLINE')
       : validationErrors
 
-    const errorBlocks = visibleErrors.map(buildBlock)
+    const errorBlocks = distinctBlocks(visibleErrors.map(buildBlock))
     const errorList = errorBlocks.map((b) => ({
       text: b.note ? `${b.heading}. ${b.note}` : b.heading
     }))
