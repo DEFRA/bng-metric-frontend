@@ -70,13 +70,29 @@ describe("error-text.yaml's upload section", () => {
     }
     // Each code's bullets against the values the code supplies for that code,
     // so {location} on a lineage bullet fails even though another code has it.
-    // A bullet names a habitat's values, or the error's details when it names
-    // no habitats, in any of its variants.
+    // An item names a habitat's values and a detail the error's details, in
+    // any of its variants.
+    const bulletsOf = (inList, key) =>
+      [inList[key], ...variantsOf(inList).map((v) => v[key])]
+        .filter(Boolean)
+        .flat()
     for (const [code, { inList }] of entries) {
+      // An item is shown once for each habitat, so one that names none of the
+      // habitat's values says the same thing every time: it is a detail.
       const items = [inList.item, ...variantsOf(inList).map((v) => v.item)]
-      const names = [...itemValueNames(code), ...detailValueNames(code)]
-      for (const name of placeholders(items.filter(Boolean).flat())) {
-        expect(names, `${code}: {${name}}`).toContain(name)
+      for (const item of items.filter(Boolean)) {
+        expect(
+          placeholders([item].flat()),
+          `${code} item: ${item}`
+        ).not.toEqual([])
+      }
+      for (const name of placeholders(bulletsOf(inList, 'item'))) {
+        expect(itemValueNames(code), `${code} item: {${name}}`).toContain(name)
+      }
+      for (const name of placeholders(bulletsOf(inList, 'detail'))) {
+        expect(detailValueNames(code), `${code} detail: {${name}}`).toContain(
+          name
+        )
       }
     }
     for (const name of placeholders([
@@ -191,6 +207,38 @@ describe('parseDropoutCopy', () => {
 
     expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
       /NO_REDLINE.*inList/
+    )
+  })
+
+  // A problem lists habitats or not, however it is worded, so its bullets
+  // and its variants' are of one kind.
+  test.each([
+    ['the code', 'GPKG_MISSING_LAYER', (inList) => (inList.item = '{feature}')],
+    [
+      'a variant',
+      'GPKG_BASELINE_SRS_ID',
+      (inList) => (inList.variants.contents.item = '{feature}')
+    ],
+    [
+      "a variant, beside the code's detail",
+      'GPKG_BASELINE_MISSING_COLUMN',
+      (inList) => {
+        inList.variants.geometry = { item: '{feature}' }
+      }
+    ],
+    [
+      "a variant, beside the code's item",
+      'AREA_PARCELS_INVALID_GEOMETRY',
+      (inList) => {
+        inList.variants = { odd: { detail: '{layer}' } }
+      }
+    ]
+  ])('refuses an item and a detail in %s', (_, code, mix) => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    mix(copy.errors[code].inList)
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
+      new RegExp(`errors\\.${code}\\.inList`)
     )
   })
 

@@ -1771,6 +1771,20 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     return h.view.mock.calls[0][1].errorBlocks
   }
 
+  test('shows the one bullet of an error that sends no details', async () => {
+    const [block] = await blocksFor([
+      { code: 'LEGACY_TEMPLATE_NOT_ACCEPTED', message: 'Not shown' },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(block).toEqual({
+      heading:
+        'This file is in the legacy Natural England template. The service now takes the BNG Service template',
+      items: ['convert the file with the QGIS plugin, then upload it again.'],
+      more: 0
+    })
+  })
+
   describe('a value the file holds', () => {
     const NOT_LISTED = { code: 'NO_REDLINE', message: 'No redline' }
     const GEOMETRY_TYPE_ITEM =

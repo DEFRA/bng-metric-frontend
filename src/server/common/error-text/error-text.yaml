@@ -53,9 +53,15 @@
 #   known is used. So "This parcel {ref} contains an error" is shown when the
 #   service knows the parcel's ref, and the next option when it does not.
 #
-# - A bullet ("item") given as a list of parts shows each part only when all
-#   of that part's {values} are known, so a habitat with no habitat type is
-#   shown without the " — {habitatType}" part.
+# - A problem's bullets are one of two kinds:
+#     item     one bullet for each habitat the problem lists, filled in from
+#              that habitat
+#     detail   the one bullet of a problem that lists no habitats, filled in
+#              from the values the service sends with it
+#
+# - A bullet given as a list of parts shows each part only when all of that
+#   part's {values} are known, so a habitat with no habitat type is shown
+#   without the " — {habitatType}" part.
 #
 # - [link text](upload) is the link back to the upload page. When the page has
 #   nowhere to link to, the sentence ends at the word before " and", with a
@@ -67,15 +73,14 @@
 #     placeholder  the copy is awaiting UCD, so the page shows "placeholder"
 #     list         the page shows the inList layout even for this problem alone
 #
-# - A heading here is shown word for word, with any {braces} filled in. A
-#   problem that names no habitats has one bullet at most, its item, filled in
-#   the same way. The {braces} of such a problem are values the service sends
-#   with it (bng-metric-backend, src/validation/geopackage/errors.js,
-#   ERROR_CODE_DETAILS); a heading whose values the service did not send shows
-#   the catch-all title instead.
+# - A heading here is shown word for word, with any {braces} filled in, and
+#   a detail the same way. The {braces} of a heading and a detail are values
+#   the service sends with the problem (bng-metric-backend,
+#   src/validation/geopackage/errors.js, ERROR_CODE_DETAILS); a heading whose
+#   values the service did not send shows the catch-all title instead.
 #
 # - "variants" words a problem the service words more than one way. The
-#   service names the way it chose, and that variant's heading or item
+#   service names the way it chose, and that variant's heading, item or detail
 #   replaces the problem's own. bng-service is the BNG Service template's
 #   wording of a check the legacy template shares.
 #
@@ -214,7 +219,7 @@ upload:
       whenAlone: catch-all
       inList:
         heading: 'Missing required GeoPackage system table'
-        item: '{table}'
+        detail: '{table}'
 
     GPKG_TOO_MANY_FEATURES:
       whenAlone:
@@ -239,7 +244,7 @@ upload:
       whenAlone: catch-all
       inList:
         heading: 'Missing required feature layer in GeoPackage'
-        item: '{layer}'
+        detail: '{layer}'
 
     GPKG_UNEXPECTED_FEATURE_LAYER:
       whenAlone: catch-all
@@ -253,7 +258,7 @@ upload:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'expected data_type "{expected}" in gpkg_contents but found "{found}"'
+        detail: 'expected data_type "{expected}" in gpkg_contents but found "{found}"'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
@@ -262,20 +267,20 @@ upload:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'expected srs_id {expectedSrsId} but GeoPackage srs_id is {foundSrsId}'
+        detail: 'expected srs_id {expectedSrsId} but GeoPackage srs_id is {foundSrsId}'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
           contents:
-            item: 'expected srs_id {expectedSrsId} but gpkg_contents has {contentsSrsId}'
+            detail: 'expected srs_id {expectedSrsId} but gpkg_contents has {contentsSrsId}'
           unreadable:
-            item: 'expected srs_id {expectedSrsId} but could not read a valid integer srs_id from gpkg_contents ({contentsSrsId}) nor gpkg_geometry_columns ({geometryColumnsSrsId})'
+            detail: 'expected srs_id {expectedSrsId} but could not read a valid integer srs_id from gpkg_contents ({contentsSrsId}) nor gpkg_geometry_columns ({geometryColumnsSrsId})'
 
     GPKG_BASELINE_GPKG_SRS_INCONSISTENT:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" GeoPackage srs_id inconsistent'
-        item: 'gpkg_contents has {contentsSrsId} but gpkg_geometry_columns has {geometryColumnsSrsId}'
+        detail: 'gpkg_contents has {contentsSrsId} but gpkg_geometry_columns has {geometryColumnsSrsId}'
 
     GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME:
       whenAlone: catch-all
@@ -284,24 +289,24 @@ upload:
         variants:
           named:
             heading: 'Layer "{layer}" does not match the BNG Service template'
-            item: 'its geometry column is named "{column}" but should be "{expected}"'
+            detail: 'its geometry column is named "{column}" but should be "{expected}"'
 
     GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'expected exactly one geometry column in the feature table but found {found}'
+        detail: 'expected exactly one geometry column in the feature table but found {found}'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
           registered:
-            item: 'expected exactly one geometry column in gpkg_geometry_columns but found {found}'
+            detail: 'expected exactly one geometry column in gpkg_geometry_columns but found {found}'
 
     GPKG_BASELINE_GEOMETRY_TYPE_NAME:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'expected geometry type "{expected}" in gpkg_geometry_columns but found "{found}"'
+        detail: 'expected geometry type "{expected}" in gpkg_geometry_columns but found "{found}"'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
@@ -310,42 +315,42 @@ upload:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'missing column "{column}"'
+        detail: 'missing column "{column}"'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
           geometry:
-            item: 'missing geometry column "{column}"'
+            detail: 'missing geometry column "{column}"'
 
     GPKG_BASELINE_COLUMN_SQLITE_TYPE:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'column "{column}" has {actualType} data type but {expectedType} was expected'
+        detail: 'column "{column}" has {actualType} data type but {expectedType} was expected'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
           not-scalar:
-            item: 'column "{column}" has {actualType} but {expectedType} was expected'
+            detail: 'column "{column}" has {actualType} but {expectedType} was expected'
           undeclared:
-            item: 'column "{column}" has no SQLite column type declared but {expectedType} was expected'
+            detail: 'column "{column}" has no SQLite column type declared but {expectedType} was expected'
 
     GPKG_BASELINE_COLUMN_NOT_NULL:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'column "{column}" NOT NULL (required) does not match file'
+        detail: 'column "{column}" NOT NULL (required) does not match file'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
           optional:
-            item: 'column "{column}" NOT NULL (optional) does not match file'
+            detail: 'column "{column}" NOT NULL (optional) does not match file'
 
     GPKG_BASELINE_COLUMN_PRIMARY_KEY:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'primary key expectation for "{column}" does not match file'
+        detail: 'primary key expectation for "{column}" does not match file'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
@@ -354,7 +359,7 @@ upload:
       whenAlone: catch-all
       inList:
         heading: 'Layer "{layer}" baseline mismatch'
-        item: 'no geometry column registered in gpkg_geometry_columns'
+        detail: 'no geometry column registered in gpkg_geometry_columns'
         variants:
           bng-service:
             heading: 'Layer "{layer}" does not match the BNG Service template'
@@ -370,7 +375,7 @@ upload:
           service template.
       inList:
         heading: 'This file is in the legacy Natural England template. The service now takes the BNG Service template'
-        item: 'convert the file with the QGIS plugin, then upload it again.'
+        detail: 'convert the file with the QGIS plugin, then upload it again.'
 
     TEMPLATE_VERSION_MISSING:
       whenAlone: list
@@ -458,7 +463,7 @@ upload:
           [upload a new file](upload).
       inList:
         heading: 'Redline boundary geometry is invalid'
-        item:
+        detail:
           - '{reason}'
           - ' at {location}'
 

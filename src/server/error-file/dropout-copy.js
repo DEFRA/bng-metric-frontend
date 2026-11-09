@@ -37,6 +37,19 @@ const pageCopy = Joi.object({
   opensInNewTab: Joi.boolean()
 })
 
+/**
+ * A problem lists habitats or it does not, however the backend words it: so
+ * its bullets, and its variants', are all items or all details. The page
+ * reads only the one kind, and would drop a bullet of the other unseen.
+ */
+function oneKindOfBullet(inList, helpers) {
+  const wording = [inList, ...Object.values(inList.variants ?? {})]
+  const kinds = ['item', 'detail'].filter((key) =>
+    wording.some((copy) => copy[key] !== undefined)
+  )
+  return kinds.length > 1 ? helpers.error('any.invalid') : inList
+}
+
 const errorEntry = Joi.object({
   whenAlone: Joi.alternatives(
     Joi.string().valid(...Object.values(WHEN_ALONE)),
@@ -48,15 +61,18 @@ const errorEntry = Joi.object({
     Joi.object({
       heading: text.required(),
       listsHabitats: Joi.boolean(),
+      // A bullet for each habitat the problem lists, or the one bullet of a
+      // problem that lists none, filled from its details.
       item: options,
+      detail: options,
       note: text,
       // Another way the backend words the problem, named by the error's
-      // details.variants: its heading or item replaces the code's own.
+      // details.variants: its heading, item or detail replaces the code's own.
       variants: Joi.object().pattern(
         Joi.string().pattern(/^[a-z][a-z0-9-]*$/),
-        Joi.object({ heading: text, item: options }).min(1)
+        Joi.object({ heading: text, item: options, detail: options }).min(1)
       )
-    })
+    }).custom(oneKindOfBullet)
   ).required()
 })
 
