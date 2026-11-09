@@ -1204,6 +1204,75 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
+  test('lists each tree whose kept trees together count more than it, with both counts', async () => {
+    const view = await viewFor([
+      lineageError(
+        'STAGED_TREE_CHILDREN_TOO_MANY',
+        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together',
+        [
+          {
+            layer: 'trees',
+            table: 'Individual Trees Baseline',
+            fid: 4,
+            ref: 'T004',
+            habitatType: 'Rural tree',
+            childRefs: ['T004a', 'T004b'],
+            count: 3,
+            childCount: 4
+          }
+        ]
+      )
+    ])
+
+    expect(
+      view.errorBlocks.map(({ heading, items }) => [heading, items])
+    ).toEqual([
+      [
+        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together. A tree that is kept cannot be more trees than it was',
+        [
+          'Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b; Count 3, linked 4'
+        ]
+      ]
+    ])
+  })
+
+  test('lists each irreplaceable tree, in the table of the stage that marks it, even alone', async () => {
+    const tree = (table, ref, fid) => ({
+      layer: 'trees',
+      table,
+      feature_ref: ref,
+      fid,
+      idx: fid - 1
+    })
+    const view = await viewFor([
+      {
+        code: 'IRREPLACEABLE_TREE',
+        message:
+          'One or more trees are marked as irreplaceable habitat. The service does not accept irreplaceable trees: Individual Trees Baseline Habitat Ref T001',
+        stage: 'baseline',
+        details: {
+          count: 2,
+          sample: [
+            tree('Individual Trees Baseline', 'T001', 1),
+            tree('Individual Trees Baseline', null, 7)
+          ]
+        }
+      }
+    ])
+
+    expect(
+      view.errorBlocks.map(({ heading, items }) => [heading, items])
+    ).toEqual([
+      [
+        'One or more trees are marked as irreplaceable habitat. The service does not accept irreplaceable trees, such as ancient and veteran trees',
+        [
+          'Individual Trees Baseline Feature Ref T001',
+          'Individual Trees Baseline fid 7'
+        ]
+      ]
+    ])
+  })
+
   test('lists each degraded row with the parent it was copied from', async () => {
     const row = (code, ref, habitatType, parentRef) =>
       lineageError(code, `Heading for ${code}`, [

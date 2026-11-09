@@ -56,6 +56,7 @@ const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const CREATED_EDIT_TYPES = [AREA_HABITAT_TYPE, HEDGEROW_TYPE]
 const WATERCOURSE_TYPE = 'watercourse'
+const TREE_TYPE = 'tree'
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
 const ENHANCED_AREA_PAGE = {
@@ -64,9 +65,10 @@ const ENHANCED_AREA_PAGE = {
 }
 const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
 
-// A vertical area habitat uses the area pages, view-only whatever its
-// retention: it cannot be edited after intervention yet. A Created one shows
-// its timing and difficulty, as a Created area habitat's edit page does.
+// A vertical area habitat, and an individual tree, use the area pages,
+// view-only whatever their retention: neither can be edited after
+// intervention yet. A Created one shows its timing and difficulty, as a
+// Created area habitat's edit page does.
 const VERTICAL_RETENTION_PAGES = new Map([
   [RETENTION_ENHANCED, ENHANCED_AREA_PAGE],
   [
@@ -113,6 +115,7 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
   [VERTICAL_HABITAT_TYPE, VERTICAL_RETENTION_PAGES],
+  [TREE_TYPE, VERTICAL_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
@@ -128,6 +131,7 @@ const AREA_VIEW_ONLY_PAGE = {
 const VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
   [VERTICAL_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
+  [TREE_TYPE, AREA_VIEW_ONLY_PAGE],
   [
     HEDGEROW_TYPE,
     {
@@ -144,8 +148,7 @@ const VIEW_ONLY_PAGES = new Map([
   ]
 ])
 
-const UNSUPPORTED_MESSAGE =
-  'Individual tree and IGGI features are not yet supported in this view.'
+const UNSUPPORTED_MESSAGE = 'IGGI features are not yet supported in this view.'
 
 const DEFAULT_PROJECT_NAME = 'Project'
 
@@ -170,7 +173,7 @@ function comparableRef(ref) {
 const BASELINE_LAYER_BY_TYPE = new Map([
   [AREA_HABITAT_TYPE, 'habitats'],
   [VERTICAL_HABITAT_TYPE, 'verticalHabitats'],
-  ['tree', 'trees'],
+  [TREE_TYPE, 'trees'],
   [HEDGEROW_TYPE, 'hedgerows'],
   [WATERCOURSE_TYPE, 'watercourses']
 ])
@@ -375,7 +378,7 @@ async function renderDetailsPage(
   }
   const page = resolveViewOnlyPage(type, retentionCategory)
   if (!page) {
-    // Trees, IGGIs and any new feature type without a view-only page.
+    // IGGIs and any new feature type without a view-only page.
     return renderUnsupportedFeature(h, {
       projectId,
       projectName,

@@ -115,14 +115,26 @@ function sectionVerdicts($, band) {
     .get()
 }
 
+/**
+ * A document's stored total for one unit type. The backend stores individual
+ * trees' units apart from the other area habitats', and the Metric's area
+ * habitat units include them, as the area tiles do.
+ */
+function storedTotal(document, unitType) {
+  const total = document.units[`${unitType.units}Total`]
+  return unitType.units === 'habitats'
+    ? total + (document.units.treesTotal ?? 0)
+    : total
+}
+
 /** The figures the backend stored for one unit type, as the tiles show them. */
 function expectedFigures(body, unitType) {
   const { baseline, postIntervention } = body.project
-  const baselineTotal = baseline.units[`${unitType.units}Total`]
+  const baselineTotal = storedTotal(baseline, unitType)
   return {
     baseline: units(baselineTotal),
     postIntervention: postIntervention
-      ? units(postIntervention.units[`${unitType.units}Total`])
+      ? units(storedTotal(postIntervention, unitType))
       : units(0),
     netChange: postIntervention
       ? units(postIntervention.units[`${unitType.units}NetUnitChange`])

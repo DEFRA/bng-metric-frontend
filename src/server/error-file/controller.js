@@ -80,7 +80,10 @@ function lineageValues(s) {
     // A vertical area habitat's, in hectares as the surveyor typed them and
     // in square metres, as the habitat pages show them.
     area: formatVerticalArea(s?.areaSquareMetres),
-    childArea: formatVerticalArea(s?.childAreaSquareMetres)
+    childArea: formatVerticalArea(s?.childAreaSquareMetres),
+    // A tree's Count, and its kept trees' together.
+    count: s?.count,
+    childCount: s?.childCount
   }
 }
 
@@ -136,6 +139,11 @@ function verticalAreaValues(s) {
   return { ...featureValues(s), area: known(s?.area) ?? unknown.area }
 }
 
+// An irreplaceable tree, in the table of the stage that marks it.
+function irreplaceableTreeValues(s) {
+  return { table: known(s?.table), ...featureValues(s) }
+}
+
 // The {values} each error's bullets name, by error code; any other code names
 // each habitat by its ref.
 const SAMPLE_VALUES = {
@@ -146,6 +154,7 @@ const SAMPLE_VALUES = {
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: distinctivenessValues,
   BASELINE_NOT_ENHANCEABLE: unenhanceableValues,
   VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaValues,
+  IRREPLACEABLE_TREE: irreplaceableTreeValues,
   STAGED_AMBIGUOUS_PARENT: ambiguousParentValues
 }
 

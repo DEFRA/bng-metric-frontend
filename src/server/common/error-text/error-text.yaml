@@ -523,6 +523,17 @@ upload:
       whenAlone: placeholder
       inList: service-message
 
+    # AWAITING UCD
+    IRREPLACEABLE_TREE:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more trees are marked as irreplaceable habitat. The service
+          does not accept irreplaceable trees, such as ancient and veteran trees
+        item:
+          - '{table} '
+          - '{feature}'
+
     IGGIS_OUTSIDE_REDLINE:
       whenAlone: placeholder
       inList: service-message
@@ -690,6 +701,21 @@ upload:
           - ' — {habitatType}'
           - ', copied to {childRefs}'
           - '; Area {area}, linked {childArea}'
+
+    # AWAITING UCD
+    STAGED_TREE_CHILDREN_TOO_MANY:
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more baseline trees have fewer trees than the Retained and
+          Enhanced post-intervention trees linked to them together. A tree that
+          is kept cannot be more trees than it was
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+          - '; Count {count}, linked {childCount}'
 
     STAGED_WATERCOURSE_RETAINED_AND_CREATED:
       whenAlone: list
