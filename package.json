@@ -100,7 +100,7 @@
     "vitest-fetch-mock": "0.4.5",
     "webpack": "5.112.2",
     "webpack-assets-manifest": "6.5.5",
-    "webpack-cli": "7.2.3"
+    "webpack-cli": "7.3.1"
   },
   "overrides": {
     "@hapi/wreck": "18.1.3",
