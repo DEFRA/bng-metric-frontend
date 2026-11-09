@@ -1270,7 +1270,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       ),
       lineageError(
         'STAGED_AMBIGUOUS_PARENT',
-        'One or more post-intervention habitats name a baseline habitat whose feature_uuid more than one baseline habitat has',
+        'One or more post-intervention habitats have a parent that matches more than one baseline habitat',
         [
           {
             layer: 'areas',
