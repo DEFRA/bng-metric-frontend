@@ -503,8 +503,8 @@ describe('authenticated Created watercourse form', () => {
     const clearedPage = load((await get()).payload)
     expect(clearedPage('#delayYears').val()).toBe('')
     expect(clearedPage('#riparianEncroachment').val()).toBe('')
-    expect(after('#habitatType').val()).toBe('Ditches')
-    expect(after('#watercourseEncroachment').val()).toBe('Minor')
+    expect(clearedPage('#habitatType').val()).toBe('Ditches')
+    expect(clearedPage('#watercourseEncroachment').val()).toBe('Minor')
   })
 
   test('keeps unsupported saved types editable with imported type and condition selections', async () => {
