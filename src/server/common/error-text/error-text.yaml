@@ -553,7 +553,7 @@ upload:
       whenAlone:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
-          A comment contains characters that are not allowed. Remove those
+          The file contains a comment that uses non-UTF8 characters. Remove those
           characters and [upload a new file](upload).
       inList: service-message
 
@@ -561,8 +561,8 @@ upload:
       whenAlone:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
-          A comment is longer than 999 characters. Shorten the comment and
-          [upload a new file](upload).
+          The file contains a comment with more than 999 characters. Shorten the
+          comment and [upload a new file](upload).
       inList: service-message
 
     # ------------------------------------------------------------ habitat refs
