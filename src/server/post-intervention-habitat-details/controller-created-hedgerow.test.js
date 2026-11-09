@@ -255,6 +255,39 @@ test('keeps the baseline link on the Created hedgerow rollout fallback', async (
   expect(JSON.stringify(h.view.mock.calls[0][1])).toContain(baselineFeatureId)
 })
 
+test.each([
+  ['edit page', false, 'habitat-details/pi-habitat-details-created-edit'],
+  [
+    'reference-unavailable fallback',
+    true,
+    'habitat-details/pi-hedgerow-details-enhanced'
+  ]
+])(
+  'shows an incomplete Created hedgerow as 0.00 units delivered on the %s',
+  async (_, referenceUnavailable, template) => {
+    const incomplete = { ...feature, units: null, status: 'Incomplete' }
+    vi.mocked(wreck.get).mockImplementation(async (url) => {
+      if (url.endsWith('/reference/hedgerow-creation')) {
+        if (referenceUnavailable) {
+          throw Boom.notFound()
+        }
+        return { payload: reference }
+      }
+      if (url.includes('/post-intervention/features/')) {
+        return { payload: { type: 'hedgerow', feature: incomplete } }
+      }
+      if (isProjectUrl(url)) {
+        return { payload: { project: { name: 'Test Project' } } }
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    expect(h.view.mock.calls[0][0]).toBe(template)
+    expect(h.view.mock.calls[0][1].habitatUnitsDisplay).toBe('0.00')
+  }
+)
+
 test('does not hide genuine backend failures as a rollout fallback', async () => {
   vi.mocked(wreck.get).mockRejectedValue(Boom.serverUnavailable())
   await expect(

@@ -1,5 +1,6 @@
 import { HEDGEROWS_TAB_ANCHOR } from './constants.js'
 import {
+  createdUnitsDisplay,
   buildSectionsViewOnlyBaseFields,
   buildSharedPiViewOnlyFields,
   EMPTY_PLACEHOLDER,
@@ -43,8 +44,11 @@ export function buildEnhancedHedgerowViewOnlyViewModel(
  * @returns {object}
  */
 export function buildCreatedHedgerowViewOnlyViewModel(feature, ctx) {
-  return buildEnhancedHedgerowViewOnlyViewModel(feature, {
-    ...ctx,
-    baselineFeatureId: feature.parentFeatureId ? ctx.baselineFeatureId : null
-  })
+  return {
+    ...buildEnhancedHedgerowViewOnlyViewModel(feature, {
+      ...ctx,
+      baselineFeatureId: feature.parentFeatureId ? ctx.baselineFeatureId : null
+    }),
+    habitatUnitsDisplay: createdUnitsDisplay(feature)
+  }
 }
