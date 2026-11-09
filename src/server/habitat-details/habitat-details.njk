@@ -75,6 +75,13 @@
 
           {{ stackedField(sizeLabel, sizeDisplay) }}
 
+          {# An individual tree's size class and number of trees, from which
+             its size in hectares comes. #}
+          {% if showTreeRows %}
+            {{ stackedField("Tree size", treeSizeDisplay) }}
+            {{ stackedField("Number of trees", treeCountDisplay) }}
+          {% endif %}
+
           {% if showBroadHabitatRow %}
             {{ govukSelect({
               id: "broadHabitat",

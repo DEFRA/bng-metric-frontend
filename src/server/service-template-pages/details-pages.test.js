@@ -140,6 +140,25 @@ describe('details pages of a BNG Service template project', () => {
     )
   })
 
+  test('baseline details of a tree show its size class and number of trees', async () => {
+    const body = serviceTemplateProject('twoStages')
+    const [tree] = body.project.baseline.trees
+
+    const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
+
+    expect(fieldValue($, 'Tree size')).toBe(tree.treeSize)
+    expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
+  })
+
+  test('baseline details of an area habitat have no tree rows', async () => {
+    const body = serviceTemplateProject('twoStages')
+    const [habitat] = body.project.baseline.habitats
+
+    const $ = await render(body, baselineDetailsUrl(body, habitat.featureId))
+
+    expect(fieldValue($, 'Tree size')).toBeUndefined()
+  })
+
   test.each(LAYERS)(
     'baseline details show Low (1) for a %s feature the file gave High, as the service always treats baseline as Low',
     async (layer) => {
@@ -302,6 +321,8 @@ describe('details pages of a BNG Service template project', () => {
         expect(normalise($('h1').text())).toContain(tree.ref)
         expect(normalise($('main').text())).not.toContain('not yet supported')
         expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
+        expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
+        expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
         expect(fieldValue($, 'Habitat type')).toBe(tree.proposed.type)
         expect(fieldNames($)).toEqual([])
         expect(viewBaselineHref($)).toBe(

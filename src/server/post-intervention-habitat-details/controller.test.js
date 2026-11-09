@@ -242,11 +242,11 @@ describe('#postInterventionHabitatDetailsController', () => {
   )
 
   test.each([
-    ['Retained', 'habitat-details/pi-habitat-details'],
-    ['Enhanced', 'habitat-details/pi-habitat-details-enhanced'],
-    ['Created', 'habitat-details/pi-habitat-details-enhanced']
+    ['Retained', 'habitat-details/pi-tree-details'],
+    ['Enhanced', 'habitat-details/pi-tree-details-enhanced'],
+    ['Created', 'habitat-details/pi-tree-details-enhanced']
   ])(
-    'GET renders a %s individual tree read-only in the area layout',
+    'GET renders a %s individual tree read-only in the area layout, with its size class and number of trees',
     async (retentionCategory, template) => {
       vi.mocked(wreck.get).mockImplementation((url) => {
         if (url.includes(`/post-intervention/features/${featureId}`)) {
@@ -258,8 +258,10 @@ describe('#postInterventionHabitatDetailsController', () => {
                 ref: 'T-1',
                 retentionCategory,
                 sizeSquareMetres: 326,
+                count: 2,
                 units: 0.13,
                 proposed: {
+                  treeSize: 'Medium',
                   type: 'Urban tree',
                   broadType: 'Individual trees',
                   condition: 'Moderate'
@@ -285,6 +287,8 @@ describe('#postInterventionHabitatDetailsController', () => {
           interventionDisplay: retentionCategory,
           broadHabitatDisplay: 'Individual trees',
           habitatTypeDisplay: 'Urban tree',
+          treeSizeDisplay: 'Medium',
+          treeCountDisplay: '2',
           backHref: `/projects/${projectId}/area-post-intervention`
         })
       )

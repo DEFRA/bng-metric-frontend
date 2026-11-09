@@ -19,6 +19,10 @@ import {
 } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
+import {
+  buildRetainedTreeViewOnlyViewModel,
+  buildTreeSectionsViewOnlyViewModel
+} from './tree-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
   HABITAT_REF_ERROR,
@@ -65,11 +69,10 @@ const ENHANCED_AREA_PAGE = {
 }
 const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
 
-// A vertical area habitat, and an individual tree, use the area pages,
-// view-only whatever their retention: neither can be edited after
-// intervention yet. A Created one shows its timing and difficulty, as a
-// Created area habitat's edit page does.
-const READ_ONLY_AREA_RETENTION_PAGES = new Map([
+// A vertical area habitat uses the area pages, view-only whatever its
+// retention: it cannot be edited after intervention yet. A Created one shows
+// its timing and difficulty, as a Created area habitat's edit page does.
+const VERTICAL_RETENTION_PAGES = new Map([
   [RETENTION_ENHANCED, ENHANCED_AREA_PAGE],
   [
     RETENTION_CREATED,
@@ -78,6 +81,18 @@ const READ_ONLY_AREA_RETENTION_PAGES = new Map([
       buildViewModel: buildCreatedAreaViewOnlyViewModel
     }
   ]
+])
+
+// An individual tree uses the area layout with its size class and number of
+// trees, view-only whatever its retention: it cannot be edited after
+// intervention. Enhanced and Created ones show their timing and difficulty.
+const TREE_SECTIONS_PAGE = {
+  template: 'habitat-details/pi-tree-details-enhanced',
+  buildViewModel: buildTreeSectionsViewOnlyViewModel
+}
+const TREE_RETENTION_PAGES = new Map([
+  [RETENTION_ENHANCED, TREE_SECTIONS_PAGE],
+  [RETENTION_CREATED, TREE_SECTIONS_PAGE]
 ])
 
 // Created/Enhanced hedgerows also use a two-section layout, keyed by
@@ -114,8 +129,8 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 // some retention categories rather than always using the single-list page.
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
-  [VERTICAL_HABITAT_TYPE, READ_ONLY_AREA_RETENTION_PAGES],
-  [TREE_TYPE, READ_ONLY_AREA_RETENTION_PAGES],
+  [VERTICAL_HABITAT_TYPE, VERTICAL_RETENTION_PAGES],
+  [TREE_TYPE, TREE_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
@@ -131,7 +146,13 @@ const AREA_VIEW_ONLY_PAGE = {
 const VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
   [VERTICAL_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
-  [TREE_TYPE, AREA_VIEW_ONLY_PAGE],
+  [
+    TREE_TYPE,
+    {
+      template: 'habitat-details/pi-tree-details',
+      buildViewModel: buildRetainedTreeViewOnlyViewModel
+    }
+  ],
   [
     HEDGEROW_TYPE,
     {
