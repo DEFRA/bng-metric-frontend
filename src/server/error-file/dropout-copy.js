@@ -48,15 +48,20 @@ const errorEntry = Joi.object({
     Joi.object({
       heading: text.required(),
       listsHabitats: Joi.boolean(),
+      // A bullet for each habitat the problem lists, or the one bullet of a
+      // problem that lists none, filled from its details: never both.
       item: options,
+      detail: options,
       note: text,
       // Another way the backend words the problem, named by the error's
-      // details.variants: its heading or item replaces the code's own.
+      // details.variants: its heading, item or detail replaces the code's own.
       variants: Joi.object().pattern(
         Joi.string().pattern(/^[a-z][a-z0-9-]*$/),
-        Joi.object({ heading: text, item: options }).min(1)
+        Joi.object({ heading: text, item: options, detail: options })
+          .oxor('item', 'detail')
+          .min(1)
       )
-    })
+    }).oxor('item', 'detail')
   ).required()
 })
 

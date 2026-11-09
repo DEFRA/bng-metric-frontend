@@ -194,8 +194,8 @@ export function itemValueNames(code) {
 }
 
 // The copy for an error in a list. A code that words a problem more than one
-// way names the way in details.variants, and each variant's heading or item
-// replaces the code's own.
+// way names the way in details.variants, and each variant's heading, item or
+// detail replaces the code's own.
 function inListCopy(code, variants = []) {
   const inList = errorCopy(code)?.inList
   if (typeof inList !== 'object') {
@@ -311,8 +311,7 @@ function detailValues(err) {
 }
 
 /**
- * The {values} a code's heading, and its bullets when it names no habitats,
- * can name, for a test to check.
+ * The {values} a code's heading and detail can name, for a test to check.
  *
  * @param {string} code
  * @returns {string[]}
@@ -329,13 +328,11 @@ function buildItems(err) {
   if (!listsHabitats(err.code)) {
     return []
   }
-  // An error that names no habitats has one bullet at most: its copy's item,
-  // filled from its details, when it gives one and any of it is known.
+  // An error that names no habitats has one bullet at most: its copy's
+  // detail, filled from its details, when it gives one and any of it is known.
   if (!err.details?.sample) {
-    const detailItem = inListCopy(err.code, variantsOf(err)).item
-    const bullet = detailItem
-      ? joinKnownParts(detailItem, detailValues(err))
-      : ''
+    const { detail } = inListCopy(err.code, variantsOf(err))
+    const bullet = detail ? joinKnownParts(detail, detailValues(err)) : ''
     return bullet ? [bullet] : []
   }
   const item = inListCopy(err.code).item ?? DEFAULT_ITEM

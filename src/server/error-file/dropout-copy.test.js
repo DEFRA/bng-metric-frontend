@@ -70,13 +70,20 @@ describe("error-text.yaml's upload section", () => {
     }
     // Each code's bullets against the values the code supplies for that code,
     // so {location} on a lineage bullet fails even though another code has it.
-    // A bullet names a habitat's values, or the error's details when it names
-    // no habitats, in any of its variants.
+    // An item names a habitat's values and a detail the error's details, in
+    // any of its variants.
+    const bulletsOf = (inList, key) =>
+      [inList[key], ...variantsOf(inList).map((v) => v[key])]
+        .filter(Boolean)
+        .flat()
     for (const [code, { inList }] of entries) {
-      const items = [inList.item, ...variantsOf(inList).map((v) => v.item)]
-      const names = [...itemValueNames(code), ...detailValueNames(code)]
-      for (const name of placeholders(items.filter(Boolean).flat())) {
-        expect(names, `${code}: {${name}}`).toContain(name)
+      for (const name of placeholders(bulletsOf(inList, 'item'))) {
+        expect(itemValueNames(code), `${code} item: {${name}}`).toContain(name)
+      }
+      for (const name of placeholders(bulletsOf(inList, 'detail'))) {
+        expect(detailValueNames(code), `${code} detail: {${name}}`).toContain(
+          name
+        )
       }
     }
     for (const name of placeholders([
@@ -191,6 +198,24 @@ describe('parseDropoutCopy', () => {
 
     expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
       /NO_REDLINE.*inList/
+    )
+  })
+
+  test('refuses a bullet that is both an item and a detail', () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    copy.errors.GPKG_MISSING_LAYER.inList.item = '{feature}'
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
+      /errors\.GPKG_MISSING_LAYER\.inList/
+    )
+  })
+
+  test('refuses a variant whose bullet is both an item and a detail', () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    copy.errors.GPKG_BASELINE_SRS_ID.inList.variants.contents.item = '{feature}'
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
+      /errors\.GPKG_BASELINE_SRS_ID\.inList/
     )
   })
 
