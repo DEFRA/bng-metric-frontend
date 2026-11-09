@@ -99,11 +99,10 @@ function buildPage(page, values) {
 }
 
 /** The {values} the placeholder copy can name, for a test to check. */
-export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['serviceMessage'])
+export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['message'])
 
-function placeholderPage(error) {
-  const message = error?.message
-  const values = message ? { serviceMessage: message } : {}
+function placeholderPage(message) {
+  const values = message ? { message } : {}
   return {
     variant: 'placeholder',
     h1: firstKnown(dropoutCopy.placeholder.title, values),
@@ -116,12 +115,18 @@ function placeholderPage(error) {
  *
  * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
+ * @param {string} [placeholderMessage] what a placeholder page says of the
+ *   error; the service's message when not given
  */
-export function resolveSingleErrorCopy(error, uploadHref) {
+export function resolveSingleErrorCopy(
+  error,
+  uploadHref,
+  placeholderMessage = error?.message
+) {
   const whenAlone = errorCopy(error?.code)?.whenAlone
 
   if (whenAlone === WHEN_ALONE.PLACEHOLDER) {
-    return placeholderPage(error)
+    return placeholderPage(placeholderMessage)
   }
 
   // A code with no copy of its own, or one the page always lists, takes the
