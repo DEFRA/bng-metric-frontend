@@ -201,21 +201,35 @@ describe('parseDropoutCopy', () => {
     )
   })
 
-  test('refuses a bullet that is both an item and a detail', () => {
+  // A problem lists habitats or not, however it is worded, so its bullets
+  // and its variants' are of one kind.
+  test.each([
+    ['the code', 'GPKG_MISSING_LAYER', (inList) => (inList.item = '{feature}')],
+    [
+      'a variant',
+      'GPKG_BASELINE_SRS_ID',
+      (inList) => (inList.variants.contents.item = '{feature}')
+    ],
+    [
+      "a variant, beside the code's detail",
+      'GPKG_BASELINE_MISSING_COLUMN',
+      (inList) => {
+        inList.variants.geometry = { item: '{feature}' }
+      }
+    ],
+    [
+      "a variant, beside the code's item",
+      'AREA_PARCELS_INVALID_GEOMETRY',
+      (inList) => {
+        inList.variants = { odd: { detail: '{layer}' } }
+      }
+    ]
+  ])('refuses an item and a detail in %s', (_, code, mix) => {
     const copy = parseDropoutCopy(COPY_SOURCE)
-    copy.errors.GPKG_MISSING_LAYER.inList.item = '{feature}'
+    mix(copy.errors[code].inList)
 
     expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
-      /errors\.GPKG_MISSING_LAYER\.inList/
-    )
-  })
-
-  test('refuses a variant whose bullet is both an item and a detail', () => {
-    const copy = parseDropoutCopy(COPY_SOURCE)
-    copy.errors.GPKG_BASELINE_SRS_ID.inList.variants.contents.item = '{feature}'
-
-    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
-      /errors\.GPKG_BASELINE_SRS_ID\.inList/
+      new RegExp(`errors\\.${code}\\.inList`)
     )
   })
 
