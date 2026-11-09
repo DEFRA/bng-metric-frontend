@@ -4,8 +4,9 @@ import { treeDetailsFields } from '../common/helpers/tree-details.js'
 
 /**
  * The read-only view models for a post-intervention individual tree: an area
- * habitat's, with the tree's size class and the number of trees it stands
- * for, the values the surveyor entered. A Retained or Enhanced tree keeps its
+ * habitat's, on the area templates, with the tree's size class and the
+ * number of trees it stands for, the values the surveyor entered
+ * (`showTreeRows`). A Retained or Enhanced tree keeps its
  * baseline tree's size class, so its proposed side gives it in every case.
  */
 
@@ -17,7 +18,8 @@ import { treeDetailsFields } from '../common/helpers/tree-details.js'
 export function buildRetainedTreeViewOnlyViewModel(feature, ctx) {
   return {
     ...buildAreaViewOnlyViewModel(feature, ctx),
-    ...treeDetailsFields(feature.proposed?.treeSize, feature.count)
+    ...treeDetailsFields(feature.proposed?.treeSize, feature.count),
+    showTreeRows: true
   }
 }
 
@@ -32,6 +34,7 @@ export function buildRetainedTreeViewOnlyViewModel(feature, ctx) {
 export function buildTreeSectionsViewOnlyViewModel(feature, ctx) {
   return {
     ...buildAreaSectionsViewOnlyFields(feature, ctx),
-    ...treeDetailsFields(feature.proposed?.treeSize, feature.count)
+    ...treeDetailsFields(feature.proposed?.treeSize, feature.count),
+    showTreeRows: true
   }
 }

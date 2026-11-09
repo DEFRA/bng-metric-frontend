@@ -150,6 +150,31 @@ describe('details pages of a BNG Service template project', () => {
     expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
   })
 
+  // A Created area habitat opens on its edit form; a Created vertical area
+  // habitat uses the read-only Created page the trees share.
+  test.each([
+    ['habitats', 'Retained'],
+    ['habitats', 'Enhanced'],
+    ['verticalHabitats', 'Created']
+  ])(
+    'post-intervention details of %s (%s) have no tree rows',
+    async (layer, retentionCategory) => {
+      const body = serviceTemplateProject('twoStages')
+      const habitat = body.project.postIntervention[layer].find(
+        (f) => f.retentionCategory === retentionCategory
+      )
+
+      const $ = await render(
+        body,
+        postInterventionDetailsUrl(body, habitat.featureId)
+      )
+
+      expect(fieldValue($, 'Broad habitat')).toBeDefined()
+      expect(fieldValue($, 'Tree size')).toBeUndefined()
+      expect(fieldValue($, 'Number of trees')).toBeUndefined()
+    }
+  )
+
   test('baseline details of an area habitat have no tree rows', async () => {
     const body = serviceTemplateProject('twoStages')
     const [habitat] = body.project.baseline.habitats

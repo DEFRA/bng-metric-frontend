@@ -12,13 +12,15 @@ const DEFAULT_TREE_COUNT = 1
  * @returns {{ treeSizeDisplay: string, treeCountDisplay: string }}
  */
 export function treeDetailsFields(treeSize, count) {
+  const trees =
+    typeof count === 'number' && Number.isSafeInteger(count) && count > 0
+      ? count
+      : DEFAULT_TREE_COUNT
   return {
     treeSizeDisplay:
       typeof treeSize === 'string' && treeSize.trim() !== ''
         ? treeSize.trim()
         : '',
-    treeCountDisplay: String(
-      Number.isSafeInteger(count) && count > 0 ? count : DEFAULT_TREE_COUNT
-    )
+    treeCountDisplay: `${trees}`
   }
 }

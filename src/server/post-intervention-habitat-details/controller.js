@@ -87,7 +87,7 @@ const VERTICAL_RETENTION_PAGES = new Map([
 // trees, view-only whatever its retention: it cannot be edited after
 // intervention. Enhanced and Created ones show their timing and difficulty.
 const TREE_SECTIONS_PAGE = {
-  template: 'habitat-details/pi-tree-details-enhanced',
+  template: 'habitat-details/pi-habitat-details-enhanced',
   buildViewModel: buildTreeSectionsViewOnlyViewModel
 }
 const TREE_RETENTION_PAGES = new Map([
@@ -149,7 +149,7 @@ const VIEW_ONLY_PAGES = new Map([
   [
     TREE_TYPE,
     {
-      template: 'habitat-details/pi-tree-details',
+      template: 'habitat-details/pi-habitat-details',
       buildViewModel: buildRetainedTreeViewOnlyViewModel
     }
   ],

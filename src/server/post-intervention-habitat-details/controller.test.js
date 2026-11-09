@@ -242,9 +242,9 @@ describe('#postInterventionHabitatDetailsController', () => {
   )
 
   test.each([
-    ['Retained', 'habitat-details/pi-tree-details'],
-    ['Enhanced', 'habitat-details/pi-tree-details-enhanced'],
-    ['Created', 'habitat-details/pi-tree-details-enhanced']
+    ['Retained', 'habitat-details/pi-habitat-details'],
+    ['Enhanced', 'habitat-details/pi-habitat-details-enhanced'],
+    ['Created', 'habitat-details/pi-habitat-details-enhanced']
   ])(
     'GET renders a %s individual tree read-only in the area layout, with its size class and number of trees',
     async (retentionCategory, template) => {
@@ -289,6 +289,7 @@ describe('#postInterventionHabitatDetailsController', () => {
           habitatTypeDisplay: 'Urban tree',
           treeSizeDisplay: 'Medium',
           treeCountDisplay: '2',
+          showTreeRows: true,
           backHref: `/projects/${projectId}/area-post-intervention`
         })
       )
