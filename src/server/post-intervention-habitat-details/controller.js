@@ -489,13 +489,13 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
   if (isRefUnchanged(habitatRef, feature.ref)) {
     return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
   }
-  const showRefused = async (refusal) => {
+  const showRefused = async (refusalToShow) => {
     const response = await renderDetailsPage(request, h, {
       projectId,
       featureId,
       returnUrl,
       submittedRef: habitatRef,
-      refusal
+      refusal: refusalToShow
     })
     return response.code(statusCodes.badRequest)
   }

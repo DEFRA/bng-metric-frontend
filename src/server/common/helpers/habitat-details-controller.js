@@ -435,7 +435,7 @@ function createPostController(uploadType) {
       )
       // A refused reference shows the page again with the error, keeping
       // what the user typed and chose, and the way back they came in by.
-      const showRefused = async (refusal) => {
+      const showRefused = async (refusalToShow) => {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
@@ -444,7 +444,7 @@ function createPostController(uploadType) {
             projectId
           ),
           submitted: request.payload,
-          refusal
+          refusal: refusalToShow
         })
         return response.code(statusCodes.badRequest)
       }

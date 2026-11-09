@@ -832,6 +832,12 @@ edit:
   # service's scope. Not shown by the pages yet.
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: placeholder
 
+  # An edit to a habitat saved before the service checked text lengths and
+  # lists (BMD-1175): it holds a value over its limit or outside its list,
+  # which the backend names. Uploading the file again, corrected, updates it.
+  # Not shown by the pages yet.
+  STORED_VALUE_NOT_ALLOWED: placeholder
+
 # ------------------------------------------------------------------- forms
 #
 # A form field's own validation, by field, then rule. "summary" and "inline"
