@@ -900,6 +900,19 @@ describe('invalidFileController.handler — populated session', () => {
       expect(view.singleError).toBeNull()
     })
 
+    test('keeps the list page when two errors merge into one block', async () => {
+      const view = await viewFor([
+        { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' },
+        { code: 'ANOTHER_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' }
+      ])
+
+      // Two problems are still two: the single-error page words one.
+      expect(view.errorBlocks).toEqual([CATCH_ALL_BLOCK])
+      expect(view.errorList).toEqual([{ text: CATCH_ALL_BLOCK.heading }])
+      expect(view.singleError).toBeNull()
+      expect(view.pageTitle).toBe('There is a problem with your file')
+    })
+
     test('keeps a catch-all block beside one with its own heading', async () => {
       const view = await viewFor([
         { code: 'NO_REDLINE', message: 'Not shown' },
