@@ -235,3 +235,26 @@ test.each([
     expect(displayed.proposed).toMatchObject(expected)
   }
 )
+
+test('loads reference data to restore a saved significance when distinctiveness is already complete', async () => {
+  const project = projectWith({
+    ...feature,
+    proposed: {
+      ...feature.proposed,
+      distinctiveness: 'Medium',
+      distinctivenessScore: 4,
+      strategicSignificance: 'Low',
+      strategicSignificanceCategory: null,
+      strategicSignificanceScore: null
+    }
+  })
+  const displayed = (await prepareCreatedAreaListDisplay(project))
+    .postIntervention.habitats[0]
+  expect(loadCreatedAreaReference).toHaveBeenCalledTimes(1)
+  expect(displayed.proposed).toMatchObject({
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    strategicSignificanceCategory: 'Low',
+    strategicSignificanceScore: 1
+  })
+})
