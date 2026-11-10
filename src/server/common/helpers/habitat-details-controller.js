@@ -7,7 +7,11 @@ import { backendRequest } from './auth/backend-request.js'
 import { backendSaveError } from './backend-save-error.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
-import { commentFormFields, commentRefusals } from './habitat-comment.js'
+import {
+  cleanComment,
+  commentFormFields,
+  commentRefusals
+} from './habitat-comment.js'
 import {
   HABITAT_REF_ERROR,
   HABITAT_REF_IN_USE_ERROR,
@@ -123,7 +127,7 @@ function buildSaveBody({
   // A form without the comment field must not clear a stored comment.
   // Whitespace-only is stored as no value.
   if (comment !== undefined) {
-    body.comment = comment.trim() || null
+    body.comment = cleanComment(comment) || null
   }
   return body
 }
@@ -301,14 +305,16 @@ async function renderDetailsPage(
     submittedComment: submitted?.comment,
     refusals: refusals?.comment ?? []
   })
-  // Page order: the reference sits above the comment.
-  const errors = [...refFields.errors, ...commentFields.errors]
+  // Page order: the reference sits above the comment. Each field's own
+  // fields are named rather than spread, so neither can overwrite the page's
+  // error summary or title.
+  const errors = [...refFields.errors, ...commentFields.commentErrors]
   return h.view('habitat-details/habitat-details', {
     heading,
     caption: projectName,
     ...viewModel,
-    ...refFields,
-    ...commentFields,
+    habitatRefInput: refFields.habitatRefInput,
+    commentInput: commentFields.commentInput,
     errors,
     pageTitle: errors.length > 0 ? `Error: ${heading}` : heading,
     formAction: `/${uploadType.detailsRoute}`,

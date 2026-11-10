@@ -2016,8 +2016,33 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(commentAt).toBeGreaterThan(referenceAt)
       expect(result).toContain(COMMENT_INVALID_CHARACTERS_ERROR.summary)
       expect(result).toContain(COMMENT_TOO_LONG_ERROR.summary)
+      // The summary names both rules; the field carries the first of them, as
+      // one error message, so the markup holds no joined-up pair.
       expect(result).toContain(
-        `${COMMENT_INVALID_CHARACTERS_ERROR.inline}<br>${COMMENT_TOO_LONG_ERROR.inline}`
+        `<span class="govuk-visually-hidden">Error:</span> ${COMMENT_INVALID_CHARACTERS_ERROR.inline}`
+      )
+      expect(result).not.toContain(COMMENT_TOO_LONG_ERROR.inline)
+    })
+
+    // A browser newline-normalises a textarea's value to CRLF on submission,
+    // so a saved comment's line break must not grow a character each time.
+    test('Saves a submitted CRLF line break as LF', async () => {
+      const saved = await postRef({ comment: 'one\r\ntwo\r\n\r\nthree' })
+
+      expect(saved.statusCode).toBe(302)
+      const [, options] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(options.payload).comment).toBe('one\ntwo\n\nthree')
+    })
+
+    test('Saves a comment of 999 characters whose line break was sent as CRLF', async () => {
+      const saved = await postRef({
+        comment: `${'a'.repeat(MAX_COMMENT_LENGTH - 2)}\r\na`
+      })
+
+      expect(saved.statusCode).toBe(302)
+      const [, options] = vi.mocked(wreck.put).mock.calls[0]
+      expect(Array.from(JSON.parse(options.payload).comment)).toHaveLength(
+        MAX_COMMENT_LENGTH
       )
     })
   })

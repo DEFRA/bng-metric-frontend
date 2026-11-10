@@ -157,8 +157,6 @@
           ]
         }) }}
 
-        {# commentInput is absent when a test renders the template directly. #}
-        {% set supportingInformation = commentInput if commentInput else { "value": "" } %}
         {{ govukTextarea({
           id: "comment",
           name: "comment",
@@ -170,8 +168,8 @@
           hint: {
             text: "Add information to help the Local Planning Authority understand the baseline metric."
           },
-          value: supportingInformation.value,
-          errorMessage: supportingInformation.error,
+          value: commentInput.value,
+          errorMessage: commentInput.error,
           classes: "govuk-!-margin-top-6"
         }) }}
 
