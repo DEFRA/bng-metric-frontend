@@ -25,7 +25,7 @@ const DATE_PART_NAMES = ['day', 'month', 'year']
 const YEAR_DIGIT_LENGTH = 4
 const DIGITS_PATTERN = /^\d+$/
 const DATE_ERROR_TYPE = 'surveyCompletionDate.invalid'
-const MAX_TEXT_FIELD_LENGTH = 500
+export const MAX_TEXT_FIELD_LENGTH = 500
 
 // These messages show the same words in the error summary and against the
 // field, so only the inline text is needed.

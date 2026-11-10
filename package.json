@@ -30,7 +30,8 @@
     "server:watch": "cross-env NODE_ENV=development node --inspect=0.0.0.0 --watch --watch-kill-signal=SIGINT ./src",
     "server:debug": "cross-env NODE_ENV=development node --inspect-brk=0.0.0.0 --watch --watch-kill-signal=SIGINT ./src",
     "start": "npm run build:frontend && cross-env NODE_ENV=production node --use-strict .",
-    "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module"
+    "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
+    "export:error-text": "node scripts/error-text-export/export.mjs"
   },
   "author": "Defra DDTS",
   "license": "OGL-UK-3.0",
@@ -83,6 +84,7 @@
     "clean-webpack-plugin": "4.0.0",
     "copy-webpack-plugin": "14.0.0",
     "eslint": "9.39.2",
+    "exceljs": "4.4.0",
     "happy-dom": "21.0.4",
     "husky": "9.1.7",
     "neostandard": "0.14.1",
@@ -100,7 +102,8 @@
     "vitest-fetch-mock": "0.4.5",
     "webpack": "5.112.2",
     "webpack-assets-manifest": "6.5.5",
-    "webpack-cli": "7.3.1"
+    "webpack-cli": "7.3.1",
+    "yaml": "2.9.1"
   },
   "overrides": {
     "@hapi/wreck": "18.1.3",

@@ -118,6 +118,22 @@ To view them in your command line run:
 npm run
 ```
 
+### Exporting the error messages
+
+Every message a customer can see when the service refuses something lives in
+`src/server/common/error-text/error-text.yaml`. To review them as a table:
+
+```bash
+npm run export:error-text
+```
+
+This writes `export/error-messages-<date>-<branch>-<commit>` as `.xlsx`, `.csv`
+and `.html`, with one row for each error ID. The rows give each part of the
+message, its status (Final, Awaiting UCD or Needs content, from the entry's
+`wording` field), any shared fallback it shows, what its `{values}` are filled
+in with, and a link to its line in the file. `-- --out DIR` writes elsewhere,
+and `-- --help` lists the options.
+
 ### Update dependencies
 
 To update dependencies use [npm-check-updates](https://github.com/raineorshine/npm-check-updates):
