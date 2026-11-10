@@ -2,6 +2,10 @@ import Joi from 'joi'
 import { load } from 'js-yaml'
 
 import { errorText } from '../common/error-text/error-text.js'
+import {
+  logErrorTextWarnings,
+  wordingField
+} from '../common/error-text/wording.js'
 import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 
 // The drop-out page's copy is the upload section of error-text.yaml, where
@@ -51,7 +55,11 @@ function oneKindOfBullet(inList, helpers) {
   return kinds.length > 1 ? helpers.error('any.invalid') : inList
 }
 
+// A shared fallback page, which can say its wording is not final.
+const fallbackCopy = pageCopy.keys({ wording: wordingField })
+
 const errorEntry = Joi.object({
+  wording: wordingField,
   whenAlone: Joi.alternatives(
     Joi.string().valid(...Object.values(WHEN_ALONE)),
     pageCopy,
@@ -111,11 +119,11 @@ const copySchema = Joi.object({
     [LINK_TARGETS.METRIC_TOOL]: Joi.string().uri().required()
   }).required(),
   catchAll: Joi.object({
-    legacyTemplate: pageCopy.required(),
-    serviceTemplate: pageCopy.required()
+    legacyTemplate: fallbackCopy.required(),
+    serviceTemplate: fallbackCopy.required()
   }).required(),
-  fileProblem: pageCopy.required(),
-  serviceProblem: pageCopy.required(),
+  fileProblem: fallbackCopy.required(),
+  serviceProblem: fallbackCopy.required(),
   names: Joi.object({
     feature: options.required(),
     tree: options.required(),
@@ -129,12 +137,15 @@ const copySchema = Joi.object({
 })
 
 function checkDropoutCopy(section) {
-  const { value, error } = copySchema.validate(section, { abortEarly: false })
+  const { value, error, warning } = copySchema.validate(section, {
+    abortEarly: false
+  })
   if (error) {
     throw new Error(
       `error-text.yaml's upload section is not valid: ${error.message}`
     )
   }
+  logErrorTextWarnings(warning, 'upload')
   return value
 }
 

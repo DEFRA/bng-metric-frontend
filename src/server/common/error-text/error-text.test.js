@@ -6,13 +6,19 @@ import {
   ERROR_TEXT_FILE,
   commonErrorText,
   pageErrorText,
-  PLACEHOLDER,
   editErrorText,
   errorText,
   fillErrorText,
   formErrorText,
   parseErrorText
 } from './error-text.js'
+
+import { WORDING_STATUS, wordingStatus } from './wording.js'
+
+const { mockWarn } = vi.hoisted(() => ({ mockWarn: vi.fn() }))
+vi.mock('../helpers/logging/logger.js', () => ({
+  createLogger: () => ({ warn: mockWarn })
+}))
 
 const SOURCE = readFileSync(ERROR_TEXT_FILE, 'utf8')
 
@@ -33,14 +39,19 @@ describe('error-text.yaml', () => {
     )
   })
 
-  test('words every edit refusal with a summary and an inline message, or marks it a placeholder', () => {
+  test('words every edit refusal with a summary and an inline message, or says it has no wording yet', () => {
     for (const [code, entry] of Object.entries(errorText.edit)) {
-      if (entry === PLACEHOLDER) {
+      if (wordingStatus(entry) === WORDING_STATUS.NONE) {
         continue
       }
       expect(entry.summary, code).toMatch(/\S/)
       expect(entry.inline, code).toMatch(/\S/)
     }
+  })
+
+  test('marks unfinished wording only with a wording field', () => {
+    expect(SOURCE).not.toMatch(/AWAITING UCD/)
+    expect(SOURCE).not.toMatch(/:\s*placeholder\s*$/m)
   })
 })
 
@@ -92,10 +103,87 @@ describe('parseErrorText', () => {
     expect(() => parseErrorText(JSON.stringify(text))).toThrow(/notFound/)
   })
 
-  test('refuses an edit entry that is neither wording nor a placeholder', () => {
+  test('refuses an edit entry given as a word, as "placeholder" once was', () => {
     const text = parseErrorText(SOURCE)
-    text.edit.ENHANCEMENT_NOT_VALID = 'placholder'
-    expect(() => parseErrorText(JSON.stringify(text))).toThrow(/not valid/)
+    text.edit.ENHANCEMENT_NOT_VALID = 'placeholder'
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /ENHANCEMENT_NOT_VALID/
+    )
+  })
+})
+
+describe("error-text.yaml's wording field", () => {
+  beforeEach(() => {
+    mockWarn.mockClear()
+  })
+
+  test('reads it in every section', () => {
+    const text = parseErrorText(SOURCE)
+    expect(wordingStatus(text.common.unworded)).toBe(WORDING_STATUS.INTERIM)
+    expect(wordingStatus(text.edit.HABITAT_REF_IN_USE)).toBe(
+      WORDING_STATUS.INTERIM
+    )
+    expect(wordingStatus(text.edit.ENHANCEMENT_NOT_VALID)).toBe(
+      WORDING_STATUS.NONE
+    )
+    expect(wordingStatus(text.forms.applicant.tooLong)).toBe(
+      WORDING_STATUS.INTERIM
+    )
+    expect(wordingStatus(text.forms.projectName.required)).toBe(
+      WORDING_STATUS.FINAL
+    )
+    expect(wordingStatus(text.pages.forbidden)).toBe(WORDING_STATUS.INTERIM)
+    expect(wordingStatus(text.pages.notFound)).toBe(WORDING_STATUS.FINAL)
+  })
+
+  test('gives no warning for the committed file', () => {
+    parseErrorText(SOURCE)
+    expect(mockWarn).not.toHaveBeenCalled()
+  })
+
+  test('warns of a value it does not know, rather than refusing the file', () => {
+    const text = parseErrorText(SOURCE)
+    text.pages.forbidden.wording = 'interm'
+    const parsed = parseErrorText(JSON.stringify(text))
+    expect(wordingStatus(parsed.pages.forbidden)).toBe(WORDING_STATUS.NONE)
+    expect(mockWarn).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^error-text\.yaml: pages\.forbidden\.wording is "interm"/
+      )
+    )
+  })
+
+  test('refuses interim wording with no words', () => {
+    const text = parseErrorText(SOURCE)
+    text.edit.HABITAT_REF_IN_USE = { wording: 'interim' }
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /HABITAT_REF_IN_USE\.summary.*required/
+    )
+  })
+
+  test('refuses a form rule with interim wording and no words', () => {
+    const text = parseErrorText(SOURCE)
+    text.forms.applicant.tooLong = { wording: 'interim' }
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /applicant\.tooLong/
+    )
+  })
+
+  test('refuses a form rule with both one text and a pair', () => {
+    const text = parseErrorText(SOURCE)
+    text.forms.applicant.tooLong.summary = 'One'
+    text.forms.applicant.tooLong.inline = 'Two'
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /applicant\.tooLong/
+    )
+  })
+
+  test('refuses common text with no words, which other entries fall back to', () => {
+    const text = parseErrorText(SOURCE)
+    text.common.unworded = { wording: 'none' }
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /unworded\.text.*required/
+    )
   })
 })
 
@@ -157,6 +245,25 @@ describe('formErrorText', () => {
     )
   })
 
+  test('gives a rule worded as text beside its wording field as both messages', () => {
+    expect(formErrorText('applicant', 'tooLong', { max: 5 })).toEqual({
+      summary: 'Applicant must be 5 characters or fewer',
+      inline: 'Applicant must be 5 characters or fewer'
+    })
+  })
+
+  test('gives common.unworded for a rule with no wording yet', () => {
+    errorText.forms.applicant.unwritten = { wording: 'none' }
+    try {
+      expect(formErrorText('applicant', 'unwritten')).toEqual({
+        summary: 'There is a problem with this answer',
+        inline: 'There is a problem with this answer'
+      })
+    } finally {
+      delete errorText.forms.applicant.unwritten
+    }
+  })
+
   test('throws for a rule the file does not word', () => {
     expect(() => formErrorText('habitatRef', 'notARule')).toThrow(
       /no forms\.habitatRef\.notARule/
@@ -167,6 +274,12 @@ describe('formErrorText', () => {
 describe('commonErrorText', () => {
   test("gives the error summary's title", () => {
     expect(commonErrorText('summaryTitle')).toBe('There is a problem')
+  })
+
+  test('gives the words of text with a wording field', () => {
+    expect(commonErrorText('unworded')).toBe(
+      'There is a problem with this answer'
+    )
   })
 })
 

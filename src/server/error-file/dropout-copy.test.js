@@ -23,6 +23,12 @@ import {
   itemValueNames
 } from './controller.js'
 import { pageValueNames } from './single-error-copy.js'
+import { WORDING_STATUS, wordingStatus } from '../common/error-text/wording.js'
+
+const { mockWarn } = vi.hoisted(() => ({ mockWarn: vi.fn() }))
+vi.mock('../common/helpers/logging/logger.js', () => ({
+  createLogger: () => ({ warn: mockWarn, info: vi.fn(), error: vi.fn() })
+}))
 
 // The drop-out page's copy: error-text.yaml's upload section, as YAML.
 const COPY_SOURCE = dump(errorText.upload)
@@ -199,6 +205,28 @@ describe("error-text.yaml's upload section", () => {
 describe('parseDropoutCopy', () => {
   test('reads the committed copy', () => {
     expect(parseDropoutCopy(COPY_SOURCE).errors.NO_REDLINE).toBeDefined()
+  })
+
+  test("reads an error's and a fallback's wording field", () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    expect(wordingStatus(copy.errors.IRREPLACEABLE_TREE)).toBe(
+      WORDING_STATUS.INTERIM
+    )
+    expect(wordingStatus(copy.fileProblem)).toBe(WORDING_STATUS.INTERIM)
+    expect(wordingStatus(copy.errors.NO_REDLINE)).toBe(WORDING_STATUS.FINAL)
+  })
+
+  test('warns of a wording it does not know, rather than refusing the copy', () => {
+    mockWarn.mockClear()
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    copy.errors.NO_REDLINE.wording = 'pending'
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).not.toThrow()
+    expect(mockWarn).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^error-text\.yaml: upload\.errors\.NO_REDLINE\.wording is "pending"/
+      )
+    )
   })
 
   test('refuses an error with no inList', () => {
