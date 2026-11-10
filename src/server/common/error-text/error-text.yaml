@@ -1214,6 +1214,9 @@ pages:
   forbidden:
     # AWAITING UCD: interim wording, shown until content design words it.
     title: Forbidden
+  unauthorized:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    title: Unauthorized
   badRequest:
     # AWAITING UCD: interim wording, shown until content design words it.
     title: Bad Request
