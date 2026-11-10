@@ -1,6 +1,7 @@
 import { dump } from 'js-yaml'
 import { describe, test, expect } from 'vitest'
 
+import { config } from '../../config/config.js'
 import { errorText } from '../common/error-text/error-text.js'
 
 import {
@@ -260,27 +261,54 @@ describe('parseDropoutCopy', () => {
     )
   })
 
+  // Each page is checked by its own sentence: NO_REDLINE, the file problem and
+  // the catch-all share a title, so a reader that showed one for another would
+  // pass a check of the title alone.
   test("shows an error's and a fallback's words whatever their wording field says", () => {
     const copy = parseDropoutCopy(COPY_SOURCE)
     copy.errors.NO_REDLINE.wording = 'pending'
-    copy.fileProblem.wording = 'pending'
-    copy.catchAll.legacyTemplate.wording = 'pending'
-    copy.catchAll.serviceTemplate.wording = 'pending'
+    for (const fallback of [
+      copy.fileProblem,
+      copy.serviceProblem,
+      copy.catchAll.legacyTemplate,
+      copy.catchAll.serviceTemplate
+    ]) {
+      fallback.wording = 'pending'
+    }
     const parsed = parseDropoutCopy(JSON.stringify(copy))
     const saved = { ...dropoutCopy }
+    const serviceTemplate = config.get('serviceTemplate.enabled')
+    config.set('serviceTemplate.enabled', false)
     Object.assign(dropoutCopy, {
       errors: parsed.errors,
       fileProblem: parsed.fileProblem,
+      serviceProblem: parsed.serviceProblem,
       catchAll: parsed.catchAll
     })
 
     try {
-      const h1 = (code) => resolveSingleErrorCopy({ code }, '/upload').h1
-      expect(h1('NO_REDLINE')).toBe(saved.errors.NO_REDLINE.whenAlone.title)
-      expect(h1('GPKG_RLB_UNREADABLE_GEOMETRY')).toBe(saved.fileProblem.title)
-      expect(h1('FILENAME_TOO_LONG')).toBe(saved.catchAll.legacyTemplate.title)
+      const page = (code) => resolveSingleErrorCopy({ code }, '/upload')
+      expect(page('NO_REDLINE')).toMatchObject({
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore:
+          'The redline boundary is missing. Draw the red line boundary and '
+      })
+      expect(page('GPKG_RLB_UNREADABLE_GEOMETRY')).toMatchObject({
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore: 'Check the habitats in your file and '
+      })
+      expect(page('FILENAME_TOO_LONG')).toMatchObject({
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore:
+          'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
+      })
+      expect(page('SIZING_FAILED')).toMatchObject({
+        h1: 'Sorry, there is a problem with the service',
+        helpText: 'Try again later.'
+      })
     } finally {
       Object.assign(dropoutCopy, saved)
+      config.set('serviceTemplate.enabled', serviceTemplate)
     }
   })
 
