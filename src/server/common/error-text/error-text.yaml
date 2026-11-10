@@ -670,10 +670,13 @@ upload:
     # cannot be edited once a post-intervention file is uploaded (BMD-1194).
     # A baseline-only upload is not refused for it.
     #
-    # placeholder: the page text is awaiting UCD (Jack Arnott). AWAITING UCD:
-    # interim list heading and bullet.
+    # Shown as its list even alone: the user has to complete the habitats it
+    # names.
+    #
+    # AWAITING UCD: interim heading and bullet; the wording is awaiting UCD
+    # (Jack Arnott).
     BASELINE_HABITATS_INCOMPLETE:
-      whenAlone: placeholder
+      whenAlone: list
       inList:
         heading: >-
           One or more baseline habitats are incomplete, so this

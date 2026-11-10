@@ -520,12 +520,18 @@ describe('invalidFileController.handler — populated session', () => {
       })
     })
 
-    test('alone, shows the placeholder page awaiting UCD, naming its heading and bullets, not the service message', async () => {
+    test('alone, still lists the habitats to complete, not a single-error page', async () => {
       const view = await render([incompleteBaseline])
 
-      expect(view.singleError.helpText).toBe(
-        'PLACEHOLDER - One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline: Feature Ref H002 — Ground based green wall, fid 7'
-      )
+      expect(view.singleError).toBeFalsy()
+      expect(view.errorBlocks).toEqual([
+        {
+          heading:
+            'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline',
+          items: ['Feature Ref H002 — Ground based green wall', 'fid 7'],
+          more: 0
+        }
+      ])
     })
   })
 
