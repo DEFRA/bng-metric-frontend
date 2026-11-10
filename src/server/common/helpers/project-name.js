@@ -1,10 +1,20 @@
 import Joi from 'joi'
 
+import { formErrorText } from '../error-text/error-text.js'
+
+const MAX_PROJECT_NAME_LENGTH = 1000
+
+// A project name's messages show the same words in the error summary and
+// against the field, so only the inline text is needed.
+const message = (rule, values) =>
+  formErrorText('projectName', rule, values).inline
+const REQUIRED = message('required')
+
 export const projectNameSchema = Joi.string()
   .trim()
   .empty('')
   .required()
-  .max(1000)
+  .max(MAX_PROJECT_NAME_LENGTH)
   .custom((value, helpers) => {
     const hasInvalidChars = [...value].some((char) => {
       const codePoint = char.codePointAt(0)
@@ -17,11 +27,11 @@ export const projectNameSchema = Joi.string()
     return hasInvalidChars ? helpers.error('string.invalidChars') : value
   })
   .messages({
-    'string.base': 'Enter a project name',
-    'string.empty': 'Enter a project name',
-    'any.required': 'Enter a project name',
-    'string.max': 'Project name must be 1000 characters or fewer',
-    'string.invalidChars': 'Project name must only contain valid characters'
+    'string.base': REQUIRED,
+    'string.empty': REQUIRED,
+    'any.required': REQUIRED,
+    'string.max': message('tooLong', { max: MAX_PROJECT_NAME_LENGTH }),
+    'string.invalidChars': message('invalidCharacters')
   })
 
 export function validateProjectName(projectName) {

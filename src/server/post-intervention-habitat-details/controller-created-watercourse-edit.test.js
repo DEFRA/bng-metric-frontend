@@ -24,6 +24,11 @@ import { getController, postController } from './controller.js'
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: { get: vi.fn(), put: vi.fn() }
 }))
+// A refusal's { summary, inline } pair from error-text.yaml.
+const FORM_ERROR = {
+  summary: expect.any(String),
+  inline: expect.any(String)
+}
 const { broadHabitat: _broad, ...values } = createdAreaValues(feature)
 const request = (overrides = {}) => ({
   payload: { projectId, featureId, ...values, ...overrides }
@@ -765,7 +770,7 @@ test.each([
   })
   const h = createMockH()
   await postController.handler(request({ [field]: 'unchanged' }), h)
-  expect(h.view.mock.calls[0][1].errors[field]).toEqual(expect.any(String))
+  expect(h.view.mock.calls[0][1].errors[field]).toEqual(FORM_ERROR)
   expect(wreck.put).not.toHaveBeenCalled()
 })
 
@@ -795,8 +800,8 @@ test('preserves invalid imported timing and rejects conflicting new selections o
     refused
   )
   expect(refused.view.mock.calls[0][1].errors).toMatchObject({
-    advanceYears: expect.any(String),
-    delayYears: expect.any(String)
+    advanceYears: FORM_ERROR,
+    delayYears: FORM_ERROR
   })
   expect(refused.view.mock.calls[0][1].values).toMatchObject({
     advanceYears: '2',

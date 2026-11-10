@@ -1026,7 +1026,9 @@ upload:
     VALIDATION_BUSY:
       whenAlone: catch-all
       inList:
-        heading: 'The service is busy checking other files. Please try again in a few moments.'
+        # &serviceBusy: the upload page shows these same words when it gives up
+        # waiting (forms.file.serviceBusy), so a change here changes both.
+        heading: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
 
     VALIDATION_UNAVAILABLE:
       whenAlone: catch-all
@@ -1059,12 +1061,70 @@ edit:
 # ------------------------------------------------------------------- forms
 #
 # A form field's own validation, by field, then rule. "summary" and "inline"
-# as for edit.
+# as for edit. A rule given as one line shows the same words in both. {braces}
+# are filled in by the page, from a limit it applies or what was entered.
 
 forms:
+  projectName:
+    # Blank or whitespace only, on the new project and change project name
+    # pages alike.
+    required: Enter a project name
+    tooLong: Project name must be {max} characters or fewer
+    # A control character or half of a UTF-16 pair.
+    invalidCharacters: Project name must only contain valid characters
+
+  localPlanningAuthorityReference:
+    # Not one of the list's options, or one the backend does not know.
+    notInList: Select a Local Planning Authority from the list
+
+  surveyCompletionDate:
+    # Some of the day, month and year are blank, but not all three. {part} is
+    # the one that is blank: day, month or year. {parts} are the two that
+    # are, as "day and month".
+    missingOne: Survey completion date must include a {part}
+    missingSeveral: Survey completion date must include {parts}
+    notReal: Survey completion date must be a real date
+
+  file:
+    # The upload page, once the service has looked at the uploaded file.
+    # The file is not a GeoPackage at all.
+    notAGeoPackage: The selected file must be a GeoPackage (.gpkg)
+    # The checks gave up waiting for a busy validator. There is nothing wrong
+    # with the file, so this must not suggest changing it.
+    # The same words as the drop-out page's upload.errors.VALIDATION_BUSY
+    # heading, which this repeats with *serviceBusy: change them there.
+    serviceBusy: *serviceBusy
+    timedOut: The file check timed out. Please try again.
+
   habitatRef:
-    # Blank, whitespace only or not UTF-8, on the baseline details page and
-    # the retained post-intervention details page alike.
+    # Blank, whitespace only or not UTF-8, on the baseline details page, the
+    # retained post-intervention details page and the created habitat page.
     invalid:
       summary: You have entered an invalid habitat reference.
       inline: Enter a valid habitat reference.
+    # Longer than {max} characters, on the created habitat page. The other
+    # pages cut a long reference on save instead.
+    tooLong: Enter a habitat reference of {max} characters or fewer.
+
+  # The created habitat, hedgerow and watercourse page's choices. A choice that is not one
+  # of its options can only be an imported value no longer offered.
+  broadHabitat:
+    invalid: Choose a valid broad habitat
+  habitatType:
+    notInBroadHabitat: Choose a habitat type for the selected broad habitat
+    invalidHedgerow: Choose a valid hedgerow habitat type
+    invalidWatercourse: Choose a valid watercourse habitat type
+  condition:
+    notForHabitatType: Choose a target condition for the selected habitat type
+  strategicSignificance:
+    invalid: Choose a valid strategic significance
+  watercourseEncroachment:
+    invalid: Choose a valid watercourse encroachment
+  riparianEncroachment:
+    invalid: Choose a valid riparian encroachment
+  advanceOrDelay:
+    invalid: Choose a valid advance or delay value
+    # Both an advance and a delay of more than zero years.
+    both:
+      summary: A habitat cannot be created both in advance and with a delay.
+      inline: Either the advance or delay field must be set at zero.
