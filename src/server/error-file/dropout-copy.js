@@ -176,11 +176,15 @@ export function canFill(templates, values = {}) {
   return [templates].flat().some((t) => hasValues(t, values))
 }
 
+/** The first of `templates` whose values are all known, not filled in. */
+export function firstKnownTemplate(templates, values = {}) {
+  const list = [templates].flat()
+  return list.find((t) => hasValues(t, values)) ?? list.at(-1)
+}
+
 /** The first of `templates` whose values are all known, filled in. */
 export function firstKnown(templates, values = {}) {
-  const list = [templates].flat()
-  const chosen = list.find((t) => hasValues(t, values)) ?? list.at(-1)
-  return fill(chosen, values)
+  return fill(firstKnownTemplate(templates, values), values)
 }
 
 /** Each of `parts` whose values are all known, filled in and joined. */
@@ -192,31 +196,7 @@ export function joinKnownParts(parts, values = {}) {
     .join('')
 }
 
-const LINK_OPEN = '['
-const LINK_MIDDLE = ']('
-const LINK_CLOSE = ')'
-
-/**
- * Split a sentence at its [link text](target), or return it whole as
- * `before` when it has none.
- *
- * @param {string} sentence
- * @returns {{ before: string, linkText?: string, target?: string, after?: string }}
- */
-export function splitLink(sentence) {
-  const open = sentence.indexOf(LINK_OPEN)
-  const middle = open === -1 ? -1 : sentence.indexOf(LINK_MIDDLE, open)
-  const close = middle === -1 ? -1 : sentence.indexOf(LINK_CLOSE, middle)
-  if (close === -1) {
-    return { before: sentence }
-  }
-  return {
-    before: sentence.slice(0, open),
-    linkText: sentence.slice(open + LINK_OPEN.length, middle),
-    target: sentence.slice(middle + LINK_MIDDLE.length, close),
-    after: sentence.slice(close + LINK_CLOSE.length)
-  }
-}
+export { splitLink } from '../common/error-text/links.js'
 
 /**
  * The {values} each page string can name: pageText fills these and no

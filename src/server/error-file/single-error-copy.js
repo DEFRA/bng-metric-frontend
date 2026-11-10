@@ -5,7 +5,9 @@ import {
   catchAllPage,
   dropoutCopy,
   errorCopy,
+  fill,
   firstKnown,
+  firstKnownTemplate,
   splitLink
 } from './dropout-copy.js'
 
@@ -62,9 +64,14 @@ function choosePage(pages, values) {
 // upload page, to the metric tool, or nowhere.
 function buildPage(page, values) {
   const h1 = firstKnown(page.title, values)
-  const { before, linkText, target, after } = splitLink(
-    firstKnown(page.body, values)
-  )
+  // Split at the link before filling in, so a value cannot move the link.
+  const parts = splitLink(firstKnownTemplate(page.body, values))
+  const { target } = parts
+  const [before, linkText, after] = [
+    parts.before,
+    parts.linkText,
+    parts.after
+  ].map((part) => (part === undefined ? undefined : fill(part, values)))
   const subheading = page.subheading ? { subheading: page.subheading } : {}
 
   if (target === LINK_TARGETS.UPLOAD) {

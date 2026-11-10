@@ -1,5 +1,5 @@
 import { createLogger } from '../helpers/logging/logger.js'
-import { formErrorText } from './error-text.js'
+import { commonErrorText, formErrorText } from './error-text.js'
 
 // Joi words its own messages, starting with the field's name in quotes:
 // '"applicant" length must be less than or equal to 500 characters long'.
@@ -10,7 +10,7 @@ import { formErrorText } from './error-text.js'
 const logger = createLogger()
 
 // What the page shows for a check whose schema names no rule.
-const UNWORDED = formErrorText('common', 'invalid').inline
+const UNWORDED = commonErrorText('unworded')
 
 /**
  * A Joi schema's `.messages()` for a form field: each Joi error type it can
@@ -35,7 +35,7 @@ export function joiMessages(field, rules) {
 /**
  * The text to show for one of a failed validation's details: its message,
  * unless that is Joi's own wording, which a schema with no rule for the check
- * leaves. Then the page shows forms.common.invalid, and the gap is logged for
+ * leaves. Then the page shows common.unworded, and the gap is logged for
  * a developer to word.
  *
  * @param {{ message: string, type: string, path: Array<string | number>, context?: { label?: string } }} detail

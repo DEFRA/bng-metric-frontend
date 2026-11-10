@@ -21,7 +21,7 @@
     <div class="govuk-grid-column-two-thirds">
       {% if error %}
         {{ govukErrorSummary({
-          titleText: "There is a problem",
+          titleText: errorSummaryTitle,
           errorList: [
             {
               text: error.text,
@@ -36,7 +36,7 @@
 
         <template id="tpl-error-summary">
           {{ govukErrorSummary({
-            titleText: "There is a problem",
+            titleText: errorSummaryTitle,
             attributes: { "data-client-error": "true" }
           }) }}
         </template>

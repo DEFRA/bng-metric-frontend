@@ -4,6 +4,8 @@ import { describe, expect, test } from 'vitest'
 
 import {
   ERROR_TEXT_FILE,
+  commonErrorText,
+  pageErrorText,
   PLACEHOLDER,
   editErrorText,
   errorText,
@@ -15,8 +17,14 @@ import {
 const SOURCE = readFileSync(ERROR_TEXT_FILE, 'utf8')
 
 describe('error-text.yaml', () => {
-  test('holds the upload, edit and forms sections', () => {
-    expect(Object.keys(errorText)).toEqual(['upload', 'edit', 'forms'])
+  test('holds the common, upload, edit, forms and pages sections', () => {
+    expect(Object.keys(errorText)).toEqual([
+      'common',
+      'upload',
+      'edit',
+      'forms',
+      'pages'
+    ])
   })
 
   test("words the upload page's busy message as the drop-out page's", () => {
@@ -62,6 +70,26 @@ describe('parseErrorText', () => {
     expect(() => parseErrorText(JSON.stringify(text))).toThrow(
       /projectName\.required/
     )
+  })
+
+  test('refuses HTML in a page', () => {
+    const text = parseErrorText(SOURCE)
+    text.pages.accessDenied.body[1] = 'An <strong>approved</strong> role'
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(/no HTML/)
+  })
+
+  test('refuses a page link to somewhere it does not know', () => {
+    const text = parseErrorText(SOURCE)
+    text.pages.accessDenied.body[2] = '[Return](upload)'
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /links to "upload"/
+    )
+  })
+
+  test('refuses a page with neither a title nor a body', () => {
+    const text = parseErrorText(SOURCE)
+    text.pages.notFound = {}
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(/notFound/)
   })
 
   test('refuses an edit entry that is neither wording nor a placeholder', () => {
@@ -133,5 +161,39 @@ describe('formErrorText', () => {
     expect(() => formErrorText('habitatRef', 'notARule')).toThrow(
       /no forms\.habitatRef\.notARule/
     )
+  })
+})
+
+describe('commonErrorText', () => {
+  test("gives the error summary's title", () => {
+    expect(commonErrorText('summaryTitle')).toBe('There is a problem')
+  })
+})
+
+describe('pageErrorText', () => {
+  test("gives a page's title and its body, a line at a time, with its link", () => {
+    expect(pageErrorText('accessDenied')).toEqual({
+      title: 'Access denied',
+      body: [
+        { before: 'You do not have permission to view this page.' },
+        { before: expect.stringContaining('approved BNG completer role') },
+        {
+          before: '',
+          link: { text: 'Return to the home page', href: '/' },
+          after: ''
+        }
+      ]
+    })
+  })
+
+  test('gives a page with only a title an empty body', () => {
+    expect(pageErrorText('notFound')).toEqual({
+      title: 'Page not found',
+      body: []
+    })
+  })
+
+  test('throws for a page the file does not word', () => {
+    expect(() => pageErrorText('notAPage')).toThrow(/no pages\.notAPage/)
   })
 })

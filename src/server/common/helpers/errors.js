@@ -1,21 +1,23 @@
 import { statusCodes } from '../constants.js'
 import { SESSION_EXPIRED_PATH } from './auth/session-expiry.js'
+import { pageErrorText } from '../error-text/error-text.js'
 
-function statusCodeMessage(statusCode) {
-  switch (statusCode) {
-    case statusCodes.notFound:
-      return 'Page not found'
-    case statusCodes.forbidden:
-      return 'Forbidden'
-    case statusCodes.unauthorized:
-      return 'Unauthorized'
-    case statusCodes.badRequest:
-      return 'Bad Request'
-    case statusCodes.conflict:
-      return 'Another user is editing this. Please try again.'
-    default:
-      return 'Something went wrong'
-  }
+// The pages section's page for each status; any other is serverError.
+const STATUS_PAGES = new Map([
+  [statusCodes.notFound, 'notFound'],
+  [statusCodes.forbidden, 'forbidden'],
+  [statusCodes.unauthorized, 'unauthorized'],
+  [statusCodes.badRequest, 'badRequest'],
+  [statusCodes.conflict, 'conflict']
+])
+
+const SERVER_ERROR_PAGE = pageErrorText('serverError')
+const ERROR_PAGES = new Map(
+  [...STATUS_PAGES].map(([status, key]) => [status, pageErrorText(key)])
+)
+
+function statusCodePage(statusCode) {
+  return ERROR_PAGES.get(statusCode) ?? SERVER_ERROR_PAGE
 }
 
 export function catchAll(request, h) {
@@ -33,7 +35,7 @@ export function catchAll(request, h) {
   }
 
   const statusCode = response.output.statusCode
-  const errorMessage = statusCodeMessage(statusCode)
+  const page = statusCodePage(statusCode)
 
   if (statusCode >= statusCodes.internalServerError) {
     request.logger.error(response?.stack)
@@ -41,9 +43,10 @@ export function catchAll(request, h) {
 
   return h
     .view('error/index', {
-      pageTitle: errorMessage,
+      pageTitle: page.title,
       heading: statusCode,
-      message: errorMessage
+      message: page.title,
+      body: page.body
     })
     .code(statusCode)
 }

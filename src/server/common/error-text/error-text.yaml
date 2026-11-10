@@ -5,8 +5,19 @@
 # changes here by pull request. The pages' code reads it; it holds no wording
 # of its own.
 #
+# What belongs here: any words shown because something was refused or went
+# wrong. Hints and guidance, such as a note about an imported value, are the
+# page's own content and stay in its template.
+#
+# What cannot be here, because the service does not show it:
+#   - Defra ID's sign-in pages, the file uploader's own responses, and the
+#     platform's pages while the service is down or deploying
+#   - the browser's own messages, such as a failed download
+#   - the bare error the server sends if its error page itself fails
+#
 # Sections
 #
+#   common   words every page shares, such as the error summary's title.
 #   upload   the drop-out page (/error-file), shown when an uploaded
 #            GeoPackage is refused. Keyed by the backend's error code.
 #            A code met only on an edit has no entry here.
@@ -14,6 +25,20 @@
 #            was accepted. Keyed by the backend's error code.
 #   forms    a form field's own validation, before anything reaches the
 #            backend. Keyed by field, then by rule.
+#   pages    a whole page shown in place of the one asked for, such as
+#            "Page not found". Keyed by page.
+#
+# Wording rules, which the file's checks (error-text.js) hold it to
+#
+# - Plain text only in common, forms, edit and pages: no HTML. A page shows
+#   the words as typed.
+# - {braces} are filled in by the page: a limit from the code, or a value from
+#   the customer's file or answer. Only the sentence around a value is
+#   wording; the value itself is not.
+# - [link text](target) links. A line is split at its link before its
+#   {braces} are filled in, so a value cannot make or move a link.
+# - Each grammatical form is a rule of its own, as "missingOne" and
+#   "missingSeveral" are, rather than words the code adds.
 #
 # Which section a backend code belongs in is the backend's to say
 # (bng-metric-backend, src/validation/geopackage/errors.js,
@@ -32,6 +57,18 @@
 #
 # What each upload rule checks, and which example file shows it:
 # https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md
+
+# ------------------------------------------------------------------ common
+
+common:
+  # The title of every error summary.
+  summaryTitle: There is a problem
+
+  # Shown against a field for a check whose code names no forms rule, rather
+  # than the validation library's own wording, which names the field's code.
+  # The gap is logged for a developer to add a rule.
+  # AWAITING UCD: interim wording, shown until content design words it.
+  unworded: There is a problem with this answer
 
 # ------------------------------------------------------------------ upload
 #
@@ -1065,13 +1102,6 @@ edit:
 # are filled in by the page, from a limit it applies or what was entered.
 
 forms:
-  common:
-    # Shown against a field for a check whose schema names no rule here,
-    # rather than the validation library's own wording, which names the
-    # field's code. The gap is logged for a developer to add a rule.
-    # AWAITING UCD: interim wording, shown until content design words it.
-    invalid: There is a problem with this answer
-
   projectName:
     # Blank or whitespace only, on the new project and change project name
     # pages alike.
@@ -1166,3 +1196,43 @@ forms:
     both:
       summary: A habitat cannot be created both in advance and with a delay.
       inline: Either the advance or delay field must be set at zero.
+
+# ------------------------------------------------------------------- pages
+#
+# A whole page shown in place of the one asked for. "title" is its heading
+# and the browser tab's title; "body" its paragraphs, one a line, which can
+# link with [link text](home) to the service's home page.
+
+pages:
+  # The general error page, by what went wrong.
+  notFound:
+    title: Page not found
+  forbidden:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    title: Forbidden
+  unauthorized:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    title: Unauthorized
+  badRequest:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    title: Bad Request
+  conflict:
+    # Someone else saved the project first.
+    title: Another user is editing this. Please try again.
+  serverError:
+    # Anything else, including a service the page needed being down.
+    title: Something went wrong
+
+  # Signed in, but without the role the service needs.
+  accessDenied:
+    title: Access denied
+    body:
+      - You do not have permission to view this page.
+      - Access is limited to users with an approved BNG completer role. If your role is still awaiting approval, or you think this is wrong, contact your Defra administrator.
+      - '[Return to the home page](home)'
+
+  # A habitat on the post-intervention details page that has no details
+  # page of its own, such as an IGGI.
+  featureUnsupported:
+    body:
+      - IGGI features are not yet supported in this view.

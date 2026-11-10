@@ -1,0 +1,12 @@
+{# The body of a page from error-text.yaml's pages section, as pageErrorText
+   gives it: a paragraph for each line, with its link. testId marks the first. #}
+{% macro appErrorTextBody(params) %}
+  {%- for line in params.lines %}
+    <p class="govuk-body"{% if loop.first and params.testId %} data-testid="{{ params.testId }}"{% endif %}>
+      {{- line.before -}}
+      {%- if line.link -%}
+        <a class="govuk-link" href="{{ line.link.href }}">{{ line.link.text }}</a>{{ line.after }}
+      {%- endif -%}
+    </p>
+  {%- endfor %}
+{% endmacro %}

@@ -20,6 +20,7 @@ import { clearStateOnOrganisationSwitch } from '../common/helpers/auth/organisat
 import { clearSessionEnded } from '../common/helpers/auth/session-expiry.js'
 import { hasBngCompleterRole } from '../common/helpers/auth/verify-role.js'
 import { statusCodes } from '../common/constants.js'
+import { pageErrorText } from '../common/error-text/error-text.js'
 
 const redirectUri = config.get('oidc.redirectUri')
 const postLogoutRedirectUri = config.get('oidc.postLogoutRedirectUri')
@@ -33,6 +34,7 @@ const scope = useStub
 
 const FORBIDDEN_PATH = '/auth/forbidden'
 const SIGNED_OUT_HEADING = 'You have been signed out'
+const ACCESS_DENIED = pageErrorText('accessDenied')
 
 function describeOidcError(error) {
   const cause = error.cause
@@ -301,8 +303,9 @@ export const forbiddenController = {
   handler(_request, h) {
     return h
       .view('auth/forbidden', {
-        pageTitle: 'Access denied',
-        heading: 'Access denied',
+        pageTitle: ACCESS_DENIED.title,
+        heading: ACCESS_DENIED.title,
+        body: ACCESS_DENIED.body,
         navigation: []
       })
       .code(statusCodes.forbidden)
