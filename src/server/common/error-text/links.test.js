@@ -1,5 +1,5 @@
 import { splitLink } from './links.js'
-import { fillErrorText } from './error-text.js'
+import { fillPage } from './error-text.js'
 
 describe('splitLink', () => {
   test('splits a sentence at its link', () => {
@@ -16,11 +16,27 @@ describe('splitLink', () => {
   test('gives a sentence with no link whole', () => {
     expect(splitLink('No link here')).toEqual({ before: 'No link here' })
   })
+})
 
-  test('leaves a value that looks like a link as text when split first', () => {
-    const { before } = splitLink('Parcel {ref} has an error')
-    expect(fillErrorText(before, { ref: '[x](home)' })).toBe(
-      'Parcel [x](home) has an error'
-    )
-  })
+describe('fillPage, as pageErrorText fills a page', () => {
+  const page = {
+    title: 'Problem with {ref}',
+    body: ['Habitat {ref} has an error. [Return to the home page](home).']
+  }
+
+  test.each([['[x](home)'], ['a](home) b'], ['[unclosed']])(
+    'keeps a value holding link syntax, %s, as text, and the link where it was',
+    (ref) => {
+      expect(fillPage(page, { ref })).toEqual({
+        title: `Problem with ${ref}`,
+        body: [
+          {
+            before: `Habitat ${ref} has an error. `,
+            link: { text: 'Return to the home page', href: '/' },
+            after: '.'
+          }
+        ]
+      })
+    }
+  )
 })

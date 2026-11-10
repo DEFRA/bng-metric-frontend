@@ -1,5 +1,6 @@
 import { getUploadStatus } from '../common/services/uploader.js'
 import { validateBaseline } from '../common/services/baseline.js'
+import { FILE_ERROR_TEXT } from '../common/helpers/file-validation-messages.js'
 
 vi.mock('../common/services/uploader.js')
 vi.mock('../common/services/baseline.js')
@@ -110,7 +111,7 @@ describe('upload-received controller', () => {
 
       expect(request.yar.set).toHaveBeenCalledWith(
         'uploadError',
-        'notAGeoPackage'
+        FILE_ERROR_TEXT.notAGeoPackage
       )
       expect(request.yar.set).not.toHaveBeenCalledWith(
         'baselineValidationErrors',
@@ -133,7 +134,10 @@ describe('upload-received controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.set).toHaveBeenCalledWith('uploadError', 'invalidName')
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'uploadError',
+      FILE_ERROR_TEXT.invalidName
+    )
     expect(request.yar.set).not.toHaveBeenCalledWith(
       'baselineValidationErrors',
       expect.anything()
@@ -154,7 +158,10 @@ describe('upload-received controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.set).toHaveBeenCalledWith('uploadError', 'nameTooLong')
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'uploadError',
+      FILE_ERROR_TEXT.nameTooLong
+    )
     expect(request.yar.set).not.toHaveBeenCalledWith(
       'baselineValidationErrors',
       expect.anything()
@@ -260,7 +267,10 @@ describe('upload-received controller', () => {
 
     expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
     expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
-    expect(request.yar.set).toHaveBeenCalledWith('uploadError', 'timedOut')
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'uploadError',
+      FILE_ERROR_TEXT.timedOut
+    )
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-baseline-file'
     )
@@ -321,7 +331,10 @@ describe('upload-received controller', () => {
 
     await getController.handler(request, h)
 
-    expect(request.yar.set).toHaveBeenCalledWith('uploadError', 'serviceBusy')
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'uploadError',
+      FILE_ERROR_TEXT.serviceBusy
+    )
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-baseline-file'
     )

@@ -74,7 +74,17 @@ describe('initFileUploadValidation', () => {
 
   test.each([
     ['carries no messages', undefined],
-    ['carries messages it cannot read', '{not json']
+    ['carries messages it cannot read', '{not json'],
+    ['carries an empty object', '{}'],
+    ['carries a list', JSON.stringify(Object.values(CLIENT_FILE_ERROR_TEXT))],
+    [
+      'carries no words for one of its checks',
+      JSON.stringify({ ...CLIENT_FILE_ERROR_TEXT, NO_FILE: undefined })
+    ],
+    [
+      'carries blank words for one of its checks',
+      JSON.stringify({ ...CLIENT_FILE_ERROR_TEXT, TOO_LARGE: ' ' })
+    ]
   ])('Should leave the check to the server when the form %s', (_, text) => {
     createUploadForm()
     const form = document.querySelector('form')

@@ -2,12 +2,15 @@ import { statusCodes } from '../constants.js'
 import { SESSION_EXPIRED_PATH } from './auth/session-expiry.js'
 import { pageErrorText } from '../error-text/error-text.js'
 
-// The pages section's page for each status; any other is serverError.
+// The pages section's page for each status; any other is serverError. A 422,
+// a save the backend refused under one of the service's rules, shows the same
+// page as a 400.
 const STATUS_PAGES = new Map([
   [statusCodes.notFound, 'notFound'],
   [statusCodes.forbidden, 'forbidden'],
   [statusCodes.unauthorized, 'unauthorized'],
   [statusCodes.badRequest, 'badRequest'],
+  [statusCodes.unprocessableEntity, 'badRequest'],
   [statusCodes.conflict, 'conflict']
 ])
 

@@ -1,8 +1,7 @@
 import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants.js'
 import {
   FILE_CHECK_CODES,
-  MAX_FILENAME_LENGTH,
-  MAX_FILE_SIZE_LABEL
+  MAX_FILENAME_LENGTH
 } from '../../shared/file-checks.js'
 
 // Pure validators for the upload form. Kept DOM-free so the rules can be
@@ -53,9 +52,4 @@ export function validateFile(file, messages) {
   return validateFileCodes(file).map((code) => messages[code])
 }
 
-export {
-  ALLOWED_EXTENSION,
-  ERROR_CODES,
-  MAX_FILE_SIZE_LABEL,
-  MAX_FILENAME_LENGTH
-}
+export { ALLOWED_EXTENSION, ERROR_CODES }

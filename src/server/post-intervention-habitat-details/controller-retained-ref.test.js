@@ -428,9 +428,10 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       mockBackend()
       vi.mocked(wreck.put).mockRejectedValue(Boom.badData('something else'))
 
-      const { statusCode } = await post({ habitatRef: 'A2' })
+      const { statusCode, result } = await post({ habitatRef: 'A2' })
 
-      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(statusCode).toBe(422)
+      expect(result).toContain('Bad Request')
     })
 
     test.each([

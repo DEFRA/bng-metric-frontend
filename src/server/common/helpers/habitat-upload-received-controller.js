@@ -3,6 +3,7 @@ import { randomInt } from 'node:crypto'
 import { getUploadStatus } from '../services/uploader.js'
 import { createLogger } from './logging/logger.js'
 import { FILE_CHECK_CODES } from '../../../shared/file-checks.js'
+import { FILE_ERROR_TEXT } from './file-validation-messages.js'
 import { storeValidationErrors } from './store-validation-errors.js'
 
 const logger = createLogger()
@@ -30,8 +31,11 @@ const GPKG_FORMAT_ERROR_CODES = new Set([
   'GPKG_INVALID_FILE',
   'GPKG_NOT_A_GEOPACKAGE'
 ])
-// The session carries a forms.file rule of error-text.yaml to the upload page,
-// which words it (file-validation-messages.js), rather than the words.
+// The forms.file rule of error-text.yaml each problem is worded by. The session
+// carries its words to the upload page for now: an instance from before the
+// upload page could word a rule would show the rule's name during a rolling
+// deploy. Once every instance reads rules (uploadErrorText), it can carry the
+// rule instead.
 const GPKG_FORMAT_ERROR_RULE = 'notAGeoPackage'
 
 const FILENAME_ERROR_RULES = Object.freeze({
@@ -47,6 +51,10 @@ const FILENAME_ERROR_RULES = Object.freeze({
  */
 const SERVICE_BUSY_RULE = 'serviceBusy'
 const TIMED_OUT_RULE = 'timedOut'
+
+function setUploadError(request, uploadType, rule) {
+  request.yar.set(uploadType.uploadErrorSessionKey, FILE_ERROR_TEXT[rule])
+}
 
 /**
  * A refresh interval that will not put every waiting browser in lockstep.
@@ -134,13 +142,14 @@ async function handleReadyUpload(
     const filenameError = errors.find((e) => FILENAME_ERROR_RULES[e?.code])
 
     if (isFormatError) {
-      request.yar.set(uploadType.uploadErrorSessionKey, GPKG_FORMAT_ERROR_RULE)
+      setUploadError(request, uploadType, GPKG_FORMAT_ERROR_RULE)
       return h.redirect(uploadHref(uploadType, id))
     }
 
     if (filenameError) {
-      request.yar.set(
-        uploadType.uploadErrorSessionKey,
+      setUploadError(
+        request,
+        uploadType,
         FILENAME_ERROR_RULES[filenameError.code]
       )
       return h.redirect(uploadHref(uploadType, id))
@@ -170,7 +179,7 @@ function waitForCapacity(request, h, uploadType, id, retryAfterSeconds) {
 
   if (elapsed > MAX_WAIT_SECONDS) {
     clearUploadSession(request, uploadType)
-    request.yar.set(uploadType.uploadErrorSessionKey, SERVICE_BUSY_RULE)
+    setUploadError(request, uploadType, SERVICE_BUSY_RULE)
     return h.redirect(uploadHref(uploadType, id))
   }
 
@@ -199,7 +208,7 @@ function handleWaitingUpload(request, h, uploadType, id) {
 
   if (elapsed > MAX_WAIT_SECONDS) {
     clearUploadSession(request, uploadType)
-    request.yar.set(uploadType.uploadErrorSessionKey, TIMED_OUT_RULE)
+    setUploadError(request, uploadType, TIMED_OUT_RULE)
     return h.redirect(uploadHref(uploadType, id))
   }
 

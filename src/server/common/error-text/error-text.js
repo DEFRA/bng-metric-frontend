@@ -168,9 +168,8 @@ export function commonErrorText(key) {
 /**
  * A page of pages, with its {braces} filled in from `values`: its title, and
  * each body line as the text before its link, the link, and the text after.
- * A line is split at its link before it is filled in, so a value holding "["
- * or "](" stays text. Throws when the file has no such page, so a page that
- * names a missing one fails as it loads, not when a user meets it.
+ * Throws when the file has no such page, so a page that names a missing one
+ * fails as it loads, not when a user meets it.
  *
  * @param {string} key
  * @param {Record<string, string | number>} [values]
@@ -181,6 +180,18 @@ export function pageErrorText(key, values = {}) {
   if (!page) {
     throw new Error(`error-text.yaml has no pages.${key}`)
   }
+  return fillPage(page, values)
+}
+
+/**
+ * pageErrorText's work on one page. A line is split at its link before it is
+ * filled in, so a value holding "[" or "](" stays text. Exported so a test can
+ * give it a page whose values hold link syntax, which no page in the file has.
+ *
+ * @param {{ title?: string, body?: string[] }} page
+ * @param {Record<string, string | number>} values
+ */
+export function fillPage(page, values) {
   const body = (page.body ?? []).map((line) => {
     const { before, linkText, target, after } = splitLink(line)
     return target === undefined

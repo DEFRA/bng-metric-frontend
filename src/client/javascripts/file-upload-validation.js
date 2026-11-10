@@ -1,3 +1,4 @@
+import { FILE_CHECK_CODES } from '../../shared/file-checks.js'
 import { validateFile } from './file-validation-rules.js'
 
 const FILE_UPLOAD_BUTTON_CLASS = 'govuk-file-upload-button'
@@ -6,21 +7,29 @@ const SCROLL_INTO_VIEW = { block: 'center', inline: 'nearest' }
 const ERROR_SUMMARY_SELECTOR = '.govuk-error-summary'
 const FORM_GROUP_SELECTOR = '.govuk-form-group'
 
+const hasText = (value) => typeof value === 'string' && value.trim() !== ''
+
 /**
  * The form's messages for each check, which the server words from
  * error-text.yaml and writes into its data-file-error-text attribute. Null
- * when it has none it can read.
+ * unless it has words for every check, so a check is never shown without them.
  *
  * @param {HTMLFormElement} form
  * @returns {Record<string, string> | null}
  */
 function formErrorText(form) {
+  let messages
   try {
-    const messages = JSON.parse(form.dataset.fileErrorText ?? 'null')
-    return messages && typeof messages === 'object' ? messages : null
+    messages = JSON.parse(form.dataset.fileErrorText ?? 'null')
   } catch {
     return null
   }
+  const complete =
+    messages !== null &&
+    typeof messages === 'object' &&
+    !Array.isArray(messages) &&
+    Object.values(FILE_CHECK_CODES).every((code) => hasText(messages[code]))
+  return complete ? messages : null
 }
 
 /**

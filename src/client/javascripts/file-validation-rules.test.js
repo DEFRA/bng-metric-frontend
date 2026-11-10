@@ -2,9 +2,9 @@ import { describe, expect, test } from 'vitest'
 
 import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants.js'
 import { CLIENT_FILE_ERROR_TEXT as MESSAGES } from '../../server/common/helpers/file-validation-messages.js'
+import { MAX_FILENAME_LENGTH } from '../../shared/file-checks.js'
 import {
   ERROR_CODES,
-  MAX_FILENAME_LENGTH,
   validateFile as validateFileWith,
   validateFileCodes
 } from './file-validation-rules.js'
