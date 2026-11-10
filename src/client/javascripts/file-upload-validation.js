@@ -7,10 +7,28 @@ const ERROR_SUMMARY_SELECTOR = '.govuk-error-summary'
 const FORM_GROUP_SELECTOR = '.govuk-form-group'
 
 /**
+ * The form's messages for each check, which the server words from
+ * error-text.yaml and writes into its data-file-error-text attribute. Null
+ * when it has none it can read.
+ *
+ * @param {HTMLFormElement} form
+ * @returns {Record<string, string> | null}
+ */
+function formErrorText(form) {
+  try {
+    const messages = JSON.parse(form.dataset.fileErrorText ?? 'null')
+    return messages && typeof messages === 'object' ? messages : null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Initialises client-side validation for the file upload form.
  * Clears previous errors when a file is chosen. Validates extension, size
  * and filename when Continue is pressed.
- * Gracefully degrades — if JS is unavailable, the server handles validation.
+ * Gracefully degrades — if JS is unavailable, or the page carries no messages
+ * to show, the server handles validation.
  */
 export function initFileUploadValidation() {
   const form = document.querySelector('form[enctype="multipart/form-data"]')
@@ -20,8 +38,9 @@ export function initFileUploadValidation() {
   }
 
   const fileInput = form.querySelector('input[type="file"]')
+  const messages = formErrorText(form)
 
-  if (!fileInput) {
+  if (!fileInput || !messages) {
     return
   }
 
@@ -33,7 +52,7 @@ export function initFileUploadValidation() {
     clearErrors(fileInput)
 
     const file = fileInput.files[0]
-    const errors = validateFile(file)
+    const errors = validateFile(file, messages)
 
     if (errors.length) {
       event.preventDefault()

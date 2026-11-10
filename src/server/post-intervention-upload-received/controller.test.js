@@ -1,9 +1,5 @@
 import { getUploadStatus } from '../common/services/uploader.js'
 import { validatePostIntervention } from '../common/services/baseline.js'
-import {
-  ERROR_FILENAME_TOO_LONG,
-  ERROR_INVALID_FILENAME
-} from '../common/helpers/file-validation-messages.js'
 
 vi.mock('../common/services/uploader.js')
 vi.mock('../common/services/baseline.js')
@@ -129,7 +125,7 @@ describe('post-intervention-upload-received controller', () => {
 
       expect(request.yar.set).toHaveBeenCalledWith(
         'postInterventionUploadError',
-        'The selected file must be a GeoPackage (.gpkg)'
+        'notAGeoPackage'
       )
       expect(request.yar.set).not.toHaveBeenCalledWith(
         'postInterventionValidationErrors',
@@ -154,7 +150,7 @@ describe('post-intervention-upload-received controller', () => {
 
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      ERROR_INVALID_FILENAME
+      'invalidName'
     )
     expect(request.yar.set).not.toHaveBeenCalledWith(
       'postInterventionValidationErrors',
@@ -178,7 +174,7 @@ describe('post-intervention-upload-received controller', () => {
 
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      ERROR_FILENAME_TOO_LONG
+      'nameTooLong'
     )
     expect(request.yar.set).not.toHaveBeenCalledWith(
       'postInterventionValidationErrors',
@@ -285,7 +281,7 @@ describe('post-intervention-upload-received controller', () => {
     )
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      'The file check timed out. Please try again.'
+      'timedOut'
     )
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-post-intervention-file'
@@ -342,7 +338,7 @@ describe('post-intervention-upload-received controller', () => {
 
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      'The service is busy checking other files. Please try again in a few moments.'
+      'serviceBusy'
     )
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-post-intervention-file'

@@ -49,7 +49,7 @@
         </template>
 
         {# Posts to the CDP uploader service, not this app — no appForm/crumb. #}
-        <form action="{{ uploadUrl }}" method="post" enctype="multipart/form-data" novalidate>
+        <form action="{{ uploadUrl }}" method="post" enctype="multipart/form-data" novalidate data-file-error-text="{{ fileErrorText | dump }}">
           {{ govukFileUpload({
             id: "file",
             name: "file",
@@ -75,7 +75,7 @@
           </div>
         </form>
       {% else %}
-        <p class="govuk-body">Unable to start file upload. Please try again later.</p>
+        <p class="govuk-body">{{ uploadUnavailableText }}</p>
       {% endif %}
     </div>
   </div>

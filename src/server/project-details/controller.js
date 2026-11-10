@@ -8,6 +8,10 @@ import {
 import { statusCodes, HTTP_SUCCESS_MAX } from '../common/constants.js'
 import { fetchLocalPlanningAuthorities } from '../common/services/local-planning-authorities.js'
 import { formErrorText } from '../common/error-text/error-text.js'
+import {
+  joiErrorText,
+  joiMessages
+} from '../common/error-text/joi-error-text.js'
 
 const DEVELOPMENT_TYPE_OPTIONS = ['Small site', 'Large site']
 const NSIPS_OPTIONS = ['Yes', 'No']
@@ -117,15 +121,22 @@ export const projectDetailsFormSchema = Joi.object({
     .allow(null)
     .default(null)
     .pattern(/^E600\d{5}$/)
-    .messages({
-      'string.pattern.base': LPA_NOT_IN_LIST
-    }),
+    .messages(
+      joiMessages('localPlanningAuthorityReference', {
+        'string.pattern.base': 'notInList'
+      })
+    ),
   surveyCompleters: Joi.string()
     .trim()
     .empty('')
     .allow(null)
     .default(null)
-    .max(MAX_TEXT_FIELD_LENGTH),
+    .max(MAX_TEXT_FIELD_LENGTH)
+    .messages(
+      joiMessages('surveyCompleters', {
+        'string.max': ['tooLong', { max: MAX_TEXT_FIELD_LENGTH }]
+      })
+    ),
   [DAY_KEY]: Joi.string().trim().allow(''),
   [MONTH_KEY]: Joi.string().trim().allow(''),
   [YEAR_KEY]: Joi.string().trim().allow(''),
@@ -133,18 +144,25 @@ export const projectDetailsFormSchema = Joi.object({
     .empty('')
     .allow(null)
     .default(null)
-    .valid(...DEVELOPMENT_TYPE_OPTIONS),
+    .valid(...DEVELOPMENT_TYPE_OPTIONS)
+    .messages(joiMessages('developmentType', { 'any.only': 'invalid' })),
   nsips: Joi.string()
     .empty('')
     .allow(null)
     .default(null)
-    .valid(...NSIPS_OPTIONS),
+    .valid(...NSIPS_OPTIONS)
+    .messages(joiMessages('nsips', { 'any.only': 'invalid' })),
   applicant: Joi.string()
     .trim()
     .empty('')
     .allow(null)
     .default(null)
     .max(MAX_TEXT_FIELD_LENGTH)
+    .messages(
+      joiMessages('applicant', {
+        'string.max': ['tooLong', { max: MAX_TEXT_FIELD_LENGTH }]
+      })
+    )
 })
   .custom(validateSurveyCompletionDate)
   .messages({ [DATE_ERROR_TYPE]: '{{#message}}' })
@@ -231,7 +249,7 @@ async function handleValidationFailure(request, h, err) {
         }
       : {
           name: detail.path[0],
-          text: detail.message,
+          text: joiErrorText(detail),
           href: `#${detail.path[0]}`
         }
   )

@@ -5,9 +5,17 @@ import {
   safeUploadReturnUrl,
   uploadFileHref
 } from './upload-file-navigation.js'
+import { formErrorText } from '../error-text/error-text.js'
+import {
+  CLIENT_FILE_ERROR_TEXT,
+  uploadErrorText
+} from './file-validation-messages.js'
 
 const backendUrl = config.get('backend').url
 const appBaseUrl = config.get('appBaseUrl')
+
+// Shown in place of the form when the uploader gave no address to post to.
+const UPLOAD_UNAVAILABLE = formErrorText('file', 'cannotStart').inline
 
 async function fetchProjectName(request, id) {
   try {
@@ -31,7 +39,9 @@ function viewData(projectId, projectName, uploadType, returnUrl) {
     projectId,
     instructionText: uploadType.uploadInstruction,
     backHref: selectionHref,
-    cancelHref: selectionHref
+    cancelHref: selectionHref,
+    uploadUnavailableText: UPLOAD_UNAVAILABLE,
+    fileErrorText: CLIENT_FILE_ERROR_TEXT
   }
 }
 
@@ -68,7 +78,9 @@ function createUploadFileController(uploadType) {
             ? `Error: ${uploadType.uploadPageTitle}`
             : uploadType.uploadPageTitle,
           uploadUrl: uploadSession.uploadUrl,
-          error: uploadError ? { text: uploadError } : undefined
+          error: uploadError
+            ? { text: uploadErrorText(uploadError) }
+            : undefined
         })
         .header('Cache-Control', 'no-store')
     }

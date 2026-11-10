@@ -517,6 +517,38 @@ describe('#projectDetailsPostController', () => {
     expect(wreck.patch).not.toHaveBeenCalled()
   })
 
+  test.each([
+    [
+      'surveyCompleters',
+      'x'.repeat(501),
+      'Survey completer(s) must be 500 characters or fewer'
+    ],
+    ['applicant', 'x'.repeat(501), 'Applicant must be 500 characters or fewer'],
+    ['developmentType', 'Huge site', 'Select a development type'],
+    [
+      'nsips',
+      'Maybe',
+      'Select whether this is a National Significant Infrastructure Project'
+    ]
+  ])(
+    "words a refused %s from error-text.yaml, not the validator's own text",
+    async (field, value, message) => {
+      const { result, statusCode } = await server.inject({
+        method: 'POST',
+        url,
+        payload: { [field]: value, crumb: crumb.token },
+        headers: { cookie: crumb.cookie },
+        auth: authedAuth
+      })
+
+      expect(statusCode).toBe(statusCodes.ok)
+      expect(result).toContain(message)
+      expect(result).toContain(`href="#${field}"`)
+      expect(result).not.toContain(`&quot;${field}&quot;`)
+      expect(wreck.patch).not.toHaveBeenCalled()
+    }
+  )
+
   test('shows an error summary when the survey completion date is missing day and month', async () => {
     const { result, statusCode } = await server.inject({
       method: 'POST',

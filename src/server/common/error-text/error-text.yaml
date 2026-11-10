@@ -1065,6 +1065,13 @@ edit:
 # are filled in by the page, from a limit it applies or what was entered.
 
 forms:
+  common:
+    # Shown against a field for a check whose schema names no rule here,
+    # rather than the validation library's own wording, which names the
+    # field's code. The gap is logged for a developer to add a rule.
+    # AWAITING UCD: interim wording, shown until content design words it.
+    invalid: There is a problem with this answer
+
   projectName:
     # Blank or whitespace only, on the new project and change project name
     # pages alike.
@@ -1077,6 +1084,23 @@ forms:
     # Not one of the list's options, or one the backend does not know.
     notInList: Select a Local Planning Authority from the list
 
+  surveyCompleters:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    tooLong: Survey completer(s) must be {max} characters or fewer
+
+  applicant:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    tooLong: Applicant must be {max} characters or fewer
+
+  # The radios offer only valid answers, so these are met only by a form
+  # posted from somewhere else.
+  developmentType:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    invalid: Select a development type
+  nsips:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    invalid: Select whether this is a National Significant Infrastructure Project
+
   surveyCompletionDate:
     # Some of the day, month and year are blank, but not all three. {part} is
     # the one that is blank: day, month or year. {parts} are the two that
@@ -1085,10 +1109,24 @@ forms:
     missingSeveral: Survey completion date must include {parts}
     notReal: Survey completion date must be a real date
 
+  uploadType:
+    # The "What would you like to upload?" page, with no choice made.
+    required: Select the type of file you want to upload
+
   file:
-    # The upload page, once the service has looked at the uploaded file.
-    # The file is not a GeoPackage at all.
+    # The upload page, shown in place of the form when the file uploader
+    # gave the page nowhere to send the file.
+    cannotStart: Unable to start file upload. Please try again later.
+    # Checked in the browser before the file is sent, and again by the
+    # service once it has it.
+    noFile: Select a GeoPackage (.gpkg) file
+    # Not named .gpkg, or not a GeoPackage at all.
     notAGeoPackage: The selected file must be a GeoPackage (.gpkg)
+    # {max} is the size limit, as "100 MB".
+    tooLarge: The selected file must be smaller than {max}
+    invalidName: The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets
+    nameTooLong: The file name must be {max} characters or fewer
+    # The upload page, once the service has looked at the uploaded file.
     # The checks gave up waiting for a busy validator. There is nothing wrong
     # with the file, so this must not suggest changing it.
     # The same words as the drop-out page's upload.errors.VALIDATION_BUSY
