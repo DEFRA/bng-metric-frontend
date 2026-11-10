@@ -135,6 +135,12 @@ function unenhanceableValues(s) {
   }
 }
 
+// BMD-1195: an incomplete baseline habitat, by its ref and, when it has one,
+// its habitat type.
+function incompleteBaselineValues(s) {
+  return { ...featureValues(s), habitatType: known(s?.habitat_type) }
+}
+
 // A vertical area habitat's typed Area, with the value the file holds.
 function verticalAreaValues(s) {
   return { ...featureValues(s), area: known(s?.area) ?? unknown.area }
@@ -162,6 +168,7 @@ const SAMPLE_VALUES = {
   AREA_PARCELS_OUTSIDE_REDLINE: outsideRedlineValues,
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: distinctivenessValues,
   BASELINE_NOT_ENHANCEABLE: unenhanceableValues,
+  BASELINE_HABITATS_INCOMPLETE: incompleteBaselineValues,
   VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaValues,
   IRREPLACEABLE_TREE: irreplaceableTreeValues,
   STAGED_AMBIGUOUS_PARENT: ambiguousParentValues

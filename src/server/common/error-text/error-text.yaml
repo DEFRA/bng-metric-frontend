@@ -615,6 +615,23 @@ upload:
       inList:
         heading: '{rowCount} retained or enhanced rows have no baseline habitat type, so the baseline cannot be derived from this file'
 
+    # BMD-1195. A post-intervention upload refused because a baseline area
+    # habitat, hedgerow or watercourse it saves is incomplete: the baseline
+    # cannot be edited once a post-intervention file is uploaded (BMD-1194).
+    # A baseline-only upload is not refused for it.
+    #
+    # placeholder: the page text is awaiting UCD (Jack Arnott). AWAITING UCD:
+    # interim list heading and bullet.
+    BASELINE_HABITATS_INCOMPLETE:
+      whenAlone: placeholder
+      inList:
+        heading: >-
+          One or more baseline habitats are incomplete, so this
+          post-intervention file cannot replace the project baseline
+        item:
+          - '{feature}'
+          - ' — {habitatType}'
+
     # --------------------------------------------------------------- hedgerows
 
     GPKG_HEDGEROWS_UNREADABLE_GEOMETRY:

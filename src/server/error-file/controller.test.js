@@ -470,6 +470,65 @@ describe('invalidFileController.handler — populated session', () => {
     })
   })
 
+  describe('BMD-1195 BASELINE_HABITATS_INCOMPLETE', () => {
+    const incompleteBaseline = {
+      code: 'BASELINE_HABITATS_INCOMPLETE',
+      message:
+        'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline: Feature Ref H002, habitats fid 7',
+      details: {
+        count: 2,
+        sample: [
+          {
+            layer: 'habitats',
+            idx: 1,
+            fid: 2,
+            feature_ref: 'H002',
+            habitat_type: 'Ground based green wall'
+          },
+          {
+            layer: 'watercourses',
+            idx: 0,
+            fid: 7,
+            feature_ref: null,
+            habitat_type: null
+          }
+        ]
+      }
+    }
+
+    async function render(errors) {
+      const request = makeRequest({
+        postInterventionValidationErrors: errors,
+        validationUploadType: 'postIntervention'
+      })
+      const h = makeH()
+      await invalidFileController.handler(request, h)
+      return h.view.mock.calls[0][1]
+    }
+
+    test('lists each incomplete baseline habitat, with its habitat type when it has one', async () => {
+      const view = await render([
+        incompleteBaseline,
+        { code: 'NO_REDLINE', message: 'No red line boundary' }
+      ])
+
+      expect(view.errorBlocks[0]).toEqual({
+        heading:
+          'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline',
+        items: ['Feature Ref H002 — Ground based green wall', 'fid 7'],
+        more: 0
+      })
+    })
+
+    test('alone, shows the placeholder page awaiting UCD, naming its heading and bullets, not the service message', async () => {
+      const view = await render([incompleteBaseline])
+
+      expect(view.singleError.helpText).toBe(
+        'PLACEHOLDER - One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline: Feature Ref H002 — Ground based green wall, fid 7'
+      )
+    })
+  })
+
   test('errorBlocks: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE falls back when habitat_type / distinctiveness are missing', async () => {
     const errors = [
       {
