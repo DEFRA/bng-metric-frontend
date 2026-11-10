@@ -56,8 +56,10 @@
 #                      generic message instead. Only where that is so: an
 #                      edit or forms rule, which then has no words, or an
 #                      upload error whose whenAlone names a shared fallback.
-#                      A common text, a page or a shared fallback is always
-#                      shown, so can only be interim
+#                      On an upload error it means the page it is alone on:
+#                      its inList heading is still shown when the page lists
+#                      it with others. A common text, a page or a shared
+#                      fallback is always shown, so can only be interim
 #
 # An entry with no "wording" field is final. Search for "wording:" to find
 # everything UCD still has to word. A "none" where the page would show words

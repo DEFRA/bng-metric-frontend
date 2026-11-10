@@ -61,8 +61,9 @@ function oneKindOfBullet(inList, helpers) {
 const fallbackCopy = pageCopy.keys({ wording: shownWordingField })
 
 const errorEntry = Joi.object({
-  // "none" says the error has no words of its own yet, so it can only be on
-  // one whose whenAlone names the shared fallback the page shows instead.
+  // "none" says the error has no words of its own yet for when it is alone,
+  // so it can only be on one whose whenAlone names the shared fallback the
+  // page shows instead. Its inList heading is still shown in a list.
   wording: wordingField.when('whenAlone', {
     is: Joi.valid(
       WHEN_ALONE.CATCH_ALL,
