@@ -474,7 +474,7 @@ describe('invalidFileController.handler — populated session', () => {
     const incompleteBaseline = {
       code: 'BASELINE_HABITATS_INCOMPLETE',
       message:
-        'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline: Feature Ref H002, habitats fid 7',
+        'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline: Feature Ref H002, watercourses fid 7',
       details: {
         count: 2,
         sample: [
