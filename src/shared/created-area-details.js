@@ -7,6 +7,22 @@ export const YEAR_OPTIONS = [
   '30+'
 ]
 
+const TYPE_INPUTS = ['broadHabitat', 'habitatType']
+const CONDITION_INPUTS = [...TYPE_INPUTS, 'condition']
+export const CREATED_DERIVED_INPUTS = {
+  distinctivenessDisplay: TYPE_INPUTS,
+  standardDifficultyDisplay: TYPE_INPUTS,
+  appliedDifficultyMultiplierDisplay: TYPE_INPUTS,
+  standardTimeToTargetDisplay: CONDITION_INPUTS,
+  finalTimeToTargetDisplay: [...CONDITION_INPUTS, 'advanceYears', 'delayYears']
+}
+
+export function createdDerivedInputsUnchanged(display, values, originalValues) {
+  return CREATED_DERIVED_INPUTS[display].every(
+    (input) => (values[input] ?? '') === (originalValues[input] ?? '')
+  )
+}
+
 export function resolveCreatedTiming(values, reference) {
   return Object.fromEntries(
     ['advanceYears', 'delayYears'].map((field) => [
@@ -89,6 +105,13 @@ function finalTimeDisplay(reference, condition, values) {
 }
 
 function unchangedImportedFinalTime(reference, values) {
+  const timing = resolveCreatedTiming(values, reference)
+  if (
+    Number.parseFloat(timing.advanceYears) > 0 &&
+    Number.parseFloat(timing.delayYears) > 0
+  ) {
+    return ''
+  }
   const saved = reference.importedCalculation
   const fields = [
     'broadHabitat',
@@ -98,6 +121,7 @@ function unchangedImportedFinalTime(reference, values) {
     'delayYears'
   ]
   if (
+    values.habitatType === UNCHANGED_VALUE ||
     (!Object.keys(reference.importedYears ?? {}).length &&
       !reference.importedCondition) ||
     !saved

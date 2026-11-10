@@ -134,7 +134,11 @@ function creationReference(project, layer, featureType) {
       conditions: CONDITIONS.map((c) => ({ ...c, years: 1 }))
     })),
     strategicSignificance: STRATEGIC_SIGNIFICANCE,
-    timeMultipliers: TIME_MULTIPLIERS
+    timeMultipliers: TIME_MULTIPLIERS,
+    ...(layer === 'watercourses' && {
+      watercourseEncroachment: ENCROACHMENTS.watercourse,
+      riparianEncroachment: ENCROACHMENTS.riparian
+    })
   }
 }
 
@@ -168,6 +172,10 @@ function serviceTemplateBackend(body) {
     [
       '/reference/hedgerow-creation',
       () => creationReference(project, 'hedgerows', 'hedgerow')
+    ],
+    [
+      '/reference/watercourse-creation',
+      () => creationReference(project, 'watercourses', 'watercourse')
     ]
   ])
 

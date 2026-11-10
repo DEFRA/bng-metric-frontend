@@ -1,5 +1,6 @@
 import {
   createdAreaDerived,
+  createdDerivedInputsUnchanged,
   selectedHabitat,
   UNCHANGED_VALUE
 } from '../../shared/created-area-details.js'
@@ -13,34 +14,41 @@ const DERIVED_LABELS = {
 }
 
 function createDerivedUpdater(reference, values, baselineCondition) {
+  const initialValues = reference.storedPreview?.values ?? values()
   const initialDerived = createdAreaDerived(
     reference,
-    values(),
+    initialValues,
     baselineCondition
   )
-  const initialLabels = Object.fromEntries(
-    Object.keys(initialDerived).map((id) => [
-      id,
-      document.getElementById(id).textContent
-    ])
-  )
-  let previousDerived = initialDerived
+  const initialLabels =
+    reference.storedPreview?.labels ??
+    Object.fromEntries(
+      Object.keys(initialDerived).map((id) => [
+        id,
+        document.getElementById(id).textContent
+      ])
+    )
   return () => {
     const changed = []
+    const currentValues = values()
     const nextDerived = createdAreaDerived(
       reference,
-      values(),
+      currentValues,
       baselineCondition
     )
     for (const [id, value] of Object.entries(nextDerived)) {
       const element = document.getElementById(id)
-      if (previousDerived[id] !== value) {
-        const label = initialDerived[id] === value ? initialLabels[id] : value
+      const originalInputs = createdDerivedInputsUnchanged(
+        id,
+        currentValues,
+        initialValues
+      )
+      const label = originalInputs ? initialLabels[id] : value
+      if (element.textContent !== label) {
         element.textContent = label
         changed.push(`${DERIVED_LABELS[id]}: ${label || 'Not available'}.`)
       }
     }
-    previousDerived = nextDerived
     if (changed.length) {
       document.getElementById('created-area-results-status').textContent =
         changed.join(' ')
@@ -89,14 +97,15 @@ export function initCreatedAreaDetails() {
     updateDerived()
   })
   document.getElementById('habitatType').addEventListener('change', () => {
-    const type = selectedHabitat(reference, values())
+    const currentValues = values()
+    const type = selectedHabitat(reference, currentValues)
     reset('condition', 'target condition', [
       ...(type?.conditions ?? []).map((c) => ({
         value: c.condition,
         text: `${c.condition} (${c.score})`
       })),
-      ...(reference.importedCondition &&
-      reference.importedCondition.habitatType === type?.name
+      ...(reference.importedCondition?.habitatType ===
+      (currentValues.habitatType ?? '')
         ? [
             {
               value: UNCHANGED_VALUE,
