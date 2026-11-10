@@ -3,10 +3,8 @@ import { describe, test, expect } from 'vitest'
 import {
   formatAreaHectares,
   formatAreaHectaresValue,
-  formatAreaSize,
   formatSquareMetres,
   formatVerticalArea,
-  formatVerticalAreaValue,
   formatBaselineTotalLengthSize,
   formatHabitatUnits,
   formatLengthKm,
@@ -242,7 +240,6 @@ describe('formatVerticalArea', () => {
   test('shows a vertical area habitat’s face area in hectares, as entered, and in square metres', () => {
     expect(formatVerticalArea(400)).toBe('0.04ha (400m²)')
     expect(formatVerticalArea(37.5)).toBe('0.00375ha (37.5m²)')
-    expect(formatVerticalAreaValue(400)).toBe('0.04 (400m²)')
   })
 
   test('drops the floating-point noise of converting hectares to square metres', () => {
@@ -253,17 +250,6 @@ describe('formatVerticalArea', () => {
     'returns an empty string for %s',
     (value) => {
       expect(formatVerticalArea(value)).toBe('')
-      expect(formatVerticalAreaValue(value)).toBe('')
     }
   )
-})
-
-describe('formatAreaSize', () => {
-  test('shows a vertical area habitat in hectares and square metres, and any other area in hectares', () => {
-    expect(formatAreaSize(400, { isVerticalHabitat: true })).toBe(
-      '0.04ha (400m²)'
-    )
-    expect(formatAreaSize(400, {})).toBe('0.04ha')
-    expect(formatAreaSize(400)).toBe('0.04ha')
-  })
 })

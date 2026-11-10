@@ -25,6 +25,16 @@ const message = Joi.object({
   inline: text.required()
 })
 
+// A form field's message is either a pair, or one text that the error summary
+// and the inline message both show.
+const formMessage = Joi.alternatives().conditional(Joi.string(), {
+  then: text,
+  otherwise: message
+})
+
+// A {name} in a message, filled in by the page from a value it knows.
+const BRACES = /\{(\w+)\}/g
+
 const errorTextSchema = Joi.object({
   upload: Joi.object().required(),
   // Chosen by type, so a slip names the field it is in: "inline is required"
@@ -39,7 +49,7 @@ const errorTextSchema = Joi.object({
     )
     .required(),
   forms: Joi.object()
-    .pattern(Joi.string(), Joi.object().pattern(Joi.string(), message))
+    .pattern(Joi.string(), Joi.object().pattern(Joi.string(), formMessage))
     .required()
 })
 
@@ -76,17 +86,43 @@ export function editErrorText(errorCode) {
 }
 
 /**
- * A form field's validation wording. Throws when the file has none, so a page
- * that names a missing one fails as it loads, not when a user meets it.
+ * Fill each {name} in `template` from `values`. Throws when one has no value,
+ * so a page that forgets one fails as it loads, not when a user meets it.
+ *
+ * @param {string} template
+ * @param {Record<string, string | number>} values
+ * @returns {string}
+ */
+export function fillErrorText(template, values) {
+  return template.replaceAll(BRACES, (_, name) => {
+    if (!Object.hasOwn(values, name)) {
+      throw new Error(
+        `error-text.yaml: no value for {${name}} in "${template}"`
+      )
+    }
+    return `${values[name]}`
+  })
+}
+
+/**
+ * A form field's validation wording, with any {braces} filled in from
+ * `values`. Throws when the file has none, so a page that names a missing one
+ * fails as it loads, not when a user meets it.
  *
  * @param {string} field
  * @param {string} rule
+ * @param {Record<string, string | number>} [values]
  * @returns {{ summary: string, inline: string }}
  */
-export function formErrorText(field, rule) {
+export function formErrorText(field, rule, values = {}) {
   const entry = errorText.forms[field]?.[rule]
   if (!entry) {
     throw new Error(`error-text.yaml has no forms.${field}.${rule}`)
   }
-  return entry
+  const { summary, inline } =
+    typeof entry === 'string' ? { summary: entry, inline: entry } : entry
+  return {
+    summary: fillErrorText(summary, values),
+    inline: fillErrorText(inline, values)
+  }
 }

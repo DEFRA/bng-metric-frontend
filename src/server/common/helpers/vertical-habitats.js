@@ -3,7 +3,7 @@
  * in the BNG Service template as a line along the structure's base. They are
  * area habitats in every respect but their size, which is the face area the
  * surveyor estimated on site and entered in hectares, and which the pages show
- * in hectares, as it was entered, and in square metres.
+ * in hectares, as it was entered.
  */
 
 /** The backend's feature-type discriminator for a vertical area habitat. */
@@ -34,25 +34,3 @@ export const VERTICAL_HABITATS = Object.freeze([
     name: 'Artificial hard structures with integrated greening of grey infrastructure (IGGI)'
   })
 ])
-
-/**
- * A layer's vertical area habitats, each marked so a list page can show its
- * size in square metres as well as in hectares.
- *
- * @param {object[] | undefined} features
- * @returns {object[]}
- */
-export function asVerticalHabitats(features) {
-  return (features ?? []).map((feature) => ({
-    ...feature,
-    isVerticalHabitat: true
-  }))
-}
-
-/**
- * @param {object | undefined} feature
- * @returns {boolean}
- */
-export function isVerticalHabitat(feature) {
-  return feature?.isVerticalHabitat === true
-}

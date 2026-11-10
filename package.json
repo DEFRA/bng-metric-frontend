@@ -63,15 +63,15 @@
     "hapi-pulse": "4.0.0",
     "ioredis": "6.0.0",
     "joi": "18.3.1",
-    "js-yaml": "4.3.2",
+    "js-yaml": "5.5.0",
     "lodash": "4.18.1",
     "nunjucks": "3.2.4",
-    "openid-client": "6.8.8",
+    "openid-client": "6.8.9",
     "pino": "10.4.0",
     "pino-pretty": "13.2.0",
     "semver": "7.8.5",
     "swagger-jsdoc": "6.3.0",
-    "swagger-ui-dist": "5.34.0",
+    "swagger-ui-dist": "5.34.1",
     "undici": "8.12.3"
   },
   "devDependencies": {
@@ -90,7 +90,7 @@
     "postcss-load-config": "6.0.1",
     "postcss-loader": "8.2.1",
     "prettier": "3.9.10",
-    "sass-embedded": "1.107.0",
+    "sass-embedded": "1.107.1",
     "sass-loader": "17.1.0",
     "source-map-loader": "5.0.0",
     "terser-webpack-plugin": "5.6.1",
@@ -100,7 +100,7 @@
     "vitest-fetch-mock": "0.4.5",
     "webpack": "5.112.2",
     "webpack-assets-manifest": "6.5.5",
-    "webpack-cli": "7.2.3"
+    "webpack-cli": "7.3.1"
   },
   "overrides": {
     "@hapi/wreck": "18.1.3",

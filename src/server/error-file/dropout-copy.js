@@ -2,6 +2,7 @@ import Joi from 'joi'
 import { load } from 'js-yaml'
 
 import { errorText } from '../common/error-text/error-text.js'
+import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 
 // The drop-out page's copy is the upload section of error-text.yaml, where
 // product, BAs and UCD review every error message the service shows. This
@@ -16,8 +17,8 @@ export const WHEN_ALONE = Object.freeze({
   LIST: 'list'
 })
 
-/** The inList value that shows the service's own message as the heading. */
-const SERVICE_MESSAGE = 'service-message'
+/** The inList value that heads the list with the catch-all title. */
+const CATCH_ALL = 'catch-all'
 
 /** The link targets a sentence can name, as [link text](target). */
 export const LINK_TARGETS = Object.freeze({
@@ -36,6 +37,19 @@ const pageCopy = Joi.object({
   opensInNewTab: Joi.boolean()
 })
 
+/**
+ * A problem lists habitats or it does not, however the backend words it: so
+ * its bullets, and its variants', are all items or all details. The page
+ * reads only the one kind, and would drop a bullet of the other unseen.
+ */
+function oneKindOfBullet(inList, helpers) {
+  const wording = [inList, ...Object.values(inList.variants ?? {})]
+  const kinds = ['item', 'detail'].filter((key) =>
+    wording.some((copy) => copy[key] !== undefined)
+  )
+  return kinds.length > 1 ? helpers.error('any.invalid') : inList
+}
+
 const errorEntry = Joi.object({
   whenAlone: Joi.alternatives(
     Joi.string().valid(...Object.values(WHEN_ALONE)),
@@ -43,13 +57,22 @@ const errorEntry = Joi.object({
     Joi.array().items(pageCopy).min(1)
   ).required(),
   inList: Joi.alternatives(
-    Joi.string().valid(SERVICE_MESSAGE),
+    Joi.string().valid(CATCH_ALL),
     Joi.object({
-      heading: text,
+      heading: text.required(),
       listsHabitats: Joi.boolean(),
+      // A bullet for each habitat the problem lists, or the one bullet of a
+      // problem that lists none, filled from its details.
       item: options,
-      note: text
-    })
+      detail: options,
+      note: text,
+      // Another way the backend words the problem, named by the error's
+      // details.variants: its heading, item or detail replaces the code's own.
+      variants: Joi.object().pattern(
+        Joi.string().pattern(/^[a-z][a-z0-9-]*$/),
+        Joi.object({ heading: text, item: options, detail: options }).min(1)
+      )
+    }).custom(oneKindOfBullet)
   ).required()
 })
 
@@ -76,7 +99,9 @@ const unknownSchema = required(
   'location',
   'habitatType',
   'distinctiveness',
-  'area'
+  'area',
+  'srsId',
+  'blank'
 )
 
 const copySchema = Joi.object({
@@ -88,9 +113,10 @@ const copySchema = Joi.object({
     legacyTemplate: pageCopy.required(),
     serviceTemplate: pageCopy.required()
   }).required(),
-  placeholder: pageCopy.required(),
+  placeholder: pageCopy.keys({ more: text.required() }).required(),
   names: Joi.object({
     feature: options.required(),
+    tree: options.required(),
     habitat: options.required()
   }).required(),
   unknown: unknownSchema.required(),
@@ -225,8 +251,13 @@ export function errorCopy(code) {
     : null
 }
 
-/** The heading the copy gives a code in a list, or null for the service's. */
-export function listHeading(code) {
-  const inList = errorCopy(code)?.inList
-  return typeof inList === 'object' ? (inList.heading ?? null) : null
+/**
+ * The catch-all copy for the template the service reads: its title heads the
+ * list for a problem with no heading of its own, and its page is the
+ * single-error page for one with no copy of its own.
+ */
+export function catchAllPage() {
+  return isServiceTemplateEnabled()
+    ? dropoutCopy.catchAll.serviceTemplate
+    : dropoutCopy.catchAll.legacyTemplate
 }

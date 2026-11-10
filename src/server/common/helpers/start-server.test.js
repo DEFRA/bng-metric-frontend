@@ -1,6 +1,10 @@
 import hapi from '@hapi/hapi'
 import { statusCodes } from '../constants.js'
 
+// Importing server.js loads the whole app, which can take longer than the
+// default 10s hook timeout when the full suite is running.
+const IMPORT_TIMEOUT_MS = 60_000
+
 describe('#startServer', () => {
   let createServerSpy
   let hapiServerSpy
@@ -15,7 +19,7 @@ describe('#startServer', () => {
 
     createServerSpy = vi.spyOn(createServerImport, 'createServer')
     hapiServerSpy = vi.spyOn(hapi, 'server')
-  })
+  }, IMPORT_TIMEOUT_MS)
 
   afterAll(() => {
     vi.unstubAllEnvs()

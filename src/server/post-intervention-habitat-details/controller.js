@@ -10,15 +10,15 @@ import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
 import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
-import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
-import {
-  buildCreatedHedgerowViewOnlyViewModel,
-  buildEnhancedHedgerowViewOnlyViewModel
-} from './enhanced-hedgerow-view-only-view-model.js'
+import { buildEnhancedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { buildEnhancedWatercourseViewOnlyViewModel } from './enhanced-watercourse-view-only-view-model.js'
 import { buildHedgerowViewOnlyViewModel } from './hedgerow-view-only-view-model.js'
+import {
+  buildRetainedTreeViewOnlyViewModel,
+  buildTreeSectionsViewOnlyViewModel
+} from './tree-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
   HABITAT_REF_ERROR,
@@ -32,6 +32,7 @@ import {
   createdAreaPayloadSchema,
   CREATED_EDIT_KINDS,
   createdHedgerowPayloadSchema,
+  createdWatercoursePayloadSchema,
   createdReferenceForFeature,
   saveCreatedArea,
   validateCreatedArea
@@ -53,12 +54,23 @@ const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
 // Feature-type discriminators returned by the PI feature endpoint.
 const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
-const CREATED_EDIT_TYPES = [AREA_HABITAT_TYPE, HEDGEROW_TYPE]
 const WATERCOURSE_TYPE = 'watercourse'
+const CREATED_EDIT_TYPES = new Set([
+  AREA_HABITAT_TYPE,
+  HEDGEROW_TYPE,
+  WATERCOURSE_TYPE
+])
+const TREE_TYPE = 'tree'
+
+// The area habitat details templates, shared by vertical area habitats and
+// individual trees: the single-section page, and the two-section page with
+// time to target and difficulty.
+const AREA_DETAILS_TEMPLATE = 'habitat-details/pi-habitat-details'
+const AREA_SECTIONS_TEMPLATE = 'habitat-details/pi-habitat-details-enhanced'
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
 const ENHANCED_AREA_PAGE = {
-  template: 'habitat-details/pi-habitat-details-enhanced',
+  template: AREA_SECTIONS_TEMPLATE,
   buildViewModel: buildEnhancedAreaViewOnlyViewModel
 }
 const AREA_RETENTION_PAGES = new Map([[RETENTION_ENHANCED, ENHANCED_AREA_PAGE]])
@@ -71,10 +83,22 @@ const VERTICAL_RETENTION_PAGES = new Map([
   [
     RETENTION_CREATED,
     {
-      template: 'habitat-details/pi-habitat-details-enhanced',
+      template: AREA_SECTIONS_TEMPLATE,
       buildViewModel: buildCreatedAreaViewOnlyViewModel
     }
   ]
+])
+
+// An individual tree uses the area layout with its size class and number of
+// trees, view-only whatever its retention: it cannot be edited after
+// intervention. Enhanced and Created ones show their timing and difficulty.
+const TREE_SECTIONS_PAGE = {
+  template: AREA_SECTIONS_TEMPLATE,
+  buildViewModel: buildTreeSectionsViewOnlyViewModel
+}
+const TREE_RETENTION_PAGES = new Map([
+  [RETENTION_ENHANCED, TREE_SECTIONS_PAGE],
+  [RETENTION_CREATED, TREE_SECTIONS_PAGE]
 ])
 
 // Created/Enhanced hedgerows also use a two-section layout, keyed by
@@ -89,20 +113,13 @@ const HEDGEROW_RETENTION_PAGES = new Map([
   ]
 ])
 
-// Created/Enhanced watercourses use a two-section layout keyed by retention.
+// Enhanced watercourses use a two-section layout keyed by retention.
 const WATERCOURSE_RETENTION_PAGES = new Map([
   [
     RETENTION_ENHANCED,
     {
       template: 'habitat-details/pi-watercourse-details-enhanced',
       buildViewModel: buildEnhancedWatercourseViewOnlyViewModel
-    }
-  ],
-  [
-    RETENTION_CREATED,
-    {
-      template: 'habitat-details/pi-watercourse-details-created',
-      buildViewModel: buildCreatedWatercourseViewOnlyViewModel
     }
   ]
 ])
@@ -112,6 +129,7 @@ const WATERCOURSE_RETENTION_PAGES = new Map([
 const RETENTION_VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_RETENTION_PAGES],
   [VERTICAL_HABITAT_TYPE, VERTICAL_RETENTION_PAGES],
+  [TREE_TYPE, TREE_RETENTION_PAGES],
   [HEDGEROW_TYPE, HEDGEROW_RETENTION_PAGES],
   [WATERCOURSE_TYPE, WATERCOURSE_RETENTION_PAGES]
 ])
@@ -120,13 +138,20 @@ const RETENTION_VIEW_ONLY_PAGES = new Map([
 // template — they share chrome via layouts/pi-view-only-sections-page.njk and
 // differ in the rows they show (BMD-845).
 const AREA_VIEW_ONLY_PAGE = {
-  template: 'habitat-details/pi-habitat-details',
+  template: AREA_DETAILS_TEMPLATE,
   buildViewModel: buildAreaViewOnlyViewModel
 }
 
 const VIEW_ONLY_PAGES = new Map([
   [AREA_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
   [VERTICAL_HABITAT_TYPE, AREA_VIEW_ONLY_PAGE],
+  [
+    TREE_TYPE,
+    {
+      template: AREA_DETAILS_TEMPLATE,
+      buildViewModel: buildRetainedTreeViewOnlyViewModel
+    }
+  ],
   [
     HEDGEROW_TYPE,
     {
@@ -143,8 +168,7 @@ const VIEW_ONLY_PAGES = new Map([
   ]
 ])
 
-const UNSUPPORTED_MESSAGE =
-  'Individual tree and IGGI features are not yet supported in this view.'
+const UNSUPPORTED_MESSAGE = 'IGGI features are not yet supported in this view.'
 
 const DEFAULT_PROJECT_NAME = 'Project'
 
@@ -169,7 +193,7 @@ function comparableRef(ref) {
 const BASELINE_LAYER_BY_TYPE = new Map([
   [AREA_HABITAT_TYPE, 'habitats'],
   [VERTICAL_HABITAT_TYPE, 'verticalHabitats'],
-  ['tree', 'trees'],
+  [TREE_TYPE, 'trees'],
   [HEDGEROW_TYPE, 'hedgerows'],
   [WATERCOURSE_TYPE, 'watercourses']
 ])
@@ -289,12 +313,13 @@ function renderUnsupportedFeature(
 }
 
 async function loadCreationReferenceForFeature(type, feature) {
+  const kind = CREATED_EDIT_KINDS[type]
   try {
-    const reference = await CREATED_EDIT_KINDS[type].loadReference()
+    const reference = await kind.loadReference()
     return createdReferenceForFeature(reference, feature)
   } catch (error) {
     if (
-      type === HEDGEROW_TYPE &&
+      kind.optionalReference &&
       error.output?.statusCode === statusCodes.notFound
     ) {
       return null
@@ -304,22 +329,26 @@ async function loadCreationReferenceForFeature(type, feature) {
 }
 
 /**
- * Render a Created area habitat or hedgerow: its edit page, or the read-only
- * page for a hedgerow while the backend reference endpoint is not deployed.
+ * Render a Created area habitat, hedgerow or watercourse: its edit page, or the read-only
+ * page for a linear feature while the backend reference endpoint is not deployed.
  */
 async function renderCreatedFeature(
   h,
   { type, feature, project, projectId, projectName, returnUrl }
 ) {
   const baselineFeatureId = createdBaselineFeatureId(project, type, feature)
+  const kind = CREATED_EDIT_KINDS[type]
   const reference = await loadCreationReferenceForFeature(type, feature)
   if (!reference) {
-    return h.view('habitat-details/pi-hedgerow-details-enhanced', {
-      ...buildCreatedHedgerowViewOnlyViewModel(feature, {
-        projectId,
-        projectName,
-        baselineFeatureId
-      }),
+    return h.view(kind.readOnlyTemplate, {
+      ...kind.buildBase(
+        { ...feature, retentionCategory: RETENTION_CREATED },
+        {
+          projectId,
+          projectName,
+          baselineFeatureId
+        }
+      ),
       backHref: postInterventionBackHref(projectId, type, returnUrl)
     })
   }
@@ -336,7 +365,7 @@ async function renderCreatedFeature(
 
 /**
  * Render the details page for one post-intervention feature. A Created area
- * habitat or hedgerow gets its edit page (BMD-1048, BMD-1049); a Retained area habitat, hedgerow or
+ * habitat, hedgerow or watercourse gets its edit page (BMD-1048, BMD-1049, BMD-1050); a Retained area habitat, hedgerow or
  * watercourse gets the reference form (BMD-1180), with `submittedRef` and
  * `refusal` set when a save of it was refused.
  *
@@ -359,10 +388,7 @@ async function renderDetailsPage(
   // category stored under `baseline`, or a missing value resolves consistently
   // for every page.
   const retentionCategory = featureRetentionCategory(feature)
-  if (
-    CREATED_EDIT_TYPES.includes(type) &&
-    retentionCategory === RETENTION_CREATED
-  ) {
+  if (CREATED_EDIT_TYPES.has(type) && retentionCategory === RETENTION_CREATED) {
     return renderCreatedFeature(h, {
       type,
       feature,
@@ -374,7 +400,7 @@ async function renderDetailsPage(
   }
   const page = resolveViewOnlyPage(type, retentionCategory)
   if (!page) {
-    // Trees, IGGIs and any new feature type without a view-only page.
+    // IGGIs and any new feature type without a view-only page.
     return renderUnsupportedFeature(h, {
       projectId,
       projectName,
@@ -383,12 +409,7 @@ async function renderDetailsPage(
     })
   }
   const viewModel = page.buildViewModel(
-    {
-      ...feature,
-      retentionCategory,
-      // A vertical area habitat's size is shown in square metres too.
-      isVerticalHabitat: type === VERTICAL_HABITAT_TYPE
-    },
+    { ...feature, retentionCategory },
     {
       projectId,
       projectName,
@@ -426,10 +447,11 @@ const getController = {
   }
 }
 
-const createdPayloadSchema = Joi.alternatives().try(
-  createdAreaPayloadSchema,
-  createdHedgerowPayloadSchema
-)
+const CREATED_PAYLOAD_SCHEMAS = {
+  habitat: createdAreaPayloadSchema,
+  hedgerow: createdHedgerowPayloadSchema,
+  watercourse: createdWatercoursePayloadSchema
+}
 
 /**
  * Check a form's payload against its own schema, as a route's validation
@@ -443,19 +465,22 @@ function validatedPayload(schema, payload) {
   return value
 }
 
-/** Save a Created area habitat's or hedgerow's details (BMD-1048, BMD-1049). */
+/** Save Created area, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050). */
 async function saveCreatedDetails(request, h, { type, feature, payload }) {
+  const kind = CREATED_EDIT_KINDS[type]
+  if (kind.hasBroadHabitat && !Object.hasOwn(payload, 'broadHabitat')) {
+    throw Boom.badRequest('Broad habitat field is required for area edits')
+  }
   const { projectId, returnUrl, ...values } = validatedPayload(
-    createdPayloadSchema,
+    CREATED_PAYLOAD_SCHEMAS[type],
     payload
   )
   delete values.featureId
-  if (type === AREA_HABITAT_TYPE && !Object.hasOwn(values, 'broadHabitat')) {
-    throw Boom.badRequest('Broad habitat field is required for area edits')
-  }
   const reference = await loadCreationReferenceForFeature(type, feature)
   if (!reference) {
-    throw Boom.serverUnavailable('Hedgerow editing is temporarily unavailable')
+    throw Boom.serverUnavailable(
+      `${kind.label} editing is temporarily unavailable`
+    )
   }
   const errors = validateCreatedArea(values, reference)
   if (Object.keys(errors).length) {
@@ -476,7 +501,7 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
       )
     )
   }
-  await saveCreatedArea(request, values, CREATED_EDIT_KINDS[type])
+  await saveCreatedArea(request, values, kind, feature)
   return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
 }
 
@@ -520,7 +545,7 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
 }
 
 // Both editable post-intervention forms post here: the Created details
-// (BMD-1048, BMD-1049) and a Retained habitat's reference (BMD-1180). The habitat being
+// (BMD-1048, BMD-1049, BMD-1050) and a Retained habitat's reference (BMD-1180). The habitat being
 // saved decides which, and each form's payload is checked against its own
 // schema. Every other details page is read-only.
 const postController = {
@@ -542,7 +567,7 @@ const postController = {
     )
     const retentionCategory = featureRetentionCategory(feature)
     if (
-      CREATED_EDIT_TYPES.includes(type) &&
+      CREATED_EDIT_TYPES.has(type) &&
       retentionCategory === RETENTION_CREATED
     ) {
       return saveCreatedDetails(request, h, {

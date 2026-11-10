@@ -426,8 +426,9 @@ describe('#resolveSingleErrorCopy', () => {
       h1: 'There is a problem with your file',
       subheading: 'Template',
       helpText:
-        'Your file is using the legacy Natural England template. The service now uses the BNG service template.'
+        'Your file is using the legacy template. The service now uses the BNG service template.'
     })
+    expect(JSON.stringify(result)).not.toContain('Natural England')
   })
 
   test('VERTICAL_HABITAT_AREA_NOT_POSITIVE names the habitat in the title and asks for the area in hectares', () => {
@@ -517,13 +518,13 @@ describe('#resolveSingleErrorCopy', () => {
   test.each([
     [
       'COMMENT_INVALID_CHARACTERS',
-      'A comment contains characters that are not allowed. Remove those characters and ',
-      'A comment contains characters that are not allowed. Remove those characters.'
+      'The file contains a comment that uses non-UTF8 characters. Remove those characters and ',
+      'The file contains a comment that uses non-UTF8 characters. Remove those characters.'
     ],
     [
       'COMMENT_TOO_LONG',
-      'A comment is longer than 999 characters. Shorten the comment and ',
-      'A comment is longer than 999 characters. Shorten the comment.'
+      'The file contains a comment with more than 999 characters. Shorten the comment and ',
+      'The file contains a comment with more than 999 characters. Shorten the comment.'
     ]
   ])(
     'AC7: %s names the comment problem and links to a new upload',
@@ -569,14 +570,23 @@ describe('#resolveSingleErrorCopy', () => {
     'AREA_SUM_MISMATCH'
   ])('AC14: %s renders the UCD placeholder variant', (code) => {
     const result = resolveSingleErrorCopy(
-      { code, message: 'backend message for ' + code },
-      UPLOAD_HREF
+      { code, message: 'backend message, not shown' },
+      UPLOAD_HREF,
+      `the list's words for ${code}`
     )
     expect(result).toEqual({
       variant: 'placeholder',
       h1: 'PLACEHOLDER (AWAITING UCD)',
-      helpText: `PLACEHOLDER - backend message for ${code}`
+      helpText: `PLACEHOLDER - the list's words for ${code}`
     })
+  })
+
+  test('AC14: a placeholder page with no words for the error shows the title alone', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'AREA_SUM_MISMATCH', message: 'backend message, not shown' },
+      UPLOAD_HREF
+    )
+    expect(result.helpText).toBe('PLACEHOLDER')
   })
 
   test('standard variant renders a complete sentence without a link when uploadHref is null', () => {

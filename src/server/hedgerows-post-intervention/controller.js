@@ -11,6 +11,7 @@ import {
   hedgerowsInterventionSummary
 } from '../common/helpers/unit-summary.js'
 import { createHabitatPostInterventionController } from '../common/helpers/create-habitat-post-intervention-controller.js'
+import { createdZeroUnitsDisplay } from '../common/helpers/created-zero-units-display.js'
 import { HEDGEROWS_TOTAL_KEY } from '../common/constants.js'
 import { hedgerowTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 import {
@@ -33,6 +34,7 @@ export const getController = createHabitatPostInterventionController({
   label: HEDGEROWS_TEXT,
   habitatNoun: 'hedgerow',
   habitatKey: HEDGEROWS_HABITAT_KEY,
+  prepareProjectForDisplay: createdZeroUnitsDisplay(HEDGEROWS_HABITAT_KEY),
   readSize: (feature) => feature.sizeMetres,
   formatSize: formatLengthKmDisplay,
   formatSizeTotal: formatTotalLengthSize,

@@ -13,12 +13,15 @@ import {
   fill,
   firstKnown,
   joinKnownParts,
-  listHeading,
   pageText,
   parseDropoutCopy,
   splitLink
 } from './dropout-copy.js'
-import { NOTE_VALUE_NAMES, itemValueNames } from './controller.js'
+import {
+  NOTE_VALUE_NAMES,
+  detailValueNames,
+  itemValueNames
+} from './controller.js'
 import { PLACEHOLDER_VALUE_NAMES, pageValueNames } from './single-error-copy.js'
 
 // The drop-out page's copy: error-text.yaml's upload section, as YAML.
@@ -35,6 +38,11 @@ function placeholders(templates) {
 }
 
 const entries = Object.entries(dropoutCopy.errors)
+
+/** A code's inList variants, as a list. */
+function variantsOf(inList) {
+  return Object.values(inList.variants ?? {})
+}
 
 function pagesOf(entry) {
   return typeof entry.whenAlone === 'object' ? [entry.whenAlone].flat() : []
@@ -62,9 +70,29 @@ describe("error-text.yaml's upload section", () => {
     }
     // Each code's bullets against the values the code supplies for that code,
     // so {location} on a lineage bullet fails even though another code has it.
+    // An item names a habitat's values and a detail the error's details, in
+    // any of its variants.
+    const bulletsOf = (inList, key) =>
+      [inList[key], ...variantsOf(inList).map((v) => v[key])]
+        .filter(Boolean)
+        .flat()
     for (const [code, { inList }] of entries) {
-      for (const name of placeholders(inList.item ?? [])) {
-        expect(itemValueNames(code), `${code}: {${name}}`).toContain(name)
+      // An item is shown once for each habitat, so one that names none of the
+      // habitat's values says the same thing every time: it is a detail.
+      const items = [inList.item, ...variantsOf(inList).map((v) => v.item)]
+      for (const item of items.filter(Boolean)) {
+        expect(
+          placeholders([item].flat()),
+          `${code} item: ${item}`
+        ).not.toEqual([])
+      }
+      for (const name of placeholders(bulletsOf(inList, 'item'))) {
+        expect(itemValueNames(code), `${code} item: {${name}}`).toContain(name)
+      }
+      for (const name of placeholders(bulletsOf(inList, 'detail'))) {
+        expect(detailValueNames(code), `${code} detail: {${name}}`).toContain(
+          name
+        )
       }
     }
     for (const name of placeholders([
@@ -90,12 +118,24 @@ describe("error-text.yaml's upload section", () => {
       for (const name of placeholders(inList.note ?? [])) {
         expect(NOTE_VALUE_NAMES, `${code} note: {${name}}`).toContain(name)
       }
-      expect(placeholders(inList.heading ?? []), `${code} heading`).toEqual([])
+      const headings = [
+        inList.heading,
+        ...variantsOf(inList).map((v) => v.heading)
+      ]
+      for (const name of placeholders(headings.filter(Boolean))) {
+        expect(detailValueNames(code), `${code} heading: {${name}}`).toContain(
+          name
+        )
+      }
     }
     const { title, body } = dropoutCopy.placeholder
     for (const name of placeholders([title, body].flat())) {
       expect(PLACEHOLDER_VALUE_NAMES, `placeholder: {${name}}`).toContain(name)
     }
+    expect(
+      placeholders(dropoutCopy.placeholder.more),
+      'placeholder.more'
+    ).toEqual(['count'])
     for (const section of ['unknown', 'distinctiveness', 'links']) {
       expect(
         placeholders(Object.values(dropoutCopy[section])),
@@ -151,7 +191,7 @@ describe("error-text.yaml's upload section", () => {
     expect(lineage.length).toBeGreaterThan(0)
     for (const [code, entry] of lineage) {
       expect(entry.whenAlone, code).toBe(WHEN_ALONE.LIST)
-      expect(listHeading(code), code).toBeTruthy()
+      expect(entry.inList?.heading, code).toBeTruthy()
     }
   })
 })
@@ -167,6 +207,38 @@ describe('parseDropoutCopy', () => {
 
     expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
       /NO_REDLINE.*inList/
+    )
+  })
+
+  // A problem lists habitats or not, however it is worded, so its bullets
+  // and its variants' are of one kind.
+  test.each([
+    ['the code', 'GPKG_MISSING_LAYER', (inList) => (inList.item = '{feature}')],
+    [
+      'a variant',
+      'GPKG_BASELINE_SRS_ID',
+      (inList) => (inList.variants.contents.item = '{feature}')
+    ],
+    [
+      "a variant, beside the code's detail",
+      'GPKG_BASELINE_MISSING_COLUMN',
+      (inList) => {
+        inList.variants.geometry = { item: '{feature}' }
+      }
+    ],
+    [
+      "a variant, beside the code's item",
+      'AREA_PARCELS_INVALID_GEOMETRY',
+      (inList) => {
+        inList.variants = { odd: { detail: '{layer}' } }
+      }
+    ]
+  ])('refuses an item and a detail in %s', (_, code, mix) => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    mix(copy.errors[code].inList)
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
+      new RegExp(`errors\\.${code}\\.inList`)
     )
   })
 
@@ -262,14 +334,13 @@ describe('pageText', () => {
   })
 })
 
-describe('errorCopy and listHeading', () => {
-  test('give nothing for a code the copy does not know', () => {
+describe('errorCopy', () => {
+  test('gives nothing for a code the copy does not know', () => {
     expect(errorCopy('NOT_A_CODE')).toBeNull()
     expect(errorCopy(undefined)).toBeNull()
-    expect(listHeading('NOT_A_CODE')).toBeNull()
   })
 
-  test('give no heading where the list shows the service message', () => {
-    expect(listHeading('NO_REDLINE')).toBeNull()
+  test('gives no heading where the list shows the catch-all title', () => {
+    expect(errorCopy('INVALID_FILENAME').inList).toBe('catch-all')
   })
 })

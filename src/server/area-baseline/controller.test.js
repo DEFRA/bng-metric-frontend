@@ -298,7 +298,8 @@ describe('area baseline', () => {
     expect(wallRow.find('a').attr('href')).toBe(
       `/baseline-habitat-details?featureId=${wall.featureId}&projectId=${PROJECT_ID}`
     )
-    expect(wallRow.text()).toContain('0.04ha (400m²)')
+    expect(wallRow.text()).toContain('0.04ha')
+    expect(wallRow.text()).not.toContain('m²')
     expect(wallRow.text()).toContain('Urban')
     expect(wallRow.text()).toContain('Facade-bound green wall')
     // 2 ha + 1 ha + 163 m² + 400 m², in hectares.
