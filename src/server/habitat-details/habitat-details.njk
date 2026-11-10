@@ -157,21 +157,26 @@
           ]
         }) }}
 
-        {{ govukTextarea({
-          id: "comment",
-          name: "comment",
-          rows: 5,
-          label: {
-            text: "Supporting information",
-            classes: "govuk-label--m"
-          },
-          hint: {
-            text: "Add information to help the Local Planning Authority understand the baseline metric."
-          },
-          value: commentInput.value,
-          errorMessage: commentInput.error,
-          classes: "govuk-!-margin-top-6"
-        }) }}
+        {# Areas, vertical area habitats, hedgerows and watercourses only: an
+           individual tree's comment is out of scope (BMD-1112), so its page
+           submits no comment and its stored one is left alone. #}
+        {% if showCommentRow %}
+          {{ govukTextarea({
+            id: "comment",
+            name: "comment",
+            rows: 5,
+            label: {
+              text: "Supporting information",
+              classes: "govuk-label--m"
+            },
+            hint: {
+              text: "Add information to help the Local Planning Authority understand the baseline metric."
+            },
+            value: commentInput.value,
+            errorMessage: commentInput.error,
+            classes: "govuk-!-margin-top-6"
+          }) }}
+        {% endif %}
 
         <div class="govuk-button-group">
           {{ govukButton({

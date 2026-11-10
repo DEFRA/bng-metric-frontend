@@ -2465,3 +2465,112 @@ describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
     })
   })
 })
+
+// An individual tree is an area habitat on this page, but its comment is out
+// of scope (BMD-1112): the page offers no box, so nothing can overwrite a
+// comment imported with the tree.
+describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)', () => {
+  let server
+  let crumb
+
+  const treeId = 'aa0e8400-e29b-41d4-a716-4466554400aa'
+  const mockTree = {
+    featureId: treeId,
+    ref: 'T1',
+    type: 'Urban tree',
+    broadType: 'Individual trees',
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    treeSize: 'Small',
+    count: 3,
+    sizeSquareMetres: 100,
+    units: 1,
+    comment: 'Imported tree note'
+  }
+
+  function routeTreeWreck(suffix) {
+    if (suffix.endsWith(`/projects/${projectId}/features/${treeId}`)) {
+      return {
+        res: { statusCode: 200 },
+        payload: { type: 'tree', feature: mockTree }
+      }
+    }
+    if (suffix.endsWith('/reference/habitat-types-by-broad')) {
+      return {
+        res: { statusCode: 200 },
+        payload: {
+          'Individual trees': [
+            {
+              name: 'Urban tree',
+              distinctiveness: 'Medium',
+              distinctivenessScore: 4
+            }
+          ]
+        }
+      }
+    }
+    return routeWreck(suffix)
+  }
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    _resetReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeTreeWreck(u))
+    )
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'tree', feature: mockTree }
+    })
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('Shows no supporting information box, and does not show the stored comment', async () => {
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).not.toContain('id="comment"')
+    expect(result).not.toContain('Supporting information')
+    expect(result).not.toContain('Imported tree note')
+    // The rest of the tree's page is unchanged by this story.
+    expect(result).toContain('Number of trees')
+  })
+
+  test('Sends no comment on save, so the imported one stays', async () => {
+    const { statusCode } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: treeId,
+        broadHabitat: 'Individual trees',
+        habitatType: 'Urban tree',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    const [, options] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(options.payload)).not.toHaveProperty('comment')
+  })
+})

@@ -97,6 +97,10 @@ function buildViewModel(habitat, reference, { projectId, projectName }) {
     sizeDisplay: formatAreaHectares(habitat.sizeSquareMetres),
     sizeLabel: 'Size (hectares)',
     showBroadHabitatRow: true,
+    // Supporting information is editable on area habitats, vertical area
+    // habitats, hedgerows and watercourses (BMD-1112). An individual tree's
+    // comment is out of scope, so treeStrategy turns this off.
+    showCommentRow: true,
     distinctivenessDisplay:
       habitat.distinctiveness &&
       typeof habitat.distinctivenessScore === 'number'

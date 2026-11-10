@@ -41,7 +41,11 @@ export const treeStrategy = {
       showTreeRows: true,
       showBroadHabitatRow: false,
       fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
-      habitatTypeOptions: treeTypeItems(reference.habitatTypes, tree.type)
+      habitatTypeOptions: treeTypeItems(reference.habitatTypes, tree.type),
+      // A tree's comment is out of scope (BMD-1112), so the page offers no
+      // box to type one into. A comment imported with the tree is left as it
+      // is.
+      showCommentRow: false
     }
   }
 }
