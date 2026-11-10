@@ -22,7 +22,7 @@ import {
   detailValueNames,
   itemValueNames
 } from './controller.js'
-import { PLACEHOLDER_VALUE_NAMES, pageValueNames } from './single-error-copy.js'
+import { pageValueNames } from './single-error-copy.js'
 
 // The drop-out page's copy: error-text.yaml's upload section, as YAML.
 const COPY_SOURCE = dump(errorText.upload)
@@ -51,7 +51,9 @@ function pagesOf(entry) {
 const allPages = [
   ...entries.flatMap(([, entry]) => pagesOf(entry)),
   dropoutCopy.catchAll.legacyTemplate,
-  dropoutCopy.catchAll.serviceTemplate
+  dropoutCopy.catchAll.serviceTemplate,
+  dropoutCopy.fileProblem,
+  dropoutCopy.serviceProblem
 ]
 
 describe("error-text.yaml's upload section", () => {
@@ -103,10 +105,10 @@ describe("error-text.yaml's upload section", () => {
     }
   })
 
-  // The page's own strings, list notes and headings, and the placeholder copy:
+  // The page's own strings, list notes and headings, and the fallback pages:
   // each is filled with its own few values, or none, so a typo such as
   // {Count} would otherwise leave a blank on every page.
-  test('names only the {values} each page string, note, heading and placeholder is filled with', () => {
+  test('names only the {values} each page string, note, heading and fallback page is filled with', () => {
     for (const [key, value] of Object.entries(dropoutCopy.page)) {
       for (const name of placeholders(value)) {
         expect(PAGE_TEXT_VALUES[key] ?? [], `page.${key}: {${name}}`).toContain(
@@ -128,14 +130,12 @@ describe("error-text.yaml's upload section", () => {
         )
       }
     }
-    const { title, body } = dropoutCopy.placeholder
-    for (const name of placeholders([title, body].flat())) {
-      expect(PLACEHOLDER_VALUE_NAMES, `placeholder: {${name}}`).toContain(name)
+    // A fallback is shown for problems that send different values, so it
+    // names none.
+    for (const fallback of ['fileProblem', 'serviceProblem']) {
+      const { title, body } = dropoutCopy[fallback]
+      expect(placeholders([title, body].flat()), fallback).toEqual([])
     }
-    expect(
-      placeholders(dropoutCopy.placeholder.more),
-      'placeholder.more'
-    ).toEqual(['count'])
     for (const section of ['unknown', 'distinctiveness', 'links']) {
       expect(
         placeholders(Object.values(dropoutCopy[section])),

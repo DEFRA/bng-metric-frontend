@@ -13,7 +13,8 @@ import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 /** What whenAlone can say in place of copy of its own. */
 export const WHEN_ALONE = Object.freeze({
   CATCH_ALL: 'catch-all',
-  PLACEHOLDER: 'placeholder',
+  FILE_PROBLEM: 'file-problem',
+  SERVICE_PROBLEM: 'service-problem',
   LIST: 'list'
 })
 
@@ -113,7 +114,8 @@ const copySchema = Joi.object({
     legacyTemplate: pageCopy.required(),
     serviceTemplate: pageCopy.required()
   }).required(),
-  placeholder: pageCopy.keys({ more: text.required() }).required(),
+  fileProblem: pageCopy.required(),
+  serviceProblem: pageCopy.required(),
   names: Joi.object({
     feature: options.required(),
     tree: options.required(),
@@ -176,11 +178,15 @@ export function canFill(templates, values = {}) {
   return [templates].flat().some((t) => hasValues(t, values))
 }
 
+/** The first of `templates` whose values are all known, not filled in. */
+export function firstKnownTemplate(templates, values = {}) {
+  const list = [templates].flat()
+  return list.find((t) => hasValues(t, values)) ?? list.at(-1)
+}
+
 /** The first of `templates` whose values are all known, filled in. */
 export function firstKnown(templates, values = {}) {
-  const list = [templates].flat()
-  const chosen = list.find((t) => hasValues(t, values)) ?? list.at(-1)
-  return fill(chosen, values)
+  return fill(firstKnownTemplate(templates, values), values)
 }
 
 /** Each of `parts` whose values are all known, filled in and joined. */
@@ -192,31 +198,7 @@ export function joinKnownParts(parts, values = {}) {
     .join('')
 }
 
-const LINK_OPEN = '['
-const LINK_MIDDLE = ']('
-const LINK_CLOSE = ')'
-
-/**
- * Split a sentence at its [link text](target), or return it whole as
- * `before` when it has none.
- *
- * @param {string} sentence
- * @returns {{ before: string, linkText?: string, target?: string, after?: string }}
- */
-export function splitLink(sentence) {
-  const open = sentence.indexOf(LINK_OPEN)
-  const middle = open === -1 ? -1 : sentence.indexOf(LINK_MIDDLE, open)
-  const close = middle === -1 ? -1 : sentence.indexOf(LINK_CLOSE, middle)
-  if (close === -1) {
-    return { before: sentence }
-  }
-  return {
-    before: sentence.slice(0, open),
-    linkText: sentence.slice(open + LINK_OPEN.length, middle),
-    target: sentence.slice(middle + LINK_MIDDLE.length, close),
-    after: sentence.slice(close + LINK_CLOSE.length)
-  }
-}
+export { splitLink } from '../common/error-text/links.js'
 
 /**
  * The {values} each page string can name: pageText fills these and no
@@ -260,4 +242,24 @@ export function catchAllPage() {
   return isServiceTemplateEnabled()
     ? dropoutCopy.catchAll.serviceTemplate
     : dropoutCopy.catchAll.legacyTemplate
+}
+
+/**
+ * The single-error page a whenAlone that names a fallback stands for: the
+ * catch-all, about layer and column names; the file problem, which says only
+ * that the file has an error; or the service problem, which says the fault is
+ * the service's. A code with no entry, or one the page always lists, takes the
+ * file problem, which cannot mislead about what is wrong.
+ *
+ * @param {string | undefined} whenAlone
+ */
+export function fallbackPage(whenAlone) {
+  switch (whenAlone) {
+    case WHEN_ALONE.CATCH_ALL:
+      return catchAllPage()
+    case WHEN_ALONE.SERVICE_PROBLEM:
+      return dropoutCopy.serviceProblem
+    default:
+      return dropoutCopy.fileProblem
+  }
 }

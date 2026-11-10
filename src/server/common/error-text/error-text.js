@@ -4,6 +4,8 @@ import path from 'node:path'
 import Joi from 'joi'
 import { load } from 'js-yaml'
 
+import { splitLink } from './links.js'
+
 // Every message a customer can see when the service refuses something lives
 // in error-text.yaml, for product, BAs and UCD to review in one place. This
 // module reads it once and checks the sections it serves, so a slip in an
@@ -35,7 +37,24 @@ const formMessage = Joi.alternatives().conditional(Joi.string(), {
 // A {name} in a message, filled in by the page from a value it knows.
 const BRACES = /\{(\w+)\}/g
 
+/** Where a page's [link text](target) can go. */
+export const PAGE_LINK_TARGETS = Object.freeze({ home: '/' })
+
+// The pages show the words as text, so markup would show as typed.
+const plainText = text.pattern(/[<>]/, { invert: true, name: 'no HTML' })
+
+const pageLine = plainText.custom((line, helpers) => {
+  const { target } = splitLink(line)
+  return target === undefined || Object.hasOwn(PAGE_LINK_TARGETS, target)
+    ? line
+    : helpers.message(`links to "${target}", which is not a page link target`)
+})
+
 const errorTextSchema = Joi.object({
+  common: Joi.object({
+    summaryTitle: plainText.required(),
+    unworded: plainText.required()
+  }).required(),
   upload: Joi.object().required(),
   // Chosen by type, so a slip names the field it is in: "inline is required"
   // rather than "matches none of the allowed types".
@@ -50,6 +69,15 @@ const errorTextSchema = Joi.object({
     .required(),
   forms: Joi.object()
     .pattern(Joi.string(), Joi.object().pattern(Joi.string(), formMessage))
+    .required(),
+  pages: Joi.object()
+    .pattern(
+      Joi.string(),
+      Joi.object({
+        title: plainText,
+        body: Joi.array().items(pageLine).min(1)
+      }).or('title', 'body')
+    )
     .required()
 })
 
@@ -124,5 +152,61 @@ export function formErrorText(field, rule, values = {}) {
   return {
     summary: fillErrorText(summary, values),
     inline: fillErrorText(inline, values)
+  }
+}
+
+/**
+ * Text error-text.yaml's common section holds, shared by every page.
+ *
+ * @param {'summaryTitle' | 'unworded'} key
+ * @returns {string}
+ */
+export function commonErrorText(key) {
+  return errorText.common[key]
+}
+
+/**
+ * A page of pages, with its {braces} filled in from `values`: its title, and
+ * each body line as the text before its link, the link, and the text after.
+ * Throws when the file has no such page, so a page that names a missing one
+ * fails as it loads, not when a user meets it.
+ *
+ * @param {string} key
+ * @param {Record<string, string | number>} [values]
+ * @returns {{ title?: string, body: Array<{ before: string, link?: { text: string, href: string }, after?: string }> }}
+ */
+export function pageErrorText(key, values = {}) {
+  const page = errorText.pages[key]
+  if (!page) {
+    throw new Error(`error-text.yaml has no pages.${key}`)
+  }
+  return fillPage(page, values)
+}
+
+/**
+ * pageErrorText's work on one page. A line is split at its link before it is
+ * filled in, so a value holding "[" or "](" stays text. Exported so a test can
+ * give it a page whose values hold link syntax, which no page in the file has.
+ *
+ * @param {{ title?: string, body?: string[] }} page
+ * @param {Record<string, string | number>} values
+ */
+export function fillPage(page, values) {
+  const body = (page.body ?? []).map((line) => {
+    const { before, linkText, target, after } = splitLink(line)
+    return target === undefined
+      ? { before: fillErrorText(before, values) }
+      : {
+          before: fillErrorText(before, values),
+          link: {
+            text: fillErrorText(linkText, values),
+            href: PAGE_LINK_TARGETS[target]
+          },
+          after: fillErrorText(after, values)
+        }
+  })
+  return {
+    ...(page.title ? { title: fillErrorText(page.title, values) } : {}),
+    body
   }
 }

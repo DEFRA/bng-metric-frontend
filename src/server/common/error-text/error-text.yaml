@@ -5,8 +5,19 @@
 # changes here by pull request. The pages' code reads it; it holds no wording
 # of its own.
 #
+# What belongs here: any words shown because something was refused or went
+# wrong. Hints and guidance, such as a note about an imported value, are the
+# page's own content and stay in its template.
+#
+# What cannot be here, because the service does not show it:
+#   - Defra ID's sign-in pages, the file uploader's own responses, and the
+#     platform's pages while the service is down or deploying
+#   - the browser's own messages, such as a failed download
+#   - the bare error the server sends if its error page itself fails
+#
 # Sections
 #
+#   common   words every page shares, such as the error summary's title.
 #   upload   the drop-out page (/error-file), shown when an uploaded
 #            GeoPackage is refused. Keyed by the backend's error code.
 #            A code met only on an edit has no entry here.
@@ -14,6 +25,20 @@
 #            was accepted. Keyed by the backend's error code.
 #   forms    a form field's own validation, before anything reaches the
 #            backend. Keyed by field, then by rule.
+#   pages    a whole page shown in place of the one asked for, such as
+#            "Page not found". Keyed by page.
+#
+# Wording rules, which the file's checks (error-text.js) hold it to
+#
+# - Plain text only in common, forms, edit and pages: no HTML. A page shows
+#   the words as typed.
+# - {braces} are filled in by the page: a limit from the code, or a value from
+#   the customer's file or answer. Only the sentence around a value is
+#   wording; the value itself is not.
+# - [link text](target) links. A line is split at its link before its
+#   {braces} are filled in, so a value cannot make or move a link.
+# - Each grammatical form is a rule of its own, as "missingOne" and
+#   "missingSeveral" are, rather than words the code adds.
 #
 # Which section a backend code belongs in is the backend's to say
 # (bng-metric-backend, src/validation/geopackage/errors.js,
@@ -23,8 +48,8 @@
 # code missing from its section, or an entry for a code the backend no longer
 # has.
 #
-# "placeholder" anywhere below means the wording is awaiting UCD, and the
-# page shows a placeholder or its generic message instead.
+# "placeholder" in the edit section means the wording is awaiting UCD, and
+# the page shows its generic message instead.
 #
 # "# AWAITING UCD" in a comment marks interim wording that the pages do show
 # but UCD has not reviewed. Search for both to find everything UCD still has
@@ -32,6 +57,20 @@
 #
 # What each upload rule checks, and which example file shows it:
 # https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md
+
+# ------------------------------------------------------------------ common
+
+common:
+  # The title of every error summary.
+  summaryTitle: There is a problem
+
+  # Shown against a field for a check whose code names no forms rule, rather
+  # than the validation library's own wording, which names the field's code.
+  # The gap is logged for a developer to add a rule. Also shown on purpose for
+  # a check only a form posted from elsewhere can fail, such as a radio
+  # button's value.
+  # AWAITING UCD: interim wording, shown until content design words it.
+  unworded: There is a problem with this answer
 
 # ------------------------------------------------------------------ upload
 #
@@ -68,10 +107,17 @@
 #   full stop. [link text](metric-tool) links to the statutory metric tool.
 #
 # - whenAlone can instead be:
-#     catch-all    the problem has no copy of its own, so the page shows the
-#                  catch-all copy under "catchAll" below
-#     placeholder  the copy is awaiting UCD, so the page shows "placeholder"
-#     list         the page shows the inList layout even for this problem alone
+#     catch-all        the problem has no copy of its own and is in the
+#                      file's layers or columns, so the page shows "catchAll"
+#                      below, which says to rename them
+#     file-problem     the problem has no copy of its own and is elsewhere in
+#                      the file, so the page shows "fileProblem" below, which
+#                      says only that the file has an error. A code with no
+#                      entry here is shown this way too
+#     service-problem  the service failed, not the file, so the page shows
+#                      "serviceProblem" below
+#     list             the page shows the inList layout even for this problem
+#                      alone
 #
 # - A heading here is shown word for word, with any {braces} filled in, and
 #   a detail the same way. The {braces} of a heading and a detail are values
@@ -131,17 +177,21 @@ upload:
         The layer names and column names do not match the BNG Service template.
         Rename the layers and columns and [upload a new file](upload).
 
-  # Copy awaiting UCD (BMD-592). {message} is the problem's heading as the
-  # list shows it, then its bullets, or the service's own message for a
-  # problem that has no heading here.
-  placeholder:
-    title: PLACEHOLDER (AWAITING UCD)
-    # The message when there is one, and the title alone when there is not.
-    body:
-      - PLACEHOLDER - {message}
-      - PLACEHOLDER
-    # After the bullets, when the list leaves some out.
-    more: ' (and {count} more)'
+  # A problem in the file with no copy of its own, outside its layers and
+  # columns: shown for whenAlone: file-problem, and for a code with no entry.
+  # AWAITING UCD: interim wording, shown until content design words it.
+  fileProblem:
+    title: Your Geopackage (.gpkg) file contains an error
+    body: >-
+      Check the habitats in your file and [upload a new file](upload).
+
+  # The service failed to check the file, so there is nothing for the user to
+  # change: shown for whenAlone: service-problem. GOV.UK's wording for a
+  # service problem.
+  # AWAITING UCD: interim wording, shown until content design words it.
+  serviceProblem:
+    title: Sorry, there is a problem with the service
+    body: Try again later.
 
   # How a bullet names a habitat, the first option whose values are known.
   names:
@@ -200,7 +250,7 @@ upload:
       inList: catch-all
 
     INVALID_FILE_METADATA:
-      whenAlone: catch-all
+      whenAlone: service-problem
       inList: catch-all
 
     # -------------------------------------------------------------- file format
@@ -450,7 +500,7 @@ upload:
             heading: 'The Red Line Boundary table has no geometry column'
 
     GPKG_RLB_UNREADABLE_GEOMETRY:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Red Line Boundary contains unreadable geometry
@@ -468,13 +518,13 @@ upload:
           - ' at {location}'
 
     REDLINE_OUTSIDE_ENGLAND:
-      whenAlone: placeholder
+      whenAlone: list
       inList:
         heading: >-
           Redline boundary is outside England
 
     REDLINE_AREA_TOO_LARGE:
-      whenAlone: placeholder
+      whenAlone: list
       inList:
         heading: 'Redline boundary area ({areaSqM} sq m) exceeds the 100 sq km limit'
 
@@ -500,13 +550,13 @@ upload:
           gpkg_geometry_columns
 
     GPKG_HABITATS_UNREADABLE_GEOMETRY:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Habitats contains unreadable geometry
 
     GPKG_HABITATS_WRONG_GEOMETRY_TYPE:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Habitats contains feature(s) with non-polygon geometry
@@ -590,7 +640,7 @@ upload:
           - ' — ~{area} sq m near {location}'
 
     AREA_SUM_MISMATCH:
-      whenAlone: placeholder
+      whenAlone: list
       inList:
         heading: 'Sum of area habitat polygons ({habitatsAreaSqM} sq m) does not equal redline boundary area ({redlineAreaSqM} sq m)'
 
@@ -618,19 +668,19 @@ upload:
     # --------------------------------------------------------------- hedgerows
 
     GPKG_HEDGEROWS_UNREADABLE_GEOMETRY:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Hedgerows contains unreadable geometry
 
     GPKG_HEDGEROWS_NO_LINESTRING_GEOMETRY:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Hedgerows has feature(s) but no readable linestring geometry
 
     GPKG_HEDGEROWS_WRONG_GEOMETRY_TYPE:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Hedgerows contains feature(s) with non-linestring geometry
@@ -651,19 +701,19 @@ upload:
     # ------------------------------------------------------------ watercourses
 
     GPKG_RIVERS_UNREADABLE_GEOMETRY:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Rivers contains unreadable geometry
 
     GPKG_RIVERS_NO_LINESTRING_GEOMETRY:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Rivers has feature(s) but no readable linestring geometry
 
     GPKG_RIVERS_WRONG_GEOMETRY_TYPE:
-      whenAlone: catch-all
+      whenAlone: file-problem
       inList:
         heading: >-
           Rivers contains feature(s) with non-linestring geometry
@@ -734,7 +784,7 @@ upload:
           blank for one tree
 
     TREES_OUTSIDE_REDLINE:
-      whenAlone: placeholder
+      whenAlone: list
       inList:
         heading: >-
           One or more trees are not entirely within the redline boundary
@@ -751,7 +801,7 @@ upload:
           - '{tree}'
 
     IGGIS_OUTSIDE_REDLINE:
-      whenAlone: placeholder
+      whenAlone: list
       inList:
         heading: >-
           One or more IGGIs are not entirely within the redline boundary
@@ -1015,23 +1065,23 @@ upload:
     # ------------------------------------------------------ while uploading
 
     SIZING_FAILED:
-      whenAlone: catch-all
+      whenAlone: service-problem
       inList:
         heading: 'Unable to calculate habitat sizes'
 
     VALIDATION_FAILED:
-      whenAlone: catch-all
+      whenAlone: service-problem
       inList: catch-all
 
     VALIDATION_BUSY:
-      whenAlone: catch-all
+      whenAlone: service-problem
       inList:
         # &serviceBusy: the upload page shows these same words when it gives up
         # waiting (forms.file.serviceBusy), so a change here changes both.
         heading: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
 
     VALIDATION_UNAVAILABLE:
-      whenAlone: catch-all
+      whenAlone: service-problem
       inList:
         heading: 'The file checking service is currently unavailable. Please try again later.'
 
@@ -1077,6 +1127,14 @@ forms:
     # Not one of the list's options, or one the backend does not know.
     notInList: Select a Local Planning Authority from the list
 
+  surveyCompleters:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    tooLong: Survey completer(s) must be {max} characters or fewer
+
+  applicant:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    tooLong: Applicant must be {max} characters or fewer
+
   surveyCompletionDate:
     # Some of the day, month and year are blank, but not all three. {part} is
     # the one that is blank: day, month or year. {parts} are the two that
@@ -1085,10 +1143,24 @@ forms:
     missingSeveral: Survey completion date must include {parts}
     notReal: Survey completion date must be a real date
 
+  uploadType:
+    # The "What would you like to upload?" page, with no choice made.
+    required: Select the type of file you want to upload
+
   file:
-    # The upload page, once the service has looked at the uploaded file.
-    # The file is not a GeoPackage at all.
+    # The upload page, shown in place of the form when the file uploader
+    # gave the page nowhere to send the file.
+    cannotStart: Unable to start file upload. Please try again later.
+    # Checked in the browser before the file is sent, and again by the
+    # service once it has it.
+    noFile: Select a GeoPackage (.gpkg) file
+    # Not named .gpkg, or not a GeoPackage at all.
     notAGeoPackage: The selected file must be a GeoPackage (.gpkg)
+    # {max} is the size limit, as "100 MB".
+    tooLarge: The selected file must be smaller than {max}
+    invalidName: The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets
+    nameTooLong: The file name must be {max} characters or fewer
+    # The upload page, once the service has looked at the uploaded file.
     # The checks gave up waiting for a busy validator. There is nothing wrong
     # with the file, so this must not suggest changing it.
     # The same words as the drop-out page's upload.errors.VALIDATION_BUSY
@@ -1128,3 +1200,43 @@ forms:
     both:
       summary: A habitat cannot be created both in advance and with a delay.
       inline: Either the advance or delay field must be set at zero.
+
+# ------------------------------------------------------------------- pages
+#
+# A whole page shown in place of the one asked for. "title" is its heading
+# and the browser tab's title; "body" its paragraphs, one a line, which can
+# link with [link text](home) to the service's home page.
+
+pages:
+  # The general error page, by what went wrong.
+  notFound:
+    title: Page not found
+  forbidden:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    title: Forbidden
+  unauthorized:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    title: Unauthorized
+  badRequest:
+    # AWAITING UCD: interim wording, shown until content design words it.
+    title: Bad Request
+  conflict:
+    # Someone else saved the project first.
+    title: Another user is editing this. Please try again.
+  serverError:
+    # Anything else, including a service the page needed being down.
+    title: Something went wrong
+
+  # Signed in, but without the role the service needs.
+  accessDenied:
+    title: Access denied
+    body:
+      - You do not have permission to view this page.
+      - Access is limited to users with an approved BNG completer role. If your role is still awaiting approval, or you think this is wrong, contact your Defra administrator.
+      - '[Return to the home page](home)'
+
+  # A habitat on the post-intervention details page that has no details
+  # page of its own, such as an IGGI.
+  featureUnsupported:
+    body:
+      - IGGI features are not yet supported in this view.
