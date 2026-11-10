@@ -19,6 +19,12 @@ describe('error-text.yaml', () => {
     expect(Object.keys(errorText)).toEqual(['upload', 'edit', 'forms'])
   })
 
+  test("words the upload page's busy message as the drop-out page's", () => {
+    expect(errorText.forms.file.serviceBusy).toBe(
+      errorText.upload.errors.VALIDATION_BUSY.inList.heading
+    )
+  })
+
   test('words every edit refusal with a summary and an inline message, or marks it a placeholder', () => {
     for (const [code, entry] of Object.entries(errorText.edit)) {
       if (entry === PLACEHOLDER) {

@@ -382,6 +382,33 @@ describe('Created area editing', () => {
     await runAxeChecks(document.documentElement)
   })
 
+  test('shows a choice error against its select, linked from the summary', async () => {
+    const values = {
+      ...createdAreaValues(createdAreaFeature),
+      habitatType: 'Not a habitat type',
+      condition: ''
+    }
+    render(values, validateCreatedArea(values, creationReference))
+    const message = 'Choose a habitat type for the selected broad habitat'
+    expect(
+      [...document.querySelectorAll('.govuk-error-summary__list a')].map(
+        (link) => ({
+          text: link.textContent.trim(),
+          href: link.getAttribute('href')
+        })
+      )
+    ).toEqual([{ text: message, href: '#habitatType' }])
+    const error = document.getElementById('habitatType-error')
+    expect(error.textContent).toContain(message)
+    expect(
+      document
+        .getElementById('habitatType')
+        .getAttribute('aria-describedby')
+        .split(/\s+/)
+    ).toContain('habitatType-error')
+    await runAxeChecks(document.documentElement)
+  })
+
   test('associates a timing select with both its imported-value hint and shared error', async () => {
     const imported = {
       ...createdAreaFeature,

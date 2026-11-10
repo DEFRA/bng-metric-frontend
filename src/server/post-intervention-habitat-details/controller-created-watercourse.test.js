@@ -1,3 +1,6 @@
+import Boom from '@hapi/boom'
+import { wreck } from '../common/helpers/wreck-client.js'
+import { _resetCreatedAreaReferenceCache } from './created-area-edit.js'
 import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import {
   baselineFeatureId,
@@ -20,11 +23,12 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 const { getController } = await import('./controller.js')
 
 describe('#postInterventionHabitatDetailsController created watercourse', () => {
+  beforeEach(() => _resetCreatedAreaReferenceCache())
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  test('GET renders the Created watercourse details page with section layout', async () => {
+  test('GET retains the read-only Created layout while creation reference is not deployed', async () => {
     mockSectionWatercourseFeature({
       ref: 'W-A1',
       retentionCategory: '1. Created',
@@ -51,6 +55,12 @@ describe('#postInterventionHabitatDetailsController created watercourse', () => 
       }
     })
 
+    const get = vi.mocked(wreck.get).getMockImplementation()
+    vi.mocked(wreck.get).mockImplementation((url) =>
+      url.endsWith('/reference/watercourse-creation')
+        ? Promise.reject(Boom.notFound())
+        : get(url)
+    )
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
 

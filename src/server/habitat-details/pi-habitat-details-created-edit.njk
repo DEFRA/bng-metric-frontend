@@ -70,6 +70,8 @@
         {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
         {{ select(fields.strategicSignificance) }}
+        {% if fields.watercourseEncroachment %}{{ select(fields.watercourseEncroachment) }}{% endif %}
+        {% if fields.riparianEncroachment %}{{ select(fields.riparianEncroachment) }}{% endif %}
         <h2 class="govuk-heading-m">{{ timeDifficultySectionHeading }}</h2>
         {{ select(fields.condition) }}
         {{ derived("Standard time to target condition", "standardTimeToTargetDisplay", standardTimeToTargetDisplay) }}

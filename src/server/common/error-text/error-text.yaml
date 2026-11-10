@@ -1026,7 +1026,9 @@ upload:
     VALIDATION_BUSY:
       whenAlone: catch-all
       inList:
-        heading: 'The service is busy checking other files. Please try again in a few moments.'
+        # &serviceBusy: the upload page shows these same words when it gives up
+        # waiting (forms.file.serviceBusy), so a change here changes both.
+        heading: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
 
     VALIDATION_UNAVAILABLE:
       whenAlone: catch-all
@@ -1089,7 +1091,9 @@ forms:
     notAGeoPackage: The selected file must be a GeoPackage (.gpkg)
     # The checks gave up waiting for a busy validator. There is nothing wrong
     # with the file, so this must not suggest changing it.
-    serviceBusy: The service is busy checking other files. Please try again in a few moments.
+    # The same words as the drop-out page's upload.errors.VALIDATION_BUSY
+    # heading, which this repeats with *serviceBusy: change them there.
+    serviceBusy: *serviceBusy
     timedOut: The file check timed out. Please try again.
 
   habitatRef:
@@ -1102,17 +1106,22 @@ forms:
     # pages cut a long reference on save instead.
     tooLong: Enter a habitat reference of {max} characters or fewer.
 
-  # The created habitat and hedgerow page's choices. A choice that is not one
+  # The created habitat, hedgerow and watercourse page's choices. A choice that is not one
   # of its options can only be an imported value no longer offered.
   broadHabitat:
     invalid: Choose a valid broad habitat
   habitatType:
     notInBroadHabitat: Choose a habitat type for the selected broad habitat
     invalidHedgerow: Choose a valid hedgerow habitat type
+    invalidWatercourse: Choose a valid watercourse habitat type
   condition:
     notForHabitatType: Choose a target condition for the selected habitat type
   strategicSignificance:
     invalid: Choose a valid strategic significance
+  watercourseEncroachment:
+    invalid: Choose a valid watercourse encroachment
+  riparianEncroachment:
+    invalid: Choose a valid riparian encroachment
   advanceOrDelay:
     invalid: Choose a valid advance or delay value
     # Both an advance and a delay of more than zero years.
