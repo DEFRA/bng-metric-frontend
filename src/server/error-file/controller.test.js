@@ -812,10 +812,8 @@ describe('invalidFileController.handler — populated session', () => {
     // service's message names no bullet. The point of this test is just to
     // exercise the `sample?.length ?? 0` branch in buildBlock.
     expect(view.errorBlocks[0].items).toEqual([])
-    // Alone, the code shows its placeholder, which keeps the list's count.
-    expect(view.singleError.helpText).toBe(
-      'PLACEHOLDER - One or more trees are not entirely within the redline boundary (and 5 more)'
-    )
+    // Alone, the code shows its list, which keeps the count.
+    expect(view.singleError).toBeNull()
   })
 
   test("errorBlocks: a code the copy gives a heading shows none of the service's message", async () => {
@@ -1080,7 +1078,7 @@ describe('invalidFileController.handler — populated session', () => {
     ])
   })
 
-  test("singleError: a placeholder page names the copy's heading and bullets, not the service's message", async () => {
+  test("a lone problem with no copy of its own shows its list heading and bullets, not the service's message", async () => {
     const errors = [
       {
         code: 'TREES_OUTSIDE_REDLINE',
@@ -1094,12 +1092,19 @@ describe('invalidFileController.handler — populated session', () => {
     await invalidFileController.handler(request, h)
 
     const view = h.view.mock.calls[0][1]
-    expect(view.singleError.helpText).toBe(
-      'PLACEHOLDER - One or more trees are not entirely within the redline boundary: Feature Ref T1, fid 4 (and 1 more)'
-    )
+    expect(view.singleError).toBeNull()
+    expect(view.pageTitle).not.toContain('PLACEHOLDER')
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more trees are not entirely within the redline boundary',
+        items: ['Feature Ref T1', 'fid 4'],
+        more: 1
+      }
+    ])
   })
 
-  test('singleError: a placeholder page fills its heading from details, as the service writes the numbers', async () => {
+  test('a lone problem shown as its list fills its heading from details, as the service writes the numbers', async () => {
     const errors = [
       {
         code: 'AREA_SUM_MISMATCH',
@@ -1113,8 +1118,9 @@ describe('invalidFileController.handler — populated session', () => {
     await invalidFileController.handler(request, h)
 
     const view = h.view.mock.calls[0][1]
-    expect(view.singleError.helpText).toBe(
-      'PLACEHOLDER - Sum of area habitat polygons (100.12 sq m) does not equal redline boundary area (99.00 sq m)'
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toBe(
+      'Sum of area habitat polygons (100.12 sq m) does not equal redline boundary area (99.00 sq m)'
     )
   })
 

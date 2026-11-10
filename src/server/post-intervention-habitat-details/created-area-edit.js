@@ -13,7 +13,6 @@ import {
   buildCreatedEditFields,
   ENCROACHMENT_FIELDS,
   FIELD_ORDER,
-  ERROR_SUMMARY_TEXT,
   keepImportedCondition
 } from './created-area-edit-fields.js'
 import { featureRetentionCategory } from './retention.js'
@@ -42,6 +41,25 @@ import {
   createdImportedChoices
 } from './created-choice-values.js'
 export { createdAreaValues } from './created-choice-values.js'
+import { formErrorText } from '../common/error-text/error-text.js'
+import { HABITAT_REF_ERROR } from '../common/helpers/habitat-ref.js'
+
+// A { summary, inline } pair from error-text.yaml's forms section, frozen as it
+// is shared by every request.
+const formError = (field, rule, values) =>
+  Object.freeze(formErrorText(field, rule, values))
+
+const ERRORS = Object.freeze({
+  refInvalid: HABITAT_REF_ERROR,
+  refTooLong: formError('habitatRef', 'tooLong', { max: MAX_REF_LENGTH }),
+  timingInvalid: formError('advanceOrDelay', 'invalid'),
+  timingBoth: formError('advanceOrDelay', 'both'),
+  broadHabitat: formError('broadHabitat', 'invalid'),
+  condition: formError('condition', 'notForHabitatType'),
+  strategicSignificance: formError('strategicSignificance', 'invalid'),
+  watercourseEncroachment: formError('watercourseEncroachment', 'invalid'),
+  riparianEncroachment: formError('riparianEncroachment', 'invalid')
+})
 
 export const CREATED_EDIT_KINDS = {
   habitat: {
@@ -55,7 +73,7 @@ export const CREATED_EDIT_KINDS = {
     backType: 'habitat',
     savePath: 'habitats',
     hasBroadHabitat: true,
-    habitatTypeError: 'Choose a habitat type for the selected broad habitat'
+    habitatTypeError: formError('habitatType', 'notInBroadHabitat')
   },
   watercourse: {
     loadReference: loadCreatedWatercourseReference,
@@ -72,7 +90,7 @@ export const CREATED_EDIT_KINDS = {
     // Match the merged Created editors: imported choices are kept through omission.
     preservesImportedType: true,
     restoresLineageAdvance: true,
-    habitatTypeError: 'Choose a valid watercourse habitat type'
+    habitatTypeError: formError('habitatType', 'invalidWatercourse')
   },
   hedgerow: {
     loadReference: loadCreatedHedgerowReference,
@@ -85,7 +103,7 @@ export const CREATED_EDIT_KINDS = {
     backType: 'hedgerow',
     savePath: 'hedgerows',
     hasBroadHabitat: false,
-    habitatTypeError: 'Choose a valid hedgerow habitat type'
+    habitatTypeError: formError('habitatType', 'invalidHedgerow')
   }
 }
 
@@ -195,11 +213,11 @@ function importedLinearCondition(reference, values) {
 
 function validateReference(ref, errors) {
   if (!ref.trim() || !ref.isWellFormed() || ref.includes('\uFFFD')) {
-    errors.ref = 'Enter a valid habitat reference.'
+    errors.ref = ERRORS.refInvalid
     return
   }
   if (Array.from(ref.trim()).length > MAX_REF_LENGTH) {
-    errors.ref = `Enter a habitat reference of ${MAX_REF_LENGTH} characters or fewer.`
+    errors.ref = ERRORS.refTooLong
   }
 }
 
@@ -210,15 +228,14 @@ function validateCreatedTiming(values, reference, errors) {
       values[field] === UNCHANGED_VALUE &&
       !reference.importedYears?.[field]
     ) {
-      errors[field] = 'Choose a valid advance or delay value'
+      errors[field] = ERRORS.timingInvalid
     }
   }
   if (
     Number.parseFloat(timing.advanceYears) > 0 &&
     Number.parseFloat(timing.delayYears) > 0
   ) {
-    errors.advanceYears =
-      'Either the advance or delay field must be set at zero.'
+    errors.advanceYears = ERRORS.timingBoth
     errors.delayYears = errors.advanceYears
   }
 }
@@ -262,12 +279,12 @@ export function validateCreatedArea(values, reference) {
   for (const [field, options] of Object.entries(choices)) {
     if (invalidChoice(values[field], options, reference, field)) {
       const messages = {
-        broadHabitat: 'Choose a valid broad habitat',
+        broadHabitat: ERRORS.broadHabitat,
         habitatType: kind.habitatTypeError,
-        condition: 'Choose a target condition for the selected habitat type',
-        strategicSignificance: 'Choose a valid strategic significance',
-        watercourseEncroachment: 'Choose a valid watercourse encroachment',
-        riparianEncroachment: 'Choose a valid riparian encroachment'
+        condition: ERRORS.condition,
+        strategicSignificance: ERRORS.strategicSignificance,
+        watercourseEncroachment: ERRORS.watercourseEncroachment,
+        riparianEncroachment: ERRORS.riparianEncroachment
       }
       errors[field] = messages[field]
     }
@@ -378,7 +395,7 @@ export function buildCreatedAreaEditViewModel(
       (field) =>
         errors[field] && (field !== 'delayYears' || !errors.advanceYears)
     ).map((field) => ({
-      text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
+      text: errors[field].summary,
       href: `#${field}`
     })),
     fields: buildCreatedEditFields(reference, values, storedValues, kind),

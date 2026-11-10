@@ -1,19 +1,35 @@
 import { describe, expect, test } from 'vitest'
 
 import { MAX_FILE_SIZE_BYTES } from '../../server/common/constants.js'
+import { CLIENT_FILE_ERROR_TEXT as MESSAGES } from '../../server/common/helpers/file-validation-messages.js'
+import { MAX_FILENAME_LENGTH } from '../../shared/file-checks.js'
 import {
   ERROR_CODES,
-  ERROR_FILENAME_TOO_LONG,
-  ERROR_INVALID_FILENAME,
-  ERROR_NO_FILE,
-  ERROR_TOO_LARGE,
-  ERROR_WRONG_EXTENSION,
-  MAX_FILENAME_LENGTH,
-  validateFile,
+  validateFile as validateFileWith,
   validateFileCodes
 } from './file-validation-rules.js'
 
+// The messages the upload page hands the browser, from error-text.yaml.
+const validateFile = (file) => validateFileWith(file, MESSAGES)
+const ERROR_NO_FILE = MESSAGES[ERROR_CODES.NO_FILE]
+const ERROR_WRONG_EXTENSION = MESSAGES[ERROR_CODES.WRONG_EXTENSION]
+const ERROR_TOO_LARGE = MESSAGES[ERROR_CODES.TOO_LARGE]
+const ERROR_INVALID_FILENAME = MESSAGES[ERROR_CODES.INVALID_FILENAME]
+const ERROR_FILENAME_TOO_LONG = MESSAGES[ERROR_CODES.FILENAME_TOO_LONG]
+
 describe('validateFile', () => {
+  test("gives each check's message from the messages it is passed", () => {
+    expect(MESSAGES).toEqual({
+      NO_FILE: 'Select a GeoPackage (.gpkg) file',
+      WRONG_EXTENSION: 'The selected file must be a GeoPackage (.gpkg)',
+      TOO_LARGE: 'The selected file must be smaller than 100 MB',
+      INVALID_FILENAME:
+        'The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets',
+      FILENAME_TOO_LONG: 'The file name must be 255 characters or fewer'
+    })
+    expect(validateFileWith(null, { NO_FILE: 'No file' })).toEqual(['No file'])
+  })
+
   test('returns the no-file error when file is missing', () => {
     expect(validateFile(null)).toEqual([ERROR_NO_FILE])
     expect(validateFile(undefined)).toEqual([ERROR_NO_FILE])

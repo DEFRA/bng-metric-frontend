@@ -209,13 +209,13 @@ test('keeps baseline transition wording consistent through condition edits and v
 test('a stale unchanged delay has an inline timing error and accessible summary link', async () => {
   const values = { ...createdAreaValues(feature), delayYears: 'unchanged' }
   const errors = validateCreatedArea(values, reference)
-  expect(errors.delayYears).toBe('Choose a valid advance or delay value')
+  expect(errors.delayYears.inline).toBe('Choose a valid advance or delay value')
   expect(errors.advanceYears).toBeUndefined()
   render(values, errors)
   expect(
     document.querySelector('.govuk-error-summary__list a').getAttribute('href')
   ).toBe('#delayYears')
-  expect(text('timing-error')).toContain(errors.delayYears)
+  expect(text('timing-error')).toContain(errors.delayYears.inline)
   const delay = document.getElementById('delayYears')
   expect(delay.getAttribute('aria-describedby')).toContain('timing-error')
   expect(delay.classList.contains('govuk-select--error')).toBe(true)
