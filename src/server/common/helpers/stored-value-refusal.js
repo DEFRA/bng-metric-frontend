@@ -3,10 +3,13 @@
  * lengths and lists (BMD-1175). Such a habitat still holds a value over its
  * limit or outside its list, so the backend refuses every save of it, even
  * one that leaves that value as it is, with STORED_VALUE_NOT_ALLOWED (422).
- * Its message names the fields by their paths in the stored habitat, as in
- * "(ref, proposed.condition)". No field on the page is to blame, so the edit
- * pages show the refusal in the error summary only, naming the fields in
- * plain words, from error-text.yaml's edit section.
+ * Its payload names the fields by their paths in the stored habitat, as in
+ * `fields: ["ref", "proposed.condition"]`; an older backend names them only
+ * in its message, as in "(ref, proposed.condition)". No field on the page is
+ * to blame, so the edit pages show the refusal in the error summary only,
+ * naming the fields in plain words, from error-text.yaml's edit section. The
+ * one exception is a reference too long, alone, on a page that can edit it:
+ * the user can shorten it there.
  */
 
 import { editErrorText } from '../error-text/error-text.js'
@@ -55,8 +58,10 @@ const STAGE_WORDS = new Map([
 // What the page says when the backend names no field it can read.
 const NO_FIELDS = 'details'
 
-// The fields, between the brackets of the backend's message.
+// The fields, between the brackets of an older backend's message.
 const FIELDS_IN_MESSAGE = /\(([^()]+)\)/
+
+const REF_PATH = 'ref'
 
 const ARRAY_INDEX = /^\d+$/
 
@@ -110,33 +115,58 @@ function joinWords(words) {
 }
 
 /**
- * The fields the backend's message names, in plain words, each once.
+ * The paths of the fields the backend refused: its payload's `fields`, or,
+ * from an older backend, those between the brackets of its message.
  *
- * @param {unknown} message the backend's message
- * @returns {string}
+ * @param {unknown} payload the backend's error payload
+ * @returns {string[]}
  */
-export function refusedFieldWords(message) {
+export function refusedPaths(payload) {
+  const fields = payload?.fields
+  if (Array.isArray(fields)) {
+    return fields.filter((path) => typeof path === 'string' && path !== '')
+  }
+  const message = payload?.message
   const inBrackets =
     typeof message === 'string' ? FIELDS_IN_MESSAGE.exec(message)?.[1] : null
-  const paths = (inBrackets ?? '')
+  return (inBrackets ?? '')
     .split(',')
     .map((path) => path.trim())
     .filter(Boolean)
+}
+
+/**
+ * The refused fields in plain words, each once.
+ *
+ * @param {string[]} paths
+ * @returns {string}
+ */
+export function refusedFieldWords(paths) {
   const words = [...new Set(paths.map(storedFieldWords))]
   return words.length ? joinWords(words) : NO_FIELDS
 }
 
 /**
- * The page-level error for the backend's STORED_VALUE_NOT_ALLOWED refusal,
- * naming the fields it names. The text is for a template to escape: it holds
- * paths from the backend's message as they are when it does not know them.
+ * The error for the backend's STORED_VALUE_NOT_ALLOWED refusal. On a page
+ * that can edit the reference, `refTooLong` is its error for a reference too
+ * long; when the reference is the only field refused, that is the error, at
+ * the field, as shortening it there lets the save pass. Otherwise it is a
+ * page-level error naming the fields. The text is for a template to escape:
+ * it holds paths from the backend as they are when it does not know them.
  *
  * @param {unknown} err what backendRequest threw (isStoredValueRefusal)
- * @returns {{ summaryOnly: string }}
+ * @param {{ refTooLong?: { summary: string, inline: string } }} [page]
+ * @returns {{ summaryOnly: string } | { summary: string, inline: string }}
  */
-export function storedValueRefusal(err) {
-  const fields = refusedFieldWords(err?.data?.payload?.message)
+export function storedValueRefusal(err, { refTooLong } = {}) {
+  const paths = refusedPaths(err?.data?.payload)
+  if (refTooLong && paths.length === 1 && paths[0] === REF_PATH) {
+    return refTooLong
+  }
   return {
-    summaryOnly: wording.summaryOnly.replaceAll('{fields}', fields)
+    summaryOnly: wording.summaryOnly.replaceAll(
+      '{fields}',
+      refusedFieldWords(paths)
+    )
   }
 }

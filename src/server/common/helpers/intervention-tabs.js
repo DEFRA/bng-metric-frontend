@@ -2,7 +2,8 @@ import {
   RETENTION_CREATED,
   RETENTION_ENHANCED,
   RETENTION_RETAINED,
-  interventionDisplay
+  DEFAULT_INTERVENTION,
+  featureRetentionCategory
 } from '../../post-intervention-habitat-details/retention.js'
 
 const INTERVENTION_TAB_ORDER = [
@@ -12,7 +13,9 @@ const INTERVENTION_TAB_ORDER = [
 ]
 
 function featureMatchesCategory(feature, category) {
-  return interventionDisplay(feature?.retentionCategory) === category
+  return (
+    (featureRetentionCategory(feature) ?? DEFAULT_INTERVENTION) === category
+  )
 }
 
 function visibleInterventionTabs(features) {

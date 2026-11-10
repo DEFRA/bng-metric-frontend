@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   isStoredValueRefusal,
   refusedFieldWords,
+  refusedPaths,
   storedFieldWords,
   storedValueRefusal
 } from './stored-value-refusal.js'
@@ -10,10 +11,14 @@ import {
 const backendMessage = (fields) =>
   `This habitat holds a value saved before the service checked text lengths and lists (${fields}). Upload the file again, with the value corrected, to update it.`
 
-const refusal = (message) => ({
+const refusal = (message, fields) => ({
   data: {
     res: { statusCode: 422 },
-    payload: { code: 'STORED_VALUE_NOT_ALLOWED', message }
+    payload: {
+      code: 'STORED_VALUE_NOT_ALLOWED',
+      message,
+      ...(fields && { fields })
+    }
   }
 })
 
@@ -73,39 +78,82 @@ describe('storedFieldWords', () => {
   )
 })
 
+describe('refusedPaths', () => {
+  test('reads the fields the backend names in its payload', () => {
+    expect(
+      refusedPaths({
+        message: backendMessage('not, these'),
+        fields: ['ref', 'proposed.condition']
+      })
+    ).toEqual(['ref', 'proposed.condition'])
+  })
+
+  test('reads them from the message of an older backend, which sends no fields', () => {
+    expect(
+      refusedPaths({ message: backendMessage('ref, proposed.condition') })
+    ).toEqual(['ref', 'proposed.condition'])
+  })
+
+  test.each([
+    [{ message: 'a message with no fields' }],
+    [{ message: 42 }],
+    [undefined],
+    [{ fields: [null, '', 7] }]
+  ])('finds none in %j', (payload) => {
+    expect(refusedPaths(payload)).toEqual([])
+  })
+})
+
 describe('refusedFieldWords', () => {
   test.each([
-    ['ref', 'habitat reference'],
-    ['ref, proposed.condition', 'habitat reference and proposed condition'],
+    [['ref'], 'habitat reference'],
+    [['ref', 'proposed.condition'], 'habitat reference and proposed condition'],
     [
-      'ref, proposed.condition, comment',
+      ['ref', 'proposed.condition', 'comment'],
       'habitat reference, proposed condition and comment'
     ]
-  ])('names %s as "%s"', (fields, words) => {
-    expect(refusedFieldWords(backendMessage(fields))).toBe(words)
+  ])('names %j as "%s"', (paths, words) => {
+    expect(refusedFieldWords(paths)).toBe(words)
   })
 
   test('names a field once when two paths read the same', () => {
-    expect(refusedFieldWords(backendMessage('0.ref, 1.ref'))).toBe(
-      'habitat reference'
-    )
+    expect(refusedFieldWords(['0.ref', '1.ref'])).toBe('habitat reference')
   })
 
-  test.each([['a message with no fields'], [undefined], [42]])(
-    'falls back to "details" for %s',
-    (message) => {
-      expect(refusedFieldWords(message)).toBe('details')
-    }
-  )
+  test('falls back to "details" when there are none', () => {
+    expect(refusedFieldWords([])).toBe('details')
+  })
 })
 
 describe('storedValueRefusal', () => {
+  const refTooLong = { summary: 'Too long.', inline: 'Shorten it.' }
+
   test('words the refusal from error-text.yaml, naming the fields', () => {
     expect(
-      storedValueRefusal(refusal(backendMessage('ref, proposed.condition')))
+      storedValueRefusal(refusal('not read', ['ref', 'proposed.condition']), {
+        refTooLong
+      })
     ).toEqual({
       summaryOnly:
         'This habitat holds a value saved before the service checked text lengths and lists, in its habitat reference and proposed condition. Upload the file again, with the value corrected, to update this habitat.'
     })
+  })
+
+  test('names the fields in the message of an older backend', () => {
+    expect(
+      storedValueRefusal(refusal(backendMessage('comment'))).summaryOnly
+    ).toContain('in its comment.')
+  })
+
+  test('gives the page its reference error when the reference alone is refused', () => {
+    expect(
+      storedValueRefusal(refusal('not read', ['ref']), { refTooLong })
+    ).toBe(refTooLong)
+  })
+
+  test('words a refused reference alone as a page-level error on a page that cannot edit it', () => {
+    expect(
+      storedValueRefusal(refusal('not read', ['ref'])).summaryOnly
+    ).toContain('in its habitat reference.')
   })
 })

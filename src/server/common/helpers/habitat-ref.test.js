@@ -75,7 +75,7 @@ describe('habitatRefRefusal', () => {
 
   test('asks the user to shorten a reference that is too long', () => {
     expect(HABITAT_REF_TOO_LONG_ERROR).toEqual({
-      summary: 'You have entered a habitat reference that is too long.',
+      summary: 'Enter a habitat reference of 99 characters or fewer.',
       inline: 'Enter a habitat reference of 99 characters or fewer.'
     })
   })

@@ -565,14 +565,23 @@ describe('#resolveSingleErrorCopy', () => {
     'AREA_SUM_MISMATCH'
   ])('AC14: %s renders the UCD placeholder variant', (code) => {
     const result = resolveSingleErrorCopy(
-      { code, message: 'backend message for ' + code },
-      UPLOAD_HREF
+      { code, message: 'backend message, not shown' },
+      UPLOAD_HREF,
+      `the list's words for ${code}`
     )
     expect(result).toEqual({
       variant: 'placeholder',
       h1: 'PLACEHOLDER (AWAITING UCD)',
-      helpText: `PLACEHOLDER - backend message for ${code}`
+      helpText: `PLACEHOLDER - the list's words for ${code}`
     })
+  })
+
+  test('AC14: a placeholder page with no words for the error shows the title alone', () => {
+    const result = resolveSingleErrorCopy(
+      { code: 'AREA_SUM_MISMATCH', message: 'backend message, not shown' },
+      UPLOAD_HREF
+    )
+    expect(result.helpText).toBe('PLACEHOLDER')
   })
 
   test('standard variant renders a complete sentence without a link when uploadHref is null', () => {

@@ -1,8 +1,8 @@
-import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 import {
   LINK_TARGETS,
   WHEN_ALONE,
   canFill,
+  catchAllPage,
   dropoutCopy,
   errorCopy,
   firstKnown,
@@ -58,12 +58,6 @@ function choosePage(pages, values) {
   )
 }
 
-function catchAllPage() {
-  return isServiceTemplateEnabled()
-    ? dropoutCopy.catchAll.serviceTemplate
-    : dropoutCopy.catchAll.legacyTemplate
-}
-
 // The page's fields for its variant, from where its sentence links: to the
 // upload page, to the metric tool, or nowhere.
 function buildPage(page, values) {
@@ -99,11 +93,10 @@ function buildPage(page, values) {
 }
 
 /** The {values} the placeholder copy can name, for a test to check. */
-export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['serviceMessage'])
+export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['message'])
 
-function placeholderPage(error) {
-  const message = error?.message
-  const values = message ? { serviceMessage: message } : {}
+function placeholderPage(message) {
+  const values = message ? { message } : {}
   return {
     variant: 'placeholder',
     h1: firstKnown(dropoutCopy.placeholder.title, values),
@@ -116,12 +109,14 @@ function placeholderPage(error) {
  *
  * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
+ * @param {string} [placeholderMessage] what a placeholder page says of the
+ *   error: its heading and bullets as the list shows them
  */
-export function resolveSingleErrorCopy(error, uploadHref) {
+export function resolveSingleErrorCopy(error, uploadHref, placeholderMessage) {
   const whenAlone = errorCopy(error?.code)?.whenAlone
 
   if (whenAlone === WHEN_ALONE.PLACEHOLDER) {
-    return placeholderPage(error)
+    return placeholderPage(placeholderMessage)
   }
 
   // A code with no copy of its own, or one the page always lists, takes the

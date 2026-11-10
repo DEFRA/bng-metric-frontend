@@ -20,6 +20,7 @@ import {
 } from '../common/helpers/backend-save-error.js'
 import { statusCodes } from '../common/constants.js'
 import {
+  HABITAT_REF_TOO_LONG_ERROR,
   habitatRefFormFields,
   isRefInUseError
 } from '../common/helpers/habitat-ref.js'
@@ -114,7 +115,7 @@ export function retainedRefEditFields({
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
  *   `ref` has passed habitatRefRefusal; it is sent trimmed
- * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true } | { storedValueRefusal: { summaryOnly: string } }>}
+ * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true } | { storedValueRefusal: { summaryOnly: string } | { summary: string, inline: string } }>}
  */
 export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   try {
@@ -133,7 +134,11 @@ export async function saveRetainedRef(request, { projectId, featureId, ref }) {
       return { refInUse: true }
     }
     if (isStoredValueRefusal(err)) {
-      return { storedValueRefusal: storedValueRefusal(err) }
+      return {
+        storedValueRefusal: storedValueRefusal(err, {
+          refTooLong: HABITAT_REF_TOO_LONG_ERROR
+        })
+      }
     }
     if (backendStatusOf(err) === statusCodes.badRequest) {
       return { refInvalid: true }

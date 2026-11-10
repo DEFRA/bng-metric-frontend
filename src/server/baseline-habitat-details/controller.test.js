@@ -1503,6 +1503,21 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(result).toMatch(/<option value="Poor" selected>/)
     })
 
+    test('Asks the user to shorten the reference at its field when the reference alone is refused', async () => {
+      const refusal = storedValueRefusal('ref')
+      refusal.data.payload.fields = ['ref']
+      vi.mocked(wreck.put).mockRejectedValue(refusal)
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
+      )
+      expect(result).toContain('govuk-input--error')
+      expect(result).not.toContain('Upload the file again')
+    })
+
     test('Escapes a field path it does not know, showing it as it is', async () => {
       vi.mocked(wreck.put).mockRejectedValue(storedValueRefusal('<b>odd</b>'))
 
@@ -1658,7 +1673,7 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
       expect(result).toContain(
-        '<a href="#habitatRef">You have entered a habitat reference that is too long.</a>'
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
       )
       expect(result).toContain(
         'Enter a habitat reference of 99 characters or fewer.'

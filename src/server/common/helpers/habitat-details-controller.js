@@ -10,6 +10,7 @@ import { habitatDetailsDestination } from './habitat-details-destination.js'
 import {
   HABITAT_REF_ERROR,
   HABITAT_REF_IN_USE_ERROR,
+  HABITAT_REF_TOO_LONG_ERROR,
   habitatRefFormFields,
   habitatRefRefusal,
   isRefInUseError,
@@ -487,7 +488,9 @@ function createPostController(uploadType) {
         // A value saved before the service checked text lengths and lists
         // refuses any save of the habitat, whatever was changed.
         if (isStoredValueRefusal(err)) {
-          return showRefused(storedValueRefusal(err))
+          return showRefused(
+            storedValueRefusal(err, { refTooLong: HABITAT_REF_TOO_LONG_ERROR })
+          )
         }
         if (
           refToSave !== undefined &&

@@ -4,6 +4,7 @@ import { load } from 'cheerio'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { invalidFileController } from './controller.js'
+import { dropoutCopy } from './dropout-copy.js'
 
 const authCredentials = {
   sub: 'test-user-123',
@@ -101,13 +102,19 @@ describe('invalidFileController.handler — populated session', () => {
       {
         code: 'TEXT_TOO_LONG',
         message:
-          'Habitats, H2: Comment has 1,240 characters. The maximum is 999.',
+          'Text values longer than their column allows: Habitats H2 Comment',
         details: {
-          table: 'Habitats',
-          fid: 2,
-          column: 'Comment',
-          limit: 999,
-          length: 1240
+          count: 1,
+          sample: [
+            {
+              table: 'Habitats',
+              fid: 2,
+              ref: 'H2',
+              column: 'Comment',
+              limit: 999,
+              length: 1240
+            }
+          ]
         }
       }
     ]
@@ -126,8 +133,11 @@ describe('invalidFileController.handler — populated session', () => {
               'One or more comments contain characters that are not valid UTF-8'
           }),
           expect.objectContaining({
-            heading: 'Habitats, H2',
-            items: ['Comment has 1,240 characters. The maximum is 999.'],
+            heading:
+              'One or more values are longer than their column allows. Shorten them and upload the file again',
+            items: [
+              'Habitats, H2: Comment has 1,240 characters. The maximum is 999'
+            ],
             more: 0
           })
         ]
@@ -137,8 +147,8 @@ describe('invalidFileController.handler — populated session', () => {
 
   test('passes errorList and projectId to the view from session', async () => {
     const errors = [
-      { code: 'NO_HABITAT_AREAS', message: 'No habitat areas' },
-      { code: 'REDLINE_INVALID_GEOMETRY', message: 'Redline invalid' }
+      { code: 'NO_HABITAT_AREAS', message: 'not shown' },
+      { code: 'REDLINE_INVALID_GEOMETRY', message: 'not shown' }
     ]
     const request = makeRequest({
       baselineValidationErrors: errors,
@@ -151,23 +161,28 @@ describe('invalidFileController.handler — populated session', () => {
     expect(h.view).toHaveBeenCalledWith(
       'error-file/index',
       expect.objectContaining({
-        errorList: [{ text: 'No habitat areas' }, { text: 'Redline invalid' }],
+        errorList: [
+          { text: 'Baseline file contains no area habitat polygons' },
+          { text: 'Redline boundary geometry is invalid' }
+        ],
         projectId: 'proj-456'
       })
     )
   })
 
-  test('errorBlocks: heading is the message prefix; items list per-feature offenders from details.sample', async () => {
+  test("errorBlocks: heading and bullet are the copy's, filled from details; items list per-feature offenders from details.sample", async () => {
     const errors = [
-      // Non-list error with no ":" separator — heading is the full message,
-      // items is empty.
-      { code: 'NO_REDLINE', message: 'Baseline file contains no redline' },
-      // Non-list error WITH a ":" separator — heading is the prefix, items
-      // is the right side as a single line.
+      // Non-list error — heading filled from details, no items.
+      {
+        code: 'REDLINE_AREA_TOO_LARGE',
+        message: 'not shown',
+        details: { areaSqM: 123456789.4 }
+      },
+      // Non-list error with an item — one bullet, from details.
       {
         code: 'REDLINE_INVALID_GEOMETRY',
-        message:
-          'Redline boundary geometry is invalid: Self-intersection at POINT(0 0)'
+        message: 'not shown',
+        details: { reason: 'Self-intersection', location: 'POINT(0 0)' }
       },
       // List error — items rendered from details.sample using "Feature Ref"
       // labels and the (and N more) tail when count > sample.length.
@@ -221,7 +236,8 @@ describe('invalidFileController.handler — populated session', () => {
       expect.objectContaining({
         errorBlocks: [
           {
-            heading: 'Baseline file contains no redline',
+            heading:
+              'Redline boundary area (123456789 sq m) exceeds the 100 sq km limit',
             items: [],
             more: 0
           },
@@ -751,10 +767,315 @@ describe('invalidFileController.handler — populated session', () => {
 
     const view = h.view.mock.calls[0][1]
     expect(view.errorBlocks[0].more).toBe(5)
-    // sample is missing → buildItems falls through to message-split path,
-    // so items is the post-colon remainder rather than []. The point of this
-    // test is just to exercise the `sample?.length ?? 0` branch in buildBlock.
-    expect(view.errorBlocks[0].items).toEqual(['…'])
+    // sample is missing, and the copy gives the code a heading, so the
+    // service's message names no bullet. The point of this test is just to
+    // exercise the `sample?.length ?? 0` branch in buildBlock.
+    expect(view.errorBlocks[0].items).toEqual([])
+    // Alone, the code shows its placeholder, which keeps the list's count.
+    expect(view.singleError.helpText).toBe(
+      'PLACEHOLDER - One or more trees are not entirely within the redline boundary (and 5 more)'
+    )
+  })
+
+  test("errorBlocks: a code the copy gives a heading shows none of the service's message", async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown: nor this' },
+      {
+        code: 'COMMENT_INVALID_CHARACTERS',
+        message: 'Not shown: nor this',
+        details: { count: 1, sample: [{ layer: 'areas', fid: 2, idx: 1 }] }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading: 'Baseline file contains no redline boundary polygon',
+        items: [],
+        more: 0
+      },
+      {
+        heading:
+          'One or more comments contain characters that are not valid UTF-8',
+        items: ['fid 2'],
+        more: 0
+      }
+    ])
+  })
+
+  test("errorBlocks: fills a heading's counts from details, as the service writes them", async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      {
+        code: 'GPKG_TOO_MANY_FEATURES',
+        message: 'Not shown',
+        details: { featureCount: 12345, maxFeatureCount: 10000 }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1].heading).toBe(
+      'GeoPackage contains 12,345 features across its boundary, habitat, hedgerow and watercourse layers; the maximum this service can validate is 10,000'
+    )
+  })
+
+  test("errorBlocks: a heading whose values the details lack is the catch-all title, never the service's message", async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      { code: 'GPKG_TOO_MANY_FEATURES', message: 'Not shown: nor this' }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1]).toEqual({
+      heading: 'Your Geopackage (.gpkg) file contains an error',
+      items: [],
+      more: 0
+    })
+  })
+
+  test('errorBlocks: a code the copy does not have is headed by the catch-all title', async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown: nor this' }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1]).toEqual({
+      heading: 'Your Geopackage (.gpkg) file contains an error',
+      items: [],
+      more: 0
+    })
+  })
+
+  describe('errorBlocks: a block the page words the same way twice', () => {
+    const CATCH_ALL_BLOCK = {
+      heading: 'Your Geopackage (.gpkg) file contains an error',
+      items: [],
+      more: 0
+    }
+
+    const outsideRedline = (featureRef, count = 1) => ({
+      code: 'AREA_PARCELS_OUTSIDE_REDLINE',
+      message: 'Not shown',
+      details: {
+        count,
+        sample: [{ idx: 0, fid: '1', feature_ref: featureRef }]
+      }
+    })
+
+    const outOfScope = (allowedBands) => ({
+      code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+      message: 'Not shown',
+      details: {
+        count: 1,
+        sample: [
+          {
+            idx: 0,
+            fid: '1',
+            feature_ref: 'H001',
+            habitat_type: 'Woodland and forest - Wet woodland',
+            distinctiveness: 'High'
+          }
+        ],
+        allowedBands
+      }
+    })
+
+    async function viewFor(errors) {
+      const request = makeRequest({ baselineValidationErrors: errors })
+      const h = makeH()
+      await invalidFileController.handler(request, h)
+      return h.view.mock.calls[0][1]
+    }
+
+    test('is shown once, in the blocks and the list alike', async () => {
+      const view = await viewFor([
+        { code: 'NO_REDLINE', message: 'Not shown' },
+        { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' },
+        { code: 'ANOTHER_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' }
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[1]).toEqual(CATCH_ALL_BLOCK)
+      expect(view.errorList).toEqual(
+        view.errorBlocks.map((block) => ({ text: block.heading }))
+      )
+      expect(view.singleError).toBeNull()
+    })
+
+    test('keeps the list page when two errors merge into one block', async () => {
+      const view = await viewFor([
+        { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' },
+        { code: 'ANOTHER_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' }
+      ])
+
+      // Two problems are still two: the single-error page words one.
+      expect(view.errorBlocks).toEqual([CATCH_ALL_BLOCK])
+      expect(view.errorList).toEqual([{ text: CATCH_ALL_BLOCK.heading }])
+      expect(view.singleError).toBeNull()
+      expect(view.pageTitle).toBe('There is a problem with your file')
+    })
+
+    test('keeps a catch-all block beside one with its own heading', async () => {
+      const view = await viewFor([
+        { code: 'NO_REDLINE', message: 'Not shown' },
+        { code: 'A_CODE_THE_COPY_HAS_NOT_MET', message: 'Not shown' }
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[0].heading).not.toBe(CATCH_ALL_BLOCK.heading)
+    })
+
+    test('keeps the same code twice when its bullets differ', async () => {
+      const view = await viewFor([
+        outsideRedline('H001'),
+        outsideRedline('H002')
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[0].heading).toBe(view.errorBlocks[1].heading)
+    })
+
+    test('keeps a shared heading when the count of more habitats differs', async () => {
+      const view = await viewFor([
+        outsideRedline('H001'),
+        outsideRedline('H001', 3)
+      ])
+
+      expect(view.errorBlocks.map((block) => block.more)).toEqual([0, 2])
+    })
+
+    test('keeps a shared heading when the note differs', async () => {
+      const view = await viewFor([
+        outOfScope(['Medium', 'Low', 'V.Low']),
+        outOfScope(['Low'])
+      ])
+
+      expect(view.errorBlocks).toHaveLength(2)
+      expect(view.errorBlocks[0].note).not.toBe(view.errorBlocks[1].note)
+    })
+  })
+
+  test('errorBlocks: an srs_id the file does not set is shown as the copy words it', async () => {
+    const errors = [
+      { code: 'NO_REDLINE', message: 'Not shown' },
+      {
+        code: 'GPKG_BASELINE_SRS_ID',
+        message: 'Not shown',
+        details: {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: null,
+          variants: ['contents']
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks[1].items).toEqual([
+      'expected srs_id 27700 but gpkg_contents has unset'
+    ])
+  })
+
+  test('errorBlocks: a variant named in details replaces the heading or item it words', async () => {
+    const errors = [
+      {
+        code: 'GPKG_BASELINE_SRS_ID',
+        message: 'Not shown',
+        details: {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: '4326',
+          variants: ['contents', 'bng-service']
+        }
+      },
+      {
+        code: 'GPKG_BASELINE_COLUMN_SQLITE_TYPE',
+        message: 'Not shown',
+        details: {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Real',
+          actualType: 'Integer'
+        }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading: 'Layer "Habitats" does not match the BNG Service template',
+        items: ['expected srs_id 27700 but gpkg_contents has 4326'],
+        more: 0
+      },
+      {
+        heading: 'Layer "Habitats" baseline mismatch',
+        items: ['column "Area" has an Integer data type but Real was expected'],
+        more: 0
+      }
+    ])
+  })
+
+  test("singleError: a placeholder page names the copy's heading and bullets, not the service's message", async () => {
+    const errors = [
+      {
+        code: 'TREES_OUTSIDE_REDLINE',
+        message: 'Not shown',
+        details: { count: 3, sample: [{ feature_ref: 'T1' }, { fid: 4 }] }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError.helpText).toBe(
+      'PLACEHOLDER - One or more trees are not entirely within the redline boundary: Feature Ref T1, fid 4 (and 1 more)'
+    )
+  })
+
+  test('singleError: a placeholder page fills its heading from details, as the service writes the numbers', async () => {
+    const errors = [
+      {
+        code: 'AREA_SUM_MISMATCH',
+        message: 'Not shown',
+        details: { habitatsAreaSqM: 100.123, redlineAreaSqM: 99 }
+      }
+    ]
+    const request = makeRequest({ baselineValidationErrors: errors })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.singleError.helpText).toBe(
+      'PLACEHOLDER - Sum of area habitat polygons (100.12 sq m) does not equal redline boundary area (99.00 sq m)'
+    )
   })
 
   test('errorBlocks: describeFeature falls through to the bare "feature" label when no identifying fields are present', async () => {
@@ -1078,7 +1399,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       ),
       lineageError(
         'STAGED_AMBIGUOUS_PARENT',
-        'One or more post-intervention habitats name a baseline habitat whose feature_uuid more than one baseline habitat has',
+        'One or more post-intervention habitats have a parent that matches more than one baseline habitat',
         [
           {
             layer: 'areas',
@@ -1395,80 +1716,95 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
   test.each([
     [
       'TEMPLATE_VERSION_MISSING',
-      'The file has no template version record, so it is not a BNG Service template file.',
-      []
+      undefined,
+      'The file has no template version record, so it is not a BNG Service template file.'
     ],
     [
       'TEMPLATE_VERSION_DUPLICATED',
-      'The file has 2 template version records, so its template version is unclear. It should have one.',
-      []
+      { recordCount: 2 },
+      'The file has 2 template version records, so its template version is unclear. It should have one.'
     ],
     [
       'TEMPLATE_VERSION_INVALID',
-      "The file's template version record cannot be read, so its template version is unknown.",
-      []
+      undefined,
+      "The file's template version record cannot be read, so its template version is unknown."
     ],
     [
       'TEMPLATE_VERSION_UNSUPPORTED',
-      'The file is in version 2.0 of the BNG Service template, which the service does not read. It reads version 1.0.',
-      []
+      { version: '2.0', supportedVersions: ['1.0', '1.1'] },
+      'The file is in version 2.0 of the BNG Service template, which the service does not read. It reads version 1.0, 1.1.'
     ],
     [
       'POST_INTERVENTION_TABLES_EMPTY',
-      'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.',
-      []
+      { template: { name: 'bng-service', version: '1.0' } },
+      'The Post-Intervention tables in this file are all empty, so it has no post-intervention habitats to upload. Upload it as a baseline, or add the post-intervention habitats and upload it again.'
     ]
   ])(
-    'shows a lone %s under the backend’s message, with no placeholder title',
-    async (code, message, items) => {
-      const view = await viewFor([{ code, message }])
+    'shows a lone %s under its heading, with no placeholder title',
+    async (code, details, heading) => {
+      const view = await viewFor([
+        { code, message: 'not shown', ...(details && { details }) }
+      ])
 
       expect(view.singleError).toBeNull()
       expect(view.pageTitle).toBe('There is a problem with your file')
-      expect(view.errorBlocks).toEqual([
-        { heading: message.split(': ')[0], items, more: 0 }
-      ])
+      expect(view.errorBlocks).toEqual([{ heading, items: [], more: 0 }])
     }
   )
+  // BMD-1175: each text-value problem lists the values that fail, by table,
+  // habitat (its ref, or its fid when it has none) and column.
   test.each([
     [
       'TEXT_TOO_LONG',
-      'Habitats, H1: Comment has 1,240 characters. The maximum is 999.',
-      'Comment has 1,240 characters. The maximum is 999.'
+      { ref: 'H1', column: 'Comment', length: 1240, limit: 999 },
+      'Habitats, H1: Comment has 1,240 characters. The maximum is 999'
     ],
     [
       'VALUE_NOT_ALLOWED',
-      'Habitats, row 3: Condition has "Excellent", which is not in its list.',
-      'Condition has "Excellent", which is not in its list.'
+      { ref: null, column: 'Condition', value: 'Excellent' },
+      'Habitats, fid 3: Condition has "Excellent"'
+    ],
+    [
+      'VALUE_NOT_ALLOWED',
+      { ref: 'H1', column: 'Condition', value: null },
+      'Habitats, H1: Condition'
     ],
     [
       'FEATURE_UUID_INVALID',
-      'Habitats, H1: feature_uuid is not a valid UUID.',
-      'feature_uuid is not a valid UUID.'
+      { ref: 'H1', column: 'feature_uuid' },
+      'Habitats, H1'
     ],
     [
       'PARENT_UUID_INVALID',
-      'Habitats Post-Intervention, H1: parent_uuid is not a valid UUID.',
-      'parent_uuid is not a valid UUID.'
+      { ref: 'H1', column: 'parent_uuid' },
+      'Habitats, H1'
     ],
     [
       'PARENT_GEOM_INVALID',
-      'Habitats Post-Intervention, H1: parent_geom is not the shape of a multipolygon written as WKT.',
-      'parent_geom is not the shape of a multipolygon written as WKT.'
+      { ref: 'H1', column: 'parent_geom', shape: 'multipolygon' },
+      'Habitats, H1 (expected a multipolygon)'
     ]
-  ])(
-    'shows a lone %s as the habitat it names and what is wrong with the value',
-    async (code, message, item) => {
-      const view = await viewFor([
-        { code, message, details: { table: 'Habitats', fid: 1 } }
-      ])
+  ])('lists a lone %s by the values that fail', async (code, entry, item) => {
+    const view = await viewFor([
+      {
+        code,
+        message: 'not shown',
+        details: {
+          count: 3,
+          sample: [{ table: 'Habitats', fid: 3, ...entry }]
+        }
+      }
+    ])
 
-      expect(view.singleError).toBeNull()
-      expect(view.errorBlocks).toEqual([
-        { heading: message.split(': ')[0], items: [item], more: 0 }
-      ])
-    }
-  )
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toEqual([
+      {
+        heading: expect.stringMatching(/^One or more /),
+        items: [item],
+        more: 2
+      }
+    ])
+  })
 
   test('shows a lone LEGACY_TEMPLATE_NOT_ACCEPTED as single-error copy, not split at its colon', async () => {
     const view = await viewFor([
@@ -1508,6 +1844,373 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     )
     return h.view.mock.calls[0][1].errorBlocks
   }
+
+  test('shows the one bullet of an error that sends no details', async () => {
+    const [block] = await blocksFor([
+      { code: 'LEGACY_TEMPLATE_NOT_ACCEPTED', message: 'Not shown' },
+      { code: 'NO_REDLINE', message: 'No redline' }
+    ])
+
+    expect(block).toEqual({
+      heading:
+        'This file is in the legacy Natural England template. The service now takes the BNG Service template',
+      items: ['convert the file with the QGIS plugin, then upload it again.'],
+      more: 0
+    })
+  })
+
+  describe('a value the file holds', () => {
+    const NOT_LISTED = { code: 'NO_REDLINE', message: 'No redline' }
+    const GEOMETRY_TYPE_ITEM =
+      'expected geometry type "MULTIPOLYGON" in gpkg_geometry_columns but found'
+
+    async function blockFor(code, details) {
+      const [block] = await blocksFor([
+        { code, message: 'Not shown', details },
+        NOT_LISTED
+      ])
+      return block
+    }
+
+    test.each([
+      ['blank', ''],
+      ['null', null]
+    ])(
+      "names a %s geometry type with the copy's word, keeping the bullet",
+      async (_, found) => {
+        expect(
+          await blockFor('GPKG_BASELINE_GEOMETRY_TYPE_NAME', {
+            layer: 'Habitats',
+            expected: 'MULTIPOLYGON',
+            found
+          })
+        ).toEqual({
+          heading: 'Layer "Habitats" baseline mismatch',
+          items: [`${GEOMETRY_TYPE_ITEM} "blank"`],
+          more: 0
+        })
+      }
+    )
+
+    test('names a geometry type the file registers as it is', async () => {
+      const block = await blockFor('GPKG_BASELINE_GEOMETRY_TYPE_NAME', {
+        layer: 'Habitats',
+        expected: 'MULTIPOLYGON',
+        found: 'POINT'
+      })
+
+      expect(block.items).toEqual([`${GEOMETRY_TYPE_ITEM} "POINT"`])
+    })
+
+    test('leaves the bullet out when the details do not carry the type', async () => {
+      const block = await blockFor('GPKG_BASELINE_GEOMETRY_TYPE_NAME', {
+        layer: 'Habitats',
+        expected: 'MULTIPOLYGON'
+      })
+
+      expect(block.items).toEqual([])
+    })
+
+    test("names a blank data_type with the copy's word", async () => {
+      const block = await blockFor('GPKG_BASELINE_CONTENTS_DATA_TYPE', {
+        layer: 'Habitats',
+        expected: 'features',
+        found: ''
+      })
+
+      expect(block.items).toEqual([
+        'expected data_type "features" in gpkg_contents but found "blank"'
+      ])
+    })
+
+    test('heads a blank geometry column name with its own heading, not the catch-all', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME', {
+          layer: 'Habitats',
+          column: ''
+        })
+      ).toEqual({
+        heading:
+          'Layer "Habitats" geometry column "blank" has an invalid name in gpkg_geometry_columns',
+        items: [],
+        more: 0
+      })
+    })
+
+    test('keeps the bullet for a blank geometry column name the template names', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME', {
+          layer: 'Red Line Boundary',
+          column: '',
+          expected: 'geom',
+          variants: ['named']
+        })
+      ).toEqual({
+        heading:
+          'Layer "Red Line Boundary" does not match the BNG Service template',
+        items: ['its geometry column is named "blank" but should be "geom"'],
+        more: 0
+      })
+    })
+
+    test('names a blank registered geometry column that is missing', async () => {
+      const block = await blockFor('GPKG_BASELINE_MISSING_COLUMN', {
+        layer: 'Habitats',
+        column: '',
+        variants: ['geometry']
+      })
+
+      expect(block.items).toEqual(['missing geometry column "blank"'])
+    })
+
+    test('names a blank registered geometry column whose type is wrong', async () => {
+      const block = await blockFor('GPKG_BASELINE_COLUMN_SQLITE_TYPE', {
+        layer: 'Habitats',
+        column: '',
+        expectedType: 'MultiPolygon geometry',
+        actualType: 'Text'
+      })
+
+      expect(block.items).toEqual([
+        'column "blank" has a Text data type but MultiPolygon geometry was expected'
+      ])
+    })
+
+    test('names a blank unexpected layer', async () => {
+      const block = await blockFor('GPKG_UNEXPECTED_FEATURE_LAYER', {
+        layer: ''
+      })
+
+      expect(block.heading).toBe(
+        'Unexpected feature layer "blank" — not listed in baseline template schema'
+      )
+    })
+
+    test('words srs_ids the file leaves unset, in the unreadable variant', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_SRS_ID', {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: null,
+          geometryColumnsSrsId: null,
+          variants: ['unreadable', 'bng-service']
+        })
+      ).toEqual({
+        heading: 'Layer "Habitats" does not match the BNG Service template',
+        items: [
+          'expected srs_id 27700 but could not read a valid integer srs_id from gpkg_contents (unset) nor gpkg_geometry_columns (unset)'
+        ],
+        more: 0
+      })
+    })
+
+    test('says nothing of srs_ids an error does not carry', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_GPKG_SRS_INCONSISTENT', undefined)
+      ).toEqual({
+        heading: 'Your Geopackage (.gpkg) file contains an error',
+        items: [],
+        more: 0
+      })
+    })
+
+    test('words a column with no declared type, naming no actual type', async () => {
+      expect(
+        await blockFor('GPKG_BASELINE_COLUMN_SQLITE_TYPE', {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Float',
+          variants: ['undeclared']
+        })
+      ).toEqual({
+        heading: 'Layer "Habitats" baseline mismatch',
+        items: [
+          'column "Area" has no SQLite column type declared but Float was expected'
+        ],
+        more: 0
+      })
+    })
+  })
+
+  describe('each variant the copy words', () => {
+    const BASELINE = 'Layer "Habitats" baseline mismatch'
+    const SERVICE = 'Layer "Habitats" does not match the BNG Service template'
+
+    // One error the backend can send with each variant, and the block the
+    // list shows for it.
+    const CASES = {
+      'GPKG_UNEXPECTED_FEATURE_LAYER bng-service': [
+        { layer: 'Extra' },
+        [
+          'Unexpected feature layer "Extra" — not a table of the BNG Service template',
+          []
+        ]
+      ],
+      'GPKG_BASELINE_CONTENTS_DATA_TYPE bng-service': [
+        { layer: 'Habitats', expected: 'features', found: 'tiles' },
+        [
+          SERVICE,
+          ['expected data_type "features" in gpkg_contents but found "tiles"']
+        ]
+      ],
+      'GPKG_BASELINE_SRS_ID bng-service': [
+        { layer: 'Habitats', expectedSrsId: 27700, foundSrsId: 4326 },
+        [SERVICE, ['expected srs_id 27700 but GeoPackage srs_id is 4326']]
+      ],
+      'GPKG_BASELINE_SRS_ID contents': [
+        { layer: 'Habitats', expectedSrsId: 27700, contentsSrsId: 4326 },
+        [BASELINE, ['expected srs_id 27700 but gpkg_contents has 4326']]
+      ],
+      'GPKG_BASELINE_SRS_ID unreadable': [
+        {
+          layer: 'Habitats',
+          expectedSrsId: 27700,
+          contentsSrsId: 'abc',
+          geometryColumnsSrsId: 'def'
+        },
+        [
+          BASELINE,
+          [
+            'expected srs_id 27700 but could not read a valid integer srs_id from gpkg_contents (abc) nor gpkg_geometry_columns (def)'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME named': [
+        { layer: 'Habitats', column: 'geometry', expected: 'geom' },
+        [
+          SERVICE,
+          ['its geometry column is named "geometry" but should be "geom"']
+        ]
+      ],
+      'GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS bng-service': [
+        { layer: 'Habitats', found: 2 },
+        [
+          SERVICE,
+          [
+            'expected exactly one geometry column in the feature table but found 2'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS registered': [
+        { layer: 'Habitats', found: 2 },
+        [
+          BASELINE,
+          [
+            'expected exactly one geometry column in gpkg_geometry_columns but found 2'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_GEOMETRY_TYPE_NAME bng-service': [
+        { layer: 'Habitats', expected: 'POLYGON', found: 'MULTIPOLYGON' },
+        [
+          SERVICE,
+          [
+            'expected geometry type "POLYGON" in gpkg_geometry_columns but found "MULTIPOLYGON"'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_MISSING_COLUMN bng-service': [
+        { layer: 'Habitats', column: 'Habitat Ref' },
+        [SERVICE, ['missing column "Habitat Ref"']]
+      ],
+      'GPKG_BASELINE_MISSING_COLUMN geometry': [
+        { layer: 'Habitats', column: 'geom' },
+        [BASELINE, ['missing geometry column "geom"']]
+      ],
+      'GPKG_BASELINE_COLUMN_SQLITE_TYPE bng-service': [
+        {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Float',
+          actualType: 'Text'
+        },
+        [SERVICE, ['column "Area" has a Text data type but Float was expected']]
+      ],
+      'GPKG_BASELINE_COLUMN_SQLITE_TYPE not-scalar': [
+        {
+          layer: 'Habitats',
+          column: 'Area',
+          expectedType: 'Float',
+          actualType: 'Point geometry'
+        },
+        [
+          BASELINE,
+          ['column "Area" has a Point geometry but Float was expected']
+        ]
+      ],
+      'GPKG_BASELINE_COLUMN_SQLITE_TYPE undeclared': [
+        { layer: 'Habitats', column: 'Area', expectedType: 'Float' },
+        [
+          BASELINE,
+          [
+            'column "Area" has no SQLite column type declared but Float was expected'
+          ]
+        ]
+      ],
+      'GPKG_BASELINE_COLUMN_NOT_NULL bng-service': [
+        { layer: 'Habitats', column: 'Area' },
+        [SERVICE, ['column "Area" NOT NULL (required) does not match file']]
+      ],
+      'GPKG_BASELINE_COLUMN_NOT_NULL optional': [
+        { layer: 'Habitats', column: 'Comments' },
+        [
+          BASELINE,
+          ['column "Comments" NOT NULL (optional) does not match file']
+        ]
+      ],
+      'GPKG_BASELINE_COLUMN_PRIMARY_KEY bng-service': [
+        { layer: 'Habitats', column: 'fid' },
+        [SERVICE, ['primary key expectation for "fid" does not match file']]
+      ],
+      'GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING bng-service': [
+        { layer: 'Habitats' },
+        [SERVICE, ['no geometry column registered in gpkg_geometry_columns']]
+      ],
+      'GPKG_RLB_NO_GEOMETRY_COLUMN bng-service': [
+        {},
+        ['The Red Line Boundary table has no geometry column', []]
+      ],
+      'NO_HABITAT_AREAS structure': [
+        {},
+        ['Zero area habitat parcels in GeoPackage (expecting at least one)', []]
+      ],
+      'NO_DERIVED_BASELINE_HABITATS read': [
+        {},
+        [
+          'The Area Habitats Baseline table in this file has no habitats, so it cannot replace the project baseline',
+          []
+        ]
+      ]
+    }
+
+    test('has a case for every variant in the copy', () => {
+      const worded = Object.entries(dropoutCopy.errors).flatMap(
+        ([code, entry]) =>
+          Object.keys(entry.inList?.variants ?? {}).map(
+            (variant) => `${code} ${variant}`
+          )
+      )
+
+      expect(Object.keys(CASES).sort()).toEqual(worded.sort())
+    })
+
+    test.each(Object.entries(CASES))(
+      'words %s',
+      async (key, [details, [heading, items]]) => {
+        const [code, variant] = key.split(' ')
+        const [block] = await blocksFor([
+          {
+            code,
+            message: 'Not shown',
+            details: { ...details, variants: [variant] }
+          },
+          { code: 'NO_REDLINE', message: 'No redline' }
+        ])
+
+        expect(block).toEqual({ heading, items, more: 0 })
+      }
+    )
+  })
 
   test('names a habitat with no distinctiveness as unknown, rather than leaving its bullet out', async () => {
     const blocks = await blocksFor([

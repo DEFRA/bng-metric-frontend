@@ -35,7 +35,11 @@ const LAYERS = [
 
 // The layers whose Created features open on the edit form; the others render
 // read-only.
-const EDITABLE_CREATED_LAYERS = new Set(['habitats', 'hedgerows'])
+const EDITABLE_CREATED_LAYERS = new Set([
+  'habitats',
+  'hedgerows',
+  'watercourses'
+])
 
 // The layers whose Retained features can have their reference changed; a
 // Retained vertical area habitat renders read-only.
@@ -250,8 +254,10 @@ describe('details pages of a BNG Service template project', () => {
 
         expect(fieldNames($)).toContain('strategicSignificance')
         expect(headings($)).toContain(TIME_TO_TARGET_HEADING)
+        // A file that saved only the legacy label still restores it (BMD-1050).
         expect(selectedSignificance($)).toBe(
-          proposed.strategicSignificanceCategory
+          proposed.strategicSignificanceCategory ??
+            proposed.strategicSignificance
         )
       }
     )

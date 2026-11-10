@@ -207,13 +207,14 @@ describe('Created area controller', () => {
     const h = createMockH()
     await postController.handler(request({ ref: 'x'.repeat(100) }), h)
     expect(wreck.put).not.toHaveBeenCalled()
-    expect(h.view.mock.calls[0][1].errors.ref).toContain(
-      '99 characters or fewer'
-    )
+    expect(h.view.mock.calls[0][1].errors.ref).toEqual({
+      summary: 'Enter a habitat reference of 99 characters or fewer.',
+      inline: 'Enter a habitat reference of 99 characters or fewer.'
+    })
     expect(h.view.mock.calls[0][1].referenceHint).toBeNull()
     expect(h.view.mock.calls[0][1].errorList[0]).toEqual({
       href: '#ref',
-      text: h.view.mock.calls[0][1].errors.ref
+      text: h.view.mock.calls[0][1].errors.ref.summary
     })
     expect(
       validateCreatedArea(
@@ -428,10 +429,10 @@ describe('Created area controller', () => {
       '#condition',
       '#advanceYears'
     ])
-    expect(vm.errors.habitatType).toBe(
+    expect(vm.errors.habitatType.inline).toBe(
       'Choose a habitat type for the selected broad habitat'
     )
-    expect(vm.errors.condition).toBe(
+    expect(vm.errors.condition.inline).toBe(
       'Choose a target condition for the selected habitat type'
     )
     expect(vm.fields.habitatType.items).toContainEqual(

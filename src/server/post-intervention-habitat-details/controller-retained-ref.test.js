@@ -371,7 +371,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(wreck.put).not.toHaveBeenCalled()
       expect(result).toContain(
-        '<a href="#habitatRef">You have entered a habitat reference that is too long.</a>'
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
       )
       expect(result).toContain(
         'Enter a habitat reference of 99 characters or fewer.'

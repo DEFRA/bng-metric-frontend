@@ -31,7 +31,9 @@ export const HABITAT_REF_ERROR = Object.freeze(
 
 // A reference longer than MAX_HABITAT_REF_LENGTH characters once trimmed.
 export const HABITAT_REF_TOO_LONG_ERROR = Object.freeze(
-  formErrorText(HABITAT_REF_FIELD_ID, 'tooLong')
+  formErrorText(HABITAT_REF_FIELD_ID, 'tooLong', {
+    max: MAX_HABITAT_REF_LENGTH
+  })
 )
 
 // A rename onto a reference another baseline habitat in the same layer already

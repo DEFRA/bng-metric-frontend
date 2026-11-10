@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto'
 
 import { getUploadStatus } from '../services/uploader.js'
 import { createLogger } from './logging/logger.js'
+import { formErrorText } from '../error-text/error-text.js'
 import {
   ERROR_FILENAME_TOO_LONG,
   ERROR_INVALID_FILENAME
@@ -33,8 +34,11 @@ const GPKG_FORMAT_ERROR_CODES = new Set([
   'GPKG_INVALID_FILE',
   'GPKG_NOT_A_GEOPACKAGE'
 ])
-const GPKG_FORMAT_ERROR_MESSAGE =
-  'The selected file must be a GeoPackage (.gpkg)'
+// The upload page shows these messages in its error summary and against the
+// file input alike, so only the inline text is needed.
+const fileMessage = (rule) => formErrorText('file', rule).inline
+
+const GPKG_FORMAT_ERROR_MESSAGE = fileMessage('notAGeoPackage')
 
 const FILENAME_ERROR_MESSAGES = Object.freeze({
   INVALID_FILENAME: ERROR_INVALID_FILENAME,
@@ -47,8 +51,8 @@ const FILENAME_ERROR_MESSAGES = Object.freeze({
  * nothing for the user to change, so the message must not send them off to
  * re-draw perfectly good polygons.
  */
-const SERVICE_BUSY_MESSAGE =
-  'The service is busy checking other files. Please try again in a few moments.'
+const SERVICE_BUSY_MESSAGE = fileMessage('serviceBusy')
+const TIMED_OUT_MESSAGE = fileMessage('timedOut')
 
 /**
  * A refresh interval that will not put every waiting browser in lockstep.
@@ -204,10 +208,7 @@ function handleWaitingUpload(request, h, uploadType, id) {
 
   if (elapsed > MAX_WAIT_SECONDS) {
     clearUploadSession(request, uploadType)
-    request.yar.set(
-      uploadType.uploadErrorSessionKey,
-      'The file check timed out. Please try again.'
-    )
+    request.yar.set(uploadType.uploadErrorSessionKey, TIMED_OUT_MESSAGE)
     return h.redirect(uploadHref(uploadType, id))
   }
 

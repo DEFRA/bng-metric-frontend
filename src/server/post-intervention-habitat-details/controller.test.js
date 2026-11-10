@@ -757,7 +757,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     await getController.handler({ query: { projectId, featureId } }, h)
 
     expect(h.view).toHaveBeenCalledWith(
-      'habitat-details/pi-watercourse-details-created',
+      'habitat-details/pi-habitat-details-created-edit',
       expect.objectContaining({ interventionDisplay: 'Created' })
     )
   })
@@ -772,3 +772,29 @@ describe('#postInterventionHabitatDetailsController', () => {
     ).rejects.toMatchObject({ output: { statusCode: 501 } })
   })
 })
+
+test.each([
+  ['habitat', 'Retained', 'habitat-details/pi-habitat-details'],
+  ['habitat', 'Enhanced', 'habitat-details/pi-habitat-details-enhanced'],
+  ['hedgerow', 'Retained', 'habitat-details/pi-hedgerow-details'],
+  ['hedgerow', 'Enhanced', 'habitat-details/pi-hedgerow-details-enhanced']
+])(
+  'keeps legacy %s %s routing consistent with the shared retention resolver',
+  async (type, retentionCategory, template) => {
+    mockFeature({
+      type,
+      feature: {
+        featureId,
+        ref: 'Legacy',
+        baseline: { retentionCategory },
+        proposed: {}
+      }
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    expect(h.view).toHaveBeenCalledWith(
+      template,
+      expect.objectContaining({ interventionDisplay: retentionCategory })
+    )
+  }
+)

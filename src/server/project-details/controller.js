@@ -7,6 +7,7 @@ import {
 } from '../common/services/projects.js'
 import { statusCodes, HTTP_SUCCESS_MAX } from '../common/constants.js'
 import { fetchLocalPlanningAuthorities } from '../common/services/local-planning-authorities.js'
+import { formErrorText } from '../common/error-text/error-text.js'
 
 const DEVELOPMENT_TYPE_OPTIONS = ['Small site', 'Large site']
 const NSIPS_OPTIONS = ['Yes', 'No']
@@ -21,6 +22,14 @@ const DIGITS_PATTERN = /^\d+$/
 const DATE_ERROR_TYPE = 'surveyCompletionDate.invalid'
 const MAX_TEXT_FIELD_LENGTH = 500
 
+// These messages show the same words in the error summary and against the
+// field, so only the inline text is needed.
+const LPA_NOT_IN_LIST = formErrorText(
+  'localPlanningAuthorityReference',
+  'notInList'
+).inline
+const DATE_NOT_REAL = formErrorText(DATE_FIELD, 'notReal').inline
+
 function datePartsOf(value) {
   return {
     day: (value[DAY_KEY] ?? '').trim(),
@@ -30,8 +39,11 @@ function datePartsOf(value) {
 }
 
 function missingPartsMessage(missing) {
-  const article = missing.length === 1 ? 'a ' : ''
-  return `Survey completion date must include ${article}${missing.join(' and ')}`
+  return missing.length === 1
+    ? formErrorText(DATE_FIELD, 'missingOne', { part: missing[0] }).inline
+    : formErrorText(DATE_FIELD, 'missingSeveral', {
+        parts: missing.join(' and ')
+      }).inline
 }
 
 function isRealDate(day, month, year) {
@@ -82,7 +94,7 @@ function validateSurveyCompletionDate(value, helpers) {
 
   if (invalidFormat || !isRealDate(dayNum, monthNum, yearNum)) {
     return helpers.error(DATE_ERROR_TYPE, {
-      message: 'Survey completion date must be a real date',
+      message: DATE_NOT_REAL,
       parts: DATE_PART_NAMES
     })
   }
@@ -106,7 +118,7 @@ export const projectDetailsFormSchema = Joi.object({
     .default(null)
     .pattern(/^E600\d{5}$/)
     .messages({
-      'string.pattern.base': 'Select a Local Planning Authority from the list'
+      'string.pattern.base': LPA_NOT_IN_LIST
     }),
   surveyCompleters: Joi.string()
     .trim()
@@ -302,7 +314,7 @@ export const projectDetailsPostController = {
           {
             name: 'localPlanningAuthorityReference',
             href: '#localPlanningAuthorityReference',
-            text: 'Select a Local Planning Authority from the list'
+            text: LPA_NOT_IN_LIST
           }
         ]
       })
