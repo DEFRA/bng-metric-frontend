@@ -387,7 +387,10 @@ describe('Created area editing', () => {
       ...createdAreaFeature,
       proposed: { ...createdAreaFeature.proposed, advanceYears: 2.5 }
     }
-    const error = 'Either the advance or delay field must be set at zero.'
+    const error = {
+      summary: 'A habitat cannot be created both in advance and with a delay.',
+      inline: 'Either the advance or delay field must be set at zero.'
+    }
     renderTemplateIntoDocument(
       'habitat-details/pi-habitat-details-created-edit.njk',
       {

@@ -29,7 +29,7 @@
     items: field.items,
     describedBy: "timing-error" if timing and (errors.advanceYears or errors.delayYears) else null,
     classes: "govuk-select--error" if timing and (errors.advanceYears or errors.delayYears) else "",
-    errorMessage: { text: errors[field.id] } if errors[field.id] and not timing else null
+    errorMessage: { text: errors[field.id].inline } if errors[field.id] and not timing else null
   }) }}
 {% endmacro %}
 
@@ -59,7 +59,7 @@
           classes: "app-pi-edit-reference",
           label: { text: "Habitat reference", classes: "govuk-label--s" },
           hint: { text: referenceHint } if referenceHint else null,
-          errorMessage: { text: errors.ref } if errors.ref else null
+          errorMessage: { text: errors.ref.inline } if errors.ref else null
         }) }}
         {% if viewBaselineHref %}
           <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
@@ -80,7 +80,7 @@
             describedBy: "timing-error" if errors.advanceYears or errors.delayYears else null
           }) %}
             {% if errors.advanceYears or errors.delayYears %}
-              {{ govukErrorMessage({ id: "timing-error", text: errors.advanceYears or errors.delayYears }) }}
+              {{ govukErrorMessage({ id: "timing-error", text: (errors.advanceYears or errors.delayYears).inline }) }}
             {% endif %}
             {{ select(fields.advanceYears, true) }}
             <p class="govuk-body">or</p>

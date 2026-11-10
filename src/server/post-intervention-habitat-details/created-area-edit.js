@@ -27,6 +27,7 @@ import { MAX_REF_LENGTH } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import { createdStrategicSignificance } from './created-strategic-significance.js'
+import { formErrorText } from '../common/error-text/error-text.js'
 
 export const CREATED_EDIT_KINDS = {
   habitat: {
@@ -37,7 +38,7 @@ export const CREATED_EDIT_KINDS = {
     backType: 'habitat',
     savePath: 'habitats',
     hasBroadHabitat: true,
-    habitatTypeError: 'Choose a habitat type for the selected broad habitat'
+    habitatTypeError: formErrorText('habitatType', 'notInBroadHabitat')
   },
   hedgerow: {
     loadReference: loadCreatedHedgerowReference,
@@ -47,7 +48,7 @@ export const CREATED_EDIT_KINDS = {
     backType: 'hedgerow',
     savePath: 'hedgerows',
     hasBroadHabitat: false,
-    habitatTypeError: 'Choose a valid hedgerow habitat type'
+    habitatTypeError: formErrorText('habitatType', 'invalidHedgerow')
   }
 }
 
@@ -70,12 +71,16 @@ const FIELD_ORDER = [
   'delayYears'
 ]
 
-const ERROR_SUMMARY_TEXT = {
-  'Enter a valid habitat reference.':
-    'You have entered an invalid habitat reference.',
-  'Either the advance or delay field must be set at zero.':
-    'A habitat cannot be created both in advance and with a delay.'
-}
+// Each a { summary, inline } pair from error-text.yaml's forms section.
+const ERRORS = Object.freeze({
+  refInvalid: formErrorText('habitatRef', 'invalid'),
+  refTooLong: formErrorText('habitatRef', 'tooLong', { max: MAX_REF_LENGTH }),
+  timingInvalid: formErrorText('advanceOrDelay', 'invalid'),
+  timingBoth: formErrorText('advanceOrDelay', 'both'),
+  broadHabitat: formErrorText('broadHabitat', 'invalid'),
+  condition: formErrorText('condition', 'notForHabitatType'),
+  strategicSignificance: formErrorText('strategicSignificance', 'invalid')
+})
 
 export const createdAreaPayloadSchema = Joi.object({
   projectId: Joi.string().uuid().required(),
@@ -184,11 +189,11 @@ export function createdAreaValues(feature) {
 
 function validateReference(ref, errors) {
   if (!ref.trim() || !ref.isWellFormed() || ref.includes('\uFFFD')) {
-    errors.ref = 'Enter a valid habitat reference.'
+    errors.ref = ERRORS.refInvalid
     return
   }
   if (Array.from(ref.trim()).length > MAX_REF_LENGTH) {
-    errors.ref = `Enter a habitat reference of ${MAX_REF_LENGTH} characters or fewer.`
+    errors.ref = ERRORS.refTooLong
   }
 }
 
@@ -199,15 +204,14 @@ function validateCreatedTiming(values, reference, errors) {
       values[field] === UNCHANGED_VALUE &&
       !reference.importedYears?.[field]
     ) {
-      errors[field] = 'Choose a valid advance or delay value'
+      errors[field] = ERRORS.timingInvalid
     }
   }
   if (
     Number.parseFloat(timing.advanceYears) > 0 &&
     Number.parseFloat(timing.delayYears) > 0
   ) {
-    errors.advanceYears =
-      'Either the advance or delay field must be set at zero.'
+    errors.advanceYears = ERRORS.timingBoth
     errors.delayYears = errors.advanceYears
   }
 }
@@ -236,10 +240,10 @@ export function validateCreatedArea(values, reference) {
   for (const [field, options] of Object.entries(choices)) {
     if (values[field] && !options.includes(values[field])) {
       const messages = {
-        broadHabitat: 'Choose a valid broad habitat',
+        broadHabitat: ERRORS.broadHabitat,
         habitatType: kind.habitatTypeError,
-        condition: 'Choose a target condition for the selected habitat type',
-        strategicSignificance: 'Choose a valid strategic significance'
+        condition: ERRORS.condition,
+        strategicSignificance: ERRORS.strategicSignificance
       }
       errors[field] = messages[field]
     }
@@ -467,7 +471,7 @@ export function buildCreatedAreaEditViewModel(
       (field) =>
         errors[field] && (field !== 'delayYears' || !errors.advanceYears)
     ).map((field) => ({
-      text: ERROR_SUMMARY_TEXT[errors[field]] ?? errors[field],
+      text: errors[field].summary,
       href: `#${field}`
     })),
     fields: editFieldsWithImportHints(feature, reference, values),

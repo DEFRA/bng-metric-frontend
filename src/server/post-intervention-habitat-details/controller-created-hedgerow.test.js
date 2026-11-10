@@ -127,7 +127,9 @@ test('does not accept area habitat types', async () => {
     request({ habitatType: 'Modified grassland' }),
     h
   )
-  expect(h.view.mock.calls[0][1].errors.habitatType).toContain('hedgerow')
+  expect(h.view.mock.calls[0][1].errors.habitatType.inline).toContain(
+    'hedgerow'
+  )
   expect(wreck.put).not.toHaveBeenCalled()
 })
 
