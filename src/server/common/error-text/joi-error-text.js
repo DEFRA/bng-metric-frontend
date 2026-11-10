@@ -10,7 +10,13 @@ import { commonErrorText, formErrorText } from './error-text.js'
 const logger = createLogger()
 
 // What the page shows for a check whose schema names no rule.
-const UNWORDED = commonErrorText('unworded')
+const UNWORDED_TEXT = commonErrorText('unworded')
+
+/**
+ * A rule for joiMessages: show common.unworded on purpose, for a check only a
+ * form posted from elsewhere can fail, which is not worth wording of its own.
+ */
+export const UNWORDED = Symbol('common.unworded')
 
 /**
  * A Joi schema's `.messages()` for a form field: each Joi error type it can
@@ -19,13 +25,16 @@ const UNWORDED = commonErrorText('unworded')
  * summary and against the field, so only the inline text is used.
  *
  * @param {string} field
- * @param {Record<string, string | [string, Record<string, string | number>]>} rules
- *   Joi error type to rule, or to [rule, values]
+ * @param {Record<string, string | symbol | [string, Record<string, string | number>]>} rules
+ *   Joi error type to rule, to [rule, values], or to UNWORDED
  * @returns {Record<string, string>}
  */
 export function joiMessages(field, rules) {
   return Object.fromEntries(
     Object.entries(rules).map(([type, rule]) => {
+      if (rule === UNWORDED) {
+        return [type, UNWORDED_TEXT]
+      }
       const [name, values] = [rule].flat()
       return [type, formErrorText(field, name, values).inline]
     })
@@ -47,7 +56,7 @@ export function joiErrorText(detail) {
     logger.warn(
       `No error-text.yaml rule for ${detail.type} on ${detail.path.join('.')}`
     )
-    return UNWORDED
+    return UNWORDED_TEXT
   }
   return detail.message
 }

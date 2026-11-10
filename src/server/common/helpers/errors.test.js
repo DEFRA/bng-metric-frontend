@@ -92,14 +92,14 @@ describe('#catchAll', () => {
     expect(mockToolkitView).not.toHaveBeenCalled()
   })
 
-  test('Should provide expected "Unauthorized" page', () => {
+  test('Should provide the "Something went wrong" page for a 401, which has no page of its own', () => {
     catchAll(mockRequest(statusCodes.unauthorized), mockToolkit)
 
     expect(mockErrorLogger).not.toHaveBeenCalledWith(mockStack)
     expect(mockToolkitView).toHaveBeenCalledWith(errorPage, {
-      pageTitle: 'Unauthorized',
+      pageTitle: 'Something went wrong',
       heading: statusCodes.unauthorized,
-      message: 'Unauthorized',
+      message: 'Something went wrong',
       body: []
     })
     expect(mockToolkitCode).toHaveBeenCalledWith(statusCodes.unauthorized)

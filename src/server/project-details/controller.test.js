@@ -524,12 +524,10 @@ describe('#projectDetailsPostController', () => {
       'Survey completer(s) must be 500 characters or fewer'
     ],
     ['applicant', 'x'.repeat(501), 'Applicant must be 500 characters or fewer'],
-    ['developmentType', 'Huge site', 'Select a development type'],
-    [
-      'nsips',
-      'Maybe',
-      'Select whether this is a National Significant Infrastructure Project'
-    ]
+    // Only a form posted from elsewhere sends these, so they have no
+    // wording of their own.
+    ['developmentType', 'Huge site', 'There is a problem with this answer'],
+    ['nsips', 'Maybe', 'There is a problem with this answer']
   ])(
     "words a refused %s from error-text.yaml, not the validator's own text",
     async (field, value, message) => {

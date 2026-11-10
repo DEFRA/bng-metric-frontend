@@ -14,6 +14,7 @@ export const statusCodes = {
   forbidden: 403,
   notFound: 404,
   conflict: 409,
+  unprocessableEntity: 422,
   imATeapot: 418,
   internalServerError: 500,
   badGateway: 502,

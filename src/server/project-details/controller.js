@@ -9,6 +9,7 @@ import { statusCodes, HTTP_SUCCESS_MAX } from '../common/constants.js'
 import { fetchLocalPlanningAuthorities } from '../common/services/local-planning-authorities.js'
 import { formErrorText } from '../common/error-text/error-text.js'
 import {
+  UNWORDED,
   joiErrorText,
   joiMessages
 } from '../common/error-text/joi-error-text.js'
@@ -145,13 +146,15 @@ export const projectDetailsFormSchema = Joi.object({
     .allow(null)
     .default(null)
     .valid(...DEVELOPMENT_TYPE_OPTIONS)
-    .messages(joiMessages('developmentType', { 'any.only': 'invalid' })),
+    // The radios send only valid values, so only a form posted from
+    // elsewhere fails these.
+    .messages(joiMessages('developmentType', { 'any.only': UNWORDED })),
   nsips: Joi.string()
     .empty('')
     .allow(null)
     .default(null)
     .valid(...NSIPS_OPTIONS)
-    .messages(joiMessages('nsips', { 'any.only': 'invalid' })),
+    .messages(joiMessages('nsips', { 'any.only': UNWORDED })),
   applicant: Joi.string()
     .trim()
     .empty('')

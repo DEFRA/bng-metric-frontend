@@ -1,8 +1,7 @@
 import {
   LINK_TARGETS,
-  WHEN_ALONE,
   canFill,
-  catchAllPage,
+  fallbackPage,
   dropoutCopy,
   errorCopy,
   fill,
@@ -99,37 +98,20 @@ function buildPage(page, values) {
   return { variant: 'text', h1, subheading: page.subheading, helpText: before }
 }
 
-/** The {values} the placeholder copy can name, for a test to check. */
-export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['message'])
-
-function placeholderPage(message) {
-  const values = message ? { message } : {}
-  return {
-    variant: 'placeholder',
-    h1: firstKnown(dropoutCopy.placeholder.title, values),
-    helpText: firstKnown(dropoutCopy.placeholder.body, values)
-  }
-}
-
 /**
  * Resolve the copy for a single validation error.
  *
  * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
- * @param {string} [placeholderMessage] what a placeholder page says of the
- *   error: its heading and bullets as the list shows them
  */
-export function resolveSingleErrorCopy(error, uploadHref, placeholderMessage) {
+export function resolveSingleErrorCopy(error, uploadHref) {
   const whenAlone = errorCopy(error?.code)?.whenAlone
 
-  if (whenAlone === WHEN_ALONE.PLACEHOLDER) {
-    return placeholderPage(placeholderMessage)
-  }
-
-  // A code with no copy of its own, or one the page always lists, takes the
-  // catch-all, so an error code we haven't seen yet still degrades to a
+  // A code with no copy of its own takes the fallback its whenAlone names, and
+  // one we haven't seen yet the file problem, so it still degrades to a
   // sensible message rather than a blank page.
-  const pages = typeof whenAlone === 'object' ? whenAlone : catchAllPage()
+  const pages =
+    typeof whenAlone === 'object' ? whenAlone : fallbackPage(whenAlone)
   const values = valuesFor(error)
   const resolved = buildPage(choosePage(pages, values), values)
 

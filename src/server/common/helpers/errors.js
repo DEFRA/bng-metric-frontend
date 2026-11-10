@@ -2,11 +2,11 @@ import { statusCodes } from '../constants.js'
 import { SESSION_EXPIRED_PATH } from './auth/session-expiry.js'
 import { pageErrorText } from '../error-text/error-text.js'
 
-// The pages section's page for each status; any other is serverError.
+// The pages section's page for each status; any other is serverError. A 401
+// has no page: a dead session redirects to sign in before it gets here.
 const STATUS_PAGES = new Map([
   [statusCodes.notFound, 'notFound'],
   [statusCodes.forbidden, 'forbidden'],
-  [statusCodes.unauthorized, 'unauthorized'],
   [statusCodes.badRequest, 'badRequest'],
   [statusCodes.conflict, 'conflict']
 ])

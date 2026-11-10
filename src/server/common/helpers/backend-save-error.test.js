@@ -30,6 +30,7 @@ describe('backendSaveError', () => {
     [Boom.conflict('locked'), 409, 'Another user is editing this project'],
     [Boom.notFound('gone'), 404, `Feature ${featureId} not found`],
     [Boom.badRequest('no'), 400, 'The habitat could not be saved'],
+    [Boom.badData('out of scope'), 400, 'The habitat could not be saved'],
     [Boom.internal('down'), 502, 'Failed to save habitat'],
     [new Error('socket hang up'), 502, 'Failed to save habitat']
   ])('maps %s to %i', (err, statusCode, message) => {

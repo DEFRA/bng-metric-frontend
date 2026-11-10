@@ -424,13 +424,13 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="P-1"/s)
     })
 
-    test('answers any other 422 from the backend as an upstream failure', async () => {
+    test('answers any other 422 from the backend as a refused save, not an upstream failure', async () => {
       mockBackend()
       vi.mocked(wreck.put).mockRejectedValue(Boom.badData('something else'))
 
       const { statusCode } = await post({ habitatRef: 'A2' })
 
-      expect(statusCode).toBe(statusCodes.badGateway)
+      expect(statusCode).toBe(statusCodes.badRequest)
     })
 
     test.each([

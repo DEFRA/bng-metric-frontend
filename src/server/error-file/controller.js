@@ -418,25 +418,12 @@ function distinctBlocks(blocks) {
   })
 }
 
-// What a placeholder page says of the error: its heading and bullets as the
-// list shows them.
-function placeholderMessage(block) {
-  const more =
-    block.more > 0
-      ? fill(dropoutCopy.placeholder.more, { count: block.more })
-      : ''
-  if (block.items.length === 0) {
-    return `${block.heading}${more}`
-  }
-  return `${block.heading}: ${block.items.join(', ')}${more}`
-}
-
 const SINGLE_VALIDATION_ERROR = 1
 
 // Errors the page shows as their list even alone (whenAlone: list in the
 // copy): a lineage error is its list of habitats, which the user has to put
-// right, and a BNG Service template file the service cannot read as one has
-// no copy of its own yet, and would otherwise carry a placeholder title.
+// right, and a problem with no copy of its own shows its list heading, which
+// says what is wrong, rather than a fallback that cannot.
 function isShownAsList(code) {
   return errorCopy(code)?.whenAlone === WHEN_ALONE.LIST
 }
@@ -495,11 +482,7 @@ export const invalidFileController = {
     // be judged against visibleErrors — the same de-duplicated list the multi-error
     // view already renders — or AC10's personalised copy could never be reached.
     const singleError = isShownAsSingleError(visibleErrors)
-      ? resolveSingleErrorCopy(
-          visibleErrors[0],
-          uploadHref,
-          placeholderMessage(errorBlocks[0])
-        )
+      ? resolveSingleErrorCopy(visibleErrors[0], uploadHref)
       : null
 
     const page = pageText({ fileLabel: uploadType.label })

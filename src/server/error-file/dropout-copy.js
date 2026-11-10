@@ -13,7 +13,8 @@ import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 /** What whenAlone can say in place of copy of its own. */
 export const WHEN_ALONE = Object.freeze({
   CATCH_ALL: 'catch-all',
-  PLACEHOLDER: 'placeholder',
+  FILE_PROBLEM: 'file-problem',
+  SERVICE_PROBLEM: 'service-problem',
   LIST: 'list'
 })
 
@@ -113,7 +114,8 @@ const copySchema = Joi.object({
     legacyTemplate: pageCopy.required(),
     serviceTemplate: pageCopy.required()
   }).required(),
-  placeholder: pageCopy.keys({ more: text.required() }).required(),
+  fileProblem: pageCopy.required(),
+  serviceProblem: pageCopy.required(),
   names: Joi.object({
     feature: options.required(),
     tree: options.required(),
@@ -240,4 +242,24 @@ export function catchAllPage() {
   return isServiceTemplateEnabled()
     ? dropoutCopy.catchAll.serviceTemplate
     : dropoutCopy.catchAll.legacyTemplate
+}
+
+/**
+ * The single-error page a whenAlone that names a fallback stands for: the
+ * catch-all, about layer and column names; the file problem, which says only
+ * that the file has an error; or the service problem, which says the fault is
+ * the service's. A code with no entry, or one the page always lists, takes the
+ * file problem, which cannot mislead about what is wrong.
+ *
+ * @param {string | undefined} whenAlone
+ */
+export function fallbackPage(whenAlone) {
+  switch (whenAlone) {
+    case WHEN_ALONE.CATCH_ALL:
+      return catchAllPage()
+    case WHEN_ALONE.SERVICE_PROBLEM:
+      return dropoutCopy.serviceProblem
+    default:
+      return dropoutCopy.fileProblem
+  }
 }
