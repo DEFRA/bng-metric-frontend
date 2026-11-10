@@ -1,12 +1,16 @@
 {% extends 'layouts/pi-view-only-sections-page.njk' %}
 
-{# Enhanced post-intervention area habitat — stacked label-over-value layout. #}
+{# Enhanced or read-only Created post-intervention area habitat, or individual
+   tree, which adds its size class and number of trees — stacked label-over-value
+   layout. #}
 {% set sections = [
   {
     heading: habitatDetailsSectionHeading,
     rows: [
       { label: "Intervention", value: interventionDisplay },
       { label: sizeLabel or "Area", value: sizeDisplay },
+      { label: "Tree size", value: treeSizeDisplay, when: showTreeRows },
+      { label: "Number of trees", value: treeCountDisplay, when: showTreeRows },
       { label: "Broad habitat", value: broadHabitatDisplay },
       { label: "Habitat type", value: habitatTypeDisplay },
       { label: "Distinctiveness", value: distinctivenessDisplay },

@@ -17,31 +17,25 @@
             {% if singleError.opensInNewTab === false %}
               {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}">{{ singleError.linkText }}</a>{{ singleError.helpTextAfter }}
             {% else %}
-              {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} (opens in a new tab)</a>{{ singleError.helpTextAfter }}
+              {{ singleError.helpTextBefore }}<a class="govuk-link" href="{{ singleError.linkHref }}" target="_blank" rel="noreferrer noopener">{{ singleError.linkText }} {{ page.opensInNewTab }}</a>{{ singleError.helpTextAfter }}
             {% endif %}
           </p>
-        {% elif singleError.variant == 'placeholder' %}
+        {% elif singleError.variant == 'placeholder' or singleError.variant == 'text' %}
           <p class="govuk-body">{{ singleError.helpText }}</p>
         {% else %}
-          {% if singleError.intro %}
-            <p class="govuk-body">{{ singleError.intro }}</p>
-          {% endif %}
           <p class="govuk-body">
             {{ singleError.messageBefore }}{% if singleError.uploadHref %}<a class="govuk-link" href="{{ singleError.uploadHref }}">{{ singleError.linkText }}</a>{{ singleError.messageAfter }}{% endif %}
           </p>
         {% endif %}
       {% elif errorList and errorList.length > 0 %}
         {{ govukErrorSummary({
-          titleText: "There is a problem with your file",
+          titleText: page.summaryTitle,
           errorList: errorList
         }) }}
 
-        <h1 class="govuk-heading-l">We couldn't accept your {{ fileLabel }} file</h1>
+        <h1 class="govuk-heading-l">{{ page.listHeading }}</h1>
 
-        <p class="govuk-body">
-          Your file is a valid GeoPackage, but we found problems with its
-          contents. Fix the issues listed below and upload it again.
-        </p>
+        <p class="govuk-body">{{ page.listIntro }}</p>
 
         {#
           Interim layout. The final formatting will be finalized in future stories.
@@ -57,28 +51,31 @@
                 <li>{{ item }}</li>
               {% endfor %}
               {% if block.more > 0 %}
-                <li class="govuk-hint">… and {{ block.more }} more</li>
+                <li class="govuk-hint">{{ page.more(block.more) }}</li>
               {% endif %}
             </ul>
           {% endif %}
         {% endfor %}
       {% else %}
-        <h1 class="govuk-heading-l">There is a problem with your file</h1>
-        <p class="govuk-body">
-          We couldn't accept your file. Please try again.
-        </p>
+        <h1 class="govuk-heading-l">{{ page.noErrorsHeading }}</h1>
+        <p class="govuk-body">{{ page.noErrorsBody }}</p>
       {% endif %}
 
-      {% if not singleError %}
+      {#
+        A single error with its own upload link says what to do in the sentence,
+        and a metric-tool page has nothing to upload. Plain text copy has
+        neither, so it keeps the way back to uploading.
+      #}
+      {% if not singleError or singleError.variant == 'text' %}
         <div class="govuk-button-group govuk-!-margin-top-6">
           {% if projectId %}
             {{ govukButton({
-              text: "Upload a different file",
+              text: page.uploadButton,
               href: uploadHref
             }) }}
-            <a class="govuk-link" href="/projects/{{ projectId }}/project-summary">Back to project</a>
+            <a class="govuk-link" href="/projects/{{ projectId }}/project-summary">{{ page.backToProject }}</a>
           {% else %}
-            <a class="govuk-link" href="/">Back to start</a>
+            <a class="govuk-link" href="/">{{ page.backToStart }}</a>
           {% endif %}
         </div>
       {% endif %}

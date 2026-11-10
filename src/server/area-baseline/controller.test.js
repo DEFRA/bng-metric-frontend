@@ -257,7 +257,7 @@ describe('area baseline', () => {
     expect($('tfoot').text()).toContain('3.0163ha')
   })
 
-  test('lists vertical area habitats with the area habitats, sized in square metres, and counts them in the total area', async () => {
+  test('lists vertical area habitats with the area habitats, sized in hectares and square metres, and counts them in the total area', async () => {
     const wall = {
       featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       ref: 'V-1',
@@ -298,7 +298,8 @@ describe('area baseline', () => {
     expect(wallRow.find('a').attr('href')).toBe(
       `/baseline-habitat-details?featureId=${wall.featureId}&projectId=${PROJECT_ID}`
     )
-    expect(wallRow.text()).toContain('400m²')
+    expect(wallRow.text()).toContain('0.04ha')
+    expect(wallRow.text()).not.toContain('m²')
     expect(wallRow.text()).toContain('Urban')
     expect(wallRow.text()).toContain('Facade-bound green wall')
     // 2 ha + 1 ha + 163 m² + 400 m², in hectares.

@@ -5,6 +5,7 @@ import { statusCodes } from '../constants.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
 import { HABITAT_UPLOAD_TYPES } from '../helpers/habitat-upload-types.js'
+import { describeBackendFailure } from '../helpers/backend-failure.js'
 
 const logger = createLogger()
 
@@ -80,13 +81,16 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
     `Validating ${uploadType.label} habitats - url: ${url}, projectId: ${projectId}, uploadId: ${uploadId}`
   )
 
+  // Overrides the short default every other backend call uses. Validation is
+  // the one call that legitimately takes seconds.
+  const timeoutMs = config.get('backend').validateTimeoutMs
+  const startedAt = performance.now()
+
   try {
     const { payload } = await backendRequest(request, 'post', url, {
       payload: JSON.stringify({ projectId }),
       headers: { 'Content-Type': 'application/json' },
-      // Overrides the short default every other backend call uses. Validation
-      // is the one call that legitimately takes seconds.
-      timeout: config.get('backend').validateTimeoutMs
+      timeout: timeoutMs
     })
 
     if (!payload.valid) {
@@ -102,8 +106,16 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
 
+    // The status code alone is ambiguous — wreck gives its own timeout a 504
+    // and a dropped connection a 502 — so say which failure this was, how long
+    // it took and what answered, so the cause of a 502 can be read off the log.
+    // It gives only the safe fields of the backend's body, never its messages.
+    const failure = describeBackendFailure(error, {
+      elapsedMs: performance.now() - startedAt,
+      timeoutMs
+    })
     logger.error(
-      `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, responsePayload: ${JSON.stringify(responsePayload)}, message: ${error?.message}`
+      `Error validating ${uploadType.label} habitats - uploadId: ${uploadId}, statusCode: ${statusCode}, ${failure}, message: ${error?.message}`
     )
 
     // A busy validator means the file was never looked at. It is the one

@@ -13,6 +13,18 @@ export function loadCreatedHedgerowReference() {
   return loadCreationReference('hedgerow', 'hedgerow', false)
 }
 
+export function loadCreatedWatercourseReference() {
+  return loadCreationReference('watercourse', 'watercourse', false)
+}
+
+function hasRequiredArrays(kind, payload) {
+  const fields = ['habitatTypes', 'strategicSignificance']
+  if (kind === 'watercourse') {
+    fields.push('watercourseEncroachment', 'riparianEncroachment')
+  }
+  return fields.every((field) => Array.isArray(payload?.[field]))
+}
+
 async function loadCreationReference(kind, referenceName, hasBroadHabitat) {
   if (!referencePromises.has(kind)) {
     referencePromises.set(
@@ -22,8 +34,7 @@ async function loadCreationReference(kind, referenceName, hasBroadHabitat) {
         .then(({ res, payload }) => {
           if (
             res?.statusCode >= statusCodes.badRequest ||
-            !Array.isArray(payload?.habitatTypes) ||
-            !Array.isArray(payload?.strategicSignificance) ||
+            !hasRequiredArrays(kind, payload) ||
             !payload?.timeMultipliers
           ) {
             throw new Error(

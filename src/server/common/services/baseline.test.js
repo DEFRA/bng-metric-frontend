@@ -1,7 +1,19 @@
+import Boom from '@hapi/boom'
 import { vi } from 'vitest'
 
 import { validateBaseline, validatePostIntervention } from './baseline.js'
 import { wreck } from '../helpers/wreck-client.js'
+
+const mockLoggerError = vi.hoisted(() => vi.fn())
+
+vi.mock('../helpers/logging/logger.js', () => ({
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: mockLoggerError
+  })
+}))
 
 vi.mock('../helpers/wreck-client.js', () => ({
   wreck: {
@@ -92,6 +104,32 @@ describe('#validateBaseline', () => {
     expect(result.errors).toEqual([
       { code: 'VALIDATION_FAILED', message: 'Bad input' }
     ])
+  })
+
+  test('Should log the backend reason phrase but not its messages', async () => {
+    const boomError = {
+      output: { statusCode: 400 },
+      data: {
+        isResponseError: true,
+        res: { statusCode: 400 },
+        payload: {
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'echoed user input jane@example.com',
+          errors: [{ code: 'INVALID_NAME', message: 'jane@example.com' }]
+        }
+      },
+      message: 'Response Error: 400 Bad Request'
+    }
+    vi.mocked(wreck.post).mockRejectedValue(boomError)
+
+    await validateBaseline(makeRequest(), projectId, uploadId)
+
+    const logged = mockLoggerError.mock.calls.at(-1)[0]
+    expect(logged).toContain(
+      'body: {"error":"Bad Request","errorCodes":["INVALID_NAME"]}'
+    )
+    expect(logged).not.toContain('jane@example.com')
   })
 
   test('Should throw a Boom badGateway error on 5xx response from backend', async () => {
@@ -199,6 +237,49 @@ describe('#validateBaseline', () => {
     const result = await validateBaseline(makeRequest(), projectId, uploadId)
 
     expect(result.retryAfterSeconds).toBeNull()
+  })
+
+  // The 502 the user sees hides which failure it was. The log says, so the
+  // cause can be read off it: what answered, or that nothing did.
+  test('Should log what answered a 5xx, with its body as text', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(
+      new Boom.Boom('Response Error: 502 Bad Gateway', {
+        statusCode: 502,
+        data: {
+          isResponseError: true,
+          headers: { 'content-type': 'text/html', server: 'nginx' },
+          res: { statusCode: 502 },
+          payload: Buffer.from('<title>502 Bad Gateway</title>')
+        }
+      })
+    )
+
+    await expect(
+      validatePostIntervention(makeRequest(), projectId, uploadId)
+    ).rejects.toMatchObject({ output: { statusCode: 502 } })
+
+    const line = mockLoggerError.mock.calls.at(-1)[0]
+    expect(line).toContain(
+      `Error validating post-intervention habitats - uploadId: ${uploadId}, statusCode: 502, failure: response,`
+    )
+    expect(line).toContain(
+      'server: nginx, body: <title>502 Bad Gateway</title>'
+    )
+    expect(line).toMatch(/elapsedMs: \d+, timeoutMs: \d+/)
+  })
+
+  test('Should log a timeout as a timeout, not the 504 wreck gives it', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(
+      Boom.gatewayTimeout('Client request timeout')
+    )
+
+    await expect(
+      validateBaseline(makeRequest(), projectId, uploadId)
+    ).rejects.toMatchObject({ output: { statusCode: 502 } })
+
+    expect(mockLoggerError.mock.calls.at(-1)[0]).toContain(
+      'statusCode: 504, failure: timeout,'
+    )
   })
 
   test('Should throw a Boom badGateway error on network failure', async () => {

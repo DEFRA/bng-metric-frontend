@@ -276,6 +276,67 @@ describe('watercourses post intervention', () => {
     expect($('#created').find('h3').text()).toBe('Created watercourse habitats')
   })
 
+  test.each([undefined, null, ''])(
+    'renders legacy Created rows with root category %j in the Created grid',
+    async (retentionCategory) => {
+      const legacy = {
+        ...createdWatercourseFirst,
+        retentionCategory,
+        baseline: {
+          ...retainedWatercourse.baseline,
+          retentionCategory: '2. Created'
+        },
+        proposed: { ...createdWatercourseFirst.proposed, delayYears: 0 }
+      }
+      if (retentionCategory === undefined) {
+        delete legacy.retentionCategory
+      }
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: {
+          project: {
+            ...project.project,
+            postIntervention: {
+              ...project.project.postIntervention,
+              watercourses: [legacy]
+            }
+          }
+        }
+      })
+      const { result, statusCode } = await server.inject({
+        method: 'GET',
+        url: pagePath,
+        auth
+      })
+      expect(statusCode).toBe(statusCodes.ok)
+      const $ = load(result)
+      expect($('.govuk-tabs__tab').text().trim()).toBe('Created')
+      expect($('#retained')).toHaveLength(0)
+      const panel = $('#created')
+      const columns = panel
+        .find('thead th')
+        .map((_, cell) => $(cell).text().trim())
+        .get()
+      const cells = panel
+        .find('tbody tr')
+        .first()
+        .find('td, th')
+        .map((_, cell) => $(cell).text().trim())
+        .get()
+      expect(cells[columns.indexOf('Watercourse encroachment')]).toBe(
+        'No encroachment (1)'
+      )
+      expect(cells[columns.indexOf('Riparian encroachment')]).toBe(
+        'Minor/Minor (0.8)'
+      )
+      expect(cells[columns.indexOf('Advance')]).toBe('10 years')
+      expect(cells[columns.indexOf('Delay')]).toBe('0 years')
+      expect(panel.find('tbody a').attr('href')).toBe(
+        `/post-intervention-habitat-details?featureId=${legacy.featureId}&projectId=${projectId}&returnUrl=${encodeURIComponent(pagePath)}`
+      )
+    }
+  )
+
   test('renders retained columns, values, totals and unsorted headers', async () => {
     const { result } = await server.inject({
       method: 'GET',

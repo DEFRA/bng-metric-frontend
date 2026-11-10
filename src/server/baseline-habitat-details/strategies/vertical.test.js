@@ -81,7 +81,7 @@ describe('verticalStrategy', () => {
     expect(reference.conditions).toEqual(conditions)
   })
 
-  test('shows the face area in square metres, as entered', async () => {
+  test('shows the face area in hectares, as entered', async () => {
     const reference = await verticalStrategy.loadReference(wall)
     const viewModel = verticalStrategy.buildViewModel(wall, reference, {
       projectId: 'p1',
@@ -90,8 +90,8 @@ describe('verticalStrategy', () => {
 
     expect(viewModel).toMatchObject({
       habitatRef: 'V-1',
-      sizeDisplay: '37.5m²',
-      sizeLabel: 'Size (square metres)',
+      sizeDisplay: '0.00375ha',
+      sizeLabel: 'Size (hectares)',
       backHref: '/projects/p1/area-baseline'
     })
     expect(viewModel.habitatTypeOptions.map((o) => o.value)).toEqual([

@@ -1,221 +1,364 @@
+import { formatVerticalArea } from '../common/helpers/format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import {
-  HABITAT_REF_INVALID_CHARACTERS_TEXT,
-  HABITAT_REF_MISSING_TEXT,
-  resolveSingleErrorCopy
-} from './single-error-copy.js'
+  WHEN_ALONE,
+  canFill,
+  catchAllPage,
+  dropoutCopy,
+  errorCopy,
+  fill,
+  firstKnown,
+  joinKnownParts,
+  pageText
+} from './dropout-copy.js'
+import { resolveSingleErrorCopy } from './single-error-copy.js'
 
-// BMD-1058: errors that stand for every habitat they apply to at once, shown
-// as one heading with no list of habitats. A habitat with no reference has
-// nothing to list it by. The heading is the frontend's, matching the
-// single-error copy, rather than the backend's message.
-const COLLATED_ERROR_HEADINGS = {
-  HABITAT_REF_MISSING: HABITAT_REF_MISSING_TEXT,
-  HABITAT_REF_INVALID_CHARACTERS: HABITAT_REF_INVALID_CHARACTERS_TEXT
+// The drop-out page for a file with more than one problem: a heading for each
+// error and a bullet for each habitat it names. The wording is the upload
+// section of common/error-text/error-text.yaml; this module works out the
+// {values} each error's bullets
+// name, from the habitats in its details.sample.
+
+const { names, unknown } = dropoutCopy
+
+function known(value) {
+  return value == null || value === '' ? null : value
 }
 
-// Per-error renderers — mirror the backend's formatting so each offender
-// can be shown on its own line under the error-type heading rather than
-// crammed into a single comma-separated string.
-
-function describeFeature(s) {
-  if (s?.feature_ref) {
-    return `Feature Ref ${s.feature_ref}`
-  }
-  if (s?.fid != null && s.fid !== '') {
-    return `fid ${s.fid}`
-  }
-  if (s?.idx != null) {
-    return `feature #${s.idx}`
-  }
-  return 'feature'
-}
-
-function describeOverlapPair(s) {
-  const a = describeFeature({
-    feature_ref: s?.feature_ref_a,
-    fid: s?.fid_a,
-    idx: s?.idx_a
+// How most errors name a habitat: by its Feature Ref, fid or position.
+function featureName(s, suffix = '') {
+  return firstKnown(names.feature, {
+    featureRef: known(s?.[`feature_ref${suffix}`]),
+    fid: known(s?.[`fid${suffix}`]),
+    idx: s?.[`idx${suffix}`]
   })
-  const b = describeFeature({
-    feature_ref: s?.feature_ref_b,
-    fid: s?.fid_b,
-    idx: s?.idx_b
-  })
-  return `${a} ↔ ${b}`
 }
 
-function describeSliver(s) {
-  const area = Number(s?.area_sqm ?? 0).toFixed(2)
-  const loc = s?.location_wkt ?? 'unknown location'
-  return `~${area} sq m near ${loc}`
+function squareMetres(value) {
+  return value == null ? null : Number(value).toFixed(2)
 }
 
-function describeFeatureWithArea(s) {
-  const base = describeFeature(s)
-  if (s?.area_sqm == null) {
-    return base
-  }
-  return `${base} — ~${Number(s.area_sqm).toFixed(2)} sq m`
-}
-
-function describeFeatureWithEscape(s) {
-  const base = describeFeature(s)
-  if (s?.escape_area_sqm == null || s?.escape_location_wkt == null) {
-    return base
-  }
-  const area = Number(s.escape_area_sqm).toFixed(2)
-  return `${base} — ~${area} sq m near ${s.escape_location_wkt}`
-}
-
-// Backend emits the reference-data band identifiers; the AC uses
+// Backend emits the reference-data band identifiers; the copy gives
 // user-facing labels ("V.High" → "Very high" etc.). Unknown values pass
 // through unchanged so we never silently swallow a new band the backend
 // might introduce.
-const BAND_DISPLAY_NAMES = {
-  'V.High': 'Very high',
-  High: 'High',
-  Medium: 'Medium',
-  Low: 'Low',
-  'V.Low': 'Very low'
-}
-
 function displayBand(band) {
-  return BAND_DISPLAY_NAMES[band] ?? band ?? 'unknown'
+  return (
+    (Object.hasOwn(dropoutCopy.distinctiveness, band ?? '')
+      ? dropoutCopy.distinctiveness[band]
+      : known(band)) ?? unknown.distinctiveness
+  )
 }
 
-function describeDistinctivenessOffender(s) {
-  const base = describeFeature(s)
-  const type = s?.habitat_type ?? 'unknown habitat'
-  return `${base} — ${type} (${displayBand(s?.distinctiveness)})`
-}
-
-// BMD-1182: the baseline habitat that cannot be enhanced, in the condition
-// that makes it so.
-function describeUnenhanceableBaseline(s) {
-  const base = describeFeature(s)
-  const type = s?.habitat_type ?? 'unknown habitat'
-  return s?.condition
-    ? `${base} — ${type} (${s.condition})`
-    : `${base} — ${type}`
-}
-
-// BMD-1083/BMD-1086: the lineage checks of a BNG Service template file name a
-// post-intervention row or a baseline parent by its template table, Habitat
-// Ref and habitat type, as the backend's message does. A row's parent, or a
-// parent's post-intervention rows, follow it, so the user can find both.
-
-function lineageName(s) {
-  if (s?.ref) {
-    return s.ref
+function featureValues(s) {
+  return {
+    feature: featureName(s),
+    reason: known(s?.reason),
+    condition: known(s?.condition)
   }
-  return s?.fid == null ? 'a habitat' : `fid ${s.fid}`
 }
 
 function joinRefs(refs) {
   return (refs ?? []).filter(Boolean).join(', ')
 }
 
-function describeLineageFeature(s) {
-  const table = s?.table ? `${s.table} ` : ''
-  const type = s?.habitatType ? ` — ${s.habitatType}` : ''
-  return `${table}${lineageName(s)}${type}`
-}
-
-function describeLineageRow(s) {
-  const base = describeLineageFeature(s)
-  return s?.parentRef ? `${base}, copied from ${s.parentRef}` : base
-}
-
-function describeLineageParent(s) {
-  const base = describeLineageFeature(s)
-  const rows = joinRefs(s?.childRefs)
-  return rows ? `${base}, copied to ${rows}` : base
-}
-
-function describeAmbiguousParent(s) {
-  const base = describeLineageFeature({ ...s, ref: joinRefs(s?.refs) })
-  const rows = joinRefs(s?.childRefs)
-  return rows ? `${base}, named by ${rows}` : base
-}
-
-function describeHedgerowChildrenTooLong(s) {
-  const base = describeLineageParent(s)
-  if (s?.lengthMetres == null || s?.childLengthMetres == null) {
-    return base
+// BMD-1083/BMD-1086: the lineage checks of a BNG Service template file name a
+// post-intervention row or a baseline parent by its template table, Habitat
+// Ref and habitat type, as the backend's message does. A row's parent, or a
+// parent's post-intervention rows, follow it, so the user can find both.
+function lineageValues(s) {
+  return {
+    table: known(s?.table),
+    name: firstKnown(names.habitat, {
+      ref: known(s?.ref),
+      fid: s?.fid
+    }),
+    habitatType: known(s?.habitatType),
+    parentRef: known(s?.parentRef),
+    childRefs: joinRefs(s?.childRefs),
+    length: s?.lengthMetres,
+    childLength: s?.childLengthMetres,
+    // A vertical area habitat's, in hectares as the surveyor typed them and
+    // in square metres, as the habitat pages show them.
+    area: formatVerticalArea(s?.areaSquareMetres),
+    childArea: formatVerticalArea(s?.childAreaSquareMetres),
+    // A tree's Count, and its kept trees' together.
+    count: s?.count,
+    childCount: s?.childCount
   }
-  return `${base} (${s.lengthMetres} m, linked ${s.childLengthMetres} m)`
 }
 
-function describeVerticalChildrenTooLarge(s) {
-  const base = describeLineageParent(s)
-  if (s?.areaSquareMetres == null || s?.childAreaSquareMetres == null) {
-    return base
+// An ambiguous parent is every baseline habitat that shares the identity.
+function ambiguousParentValues(s) {
+  return lineageValues({ ...s, ref: joinRefs(s?.refs) })
+}
+
+function overlapValues(s) {
+  return {
+    featureA: featureName(s, '_a'),
+    featureB: featureName(s, '_b')
   }
-  return `${base} (${s.areaSquareMetres} m², linked ${s.childAreaSquareMetres} m²)`
 }
 
-const LINEAGE_DESCRIBERS = {
-  STAGED_PARENT_LINK_MISSING: describeLineageFeature,
-  STAGED_UNKNOWN_PARENT_REF: describeLineageFeature,
-  STAGED_AMBIGUOUS_PARENT: describeAmbiguousParent,
-  STAGED_BASELINE_DRIFTED: describeLineageParent,
-  STAGED_HEDGEROW_CHILDREN_TOO_LONG: describeHedgerowChildrenTooLong,
-  STAGED_VERTICAL_CHILDREN_TOO_LARGE: describeVerticalChildrenTooLarge,
-  STAGED_WATERCOURSE_RETAINED_AND_CREATED: describeLineageParent,
-  STAGED_NATURAL_WATERCOURSE_LOST: describeLineageParent,
-  STAGED_DEGRADE_NOT_WORSE: describeLineageRow,
-  STAGED_DEGRADE_ADVANCE_NOT_30_PLUS: describeLineageRow,
-  STAGED_WATERCOURSE_NO_INTERVENTION: describeLineageRow
+function sliverValues(s) {
+  return {
+    area: squareMetres(s?.area_sqm ?? 0),
+    location: s?.location_wkt ?? unknown.location
+  }
 }
 
-// A vertical area habitat whose typed Area is not a number above 0, with the
-// value the file holds.
-function describeVerticalArea(s) {
-  const area = s?.area == null || s.area === '' ? 'blank' : s.area
-  return `${describeFeature(s)} (Area: ${area})`
+function tooSmallValues(s) {
+  return { ...featureValues(s), area: squareMetres(s?.area_sqm) }
 }
 
-function describeFeatureWithReason(s) {
-  const base = describeFeature(s)
-  return s?.reason ? `${base} (${s.reason})` : base
+function outsideRedlineValues(s) {
+  const escaped = s?.escape_area_sqm != null && s?.escape_location_wkt != null
+  return {
+    ...featureValues(s),
+    area: escaped ? squareMetres(s.escape_area_sqm) : null,
+    location: escaped ? s.escape_location_wkt : null
+  }
 }
 
-// How each error's offenders are listed, by error code; any other code lists
-// each offender by its ref.
-const SAMPLE_DESCRIBERS = {
-  PARCEL_OVERLAPS: describeOverlapPair,
-  SLIVERS_OUTSIDE_REDLINE: describeSliver,
-  AREA_PARCELS_TOO_SMALL: describeFeatureWithArea,
-  AREA_PARCELS_INVALID_GEOMETRY: describeFeatureWithReason,
-  AREA_PARCELS_OUTSIDE_REDLINE: describeFeatureWithEscape,
-  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: describeDistinctivenessOffender,
-  BASELINE_NOT_ENHANCEABLE: describeUnenhanceableBaseline,
-  VERTICAL_HABITAT_AREA_NOT_POSITIVE: describeVerticalArea,
-  ...LINEAGE_DESCRIBERS
+function distinctivenessValues(s) {
+  return {
+    ...featureValues(s),
+    habitatType: known(s?.habitat_type) ?? unknown.habitatType,
+    distinctiveness: displayBand(s?.distinctiveness)
+  }
+}
+
+function unenhanceableValues(s) {
+  return {
+    ...featureValues(s),
+    habitatType: known(s?.habitat_type) ?? unknown.habitatType
+  }
+}
+
+// A vertical area habitat's typed Area, with the value the file holds.
+function verticalAreaValues(s) {
+  return { ...featureValues(s), area: known(s?.area) ?? unknown.area }
+}
+
+// An irreplaceable tree, by its Habitat Ref, in the table of the stage that
+// marks it.
+function irreplaceableTreeValues(s) {
+  return {
+    table: known(s?.table),
+    tree: firstKnown(names.tree, {
+      featureRef: known(s?.feature_ref),
+      fid: known(s?.fid),
+      idx: s?.idx
+    })
+  }
+}
+
+// The {values} each error's bullets name, by error code; any other code names
+// each habitat by its ref.
+const SAMPLE_VALUES = {
+  PARCEL_OVERLAPS: overlapValues,
+  SLIVERS_OUTSIDE_REDLINE: sliverValues,
+  AREA_PARCELS_TOO_SMALL: tooSmallValues,
+  AREA_PARCELS_OUTSIDE_REDLINE: outsideRedlineValues,
+  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: distinctivenessValues,
+  BASELINE_NOT_ENHANCEABLE: unenhanceableValues,
+  VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaValues,
+  IRREPLACEABLE_TREE: irreplaceableTreeValues,
+  STAGED_AMBIGUOUS_PARENT: ambiguousParentValues
+}
+
+const DEFAULT_ITEM = '{feature}'
+
+// How a code's bullets get their {values}. A code whose copy gives no item is
+// named by its ref, whatever it is.
+function valuesFor(code) {
+  if (!inListCopy(code).item) {
+    return featureValues
+  }
+  if (Object.hasOwn(SAMPLE_VALUES, code)) {
+    return SAMPLE_VALUES[code]
+  }
+  return code.startsWith('STAGED_') ? lineageValues : featureValues
+}
+
+/**
+ * The {values} a code's bullets can name, so a test can check the copy names
+ * no other: a name the code does not supply would leave its part off every
+ * bullet.
+ *
+ * @param {string} code
+ * @returns {string[]}
+ */
+export function itemValueNames(code) {
+  return Object.keys(valuesFor(code)({}))
+}
+
+// The copy for an error in a list. A code that words a problem more than one
+// way names the way in details.variants, and each variant's heading, item or
+// detail replaces the code's own.
+function inListCopy(code, variants = []) {
+  const inList = errorCopy(code)?.inList
+  if (typeof inList !== 'object') {
+    return {}
+  }
+  return variants.reduce(
+    (copy, variant) => ({ ...copy, ...inList.variants?.[variant] }),
+    inList
+  )
+}
+
+function variantsOf(err) {
+  const variants = err.details?.variants
+  return Array.isArray(variants) ? variants : []
+}
+
+// Each value as the backend's message writes it.
+const asText = (value) => (value == null || value === '' ? null : String(value))
+const asList = (value) => (Array.isArray(value) ? value.join(', ') : null)
+const asNumber = (format) => (value) =>
+  Number.isFinite(value) ? format(value) : null
+const grouped = asNumber((n) => n.toLocaleString('en-GB'))
+const wholeNumber = asNumber((n) => n.toFixed(0))
+const twoDecimals = asNumber((n) => n.toFixed(2))
+const hexadecimal = asNumber((n) => n.toString(16).toUpperCase())
+// A value the file holds, or the copy's word for one it leaves blank or
+// unset (the backend sends that as null). A value the details do not carry at
+// all is missing, as for any other: the file did not say it was blank.
+const fileValue = (blankWord) => (value) =>
+  value === undefined ? null : (asText(value) ?? blankWord)
+const srsId = fileValue(unknown.srsId)
+const fileText = fileValue(unknown.blank)
+// A type label with its article: "a Text", "an Integer".
+function withArticle(value) {
+  if (!value) {
+    return null
+  }
+  const article = /^[aeiou]/i.test(value) ? 'an' : 'a'
+  return `${article} ${value}`
+}
+
+/**
+ * The values each error's heading and bullets name from its details, when it
+ * names no habitats: the backend sends them raw (its ERROR_CODE_DETAILS), and
+ * this formats each as the backend's message does.
+ */
+const DETAIL_VALUES = {
+  GPKG_NOT_A_GEOPACKAGE: { applicationId: hexadecimal },
+  GPKG_MISSING_SYSTEM_TABLE: { table: asText },
+  GPKG_MISSING_LAYER: { layer: asText },
+  // The name of a table the file adds.
+  GPKG_UNEXPECTED_FEATURE_LAYER: { layer: fileText },
+  GPKG_BASELINE_CONTENTS_DATA_TYPE: {
+    layer: asText,
+    expected: asText,
+    found: fileText
+  },
+  GPKG_BASELINE_SRS_ID: {
+    layer: asText,
+    expectedSrsId: asText,
+    foundSrsId: asText,
+    contentsSrsId: srsId,
+    geometryColumnsSrsId: srsId
+  },
+  GPKG_BASELINE_GPKG_SRS_INCONSISTENT: {
+    layer: asText,
+    contentsSrsId: srsId,
+    geometryColumnsSrsId: srsId
+  },
+  GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME: {
+    layer: asText,
+    column: fileText,
+    expected: asText
+  },
+  GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS: { layer: asText, found: asText },
+  GPKG_BASELINE_GEOMETRY_TYPE_NAME: {
+    layer: asText,
+    expected: asText,
+    found: fileText
+  },
+  // The geometry variant's column is the name the file registers.
+  GPKG_BASELINE_MISSING_COLUMN: { layer: asText, column: fileText },
+  // For a geometry column, column is the name the file registers.
+  GPKG_BASELINE_COLUMN_SQLITE_TYPE: {
+    layer: asText,
+    column: fileText,
+    expectedType: asText,
+    actualType: withArticle
+  },
+  GPKG_BASELINE_COLUMN_NOT_NULL: { layer: asText, column: asText },
+  GPKG_BASELINE_COLUMN_PRIMARY_KEY: { layer: asText, column: asText },
+  GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING: { layer: asText },
+  GPKG_TOO_MANY_FEATURES: { featureCount: grouped, maxFeatureCount: grouped },
+  TEMPLATE_VERSION_DUPLICATED: { recordCount: asText },
+  TEMPLATE_VERSION_UNSUPPORTED: { version: asText, supportedVersions: asList },
+  REDLINE_AREA_TOO_LARGE: { areaSqM: wholeNumber },
+  REDLINE_INVALID_GEOMETRY: { reason: asText, location: asText },
+  AREA_SUM_MISMATCH: {
+    habitatsAreaSqM: twoDecimals,
+    redlineAreaSqM: twoDecimals
+  },
+  BASELINE_TYPE_MISSING: { rowCount: asText }
+}
+
+function detailValues(err) {
+  const formats = DETAIL_VALUES[err.code] ?? {}
+  return Object.fromEntries(
+    Object.entries(formats).map(([name, format]) => [
+      name,
+      format(err.details?.[name])
+    ])
+  )
+}
+
+/**
+ * The {values} a code's heading and detail can name, for a test to check.
+ *
+ * @param {string} code
+ * @returns {string[]}
+ */
+export function detailValueNames(code) {
+  return Object.keys(DETAIL_VALUES[code] ?? {})
+}
+
+function listsHabitats(code) {
+  return inListCopy(code).listsHabitats !== false
 }
 
 function buildItems(err) {
-  if (COLLATED_ERROR_HEADINGS[err.code]) {
+  if (!listsHabitats(err.code)) {
     return []
   }
-  // Non-list errors don't carry details. Use the part of the message after
-  // the first ": " as the single sub-line; if there's no separator, the
-  // heading already says everything (no items).
+  // An error that names no habitats has one bullet at most: its copy's
+  // detail, filled from its details, when it gives one and any of it is known.
   if (!err.details?.sample) {
-    const idx = err.message.indexOf(': ')
-    return idx === -1 ? [] : [err.message.slice(idx + 2)]
+    const { detail } = inListCopy(err.code, variantsOf(err))
+    const bullet = detail ? joinKnownParts(detail, detailValues(err)) : ''
+    return bullet ? [bullet] : []
   }
-  const describe = SAMPLE_DESCRIBERS[err.code] ?? describeFeature
-  return err.details.sample.map(describe)
+  const item = inListCopy(err.code).item ?? DEFAULT_ITEM
+  const values = valuesFor(err.code)
+  // A bullet whose every part lacks a value would be an empty line, so name
+  // the habitat by its ref instead.
+  return err.details.sample.map(
+    (s) =>
+      joinKnownParts(item, values(s)) ||
+      joinKnownParts(DEFAULT_ITEM, featureValues(s))
+  )
+}
+
+// The catch-all title, for a code with no heading of its own (inList:
+// catch-all, or none in the copy), or one whose details lack a value its
+// heading names.
+function catchAllHeading() {
+  return firstKnown(catchAllPage().title)
 }
 
 function buildHeading(err) {
-  if (COLLATED_ERROR_HEADINGS[err.code]) {
-    return COLLATED_ERROR_HEADINGS[err.code]
-  }
-  const idx = err.message.indexOf(': ')
-  return idx === -1 ? err.message : err.message.slice(0, idx)
+  const { heading } = inListCopy(err.code, variantsOf(err))
+  const values = detailValues(err)
+  return heading && canFill(heading, values)
+    ? fill(heading, values)
+    : catchAllHeading()
 }
 
 function joinWithAnd(items) {
@@ -229,23 +372,23 @@ function joinWithAnd(items) {
 // offender list. For distinctiveness rejection the backend supplies the raw
 // allowed-band identifiers in details.allowedBands; we map them through
 // displayBand so the user sees "Very low" rather than "V.Low".
+/** The {values} a list's note can name, for a test to check. */
+export const NOTE_VALUE_NAMES = Object.freeze(['bands'])
+
 function buildNote(err) {
-  if (err.code !== 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE') {
-    return null
-  }
+  const note = inListCopy(err.code).note
   const bands = err.details?.allowedBands
-  if (!Array.isArray(bands) || bands.length === 0) {
+  if (!note || !Array.isArray(bands) || bands.length === 0) {
     return null
   }
-  const labels = bands.map(displayBand)
-  return `Allowed distinctiveness: ${joinWithAnd(labels)}.`
+  return fill(note, { bands: joinWithAnd(bands.map(displayBand)) })
 }
 
 function buildBlock(err) {
   const items = buildItems(err)
   const total = Number(err.details?.count ?? 0)
   const more =
-    err.details && !COLLATED_ERROR_HEADINGS[err.code]
+    err.details && listsHabitats(err.code)
       ? Math.max(0, total - (err.details.sample?.length ?? 0))
       : 0
   const note = buildNote(err)
@@ -256,34 +399,46 @@ function buildBlock(err) {
   return block
 }
 
+// Two errors the page words the same way, such as two the copy has no
+// heading for, say nothing new the second time: show each block once.
+function distinctBlocks(blocks) {
+  const seen = new Set()
+  return blocks.filter((block) => {
+    const key = JSON.stringify([
+      block.heading,
+      block.items,
+      block.more,
+      block.note ?? null
+    ])
+    if (seen.has(key)) {
+      return false
+    }
+    seen.add(key)
+    return true
+  })
+}
+
+// What a placeholder page says of the error: its heading and bullets as the
+// list shows them.
+function placeholderMessage(block) {
+  const more =
+    block.more > 0
+      ? fill(dropoutCopy.placeholder.more, { count: block.more })
+      : ''
+  if (block.items.length === 0) {
+    return `${block.heading}${more}`
+  }
+  return `${block.heading}: ${block.items.join(', ')}${more}`
+}
+
 const SINGLE_VALIDATION_ERROR = 1
 
-// A lineage error is its list of habitats: which rows, and which parents, the
-// user has to put right. The backend's heading already says what the Metric
-// guide asks for, so even on its own it is shown as a list, never reduced to
-// single-error copy.
-//
-// A BNG Service template file the service cannot read as one has no copy of
-// its own yet either. Shown alone through single-error copy it would carry
-// the "PLACEHOLDER (AWAITING UCD)" title, and a legacy file refused once the
-// flag is on is the refusal users will meet most, so it is shown the same
-// way: under the backend's message, which says what to do.
-//
-// Both are interim layouts until UCD's copy (BMD-1086).
-const TEMPLATE_FILE_ERROR_CODES = new Set([
-  'TEMPLATE_VERSION_MISSING',
-  'TEMPLATE_VERSION_DUPLICATED',
-  'TEMPLATE_VERSION_INVALID',
-  'TEMPLATE_VERSION_UNSUPPORTED',
-  'LEGACY_TEMPLATE_NOT_ACCEPTED',
-  'POST_INTERVENTION_TABLES_EMPTY'
-])
-
+// Errors the page shows as their list even alone (whenAlone: list in the
+// copy): a lineage error is its list of habitats, which the user has to put
+// right, and a BNG Service template file the service cannot read as one has
+// no copy of its own yet, and would otherwise carry a placeholder title.
 function isShownAsList(code) {
-  return (
-    Object.hasOwn(LINEAGE_DESCRIBERS, code) ||
-    TEMPLATE_FILE_ERROR_CODES.has(code)
-  )
+  return errorCopy(code)?.whenAlone === WHEN_ALONE.LIST
 }
 
 function isShownAsSingleError(errors) {
@@ -325,7 +480,7 @@ export const invalidFileController = {
       ? validationErrors.filter((e) => e.code !== 'SLIVERS_OUTSIDE_REDLINE')
       : validationErrors
 
-    const errorBlocks = visibleErrors.map(buildBlock)
+    const errorBlocks = distinctBlocks(visibleErrors.map(buildBlock))
     const errorList = errorBlocks.map((b) => ({
       text: b.note ? `${b.heading}. ${b.note}` : b.heading
     }))
@@ -340,16 +495,21 @@ export const invalidFileController = {
     // be judged against visibleErrors — the same de-duplicated list the multi-error
     // view already renders — or AC10's personalised copy could never be reached.
     const singleError = isShownAsSingleError(visibleErrors)
-      ? resolveSingleErrorCopy(visibleErrors[0], uploadHref)
+      ? resolveSingleErrorCopy(
+          visibleErrors[0],
+          uploadHref,
+          placeholderMessage(errorBlocks[0])
+        )
       : null
 
+    const page = pageText({ fileLabel: uploadType.label })
     return h.view('error-file/index', {
-      pageTitle: singleError?.h1 ?? 'There is a problem with your file',
+      pageTitle: singleError?.h1 ?? page.title,
+      page,
       errorList,
       errorBlocks,
       singleError,
       projectId,
-      fileLabel: uploadType.label,
       uploadHref
     })
   }

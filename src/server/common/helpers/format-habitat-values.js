@@ -54,47 +54,35 @@ function formatAreaHectaresValue(squareMetres) {
 }
 
 /**
- * A vertical area habitat's face area, in square metres, as the surveyor
- * entered it: not converted, and rounded only to 10 significant figures to
- * drop floating-point noise. Returns '' for null/undefined/non-finite.
- *
- * @param {number|null|undefined} squareMetres
- * @returns {string}
- */
-function formatSquareMetresValue(squareMetres) {
-  if (!isUsableNumber(squareMetres)) {
-    return EMPTY_DISPLAY
-  }
-  return Number(squareMetres.toPrecision(AREA_SIGNIFICANT_FIGURES)).toString()
-}
-
-/**
- * As formatSquareMetresValue, with the "m²" suffix (no space), as the hectare
- * values carry "ha".
+ * An area in square metres, rounded to 10 significant figures to drop
+ * floating-point noise, with the "m²" suffix (no space), as the hectare values
+ * carry "ha". Returns '' for null/undefined/non-finite.
  *
  * @param {number|null|undefined} squareMetres
  * @returns {string}
  */
 function formatSquareMetres(squareMetres) {
-  const value = formatSquareMetresValue(squareMetres)
-  return value === EMPTY_DISPLAY
-    ? EMPTY_DISPLAY
-    : `${value}${SQUARE_METRES_UNIT}`
+  if (!isUsableNumber(squareMetres)) {
+    return EMPTY_DISPLAY
+  }
+  const value = Number(squareMetres.toPrecision(AREA_SIGNIFICANT_FIGURES))
+  return `${value}${SQUARE_METRES_UNIT}`
 }
 
 /**
- * A size on an area habitat list: a vertical area habitat's in square metres,
- * as entered, and every other's in hectares. A list's total stays in
- * hectares, vertical area habitats included, as the total habitat area does.
+ * A vertical area habitat's size on the drop-out page: in hectares, as the
+ * surveyor entered it, then in square metres, as a green wall or a hard
+ * structure is more easily pictured, e.g. "0.04ha (400m²)". Returns '' for
+ * null/undefined/non-finite.
  *
  * @param {number|null|undefined} squareMetres
- * @param {object} [feature] the row's feature, marked by asVerticalHabitats
  * @returns {string}
  */
-function formatAreaSize(squareMetres, feature) {
-  return feature?.isVerticalHabitat
-    ? formatSquareMetres(squareMetres)
-    : formatAreaHectares(squareMetres)
+function formatVerticalArea(squareMetres) {
+  if (!isUsableNumber(squareMetres)) {
+    return EMPTY_DISPLAY
+  }
+  return `${formatAreaHectares(squareMetres)} (${formatSquareMetres(squareMetres)})`
 }
 
 /**
@@ -209,9 +197,8 @@ function formatBaselineTotalLengthSize(metres) {
 export {
   formatAreaHectares,
   formatAreaHectaresValue,
-  formatAreaSize,
   formatSquareMetres,
-  formatSquareMetresValue,
+  formatVerticalArea,
   formatBaselineTotalLengthSize,
   formatLengthKm,
   formatLengthKmDisplay,

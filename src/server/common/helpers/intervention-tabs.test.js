@@ -21,4 +21,30 @@ describe('visibleInterventionTabs', () => {
   test('does not place an unrecognised category onto any tab', () => {
     expect(visibleInterventionTabs([{ retentionCategory: 'Lost' }])).toEqual([])
   })
+
+  test.each(['Retained', 'Enhanced', 'Created'])(
+    'uses the legacy baseline category for %s rows',
+    (category) => {
+      expect(
+        visibleInterventionTabs([
+          { baseline: { retentionCategory: ` 2. ${category} ` } }
+        ]).map((tab) => tab.label)
+      ).toEqual([category])
+    }
+  )
+
+  test('keeps the root category authoritative over a legacy baseline category', () => {
+    expect(
+      visibleInterventionTabs([
+        {
+          retentionCategory: 'Retained',
+          baseline: { retentionCategory: 'Created' }
+        },
+        {
+          retentionCategory: 'Lost',
+          baseline: { retentionCategory: 'Created' }
+        }
+      ]).map((tab) => tab.id)
+    ).toEqual(['retained'])
+  })
 })

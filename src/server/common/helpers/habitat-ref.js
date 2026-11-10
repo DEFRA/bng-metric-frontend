@@ -10,6 +10,7 @@
  * here — the input stops at the limit anyway.
  */
 
+import { editErrorText, formErrorText } from '../error-text/error-text.js'
 import { backendStatusOf } from './backend-save-error.js'
 
 export const MAX_HABITAT_REF_LENGTH = 100
@@ -17,23 +18,24 @@ export const MAX_HABITAT_REF_LENGTH = 100
 // The input's id and name on both forms, which the error summary links to.
 export const HABITAT_REF_FIELD_ID = 'habitatRef'
 
-// Content design wording: one message pair for every invalid reference
-// (blank, whitespace only or not UTF-8). The error summary and the inline
-// message say different things by design.
-export const HABITAT_REF_ERROR = Object.freeze({
-  summary: 'You have entered an invalid habitat reference.',
-  inline: 'Enter a valid habitat reference.'
-})
+const HABITAT_REF_IN_USE_CODE = 'HABITAT_REF_IN_USE'
+
+// One message pair for every invalid reference (blank, whitespace only or not
+// UTF-8), from error-text.yaml's forms section.
+export const HABITAT_REF_ERROR = Object.freeze(
+  formErrorText(HABITAT_REF_FIELD_ID, 'invalid')
+)
 
 // A rename onto a reference another baseline habitat in the same layer already
-// carries, which the backend refuses with HABITAT_REF_IN_USE. Placeholder
-// wording until content design words it.
-export const HABITAT_REF_IN_USE_ERROR = Object.freeze({
-  summary: 'You have entered a habitat reference that is already in use.',
-  inline: 'Enter a habitat reference that is not already in use.'
-})
-
-const HABITAT_REF_IN_USE_CODE = 'HABITAT_REF_IN_USE'
+// carries, which the backend refuses with HABITAT_REF_IN_USE: error-text.yaml's
+// edit section.
+const refInUse = editErrorText(HABITAT_REF_IN_USE_CODE)
+if (!refInUse) {
+  throw new Error(
+    `error-text.yaml's edit section has no wording for ${HABITAT_REF_IN_USE_CODE}`
+  )
+}
+export const HABITAT_REF_IN_USE_ERROR = Object.freeze(refInUse)
 const UNPROCESSABLE = 422
 
 // What a UTF-8 decoder puts in place of bytes that are not valid UTF-8.

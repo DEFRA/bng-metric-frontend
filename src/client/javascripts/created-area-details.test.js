@@ -65,6 +65,46 @@ describe('Created area editing', () => {
     )
   })
 
+  test.each([
+    ['Area/compensation not in local strategy/ no local strategy', 'Low'],
+    ['Formally identified in local strategy', 'High']
+  ])(
+    'submits the saved significance %s from an incomplete legacy form',
+    (strategicSignificance, expected) => {
+      const feature = {
+        ...structuredClone(createdAreaFeature),
+        units: null,
+        status: 'Incomplete',
+        proposed: {
+          ...createdAreaFeature.proposed,
+          condition: null,
+          advanceYears: null,
+          strategicSignificanceCategory: null,
+          strategicSignificanceScore: null,
+          strategicSignificance
+        }
+      }
+      renderTemplateIntoDocument(
+        'habitat-details/pi-habitat-details-created-edit.njk',
+        buildCreatedAreaEditViewModel(feature, creationReference, ctx)
+      )
+      initCreatedAreaDetails()
+      const form = document.getElementById('strategicSignificance').form
+      expect(value('strategicSignificance')).toBe(expected)
+      expect(new FormData(form).get('strategicSignificance')).toBe(expected)
+      expect(document.body.textContent).not.toContain('is not available')
+      expect(
+        document
+          .querySelector('.app-units-delivered .govuk-summary-list__value')
+          .textContent.trim()
+      ).toBe('0.00')
+
+      // Clearing is still an explicit user choice, not a fallback to the raw label.
+      change('strategicSignificance', '')
+      expect(new FormData(form).get('strategicSignificance')).toBe('')
+    }
+  )
+
   test('announces changed calculation labels politely without moving focus', () => {
     const status = document.getElementById('created-area-results-status')
     expect(status.getAttribute('aria-live')).toBe('polite')
@@ -342,12 +382,42 @@ describe('Created area editing', () => {
     await runAxeChecks(document.documentElement)
   })
 
+  test('shows a choice error against its select, linked from the summary', async () => {
+    const values = {
+      ...createdAreaValues(createdAreaFeature),
+      habitatType: 'Not a habitat type',
+      condition: ''
+    }
+    render(values, validateCreatedArea(values, creationReference))
+    const message = 'Choose a habitat type for the selected broad habitat'
+    expect(
+      [...document.querySelectorAll('.govuk-error-summary__list a')].map(
+        (link) => ({
+          text: link.textContent.trim(),
+          href: link.getAttribute('href')
+        })
+      )
+    ).toEqual([{ text: message, href: '#habitatType' }])
+    const error = document.getElementById('habitatType-error')
+    expect(error.textContent).toContain(message)
+    expect(
+      document
+        .getElementById('habitatType')
+        .getAttribute('aria-describedby')
+        .split(/\s+/)
+    ).toContain('habitatType-error')
+    await runAxeChecks(document.documentElement)
+  })
+
   test('associates a timing select with both its imported-value hint and shared error', async () => {
     const imported = {
       ...createdAreaFeature,
       proposed: { ...createdAreaFeature.proposed, advanceYears: 2.5 }
     }
-    const error = 'Either the advance or delay field must be set at zero.'
+    const error = {
+      summary: 'A habitat cannot be created both in advance and with a delay.',
+      inline: 'Either the advance or delay field must be set at zero.'
+    }
     renderTemplateIntoDocument(
       'habitat-details/pi-habitat-details-created-edit.njk',
       {
