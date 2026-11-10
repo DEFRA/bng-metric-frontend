@@ -22,7 +22,7 @@ import {
   detailValueNames,
   itemValueNames
 } from './controller.js'
-import { pageValueNames } from './single-error-copy.js'
+import { pageValueNames, resolveSingleErrorCopy } from './single-error-copy.js'
 import { WORDING_STATUS, wordingStatus } from '../common/error-text/wording.js'
 
 const { mockWarn } = vi.hoisted(() => ({ mockWarn: vi.fn() }))
@@ -258,6 +258,30 @@ describe('parseDropoutCopy', () => {
         /^error-text\.yaml: upload\.errors\.NO_REDLINE\.wording is "pending"/
       )
     )
+  })
+
+  test("shows an error's and a fallback's words whatever their wording field says", () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    copy.errors.NO_REDLINE.wording = 'pending'
+    copy.fileProblem.wording = 'pending'
+    copy.catchAll.legacyTemplate.wording = 'pending'
+    copy.catchAll.serviceTemplate.wording = 'pending'
+    const parsed = parseDropoutCopy(JSON.stringify(copy))
+    const saved = { ...dropoutCopy }
+    Object.assign(dropoutCopy, {
+      errors: parsed.errors,
+      fileProblem: parsed.fileProblem,
+      catchAll: parsed.catchAll
+    })
+
+    try {
+      const h1 = (code) => resolveSingleErrorCopy({ code }, '/upload').h1
+      expect(h1('NO_REDLINE')).toBe(saved.errors.NO_REDLINE.whenAlone.title)
+      expect(h1('GPKG_RLB_UNREADABLE_GEOMETRY')).toBe(saved.fileProblem.title)
+      expect(h1('FILENAME_TOO_LONG')).toBe(saved.catchAll.legacyTemplate.title)
+    } finally {
+      Object.assign(dropoutCopy, saved)
+    }
   })
 
   test('refuses an error with no inList', () => {

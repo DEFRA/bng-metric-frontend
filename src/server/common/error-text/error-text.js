@@ -48,7 +48,8 @@ const formMessage = Joi.alternatives().conditional(Joi.string(), {
   })
     .and('summary', 'inline')
     .oxor('text', 'summary')
-    .when(Joi.object({ wording: Joi.valid(WORDING.INTERIM) }).unknown(), {
+    // Only "none" frees a rule of its words, as for wordsUnlessNone.
+    .when(Joi.object({ wording: Joi.invalid(WORDING.NONE) }).unknown(), {
       then: Joi.object().or('text', 'summary')
     })
 })

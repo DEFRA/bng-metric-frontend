@@ -105,7 +105,9 @@ describe('forbiddenWhenNone', () => {
 describe('wordsUnlessNone', () => {
   test.each([
     ['final', {}],
-    ['interim', { wording: WORDING.INTERIM }]
+    ['interim', { wording: WORDING.INTERIM }],
+    // A slip for "none" still needs words: the page would have none to show.
+    ['unknown', { wording: 'nnoe' }]
   ])('requires the words of %s wording', (_, value) => {
     expect(entry.validate(value).error?.message).toBe('"text" is required')
   })
@@ -116,11 +118,8 @@ describe('wordsUnlessNone', () => {
     ).toBe('"text" is not allowed')
   })
 
-  test.each([
-    ['no wording yet', { wording: WORDING.NONE }],
-    ['a value it does not know', { wording: 'interm' }]
-  ])('does not require words for %s', (_, value) => {
-    expect(entry.validate(value).error).toBeUndefined()
+  test('does not require words for an entry with no wording yet', () => {
+    expect(entry.validate({ wording: WORDING.NONE }).error).toBeUndefined()
   })
 })
 

@@ -22,6 +22,28 @@ vi.mock('../helpers/logging/logger.js', () => ({
 
 const SOURCE = readFileSync(ERROR_TEXT_FILE, 'utf8')
 
+/**
+ * Run `check` with `entries` in place of those in `section`, then put the
+ * section back: so a reader can be given entries parseErrorText has read.
+ */
+function withEntries(section, entries, check) {
+  const saved = Object.fromEntries(
+    Object.keys(entries).map((key) => [key, section[key]])
+  )
+  Object.assign(section, entries)
+  try {
+    check()
+  } finally {
+    for (const [key, entry] of Object.entries(saved)) {
+      if (entry === undefined) {
+        delete section[key]
+      } else {
+        section[key] = entry
+      }
+    }
+  }
+}
+
 describe('error-text.yaml', () => {
   test('holds the common, upload, edit, forms and pages sections', () => {
     expect(Object.keys(errorText)).toEqual([
@@ -169,6 +191,53 @@ describe("error-text.yaml's wording field", () => {
     )
   })
 
+  test.each([
+    [
+      'an edit entry',
+      (text) => (text.edit.HABITAT_REF_IN_USE = { wording: 'nnoe' }),
+      /HABITAT_REF_IN_USE\.summary.*required/
+    ],
+    [
+      'a form rule',
+      (text) => (text.forms.applicant.tooLong = { wording: 'nnoe' }),
+      /applicant\.tooLong/
+    ]
+  ])(
+    'refuses %s whose wording it does not know and that has no words',
+    (_, change, message) => {
+      const text = parseErrorText(SOURCE)
+      change(text)
+      expect(() => parseErrorText(JSON.stringify(text))).toThrow(message)
+    }
+  )
+
+  test("shows an entry's words whatever its wording field says", () => {
+    const text = parseErrorText(SOURCE)
+    text.edit.HABITAT_REF_IN_USE.wording = 'pending'
+    text.forms.applicant.tooLong.wording = 'pending'
+    text.pages.forbidden.wording = 'pending'
+    const parsed = parseErrorText(JSON.stringify(text))
+
+    withEntries(errorText.edit, parsed.edit, () => {
+      expect(editErrorText('HABITAT_REF_IN_USE')).toEqual({
+        summary: 'You have entered a habitat reference that is already in use.',
+        inline: 'Enter a habitat reference that is not already in use.'
+      })
+    })
+    withEntries(errorText.forms.applicant, parsed.forms.applicant, () => {
+      expect(formErrorText('applicant', 'tooLong', { max: 5 })).toEqual({
+        summary: 'Applicant must be 5 characters or fewer',
+        inline: 'Applicant must be 5 characters or fewer'
+      })
+    })
+    withEntries(errorText.pages, parsed.pages, () => {
+      expect(pageErrorText('forbidden')).toEqual({
+        title: 'Forbidden',
+        body: []
+      })
+    })
+  })
+
   test('refuses a form rule with both one text and a pair', () => {
     const text = parseErrorText(SOURCE)
     text.forms.applicant.tooLong.summary = 'One'
@@ -290,15 +359,16 @@ describe('formErrorText', () => {
   })
 
   test('gives common.unworded for a rule with no wording yet', () => {
-    errorText.forms.applicant.unwritten = { wording: 'none' }
-    try {
+    const text = parseErrorText(SOURCE)
+    text.forms.applicant.unwritten = { wording: 'none' }
+    const { applicant } = parseErrorText(JSON.stringify(text)).forms
+
+    withEntries(errorText.forms.applicant, applicant, () => {
       expect(formErrorText('applicant', 'unwritten')).toEqual({
         summary: 'There is a problem with this answer',
         inline: 'There is a problem with this answer'
       })
-    } finally {
-      delete errorText.forms.applicant.unwritten
-    }
+    })
   })
 
   test('throws for a rule the file does not word', () => {

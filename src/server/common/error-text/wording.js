@@ -57,17 +57,18 @@ export function forbiddenWhenNone(schema) {
 }
 
 /**
- * `schema`, the words of an entry: required when it is final or interim, and
- * refused when it has none.
+ * `schema`, the words of an entry: refused when it has none, and otherwise
+ * required. Only "none" itself frees an entry of its words, so one whose
+ * `wording` is a slip, such as "nnoe", still needs them: without them the
+ * page would have nothing to show.
  *
  * @param {import('joi').Schema} schema
  */
 export function wordsUnlessNone(schema) {
   return schema.when('wording', {
-    switch: [
-      { is: WORDING.NONE, then: Joi.forbidden() },
-      { is: Joi.valid(WORDING.INTERIM), then: Joi.required() }
-    ]
+    is: WORDING.NONE,
+    then: Joi.forbidden(),
+    otherwise: Joi.required()
   })
 }
 

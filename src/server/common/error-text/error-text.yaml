@@ -65,7 +65,7 @@
 # everything UCD still has to word. A "none" where the page would show words
 # fails the file's check. Any other value is logged as a warning when the
 # service starts and counts as unfinished wording, but changes nothing the
-# page shows: it still shows the entry's words.
+# page shows: it still shows the entry's words, so the entry must have them.
 #
 # What each upload rule checks, and which example file shows it:
 # https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md
