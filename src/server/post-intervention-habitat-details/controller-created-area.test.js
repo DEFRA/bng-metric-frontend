@@ -68,6 +68,101 @@ describe('Created area controller', () => {
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
+  test.each([
+    ['Area/compensation not in local strategy/ no local strategy', 'Low'],
+    ['Formally identified in local strategy', 'High'],
+    [
+      '  AREA / compensation not in local strategy / no local strategy  ',
+      'Low'
+    ],
+    ['formally  identified in local strategy', 'High'],
+    ['Low strategic significance', 'Low'],
+    ['HIGH STRATEGIC SIGNIFICANCE', 'High'],
+    ['low', 'Low'],
+    ['High', 'High']
+  ])(
+    'preselects and saves the valid legacy significance %s on an incomplete row',
+    async (strategicSignificance, expected) => {
+      mockFeature({
+        type: 'habitat',
+        feature: {
+          ...structuredClone(createdAreaFeature),
+          units: null,
+          status: 'Incomplete',
+          proposed: {
+            ...createdAreaFeature.proposed,
+            condition: null,
+            advanceYears: null,
+            strategicSignificanceCategory: null,
+            strategicSignificanceScore: null,
+            strategicSignificance
+          }
+        }
+      })
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+      const vm = h.view.mock.calls[0][1]
+      expect(vm.values.strategicSignificance).toBe(expected)
+      expect(vm.fields.strategicSignificance.items).toContainEqual(
+        expect.objectContaining({ value: expected, selected: true })
+      )
+      expect(vm.fields.strategicSignificance.hint).not.toContain(
+        'not available'
+      )
+      expect(vm.habitatUnitsDisplay).toBe('0.00')
+
+      // Submit the prefilled form without touching significance or missing fields.
+      await postController.handler(
+        { payload: { projectId, featureId, ...vm.values, ref: 'Renamed' } },
+        h
+      )
+      expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+        ref: 'Renamed',
+        strategicSignificance: expected,
+        condition: null,
+        advanceYears: null
+      })
+      expect(h.redirect).toHaveBeenCalled()
+    }
+  )
+
+  test.each([
+    ['Medium', 'Medium'],
+    [
+      'Location ecologically desirable but not in local strategy',
+      'Location ecologically desirable but not in local strategy'
+    ],
+    ['Unknown', 'Unknown'],
+    [42, 42],
+    [null, ''],
+    ['', '']
+  ])(
+    'keeps unsupported or blank significance %s unchanged',
+    (raw, expected) => {
+      expect(
+        createdAreaValues({
+          proposed: {
+            strategicSignificanceCategory: null,
+            strategicSignificance: raw
+          }
+        }).strategicSignificance
+      ).toBe(expected)
+    }
+  )
+
+  test('prefers the saved category, including an explicit clear, over raw significance', () => {
+    for (const category of ['Low', 'High', '']) {
+      expect(
+        createdAreaValues({
+          proposed: {
+            strategicSignificanceCategory: category,
+            strategicSignificance: 'Formally identified in local strategy'
+          }
+        }).strategicSignificance
+      ).toBe(category)
+    }
+  })
+
   test('keeps the baseline link and safe list anchor on GET and validation redisplay', async () => {
     mockFeature(
       { type: 'habitat', feature: structuredClone(createdAreaFeature) },
@@ -112,13 +207,14 @@ describe('Created area controller', () => {
     const h = createMockH()
     await postController.handler(request({ ref: 'x'.repeat(101) }), h)
     expect(wreck.put).not.toHaveBeenCalled()
-    expect(h.view.mock.calls[0][1].errors.ref).toContain(
-      '100 characters or fewer'
-    )
+    expect(h.view.mock.calls[0][1].errors.ref).toEqual({
+      summary: 'Enter a habitat reference of 100 characters or fewer.',
+      inline: 'Enter a habitat reference of 100 characters or fewer.'
+    })
     expect(h.view.mock.calls[0][1].referenceHint).toBeNull()
     expect(h.view.mock.calls[0][1].errorList[0]).toEqual({
       href: '#ref',
-      text: h.view.mock.calls[0][1].errors.ref
+      text: h.view.mock.calls[0][1].errors.ref.summary
     })
     expect(
       validateCreatedArea(
@@ -333,10 +429,10 @@ describe('Created area controller', () => {
       '#condition',
       '#advanceYears'
     ])
-    expect(vm.errors.habitatType).toBe(
+    expect(vm.errors.habitatType.inline).toBe(
       'Choose a habitat type for the selected broad habitat'
     )
-    expect(vm.errors.condition).toBe(
+    expect(vm.errors.condition.inline).toBe(
       'Choose a target condition for the selected habitat type'
     )
     expect(vm.fields.habitatType.items).toContainEqual(

@@ -208,7 +208,7 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
     expect(view.viewBaselineHref).toBeNull()
   })
 
-  test('shows a Created vertical area habitat’s timing and difficulty, and its size in square metres', async () => {
+  test('shows a Created vertical area habitat’s timing and difficulty, and its size in hectares', async () => {
     const body = serviceTemplateProject('twoStages')
     mockFeature(
       {
@@ -228,7 +228,7 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
       new RegExp(`${label}</[^>]+>\\s*<[^>]+>\\s*([^<]*?)\\s*<`).exec(html)?.[1]
 
     expect(template).toBe('habitat-details/pi-habitat-details-enhanced')
-    expect(row('Size \\(square metres\\)')).toBe('79m²')
+    expect(row('Area')).toBe('0.0079ha')
     expect(row('Advance or delay\\?')).toBe('Delay - 30 years')
     expect(row('Standard difficulty')).toBe('Medium')
     expect(row('Standard time to target condition')).toContain('8')

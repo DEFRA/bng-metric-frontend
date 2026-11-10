@@ -4,7 +4,6 @@ import { config } from '../config/config.js'
 import { home } from './home/index.js'
 import { about } from './about/index.js'
 import { auth } from './auth/index.js'
-import { dbInfo } from './db-info/index.js'
 import { projects } from './projects/index.js'
 import { defineProjectName } from './project-name/index.js'
 import { changeProjectName } from './change-project-name/index.js'
@@ -53,7 +52,6 @@ export const router = {
         home,
         about,
         auth,
-        dbInfo,
         projects,
         defineProjectName,
         changeProjectName,

@@ -20,7 +20,10 @@ on:
 
 # The suite runs twice, once in each state of the service-template flag
 # (BMD-1086), and both jobs must pass. Pull Request Checks runs it with the
-# flag off, the legacy path, and owns the coverage SonarCloud reads.
+# flag off, the legacy path, and owns the coverage SonarCloud reads. Both
+# render every page from the backend's new-shape project JSON
+# (src/server/service-template-pages/), whose layout follows the template on
+# the project, not the flag.
 jobs:
   pr-validator:
     name: Run Pull Request Checks

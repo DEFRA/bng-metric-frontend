@@ -1,3 +1,4 @@
+import { _resetCreatedAreaReferenceCache } from '../post-intervention-habitat-details/created-edit-reference.js'
 import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
@@ -128,6 +129,7 @@ describe('area post intervention', () => {
   })
 
   beforeEach(() => {
+    _resetCreatedAreaReferenceCache()
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: populatedProject
@@ -156,6 +158,113 @@ describe('area post intervention', () => {
     expect(result).toContain(
       '<h2 class="govuk-heading-m">Area habitat details</h2>'
     )
+  })
+
+  test('renders an incomplete created pond with distinctiveness, saved significance and zero units', async () => {
+    const project = structuredClone(populatedProject)
+    project.project.postIntervention.habitats = [
+      {
+        featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        ref: 'P2-7',
+        retentionCategory: 'Created',
+        units: null,
+        status: 'Incomplete',
+        sizeSquareMetres: 242.8732997,
+        proposed: {
+          broadType: 'Lakes',
+          type: 'Ponds (non-priority habitat)',
+          condition: null,
+          strategicSignificance: 'Low',
+          strategicSignificanceCategory: null,
+          strategicSignificanceScore: null,
+          distinctiveness: null,
+          distinctivenessScore: null
+        }
+      }
+    ]
+    const snapshot = structuredClone(project)
+    vi.mocked(wreck.get).mockImplementation(async (url) => ({
+      res: { statusCode: statusCodes.ok },
+      payload: url.endsWith('/reference/area-creation')
+        ? {
+            habitatTypes: [
+              {
+                name: 'Ponds (non-priority habitat)',
+                broad: 'Lakes',
+                distinctiveness: 'Medium',
+                distinctivenessScore: 4
+              }
+            ],
+            strategicSignificance: [
+              { value: 'Low', score: 1 },
+              { value: 'High', score: 1.15 }
+            ],
+            timeMultipliers: {}
+          }
+        : project
+    }))
+    const response = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+    expect(response.statusCode).toBe(statusCodes.ok)
+    const $ = load(response.result)
+    const row = $('#created tbody tr').filter(
+      (_, row) => $(row).find('a').first().text() === 'P2-7'
+    )
+    const columns = $('#created thead th')
+      .map((_, el) => $(el).text().trim())
+      .get()
+    const cell = (label) => row.find('td').eq(columns.indexOf(label))
+    expect(cell('Units').text().trim()).toBe('0.00')
+    expect(cell('Units').attr('data-sort-value')).toBe('0')
+    expect(cell('Distinctiveness').text().trim()).toBe('Medium (4)')
+    expect(cell('Strategic significance').text().trim()).toBe('Low (1)')
+    expect(cell('Target condition').text().trim()).toBe('')
+    expect(project).toEqual(snapshot)
+  })
+
+  test('still renders an incomplete created pond with zero units when the creation reference is unavailable', async () => {
+    const project = structuredClone(populatedProject)
+    project.project.postIntervention.habitats = [
+      {
+        featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        ref: 'P2-7',
+        retentionCategory: 'Created',
+        units: null,
+        status: 'Incomplete',
+        sizeSquareMetres: 242.8732997,
+        proposed: {
+          broadType: 'Lakes',
+          type: 'Ponds (non-priority habitat)',
+          strategicSignificance: 'Low',
+          distinctiveness: null,
+          distinctivenessScore: null
+        }
+      }
+    ]
+    vi.mocked(wreck.get).mockImplementation(async (url) =>
+      url.endsWith('/reference/area-creation')
+        ? { res: { statusCode: statusCodes.internalServerError }, payload: {} }
+        : { res: { statusCode: statusCodes.ok }, payload: project }
+    )
+    const response = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+    expect(response.statusCode).toBe(statusCodes.ok)
+    const $ = load(response.result)
+    const row = $('#created tbody tr').filter(
+      (_, row) => $(row).find('a').first().text() === 'P2-7'
+    )
+    const columns = $('#created thead th')
+      .map((_, el) => $(el).text().trim())
+      .get()
+    const cell = (label) => row.find('td').eq(columns.indexOf(label))
+    expect(cell('Units').text().trim()).toBe('0.00')
+    expect(cell('Distinctiveness').text().trim()).toBe('')
   })
 
   test('renders the upload action with a return URL back to this page', async () => {
@@ -388,7 +497,7 @@ describe('area post intervention', () => {
     expect($('#created tbody a').text()).toBe('T-1')
   })
 
-  test('lists a vertical area habitat in its retention tab, sized in square metres', async () => {
+  test('lists a vertical area habitat in its retention tab, sized in hectares and square metres', async () => {
     const enhancedWall = {
       featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       ref: 'V-1',
@@ -436,8 +545,8 @@ describe('area post intervention', () => {
     expect(wallRow.find('a').attr('href')).toContain(
       `featureId=${enhancedWall.featureId}`
     )
-    expect(wallRow.text()).toContain('400m²')
-    expect(wallRow.text()).not.toContain('0.04ha')
+    expect(wallRow.text()).toContain('0.04ha')
+    expect(wallRow.text()).not.toContain('m²')
   })
 
   test('treats a project of only vertical area habitats as having a baseline', async () => {
