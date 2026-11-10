@@ -3,7 +3,9 @@ import { load } from 'js-yaml'
 
 import { errorText } from '../common/error-text/error-text.js'
 import {
+  WORDING,
   logErrorTextWarnings,
+  shownWordingField,
   wordingField
 } from '../common/error-text/wording.js'
 import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
@@ -55,11 +57,20 @@ function oneKindOfBullet(inList, helpers) {
   return kinds.length > 1 ? helpers.error('any.invalid') : inList
 }
 
-// A shared fallback page, which can say its wording is not final.
-const fallbackCopy = pageCopy.keys({ wording: wordingField })
+// A shared fallback page, which can say its wording is interim.
+const fallbackCopy = pageCopy.keys({ wording: shownWordingField })
 
 const errorEntry = Joi.object({
-  wording: wordingField,
+  // "none" says the error has no words of its own yet, so it can only be on
+  // one whose whenAlone names the shared fallback the page shows instead.
+  wording: wordingField.when('whenAlone', {
+    is: Joi.valid(
+      WHEN_ALONE.CATCH_ALL,
+      WHEN_ALONE.FILE_PROBLEM,
+      WHEN_ALONE.SERVICE_PROBLEM
+    ),
+    otherwise: Joi.invalid(WORDING.NONE)
+  }),
   whenAlone: Joi.alternatives(
     Joi.string().valid(...Object.values(WHEN_ALONE)),
     pageCopy,

@@ -178,6 +178,43 @@ describe("error-text.yaml's wording field", () => {
     )
   })
 
+  test.each([
+    [
+      'an edit entry',
+      (text) => (text.edit.HABITAT_REF_IN_USE.wording = 'none'),
+      /HABITAT_REF_IN_USE\.summary.*not allowed/
+    ],
+    [
+      'a form rule',
+      (text) => (text.forms.applicant.tooLong.wording = 'none'),
+      /applicant\.tooLong\.text.*not allowed/
+    ]
+  ])('refuses %s with no wording yet that has words', (_, change, message) => {
+    const text = parseErrorText(SOURCE)
+    change(text)
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(message)
+  })
+
+  test.each([
+    [
+      'common text',
+      (text) => (text.common.unworded.wording = 'none'),
+      /unworded\.wording/
+    ],
+    [
+      'a page',
+      (text) => (text.pages.forbidden.wording = 'none'),
+      /forbidden\.wording/
+    ]
+  ])(
+    'refuses "none" on %s, which is shown all the same',
+    (_, change, message) => {
+      const text = parseErrorText(SOURCE)
+      change(text)
+      expect(() => parseErrorText(JSON.stringify(text))).toThrow(message)
+    }
+  )
+
   test('refuses common text with no words, which other entries fall back to', () => {
     const text = parseErrorText(SOURCE)
     text.common.unworded = { wording: 'none' }

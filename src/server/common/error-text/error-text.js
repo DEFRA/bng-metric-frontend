@@ -7,9 +7,11 @@ import { load } from 'js-yaml'
 import { splitLink } from './links.js'
 import {
   WORDING,
+  forbiddenWhenNone,
   logErrorTextWarnings,
-  requiredWhenWorded,
-  wordingField
+  shownWordingField,
+  wordingField,
+  wordsUnlessNone
 } from './wording.js'
 
 // Every message a customer can see when the service refuses something lives
@@ -25,23 +27,24 @@ const text = Joi.string().pattern(/\S/)
 const code = Joi.string().pattern(/^[A-Z][A-Z0-9_]*$/)
 
 // The error summary and the inline message say different things by design.
-// An entry with no wording yet has neither.
+// An entry with no wording yet has neither, and the page shows its generic
+// error.
 const message = Joi.object({
   wording: wordingField,
-  summary: requiredWhenWorded(text),
-  inline: requiredWhenWorded(text)
+  summary: wordsUnlessNone(text),
+  inline: wordsUnlessNone(text)
 }).and('summary', 'inline')
 
 // A form field's message is one text that the error summary and the inline
 // message both show, either alone or as `text` beside a `wording` field, or a
-// pair. One with no wording yet shows common.unworded.
+// pair. One with no wording yet has none of them, and shows common.unworded.
 const formMessage = Joi.alternatives().conditional(Joi.string(), {
   then: text,
   otherwise: Joi.object({
     wording: wordingField,
-    text,
-    summary: text,
-    inline: text
+    text: forbiddenWhenNone(text),
+    summary: forbiddenWhenNone(text),
+    inline: forbiddenWhenNone(text)
   })
     .and('summary', 'inline')
     .oxor('text', 'summary')
@@ -70,7 +73,10 @@ const pageLine = plainText.custom((line, helpers) => {
 // alone, or as `text` beside a `wording` field.
 const commonText = Joi.alternatives().conditional(Joi.string(), {
   then: plainText,
-  otherwise: Joi.object({ wording: wordingField, text: plainText.required() })
+  otherwise: Joi.object({
+    wording: shownWordingField,
+    text: plainText.required()
+  })
 })
 
 const errorTextSchema = Joi.object({
@@ -87,7 +93,7 @@ const errorTextSchema = Joi.object({
     .pattern(
       Joi.string(),
       Joi.object({
-        wording: wordingField,
+        wording: shownWordingField,
         title: plainText,
         body: Joi.array().items(pageLine).min(1)
       }).or('title', 'body')

@@ -39,15 +39,34 @@ export const wordingField = Joi.any().custom((value, helpers) => {
 })
 
 /**
- * `schema`, required unless its entry's `wording` says it has none: an entry
- * that is final or interim must have its words.
+ * The `wording` field of an entry whose words the page always shows, such as
+ * a page or a shared fallback. "none" would say the page shows a generic
+ * message instead, which it does not, so it is refused.
+ */
+export const shownWordingField = wordingField.invalid(WORDING.NONE)
+
+/**
+ * `schema`, refused when its entry's `wording` is "none": words there would
+ * be shown, though the entry says it has none.
  *
  * @param {import('joi').Schema} schema
  */
-export function requiredWhenWorded(schema) {
+export function forbiddenWhenNone(schema) {
+  return schema.when('wording', { is: WORDING.NONE, then: Joi.forbidden() })
+}
+
+/**
+ * `schema`, the words of an entry: required when it is final or interim, and
+ * refused when it has none.
+ *
+ * @param {import('joi').Schema} schema
+ */
+export function wordsUnlessNone(schema) {
   return schema.when('wording', {
-    is: Joi.valid(WORDING.INTERIM),
-    then: Joi.required()
+    switch: [
+      { is: WORDING.NONE, then: Joi.forbidden() },
+      { is: Joi.valid(WORDING.INTERIM), then: Joi.required() }
+    ]
   })
 }
 

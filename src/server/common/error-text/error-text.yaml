@@ -51,13 +51,18 @@
 # Wording that is not final says so, in any section, with a "wording" field
 # on its entry:
 #
-#   wording: none      it has no wording yet, so the page shows a generic
-#                      message instead
 #   wording: interim   the pages show it, but UCD has not reviewed it
+#   wording: none      it has no words of its own yet, so the page shows a
+#                      generic message instead. Only where that is so: an
+#                      edit or forms rule, which then has no words, or an
+#                      upload error whose whenAlone names a shared fallback.
+#                      A common text, a page or a shared fallback is always
+#                      shown, so can only be interim
 #
 # An entry with no "wording" field is final. Search for "wording:" to find
-# everything UCD still has to word. Any other value is logged as a warning
-# when the service starts, and read as "none".
+# everything UCD still has to word. A "none" where the page would show words
+# fails the file's check. Any other value is logged as a warning when the
+# service starts, and read as "none".
 #
 # What each upload rule checks, and which example file shows it:
 # https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md

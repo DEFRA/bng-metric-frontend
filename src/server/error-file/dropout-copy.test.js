@@ -216,6 +216,37 @@ describe('parseDropoutCopy', () => {
     expect(wordingStatus(copy.errors.NO_REDLINE)).toBe(WORDING_STATUS.FINAL)
   })
 
+  test('accepts "none" on an error the page shows a shared fallback for', () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    const [code] = Object.entries(copy.errors).find(
+      ([, entry]) => entry.whenAlone === WHEN_ALONE.FILE_PROBLEM
+    )
+    copy.errors[code].wording = 'none'
+
+    expect(
+      wordingStatus(parseDropoutCopy(JSON.stringify(copy)).errors[code])
+    ).toBe(WORDING_STATUS.NONE)
+  })
+
+  test.each([
+    [
+      'an error with copy of its own',
+      (copy) => copy.errors.NO_REDLINE,
+      /NO_REDLINE\.wording/
+    ],
+    [
+      'an error shown as its list',
+      (copy) => copy.errors.IRREPLACEABLE_TREE,
+      /IRREPLACEABLE_TREE\.wording/
+    ],
+    ['a shared fallback', (copy) => copy.fileProblem, /fileProblem\.wording/]
+  ])('refuses "none" on %s, whose words are shown', (_, entryOf, message) => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    entryOf(copy).wording = 'none'
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(message)
+  })
+
   test('warns of a wording it does not know, rather than refusing the copy', () => {
     mockWarn.mockClear()
     const copy = parseDropoutCopy(COPY_SOURCE)
