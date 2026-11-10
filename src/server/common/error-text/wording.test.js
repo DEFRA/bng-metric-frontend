@@ -135,7 +135,7 @@ describe('logErrorTextWarnings', () => {
     })
     logErrorTextWarnings(warning, 'pages')
     expect(mockWarn).toHaveBeenCalledWith(
-      'error-text.yaml: pages.forbidden.wording is "tbc", which is neither "none" nor "interim", so it is read as "none"'
+      'error-text.yaml: pages.forbidden.wording is "tbc", which is neither "none" nor "interim", so it counts as unfinished. The page still shows the entry\'s words'
     )
   })
 

@@ -28,7 +28,8 @@ const UNRECOGNISED = 'wording.unrecognised'
 /**
  * The `wording` field. A value that is neither "none" nor "interim" is a
  * warning rather than an error, so a slip in it cannot stop the server
- * starting; wordingStatus reads it as needing wording. The warning is for a
+ * starting. Only wordingStatus reads it, as unfinished: the pages show the
+ * entry's words as they would any others. The warning is for a
  * developer, so logErrorTextWarnings words it, not error-text.yaml.
  */
 export const wordingField = Joi.any().custom((value, helpers) => {
@@ -102,7 +103,7 @@ export function logErrorTextWarnings(warning, section) {
   )
   for (const { path, context } of unrecognised) {
     logger.warn(
-      `error-text.yaml: ${prefix}${path.join('.')} is "${context.value}", which is neither "${WORDING.NONE}" nor "${WORDING.INTERIM}", so it is read as "${WORDING.NONE}"`
+      `error-text.yaml: ${prefix}${path.join('.')} is "${context.value}", which is neither "${WORDING.NONE}" nor "${WORDING.INTERIM}", so it counts as unfinished. The page still shows the entry's words`
     )
   }
 }
