@@ -14,16 +14,15 @@ export const MAX_COMMENT_LENGTH = 999
 // The textarea's id and name, which the error summary links to.
 export const COMMENT_FIELD_ID = 'comment'
 
-// Placeholder wording until content design words it (BMD-1112 open point).
+// Shown in the error summary and beside the field.
 export const COMMENT_INVALID_CHARACTERS_ERROR = Object.freeze({
-  summary:
-    'PLACEHOLDER: The supporting information uses characters that are not allowed',
-  inline: 'PLACEHOLDER: Supporting information can only use UTF-8 characters'
+  summary: 'The supporting information uses invalid characters',
+  inline: 'The supporting information can only use UTF-8 characters.'
 })
 
 export const COMMENT_TOO_LONG_ERROR = Object.freeze({
-  summary: 'PLACEHOLDER: The supporting information is too long',
-  inline: `PLACEHOLDER: Supporting information must be ${MAX_COMMENT_LENGTH} characters or less`
+  summary: 'The supporting information is too long',
+  inline: `Supporting information must be ${MAX_COMMENT_LENGTH} characters or less`
 })
 
 /**
