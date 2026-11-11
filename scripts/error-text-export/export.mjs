@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -14,6 +14,7 @@ import { buildRows, statusCounts } from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
 
 // npm run export:error-text [-- --out DIR] [--sha SHA] [--branch NAME]
+//   [--summary FILE]
 //
 // Writes every message in error-text.yaml as .xlsx, .csv and .html, for
 // product, BAs and UCD to review. The file is checked as the server checks it
@@ -24,6 +25,9 @@ import { toXlsx } from './xlsx.mjs'
 // default the one checked out, or in GitHub Actions GITHUB_SHA. A pull
 // request's run passes --sha its head commit, as its merge commit has no
 // lasting URL.
+//
+// --summary appends what was exported, as Markdown, to a file: in GitHub
+// Actions, the run's job summary.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 const DEFAULT_OUT = 'export'
@@ -36,6 +40,7 @@ const USAGE = `Usage: npm run export:error-text [-- options]
   --out DIR        where to write the files (default: ${DEFAULT_OUT})
   --sha SHA        the commit the source links name (default: GITHUB_SHA, or HEAD)
   --branch NAME    the branch the files are named for (default: the GitHub ref, or the current branch)
+  --summary FILE   append what was exported, as Markdown, to FILE
   --help           show this message`
 
 function git(...args) {
@@ -121,12 +126,42 @@ export async function writeExport(source, outDir, meta) {
   return { rows, files }
 }
 
+/**
+ * What was exported, as Markdown: where from, and how many error IDs have
+ * each status.
+ *
+ * @param {Array<{ status: string }>} rows
+ * @param {ReturnType<typeof exportMeta>} meta
+ * @param {string[]} files
+ * @returns {string}
+ */
+export function summaryMarkdown(rows, meta, files) {
+  const counts = Object.entries(statusCounts(rows)).map(
+    ([status, count]) => `| ${status} | ${count} |`
+  )
+  const names = files.map((file) => `\`${path.basename(file)}\``).join(', ')
+  const commit = `[${meta.commit.slice(0, SHORT_SHA_LENGTH)}](${meta.commitUrl})`
+  return [
+    '## Error messages export',
+    '',
+    `${rows.length} error IDs from \`${meta.branch}\` at ${commit}, exported ${meta.date}.`,
+    '',
+    '| Status | Error IDs |',
+    '| --- | ---: |',
+    ...counts,
+    '',
+    `Files: ${names}`,
+    ''
+  ].join('\n')
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
       out: { type: 'string', default: DEFAULT_OUT },
       sha: { type: 'string' },
       branch: { type: 'string' },
+      summary: { type: 'string' },
       help: { type: 'boolean', default: false }
     }
   })
@@ -151,6 +186,10 @@ async function main() {
     .map(([status, count]) => `${count} ${status}`)
     .join(', ')
   console.log(`${rows.length} error IDs: ${counts}`)
+  if (values.summary) {
+    appendFileSync(values.summary, summaryMarkdown(rows, meta, files))
+    console.log(`Appended the summary to ${values.summary}`)
+  }
 }
 
 if (import.meta.main) {
