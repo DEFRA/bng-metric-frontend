@@ -62,7 +62,7 @@ export const COLUMNS = Object.freeze([
 ])
 
 // The columns that hold words a customer sees.
-const WORDING_KEYS = [
+export const WORDING_KEYS = Object.freeze([
   'summary',
   'inline',
   'pageHeading',
@@ -73,7 +73,7 @@ const WORDING_KEYS = [
   'detail',
   'listNote',
   'text'
-]
+])
 
 /** Where a customer meets an entry, as the Where it is shown column says. */
 export const SHOWN = Object.freeze({
