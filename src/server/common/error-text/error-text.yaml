@@ -246,6 +246,13 @@ upload:
     Low: Low
     V.Low: Very low
 
+  # The layers a problem can name a habitat in, as the page names them: the
+  # subheadings UCD gives problems about each layer.
+  layers:
+    habitats: Habitat parcels
+    hedgerows: Hedgerows
+    watercourses: Watercourses
+
   errors:
     # ---------------------------------------------------------------- file name
 
@@ -677,6 +684,45 @@ upload:
           baseline habitat type for each of them and [upload a new file](upload).
       inList:
         heading: '{rowCount} retained or enhanced rows have no baseline habitat type, so the baseline cannot be derived from this file'
+
+    # BMD-1195. A post-intervention upload refused because a baseline area
+    # habitat, hedgerow or watercourse it saves is incomplete: the baseline
+    # cannot be edited once a post-intervention file is uploaded (BMD-1194).
+    # A baseline-only upload is not refused for it.
+    #
+    # Ref 72 in UCD's dropout error text. The page for one habitat is UCD's
+    # (Jack Arnott), under the subheading of its layer, as a fid repeats from
+    # layer to layer. {onlyRef} and {onlyLayer} are known only when one
+    # habitat is incomplete, so a file with several shows a later page rather
+    # than naming just the first: under their layer when they share one
+    # ({sharedLayer}), and with no subheading when they do not. Those pages
+    # and the list follow UCD's sentence but UCD has not reviewed them, hence
+    # interim.
+    BASELINE_HABITATS_INCOMPLETE:
+      wording: interim
+      whenAlone:
+        - title: There is a problem with your file
+          subheading: '{onlyLayer}'
+          body: >-
+            Baseline habitat {onlyRef} cannot be processed by the service due to
+            a missing or incompatible value.
+        - title: There is a problem with your file
+          subheading: '{sharedLayer}'
+          body: >-
+            Some baseline habitats cannot be processed by the service due to a
+            missing or incompatible value.
+        - title: There is a problem with your file
+          body: >-
+            Some baseline habitats cannot be processed by the service due to a
+            missing or incompatible value.
+      inList:
+        heading: >-
+          One or more baseline habitats cannot be processed by the service due
+          to a missing or incompatible value
+        item:
+          - '{layer}: '
+          - '{feature}'
+          - ' — {habitatType}'
 
     # --------------------------------------------------------------- hedgerows
 

@@ -73,7 +73,10 @@ describe("error-text.yaml's upload section", () => {
 
   test('names only the {values} the page fills in', () => {
     for (const page of allPages) {
-      for (const name of placeholders([page.title, page.body].flat())) {
+      const words = [page.title, page.subheading, page.body]
+        .flat()
+        .filter(Boolean)
+      for (const name of placeholders(words)) {
         expect(pageValueNames(), `${page.title}: {${name}}`).toContain(name)
       }
     }
