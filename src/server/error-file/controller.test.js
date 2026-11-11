@@ -1496,6 +1496,22 @@ describe('invalidFileController.handler — one problem naming one habitat or se
     expect(view.errorBlocks[0].items).toHaveLength(2)
   })
 
+  test('shows the problems list for several hedgerows outside the boundary, not the first alone', async () => {
+    const view = await render({
+      code: 'HEDGEROWS_OUTSIDE_REDLINE',
+      details: {
+        count: 2,
+        sample: [
+          { layer: 'hedgerows', fid: 1, feature_ref: 'H1' },
+          { layer: 'hedgerows', fid: 2, feature_ref: 'H2' }
+        ]
+      }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toContain('hedgerow habitats')
+  })
+
   test("shows the page's wording for several when it has some", async () => {
     const view = await render({
       code: 'PARCEL_OVERLAPS',

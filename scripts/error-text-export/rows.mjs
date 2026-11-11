@@ -292,10 +292,6 @@ function fallbackStatuses(upload, fallback) {
   return fallbackCopies(upload, fallback).map(({ copy }) => statusOf(copy))
 }
 
-/**
- * An upload error's row, noting in `usage` each fallback it shows. A row
- * repeating a fallback's words is no further on than that fallback.
- */
 /** The words of a single-problem page worded for several, in their own columns. */
 function severalCells(copies) {
   const { pageHeading, subheading, body } = pageCopyCells(copies)
@@ -325,6 +321,10 @@ function singleProblemCells(page) {
       }
 }
 
+/**
+ * An upload error's row, noting in `usage` each fallback it shows. A row
+ * repeating a fallback's words is no further on than that fallback.
+ */
 function uploadErrorRow(upload, code, entry, usage) {
   const { singleProblemPage, problemsList } = entry
   const row = newRow(code, SHOWN.UPLOAD, entry, ['upload', 'errors', code])

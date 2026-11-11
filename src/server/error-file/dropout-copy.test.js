@@ -73,6 +73,19 @@ const allPages = [
 ]
 
 describe("error-text.yaml's upload section", () => {
+  // {ref} and the like name the first habitat an error names, so a page
+  // that uses one is worded for one, and must say so with `one:`.
+  test('words no page for any number of habitats with a value naming one', () => {
+    const naming = /\{(ref|refA|refB|onlyRef|onlyLayer)\}/
+    const plain = entries.filter(([, entry]) => {
+      const page = entry.singleProblemPage
+      return typeof page === 'object' && !Object.hasOwn(page, 'one')
+    })
+    for (const [code, entry] of plain) {
+      expect(JSON.stringify(entry.singleProblemPage), code).not.toMatch(naming)
+    }
+  })
+
   test('gives every error its problems list entry', () => {
     for (const [code, entry] of entries) {
       expect(entry.problemsList, code).toBeDefined()

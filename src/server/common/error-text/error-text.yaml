@@ -825,13 +825,16 @@ upload:
           Hedgerows contains feature(s) with non-linestring geometry
 
     HEDGEROWS_OUTSIDE_REDLINE:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
       singleProblemPage:
-        title:
-          - This hedgerow {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          This hedgerow is outside the red line boundary. Draw the hedgerow again
-          and [upload a new file](upload).
+        one:
+          title:
+            - This hedgerow {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            This hedgerow is outside the red line boundary. Draw the hedgerow again
+            and [upload a new file](upload).
       problemsList:
         heading: >-
           One or more hedgerow habitats are not entirely within the redline
@@ -858,13 +861,16 @@ upload:
           Rivers contains feature(s) with non-linestring geometry
 
     WATERCOURSES_OUTSIDE_REDLINE:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
       singleProblemPage:
-        title:
-          - This watercourse {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          This watercourse is outside the red line boundary. Draw the watercourse
-          again and [upload a new file](upload).
+        one:
+          title:
+            - This watercourse {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            This watercourse is outside the red line boundary. Draw the watercourse
+            again and [upload a new file](upload).
       problemsList:
         heading: >-
           One or more watercourse habitats are not entirely within the redline
@@ -893,13 +899,16 @@ upload:
         item: '{feature} (Area: {area})'
 
     VERTICAL_HABITATS_OUTSIDE_REDLINE:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
       singleProblemPage:
-        title:
-          - This vertical area habitat {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          This vertical area habitat is outside the red line boundary. Draw the
-          vertical area habitat again and [upload a new file](upload).
+        one:
+          title:
+            - This vertical area habitat {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            This vertical area habitat is outside the red line boundary. Draw the
+            vertical area habitat again and [upload a new file](upload).
       problemsList:
         heading: >-
           One or more vertical area habitats are not entirely within the redline
@@ -911,14 +920,17 @@ upload:
     # MIN_TREE_COUNT in the backend (validation/geopackage/tree-count-check.js);
     # change both together.
     TREE_COUNT_NOT_WHOLE:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
       singleProblemPage:
-        title:
-          - This tree {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          The Count for a tree is not a whole number of trees. Leave Count blank
-          for one tree, or enter how many trees the point stands for and
-          [upload a new file](upload).
+        one:
+          title:
+            - This tree {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            The Count for a tree is not a whole number of trees. Leave Count blank
+            for one tree, or enter how many trees the point stands for and
+            [upload a new file](upload).
       problemsList:
         heading: >-
           One or more trees have a "Count" that is not a whole number of trees
