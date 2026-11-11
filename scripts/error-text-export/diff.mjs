@@ -1,7 +1,7 @@
 import { COLUMNS, DEFAULT_GROUPS, WORDING_KEYS, buildRows } from './rows.mjs'
 
 // What a change to error-text.yaml does to the export, for a pull request's
-// run: the error IDs it adds and removes, with their words, the parts of each
+// run or a push to main's: the error IDs it adds and removes, with their words, the parts of each
 // message it changes, and the statuses it moves. Each is given as Markdown,
 // for the run's summary, and as plain text, for its log, where it shows
 // without opening the summary. No I/O: it compares two lists of rows from

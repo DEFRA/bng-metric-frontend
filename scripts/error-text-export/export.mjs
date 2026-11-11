@@ -23,8 +23,9 @@ import { toXlsx } from './xlsx.mjs'
 // npm run export:error-text [-- --out DIR] [--sha SHA] [--branch NAME]
 //   [--summary FILE] [--base REF] [--include GROUPS]
 //
-// Writes every message in error-text.yaml as .xlsx, .csv and .html, for
-// product, BAs and UCD to review. The file is checked as the server checks it
+// Writes error-text.yaml's messages as .xlsx, .csv and .html, for product,
+// BAs and UCD to review: the backend's error codes, and any other group of
+// rows --include names. The file is checked as the server checks it
 // at start-up, the upload section included, so a file the server would refuse
 // is not exported, and the message says which entry is wrong.
 //
@@ -36,7 +37,8 @@ import { toXlsx } from './xlsx.mjs'
 // --summary appends what was exported, as Markdown, to a file: in GitHub
 // Actions, the run's job summary. --base adds what the checked-out file
 // changes from the file at another commit, in the summary and in what it
-// prints: for a pull request, the commit its branch left main at.
+// prints: for a pull request, the commit its branch left main at, and for a
+// push to main, main as it was before the push.
 //
 // Only the backend's error codes are exported unless --include names other
 // groups of rows (rows.mjs's ROW_GROUPS), such as forms or pages, or all.
