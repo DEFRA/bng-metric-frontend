@@ -24,10 +24,14 @@ import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-
 import {
   HABITAT_REF_ERROR,
   HABITAT_REF_IN_USE_ERROR,
-  isRefUnchanged,
-  isValidHabitatRef
+  habitatRefRefusal,
+  isRefUnchanged
 } from '../common/helpers/habitat-ref.js'
-import { PI_DETAILS_HEADING, MAX_REF_LENGTH } from './constants.js'
+import {
+  isStoredValueRefusal,
+  storedValueRefusal
+} from '../common/helpers/stored-value-refusal.js'
+import { PI_DETAILS_HEADING } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
@@ -175,19 +179,17 @@ const UNSUPPORTED_BODY = pageErrorText('featureUnsupported').body
 const DEFAULT_PROJECT_NAME = 'Project'
 
 /**
- * A ref as the backend stores it since BMD-1058: as text, trimmed, cut to
- * MAX_REF_LENGTH characters and trimmed again (the backend's
- * cleanHabitatRef). A baseline saved before then may hold ' H001', 12 or a
- * longer ref, so both sides are compared cleaned. Null when there is none.
+ * A ref as the backend stores it: as text, trimmed (the backend's
+ * cleanHabitatRef). Since BMD-1175 a ref over the limit is refused, never
+ * cut, so it is not cut here either. A baseline saved before BMD-1058 may
+ * hold ' H001' or 12, so both sides are compared cleaned. Null when there is
+ * none.
  */
 function comparableRef(ref) {
   if (typeof ref !== 'string' && typeof ref !== 'number') {
     return null
   }
-  const cleaned = Array.from(String(ref).trim())
-    .slice(0, MAX_REF_LENGTH)
-    .join('')
-    .trimEnd()
+  const cleaned = String(ref).trim()
   return cleaned === '' ? null : cleaned
 }
 
@@ -485,8 +487,8 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
       `${kind.label} editing is temporarily unavailable`
     )
   }
-  const errors = validateCreatedArea(values, reference)
-  if (Object.keys(errors).length) {
+  // Shows the page again with what the user chose, and why it was refused.
+  const showRefused = async ({ errors = {}, refusal } = {}) => {
     const project = await fetchProject(request, projectId)
     return h.view(
       'habitat-details/pi-habitat-details-created-edit',
@@ -497,22 +499,37 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
           projectId,
           projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
           baselineFeatureId: createdBaselineFeatureId(project, type, feature),
-          returnUrl
+          returnUrl,
+          refusal
         },
         values,
         errors
       )
     )
   }
-  await saveCreatedArea(request, values, kind, feature)
+  const fieldErrors = validateCreatedArea(values, reference)
+  if (Object.keys(fieldErrors).length) {
+    return showRefused({ errors: fieldErrors })
+  }
+  try {
+    await saveCreatedArea(request, values, kind, feature)
+  } catch (err) {
+    // A value saved before the service checked text lengths and lists
+    // refuses any save of the habitat, whatever was changed.
+    if (isStoredValueRefusal(err)) {
+      const response = await showRefused({ refusal: storedValueRefusal(err) })
+      return response.code(statusCodes.badRequest)
+    }
+    throw err
+  }
   return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
 }
 
 /**
  * Save a Retained habitat's reference (BMD-1180). As on the baseline form, a
  * reference left as stored is neither checked nor sent: it may be one that
- * would not pass today, and the backend would trim or cut it, renaming the
- * habitat unasked.
+ * would not pass today, and the backend would trim or refuse it. A changed
+ * one that is too long is refused here, asking the user to shorten it.
  */
 async function saveRetainedReference(request, h, { type, feature, payload }) {
   const { projectId, featureId, habitatRef, returnUrl } = validatedPayload(
@@ -522,19 +539,20 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
   if (isRefUnchanged(habitatRef, feature.ref)) {
     return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
   }
-  const showRefused = async (refusal) => {
+  const showRefused = async (refusalToShow) => {
     const response = await renderDetailsPage(request, h, {
       projectId,
       featureId,
       returnUrl,
       submittedRef: habitatRef,
-      refusal
+      refusal: refusalToShow
     })
     return response.code(statusCodes.badRequest)
   }
 
-  if (!isValidHabitatRef(habitatRef)) {
-    return showRefused(HABITAT_REF_ERROR)
+  const refusal = habitatRefRefusal(habitatRef)
+  if (refusal) {
+    return showRefused(refusal)
   }
   const saved = await saveRetainedRef(request, {
     projectId,
@@ -546,6 +564,9 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
   }
   if (saved.refInvalid) {
     return showRefused(HABITAT_REF_ERROR)
+  }
+  if (saved.storedValueRefusal) {
+    return showRefused(saved.storedValueRefusal)
   }
   return h.redirect(postInterventionBackHref(projectId, saved.type, returnUrl))
 }

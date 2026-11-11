@@ -307,9 +307,10 @@ function fallbackRows(upload, usage) {
 
 function editRow(code, entry) {
   const row = newRow(code, SHOWN.EDIT, entry, ['edit', code])
-  row.cells.summary = entry.summary
+  // A refusal no one field can put right is shown in the error summary only.
+  row.cells.summary = entry.summary ?? entry.summaryOnly
   row.cells.inline = entry.inline
-  if (entry.summary === undefined) {
+  if (row.cells.summary === undefined) {
     row.fallbacks.push(UNWORDED_EDIT)
   }
   return row

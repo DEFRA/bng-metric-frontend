@@ -1358,7 +1358,7 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
         /<label class="govuk-label govuk-label--s" for="habitatRef">\s*Habitat reference\s*<\/label>/
       )
       expect(result).toMatch(
-        /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="100">/
+        /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="99">/
       )
     })
 
@@ -1417,11 +1417,13 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       )
     })
 
-    test('Sends a reference over 100 characters for the backend to truncate, as on import', async () => {
-      await postRef({ habitatRef: 'x'.repeat(120) })
+    test('Saves a reference of 99 characters, counted as characters once trimmed', async () => {
+      const ref = '\u{1F33F}'.repeat(99)
+      const { statusCode } = await postRef({ habitatRef: ` ${ref} ` })
 
+      expect(statusCode).toBe(302)
       const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
-      expect(JSON.parse(payload).ref).toBe('x'.repeat(120))
+      expect(JSON.parse(payload).ref).toBe(ref)
     })
 
     test('Leaves a reference another habitat may use for the backend to judge', async () => {
@@ -1465,6 +1467,65 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(result).toMatch(/id="habitatRef" name="habitatRef"[^>]*value="A2"/)
       expect(result).toMatch(/<option value="Bracken" selected>/)
       expect(result).toMatch(/<option value="Poor" selected>/)
+    })
+  })
+
+  describe('on Save of a habitat holding a value saved before BMD-1175', () => {
+    const storedValueRefusal = (fields) => ({
+      isBoom: true,
+      output: { statusCode: 422 },
+      data: {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message: `This habitat holds a value saved before the service checked text lengths and lists (${fields}). Upload the file again, with the value corrected, to update it.`,
+          code: 'STORED_VALUE_NOT_ALLOWED'
+        }
+      }
+    })
+
+    test('Shows the page again with the refusal in the error summary, naming the fields, after a drop-down-only save', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(
+        storedValueRefusal('ref, condition')
+      )
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+      expect(result).toMatch(
+        /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its habitat reference and condition\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+      )
+      // No one field is to blame, so nothing is marked at a field.
+      expect(result).not.toContain('<a href="#habitatRef">')
+      expect(result).not.toContain('govuk-input--error')
+      expect(result).toMatch(/<option value="Poor" selected>/)
+    })
+
+    test('Asks the user to shorten the reference at its field when the reference alone is refused', async () => {
+      const refusal = storedValueRefusal('ref')
+      refusal.data.payload.fields = ['ref']
+      vi.mocked(wreck.put).mockRejectedValue(refusal)
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
+      )
+      expect(result).toContain('govuk-input--error')
+      expect(result).not.toContain('Upload the file again')
+    })
+
+    test('Escapes a field path it does not know, showing it as it is', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(storedValueRefusal('<b>odd</b>'))
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain('in its &lt;b&gt;odd&lt;/b&gt;.')
+      expect(result).not.toContain('<b>odd</b>')
     })
   })
 
@@ -1537,7 +1598,7 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     test.each([
       ['characters that are not UTF-8', 'A\uFFFD1'],
       ['surrounding spaces', '  A1  '],
-      ['more than 100 characters', 'x'.repeat(120)]
+      ['more than 99 characters', 'x'.repeat(120)]
     ])(
       'Saves the dropdowns without checking or sending a reference holding %s that was left as it is',
       async (_label, storedRef) => {
@@ -1584,6 +1645,44 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
 
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+
+    test('Shows an over-long stored reference whole, for the user to shorten', async () => {
+      withStoredRef('x'.repeat(120))
+
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+
+      expect(result).toMatch(
+        new RegExp(
+          `id="habitatRef"[^>]*value="${'x'.repeat(120)}"[^>]*maxlength="99"`
+        )
+      )
+    })
+
+    test('Refuses a changed reference that is still over 99 characters, asking the user to shorten it', async () => {
+      withStoredRef('x'.repeat(120))
+
+      const { statusCode, result } = await postRef({
+        habitatRef: 'y'.repeat(100)
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toContain(
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference of 99 characters or fewer.'
+      )
+      expect(result).toMatch(
+        new RegExp(
+          `id="habitatRef" name="habitatRef"[^>]*value="${'y'.repeat(100)}"`
+        )
+      )
     })
   })
 

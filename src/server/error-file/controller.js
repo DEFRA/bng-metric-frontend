@@ -153,6 +153,27 @@ function irreplaceableTreeValues(s) {
   }
 }
 
+// BMD-1175: a text value that fails, by its table, its habitat's Habitat Ref
+// (or fid, when it has no usable one) and its column, with the values the
+// code's wording names: a length and its limit, the refused value (cut to 99
+// characters by the backend), or the table's shape.
+function textValueValues(s) {
+  const count = (value) =>
+    value == null ? null : value.toLocaleString('en-GB')
+  return {
+    table: known(s?.table),
+    feature: firstKnown(names.habitat, {
+      ref: known(s?.ref),
+      fid: known(s?.fid)
+    }),
+    column: known(s?.column),
+    length: count(s?.length),
+    limit: count(s?.limit),
+    value: known(s?.value),
+    shape: known(s?.shape)
+  }
+}
+
 // The {values} each error's bullets name, by error code; any other code names
 // each habitat by its ref.
 const SAMPLE_VALUES = {
@@ -164,7 +185,12 @@ const SAMPLE_VALUES = {
   BASELINE_NOT_ENHANCEABLE: unenhanceableValues,
   VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaValues,
   IRREPLACEABLE_TREE: irreplaceableTreeValues,
-  STAGED_AMBIGUOUS_PARENT: ambiguousParentValues
+  STAGED_AMBIGUOUS_PARENT: ambiguousParentValues,
+  TEXT_TOO_LONG: textValueValues,
+  VALUE_NOT_ALLOWED: textValueValues,
+  FEATURE_UUID_INVALID: textValueValues,
+  PARENT_UUID_INVALID: textValueValues,
+  PARENT_GEOM_INVALID: textValueValues
 }
 
 const DEFAULT_ITEM = '{feature}'

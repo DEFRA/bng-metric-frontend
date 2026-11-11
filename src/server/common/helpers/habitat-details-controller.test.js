@@ -316,6 +316,17 @@ describe('shared habitat save errors', () => {
     })
   })
 
+  it('throws a stored value refusal as it is, for the form to show', async () => {
+    const error = {
+      data: {
+        res: { statusCode: 422 },
+        payload: { code: 'STORED_VALUE_NOT_ALLOWED' }
+      }
+    }
+    vi.mocked(backendRequest).mockRejectedValue(error)
+    await expect(saveHabitat({}, 'projects/test', {})).rejects.toBe(error)
+  })
+
   it.each([
     [409, 409],
     [400, 400],
