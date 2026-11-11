@@ -1,9 +1,10 @@
 import {
   LINK_TARGETS,
+  SHARED_PAGE,
   canFill,
-  fallbackPage,
   dropoutCopy,
-  errorCopy,
+  sharedPage,
+  singleProblemPages,
   fill,
   firstKnown,
   firstKnownTemplate,
@@ -78,6 +79,8 @@ function valuesFor(error) {
     sharedLayer: describeSharedLayer(error),
     refA: describeRef(sample, '_a'),
     refB: describeRef(sample, '_b'),
+    // How many habitats the error names: for wording for several.
+    count: describeCount(error, 'count'),
     featureCount: describeCount(error, 'featureCount'),
     maxFeatureCount: describeCount(error, 'maxFeatureCount')
   }
@@ -88,8 +91,8 @@ export function pageValueNames() {
   return Object.keys(valuesFor({}))
 }
 
-// whenAlone may give several pages, the first whose title, subheading and
-// body the error can fill.
+// singleProblemPage may give several pages, the first whose title,
+// subheading and body the error can fill.
 function choosePage(pages, values) {
   const list = [pages].flat()
   return (
@@ -150,13 +153,13 @@ function buildPage(page, values) {
  * @param {string|null} uploadHref
  */
 export function resolveSingleErrorCopy(error, uploadHref) {
-  const whenAlone = errorCopy(error?.code)?.whenAlone
-
-  // A code with no copy of its own takes the fallback its whenAlone names, and
-  // one we haven't seen yet the file problem, so it still degrades to a
-  // sensible message rather than a blank page.
+  // A code with no copy of its own takes the shared page its
+  // singleProblemPage names, and one we haven't seen yet the file problem, so
+  // it still degrades to a sensible message rather than a blank page. The
+  // page shows the problems list for an error with no page for it, so the
+  // file problem here is only a guard.
   const pages =
-    typeof whenAlone === 'object' ? whenAlone : fallbackPage(whenAlone)
+    singleProblemPages(error) ?? sharedPage(SHARED_PAGE.FILE_PROBLEM)
   const values = valuesFor(error)
   const resolved = buildPage(choosePage(pages, values), values)
 

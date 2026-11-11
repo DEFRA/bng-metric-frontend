@@ -1451,6 +1451,110 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
   })
 })
 
+describe('invalidFileController.handler — one problem naming one habitat or several', () => {
+  const makeRequest = (sessionData) => {
+    const store = { ...sessionData }
+    return {
+      yar: {
+        get: vi.fn((key) => store[key] ?? null),
+        set: vi.fn(),
+        clear: vi.fn((key) => {
+          delete store[key]
+        })
+      }
+    }
+  }
+
+  const parcel = (ref) => ({ layer: 'areas', fid: 1, feature_ref: ref })
+
+  async function render(error) {
+    const request = makeRequest({ baselineValidationErrors: [error] })
+    const h = { view: vi.fn().mockReturnThis() }
+    await invalidFileController.handler(request, h)
+    return h.view.mock.calls[0][1]
+  }
+
+  test('shows a page worded for one habitat when the error names one', async () => {
+    const view = await render({
+      code: 'AREA_PARCELS_TOO_SMALL',
+      details: { count: 1, sample: [parcel('P1')] }
+    })
+
+    expect(view.singleError).toMatchObject({
+      h1: 'This parcel P1 contains an error'
+    })
+  })
+
+  test('shows the problems list, naming each, when that error names several', async () => {
+    const view = await render({
+      code: 'AREA_PARCELS_TOO_SMALL',
+      details: { count: 2, sample: [parcel('P1'), parcel('P2')] }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toHaveLength(1)
+    expect(view.errorBlocks[0].items).toHaveLength(2)
+  })
+
+  test('shows the problems list for several hedgerows outside the boundary, not the first alone', async () => {
+    const view = await render({
+      code: 'HEDGEROWS_OUTSIDE_REDLINE',
+      details: {
+        count: 2,
+        sample: [
+          { layer: 'hedgerows', fid: 1, feature_ref: 'H1' },
+          { layer: 'hedgerows', fid: 2, feature_ref: 'H2' }
+        ]
+      }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toContain('hedgerow habitats')
+  })
+
+  test("shows the page's wording for several when it has some", async () => {
+    const view = await render({
+      code: 'PARCEL_OVERLAPS',
+      details: {
+        count: 2,
+        sample: [
+          { feature_ref_a: 'P1', feature_ref_b: 'P2' },
+          { feature_ref_a: 'P3', feature_ref_b: 'P4' }
+        ]
+      }
+    })
+
+    // Not "These parcels P1, P2", which would name only the first pair.
+    expect(view.singleError).toMatchObject({
+      h1: 'Your Geopackage (.gpkg) file contains an error',
+      // No project in the session, so no link: the sentence ends there.
+      messageBefore:
+        'Some parcels in this file are overlapping. Draw the affected parcels again.'
+    })
+  })
+
+  test('shows a page worded for any number whatever the count', async () => {
+    const view = await render({
+      code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+      details: { count: 3, sample: [parcel('P1')] }
+    })
+
+    expect(view.singleError).not.toBeNull()
+  })
+
+  test('shows an error with no single-problem page in the problems list', async () => {
+    const view = await render({
+      code: 'TEMPLATE_VERSION_DUPLICATED',
+      details: { recordCount: 2 }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toContain(
+      'The file has 2 template version records'
+    )
+  })
+})
+
 describe('invalidFileController.handler — BMD-1086 BNG Service template lineage errors', () => {
   const makeRequest = (errors) => {
     const store = {
@@ -2348,7 +2452,7 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     test('has a case for every variant in the copy', () => {
       const worded = Object.entries(dropoutCopy.errors).flatMap(
         ([code, entry]) =>
-          Object.keys(entry.inList?.variants ?? {}).map(
+          Object.keys(entry.problemsList?.variants ?? {}).map(
             (variant) => `${code} ${variant}`
           )
       )

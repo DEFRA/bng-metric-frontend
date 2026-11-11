@@ -16,16 +16,21 @@ import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 // the server's start rather than a user's page, and fills in the {values} it
 // names.
 
-/** What whenAlone can say in place of copy of its own. */
-export const WHEN_ALONE = Object.freeze({
+// The page has two designs, and an upload error is worded for each:
+// - singleProblemPage: the page for a file whose only problem it is. Left
+//   out, the error is shown in the problems list even alone.
+// - problemsList: its heading, and its bullets, on the page that lists a
+//   file's problems.
+
+/** The shared pages a singleProblemPage can name in place of its own wording. */
+export const SHARED_PAGE = Object.freeze({
   CATCH_ALL: 'catch-all',
   FILE_PROBLEM: 'file-problem',
-  SERVICE_PROBLEM: 'service-problem',
-  LIST: 'list'
+  SERVICE_PROBLEM: 'service-problem'
 })
 
-/** The inList value that heads the list with the catch-all title. */
-export const IN_LIST_CATCH_ALL = 'catch-all'
+/** The problemsList value that heads the entry with the catch-all title. */
+export const PROBLEMS_LIST_CATCH_ALL = 'catch-all'
 
 /** The link targets a sentence can name, as [link text](target). */
 export const LINK_TARGETS = Object.freeze({
@@ -44,17 +49,20 @@ const pageCopy = Joi.object({
   opensInNewTab: Joi.boolean()
 })
 
+// A page, or options of pages: the first the error can fill is shown.
+const pages = Joi.alternatives(pageCopy, Joi.array().items(pageCopy).min(1))
+
 /**
  * A problem lists habitats or it does not, however the backend words it: so
  * its bullets, and its variants', are all items or all details. The page
  * reads only the one kind, and would drop a bullet of the other unseen.
  */
-function oneKindOfBullet(inList, helpers) {
-  const wording = [inList, ...Object.values(inList.variants ?? {})]
+function oneKindOfBullet(problemsList, helpers) {
+  const wording = [problemsList, ...Object.values(problemsList.variants ?? {})]
   const kinds = ['item', 'detail'].filter((key) =>
     wording.some((copy) => copy[key] !== undefined)
   )
-  return kinds.length > 1 ? helpers.error('any.invalid') : inList
+  return kinds.length > 1 ? helpers.error('any.invalid') : problemsList
 }
 
 // A shared fallback page, which can say its wording is interim.
@@ -62,23 +70,25 @@ const fallbackCopy = pageCopy.keys({ wording: shownWordingField })
 
 const errorEntry = Joi.object({
   // "none" says the error has no words of its own yet for when it is alone,
-  // so it can only be on one whose whenAlone names the shared fallback the
-  // page shows instead. Its inList heading is still shown in a list.
-  wording: wordingField.when('whenAlone', {
-    is: Joi.valid(
-      WHEN_ALONE.CATCH_ALL,
-      WHEN_ALONE.FILE_PROBLEM,
-      WHEN_ALONE.SERVICE_PROBLEM
-    ),
+  // so it can only be on one whose singleProblemPage names the shared page
+  // the page shows instead. Its problemsList heading is still shown.
+  wording: wordingField.when('singleProblemPage', {
+    // Required: an entry with no singleProblemPage is shown in the problems
+    // list even alone, so its words are always shown.
+    is: Joi.valid(...Object.values(SHARED_PAGE)).required(),
     otherwise: Joi.invalid(WORDING.NONE)
   }),
-  whenAlone: Joi.alternatives(
-    Joi.string().valid(...Object.values(WHEN_ALONE)),
-    pageCopy,
-    Joi.array().items(pageCopy).min(1)
-  ).required(),
-  inList: Joi.alternatives(
-    Joi.string().valid(IN_LIST_CATCH_ALL),
+  singleProblemPage: Joi.alternatives(
+    Joi.string().valid(...Object.values(SHARED_PAGE)),
+    // Worded to fit an error naming any number of habitats.
+    pages,
+    // Worded for an error naming one habitat, or none, and for one naming
+    // several. Without `several`, an error naming several is shown in the
+    // problems list, as words for one would misdescribe it.
+    Joi.object({ one: pages.required(), several: pages })
+  ),
+  problemsList: Joi.alternatives(
+    Joi.string().valid(PROBLEMS_LIST_CATCH_ALL),
     Joi.object({
       heading: text.required(),
       listsHabitats: Joi.boolean(),
@@ -287,21 +297,55 @@ export function catchAllPage() {
 }
 
 /**
- * The single-error page a whenAlone that names a fallback stands for: the
+ * The page a singleProblemPage that names a shared page stands for: the
  * catch-all, about layer and column names; the file problem, which says only
  * that the file has an error; or the service problem, which says the fault is
- * the service's. A code with no entry, or one the page always lists, takes the
- * file problem, which cannot mislead about what is wrong.
+ * the service's. A code with no entry takes the file problem, which cannot
+ * mislead about what is wrong.
  *
- * @param {string | undefined} whenAlone
+ * @param {string | undefined} name
  */
-export function fallbackPage(whenAlone) {
-  switch (whenAlone) {
-    case WHEN_ALONE.CATCH_ALL:
+export function sharedPage(name) {
+  switch (name) {
+    case SHARED_PAGE.CATCH_ALL:
       return catchAllPage()
-    case WHEN_ALONE.SERVICE_PROBLEM:
+    case SHARED_PAGE.SERVICE_PROBLEM:
       return dropoutCopy.serviceProblem
     default:
       return dropoutCopy.fileProblem
   }
+}
+
+/** True when an error names more than one habitat: its details' count. */
+export function namesSeveral(error) {
+  return Number(error?.details?.count) > 1
+}
+
+/**
+ * The page, or options of pages, an error is shown on when it is the file's
+ * only problem, or null when it is shown in the problems list instead: its
+ * entry has no singleProblemPage, or its page is worded for one habitat
+ * alone (`one` with no `several`) and the error names several. A plain page,
+ * or a shared one, is worded for any number. A code with no entry takes the
+ * file problem.
+ *
+ * @param {{ code?: string, details?: { count?: number } }} error
+ * @returns {object | object[] | null}
+ */
+export function singleProblemPages(error) {
+  const copy = errorCopy(error?.code)
+  if (!copy) {
+    return sharedPage(SHARED_PAGE.FILE_PROBLEM)
+  }
+  const page = copy.singleProblemPage
+  if (page === undefined) {
+    return null
+  }
+  if (typeof page === 'string') {
+    return sharedPage(page)
+  }
+  if (Object.hasOwn(page, 'one')) {
+    return namesSeveral(error) ? (page.several ?? null) : page.one
+  }
+  return page
 }
