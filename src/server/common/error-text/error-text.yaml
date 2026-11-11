@@ -820,8 +820,7 @@ upload:
           One or more IGGIs are not entirely within the redline boundary
 
     # --------------------------------------------------------------- comments
-    # The 999 character figure mirrors MAX_COMMENT_LENGTH in the backend
-    # (validation/geopackage/comment-check.js); change both together.
+    # A comment that is too long is TEXT_TOO_LONG, under "text values" below.
 
     COMMENT_INVALID_CHARACTERS:
       whenAlone:
@@ -833,15 +832,68 @@ upload:
         heading: >-
           One or more comments contain characters that are not valid UTF-8
 
-    COMMENT_TOO_LONG:
-      whenAlone:
-        title: Your Geopackage (.gpkg) file contains an error
-        body: >-
-          The file contains a comment with more than 999 characters. Shorten the
-          comment and [upload a new file](upload).
+    # ------------------------------------------------------------ text values
+    # BMD-1175. Each problem lists the values that fail, up to 50, by table,
+    # habitat and column. {feature} is the habitat's Habitat Ref, or its fid
+    # when it has no usable one. The limits are the backend's
+    # (validation/geopackage/text-limits.js): 99 characters for a reference,
+    # Location and every drop-down or filled-in column, 255 for Spatial risk
+    # category, and 999 for a comment and the other Red Line Boundary details,
+    # counted once spaces at the start and end are removed.
+
+    TEXT_TOO_LONG:
+      wording: interim
+      whenAlone: list
       inList:
         heading: >-
-          One or more comments are longer than 999 characters
+          One or more values are longer than their column allows. Shorten them
+          and upload the file again
+        item: >-
+          {table}, {feature}: {column} has {length} characters. The maximum is
+          {limit}
+
+    # A drop-down or filled-in column holds a value that none of its lists
+    # offers. {value} is cut to 99 characters, and is missing for a value that
+    # is not text.
+    VALUE_NOT_ALLOWED:
+      wording: interim
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more values are not in their column's drop-down list. Choose a
+          value from the list and upload the file again
+        item:
+          - '{table}, {feature}: {column}'
+          - ' has "{value}"'
+
+    # A BNG Service template feature's feature_uuid is not a UUID.
+    FEATURE_UUID_INVALID:
+      wording: interim
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more habitats have a feature_uuid that is not a valid UUID
+        item: '{table}, {feature}'
+
+    # A post-intervention feature's parent_uuid is not a UUID.
+    PARENT_UUID_INVALID:
+      wording: interim
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more habitats have a parent_uuid that is not a valid UUID
+        item: '{table}, {feature}'
+
+    # A post-intervention feature's parent_geom is not WKT of its table's
+    # shape. {shape} is the table's geometry type, such as "polygon".
+    PARENT_GEOM_INVALID:
+      wording: interim
+      whenAlone: list
+      inList:
+        heading: >-
+          One or more habitats have a parent_geom that is not the shape of their
+          layer written as WKT
+        item: '{table}, {feature} (expected a {shape})'
 
     # ------------------------------------------------------------ habitat refs
 
@@ -1115,6 +1167,11 @@ upload:
 # summary at the top of the page and "inline" by the field; content design
 # words them differently on purpose. An edit code the pages do not show yet
 # has "wording: none" and no words: the page shows its generic error.
+#
+# A refusal that no one field on the page can put right has "summaryOnly"
+# instead of "summary" and "inline": it is shown in the error summary only,
+# linked to no field. {braces} in it are filled in by the page, as each
+# entry's comment says.
 
 edit:
   HABITAT_REF_IN_USE:
@@ -1133,6 +1190,20 @@ edit:
   # service's scope. Not shown by the pages yet.
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
     wording: none
+
+  # An edit to a habitat saved before the service checked text lengths and
+  # lists (BMD-1175): it holds a value over its limit or outside its list,
+  # which the backend names. Uploading the file again, corrected, updates it.
+  # Any save of such a habitat is refused, even one that leaves the value as
+  # it is, so no field on the page is to blame.
+  # {fields} is the fields the backend names, in plain words, as in
+  # "habitat reference and proposed condition".
+  STORED_VALUE_NOT_ALLOWED:
+    wording: interim
+    summaryOnly: >-
+      This habitat holds a value saved before the service checked text
+      lengths and lists, in its {fields}. Upload the file again, with the
+      value corrected, to update this habitat.
 
 # ------------------------------------------------------------------- forms
 #
@@ -1204,9 +1275,12 @@ forms:
     invalid:
       summary: You have entered an invalid habitat reference.
       inline: Enter a valid habitat reference.
-    # Longer than {max} characters, on the created habitat page. The other
-    # pages cut a long reference on save instead.
-    tooLong: Enter a habitat reference of {max} characters or fewer.
+    # Longer than {max} characters once trimmed (BMD-1175), which the backend
+    # refuses rather than cuts. {max} is MAX_HABITAT_REF_LENGTH
+    # (common/helpers/habitat-ref.js).
+    tooLong:
+      wording: interim
+      text: Enter a habitat reference of {max} characters or fewer.
 
   # The created habitat, hedgerow and watercourse page's choices. A choice that is not one
   # of its options can only be an imported value no longer offered.

@@ -61,9 +61,13 @@ describe('error-text.yaml', () => {
     )
   })
 
-  test('words every edit refusal with a summary and an inline message, or says it has no wording yet', () => {
+  test('words every edit refusal with a summary and an inline message, or a summary-only message, or says it has no wording yet', () => {
     for (const [code, entry] of Object.entries(errorText.edit)) {
       if (wordingStatus(entry) === WORDING_STATUS.NONE) {
+        continue
+      }
+      if (Object.hasOwn(entry, 'summaryOnly')) {
+        expect(entry.summaryOnly, code).toMatch(/\S/)
         continue
       }
       expect(entry.summary, code).toMatch(/\S/)
@@ -94,6 +98,14 @@ describe('parseErrorText', () => {
     delete text.edit.HABITAT_REF_IN_USE.inline
     expect(() => parseErrorText(JSON.stringify(text))).toThrow(
       /HABITAT_REF_IN_USE.*inline/
+    )
+  })
+
+  test('refuses a summary-only edit entry that also has field wording', () => {
+    const text = parseErrorText(SOURCE)
+    text.edit.STORED_VALUE_NOT_ALLOWED.inline = 'Inline.'
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /STORED_VALUE_NOT_ALLOWED.*inline.*not allowed/
     )
   })
 
@@ -298,6 +310,12 @@ describe('editErrorText', () => {
     expect(editErrorText('HABITAT_REF_IN_USE')).toEqual({
       summary: 'You have entered a habitat reference that is already in use.',
       inline: 'Enter a habitat reference that is not already in use.'
+    })
+  })
+
+  test('gives the summary-only wording for an edit code no one field can put right', () => {
+    expect(editErrorText('STORED_VALUE_NOT_ALLOWED')).toEqual({
+      summaryOnly: expect.stringContaining('{fields}')
     })
   })
 

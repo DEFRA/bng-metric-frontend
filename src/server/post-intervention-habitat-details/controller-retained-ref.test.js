@@ -33,7 +33,7 @@ const baselineFeatureId = 'aa0e8400-e29b-41d4-a716-446655440002'
 const pageUrl = `/post-intervention-habitat-details?featureId=${featureId}&projectId=${projectId}`
 const saveUrl = `/projects/${projectId}/post-intervention/features/${featureId}`
 
-const MAX_REF_LENGTH = 100
+const MAX_REF_LENGTH = 99
 
 const FEATURES = {
   habitat: {
@@ -294,7 +294,7 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
 
     test.each([
       ['surrounding spaces', '  A1  ', '  A1  '],
-      ['more than 100 characters', 'x'.repeat(120), 'x'.repeat(120)],
+      ['more than 99 characters', 'x'.repeat(120), 'x'.repeat(120)],
       ['characters that are not UTF-8', 'A\uFFFD1', 'A\uFFFD1'],
       ['no reference', null, ''],
       ['a line break the browser drops', 'A\n1', 'A1']
@@ -362,6 +362,37 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       }
     )
 
+    test('refuses a reference over 99 characters, asking the user to shorten it', async () => {
+      mockBackend()
+      const ref = 'x'.repeat(MAX_REF_LENGTH + 1)
+
+      const { statusCode, result } = await post({ habitatRef: ref })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(wreck.put).not.toHaveBeenCalled()
+      expect(result).toContain(
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference of 99 characters or fewer.'
+      )
+      expect(result).toMatch(
+        new RegExp(`<input[^>]*id="habitatRef"[^>]*value="${ref}"`, 's')
+      )
+    })
+
+    test('saves a reference of 99 characters', async () => {
+      mockBackend()
+      const ref = 'x'.repeat(MAX_REF_LENGTH)
+      vi.mocked(wreck.put).mockImplementation(() => savedAs('habitat', ref))
+
+      const { statusCode } = await post({ habitatRef: ref })
+
+      expect(statusCode).toBe(statusCodes.redirect)
+      const [, options] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(options.payload)).toEqual({ ref })
+    })
+
     test('keeps the heading on the saved reference when a save is refused', async () => {
       mockBackend()
 
@@ -410,6 +441,32 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(result).toContain(
         'Enter a habitat reference that is not already in use.'
       )
+      expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
+    })
+
+    test('refuses a save of a habitat holding a value saved before BMD-1175, naming the fields in the error summary', async () => {
+      mockBackend()
+      const stored = Boom.badData('stored value')
+      stored.data = {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message:
+            'This habitat holds a value saved before the service checked text lengths and lists (proposed.condition, comment). Upload the file again, with the value corrected, to update it.',
+          code: 'STORED_VALUE_NOT_ALLOWED'
+        }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(stored)
+
+      const { statusCode, result } = await post({ habitatRef: 'A2' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title>\s*Error: Habitat A1 -/)
+      expect(result).toMatch(
+        /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its proposed condition and comment\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+      )
+      expect(result).not.toContain('govuk-input--error')
       expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
     })
 
