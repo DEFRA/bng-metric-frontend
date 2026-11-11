@@ -164,7 +164,10 @@ the branch's head commit. It is not a required check, so it never holds up a
 merge.
 
 A pull request's summary also says what it changes in the wording, against the
-commit its branch left `main` at: the error IDs it adds and removes, with their
+commit its branch left `main` at, and so does a push to `main`'s, against
+`main` as it was before the push, so each merge's run says what it changed. A
+run on demand has nothing to compare with. The comparison gives the error IDs
+added and removed, with their
 words, a before and after for each part of a message it changes, and each
 status it moves. Errors changed alike, such as every error showing a reworded
 shared fallback, share one table. Only the groups of rows exported are
