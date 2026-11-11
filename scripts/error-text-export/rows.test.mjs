@@ -403,7 +403,6 @@ describe('buildRows, from a small file', () => {
     expect(row.shown).toBe(`${SHOWN.UPLOAD}; ${SHOWN.EDIT}`)
     expect(row.status).toBe(STATUS.NEEDS_CONTENT)
     expect(row.source.split('\n')).toHaveLength(2)
-    expect(row.comments).toBe(`${SHOWN.EDIT}: Not shown by the pages yet.`)
     expect(row.fallback).toContain(`${SHOWN.EDIT}: None yet`)
   })
 
@@ -460,10 +459,10 @@ describe('buildRows, from a small file', () => {
     })
   })
 
-  test('keeps the comment above a first key, and drops a group’s', () => {
-    expect(fixtureRow('forms.projectName.required').comments).toBe('Blank.')
-    expect(fixtureRow('B_LAYER').comments).toBe(
-      'A layer the template does not have.'
+  test('has no column for the file’s comments', () => {
+    expect(COLUMNS.map(({ key }) => key)).not.toContain('comments')
+    expect(Object.keys(fixtureRow('B_LAYER'))).toEqual(
+      COLUMNS.map(({ key }) => key)
     )
   })
 

@@ -58,7 +58,6 @@ export const COLUMNS = Object.freeze([
   { key: 'fallback', header: 'Shared fallback', width: 40 },
   { key: 'values', header: 'Values it fills in', width: 60 },
   { key: 'links', header: 'Links', width: 40 },
-  { key: 'comments', header: 'Comments in the file', width: 60 },
   { key: 'source', header: 'Source', width: 50 }
 ])
 
@@ -358,8 +357,6 @@ function merge(upload, edit) {
       inline: edit.cells.inline
     },
     paths: [...upload.paths, ...edit.paths],
-    // Which part of the row each path's comments are about.
-    pathLabels: [...upload.shown, ...edit.shown],
     fallbacks: [
       ...upload.fallbacks,
       ...edit.fallbacks.map((fallback) => `${SHOWN.EDIT}: ${fallback}`)
@@ -458,18 +455,6 @@ function linksText(words, value) {
     .join('\n')
 }
 
-/** The comments on the row's entries, each said of its part when it has two. */
-function commentsText(row, file) {
-  return row.paths
-    .map((path, index) => {
-      const comments = file.commentsOf(path)
-      const label = row.pathLabels?.[index]
-      return comments && label ? `${label}: ${comments}` : comments
-    })
-    .filter(Boolean)
-    .join('\n')
-}
-
 function finish(row, file, sourceUrl) {
   const words = WORDING_KEYS.map((key) => row.cells[key]).filter(Boolean)
   const status = STATUS_ORDER.find((s) => row.statuses.includes(s))
@@ -484,7 +469,6 @@ function finish(row, file, sourceUrl) {
     fallback: row.fallbacks.join('\n'),
     values: valuesText(row, words),
     links: linksText(words, file.value),
-    comments: commentsText(row, file),
     source: row.paths.map((path) => sourceUrl(file.lineOf(path))).join('\n')
   }
 }
