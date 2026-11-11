@@ -1,9 +1,10 @@
 name: Error Messages Export
 
-# Writes every message in error-text.yaml as .xlsx, .csv and .html for
-# product, BAs and UCD to review (npm run export:error-text), keeps them as
+# Writes error-text.yaml's error codes, or more with a run on demand's
+# include, as .xlsx, .csv and .html for product, BAs and UCD to review
+# (npm run export:error-text), keeps them as
 # one artifact, and counts each status in the run's summary. A pull request's
-# summary also says what it changes in the wording.
+# summary, and a push to main's, also say what it changes in the wording.
 #
 # It reports and never gates: it is not a required check, and is kept apart
 # from check-pull-request.yml, so an artifact outage cannot hold up a merge.
@@ -56,30 +57,46 @@ jobs:
       # checked out by default: each row links to its line of the file, and
       # only the head commit has a lasting URL whose lines match the rows.
       #
-      # A pull request's run fetches the history it needs to find the commit
-      # its branch left main at.
+      # A pull request's run, and a push's, fetch the history they need to
+      # find the commit they compare the wording with.
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           # Quoted: 0 is falsy in an expression, so && 0 || 1 always gives 1.
-          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+          fetch-depth: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && '0' || '1' }}
           persist-credentials: false
 
-      # The wording is compared with the commit the branch left main at, not
-      # main as it is now: a change merged to main since would otherwise show
-      # as this pull request undoing it. Not finding it leaves the comparison
-      # out, with a warning, rather than losing the export.
-      - name: Find where the branch left main
+      # The commit to compare the wording with:
+      # - a pull request: the commit its branch left main at, not main as it
+      #   is now, as a change merged to main since would otherwise show as
+      #   this pull request undoing it.
+      # - a push to main: main as it was before the push, so each merge's
+      #   run says what it changed. One push of several commits is compared
+      #   as one change.
+      # A run on demand has nothing to compare with. Not finding the commit,
+      # as for a push that made the branch (its "before" is all zeros),
+      # leaves the comparison out, with a warning, rather than losing the
+      # export.
+      - name: Find the commit to compare with
         id: base
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         env:
+          EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BEFORE: ${{ github.event.before }}
         run: |
-          if base=$(git merge-base "origin/$BASE_REF" HEAD); then
+          if [ "$EVENT_NAME" = pull_request ]; then
+            base=$(git merge-base "origin/$BASE_REF" HEAD) || base=
+            what="where the branch left $BASE_REF"
+          else
+            base=$BEFORE
+            what="the commit before this push ($BEFORE)"
+          fi
+          if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
             echo "sha=$base" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Could not find where the branch left $BASE_REF, so the summary does not say what the wording changes"
+            echo "::warning::Could not find $what, so the summary does not say what the wording changes"
           fi
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
