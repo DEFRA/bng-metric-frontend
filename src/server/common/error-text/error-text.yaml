@@ -55,11 +55,11 @@
 #   wording: none      it has no words of its own yet, so the page shows a
 #                      generic message instead. Only where that is so: an
 #                      edit or forms rule, which then has no words, or an
-#                      upload error whose whenAlone names a shared fallback.
-#                      On an upload error it means the page it is alone on:
-#                      its inList heading is still shown when the page lists
-#                      it with others. A common text, a page or a shared
-#                      fallback is always shown, so can only be interim
+#                      upload error whose singleProblemPage names a shared
+#                      page. On an upload error it means its single-problem
+#                      page: its problemsList heading is still shown when the
+#                      page lists it with others. A common text, a page or a
+#                      shared page is always shown, so can only be interim
 #
 # An entry with no "wording" field is final. Search for "wording:" to find
 # everything UCD still has to word. A "none" where the page would show words
@@ -91,12 +91,44 @@ common:
 #
 # How to read it
 #
-# - The page has two layouts:
-#     - "whenAlone": the file has exactly one problem. The page shows a title,
-#       an optional subheading and a sentence.
-#     - "inList": the file has more than one problem, or the problem is one
-#       that always lists the habitats it names. The page shows a heading for
-#       each problem and, under it, a bullet for each habitat.
+# - The page has two designs, and each problem is worded for both:
+#
+#     singleProblemPage   the file has this one problem. The page shows a
+#                         title, an optional subheading and a sentence:
+#
+#                           This parcel P12 contains an error
+#                           This parcel is overlapping itself. Draw the
+#                           parcel again and upload a new file.
+#
+#     problemsList        the file has several problems. The page lists them,
+#                         each under its heading, with a bullet for each
+#                         habitat it names:
+#
+#                           We couldn't accept your baseline file
+#                           Parcels are too small
+#                             P3 — 0.2 sq m
+#                             P7 — 0.1 sq m
+#                           Some habitats have no parent
+#                             H14
+#
+# - A problem with no singleProblemPage is shown in the problems list even
+#   when it is the file's only one: its heading says what is wrong, and its
+#   bullets name each habitat to put right.
+#
+# - A singleProblemPage worded for one habitat, as "This parcel {ref}" is,
+#   cannot describe a problem that names several. Give it two versions:
+#
+#     singleProblemPage:
+#       one:
+#         title: This parcel {ref} contains an error
+#         body: ...
+#       several:
+#         title: '{count} parcels contain an error'
+#         body: ...
+#
+#   one is for a problem naming one habitat, or none, and several for one
+#   naming more, where {count} says how many. Without them, a problem naming
+#   several is shown in the problems list, which names each.
 #
 # - {braces} are filled in from the uploaded file: a Habitat Ref, a count, a
 #   length. Everything else is shown word for word.
@@ -119,7 +151,8 @@ common:
 #   nowhere to link to, the sentence ends at the word before " and", with a
 #   full stop. [link text](metric-tool) links to the statutory metric tool.
 #
-# - whenAlone can instead be:
+# - singleProblemPage can instead name a shared page, worded for a problem
+#   naming any number of habitats:
 #     catch-all        the problem has no copy of its own and is in the
 #                      file's layers or columns, so the page shows "catchAll"
 #                      below, which says to rename them
@@ -129,8 +162,6 @@ common:
 #                      entry here is shown this way too
 #     service-problem  the service failed, not the file, so the page shows
 #                      "serviceProblem" below
-#     list             the page shows the inList layout even for this problem
-#                      alone
 #
 # - A heading here is shown word for word, with any {braces} filled in, and
 #   a detail the same way. The {braces} of a heading and a detail are values
@@ -143,9 +174,9 @@ common:
 #   replaces the problem's own. bng-service is the BNG Service template's
 #   wording of a check the legacy template shares.
 #
-# - inList: catch-all heads the list with the catch-all title below. It is
-#   for a problem the page never lists: the service refuses it alone, or does
-#   not refuse a file with it at all.
+# - problemsList: catch-all heads the problem with the catch-all title below.
+#   It is for a problem the page never lists: the service refuses it alone,
+#   or does not refuse a file with it at all.
 #
 # - The page never shows the service's own message. It is for its logs.
 #
@@ -191,7 +222,8 @@ upload:
         Rename the layers and columns and [upload a new file](upload).
 
   # A problem in the file with no copy of its own, outside its layers and
-  # columns: shown for whenAlone: file-problem, and for a code with no entry.
+  # columns: shown for singleProblemPage: file-problem, and for a code with
+  # no entry.
   fileProblem:
     wording: interim
     title: Your Geopackage (.gpkg) file contains an error
@@ -199,7 +231,7 @@ upload:
       Check the habitats in your file and [upload a new file](upload).
 
   # The service failed to check the file, so there is nothing for the user to
-  # change: shown for whenAlone: service-problem. GOV.UK's wording for a
+  # change: shown for singleProblemPage: service-problem. GOV.UK's wording for a
   # service problem.
   serviceProblem:
     wording: interim
@@ -257,42 +289,42 @@ upload:
     # ---------------------------------------------------------------- file name
 
     INVALID_FILENAME:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           The file name contains characters we cannot accept. Rename the file
           using letters, numbers, spaces, hyphens, underscores or brackets and
           [upload the renamed file](upload).
-      inList: catch-all
+      problemsList: catch-all
 
     FILENAME_TOO_LONG:
-      whenAlone: catch-all
-      inList: catch-all
+      singleProblemPage: catch-all
+      problemsList: catch-all
 
     INVALID_FILE_METADATA:
-      whenAlone: service-problem
-      inList: catch-all
+      singleProblemPage: service-problem
+      problemsList: catch-all
 
     # -------------------------------------------------------------- file format
 
     GPKG_INVALID_FILE:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'File is not a valid GeoPackage'
 
     GPKG_NOT_A_GEOPACKAGE:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'File is not a GeoPackage (application_id 0x{applicationId} is not a recognised GeoPackage identifier)'
 
     GPKG_MISSING_SYSTEM_TABLE:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Missing required GeoPackage system table'
         detail: '{table}'
 
     GPKG_TOO_MANY_FEATURES:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains too many features
         body:
           - >-
@@ -302,7 +334,7 @@ upload:
           - >-
             This file contains more features than this service can check. Reduce
             the number of features and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           GeoPackage contains {featureCount} features across its boundary,
           habitat, hedgerow and watercourse layers; the maximum this service can
@@ -311,22 +343,22 @@ upload:
     # --------------------------------------------------------- layers and columns
 
     GPKG_MISSING_LAYER:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Missing required feature layer in GeoPackage'
         detail: '{layer}'
 
     GPKG_UNEXPECTED_FEATURE_LAYER:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Unexpected feature layer "{layer}" — not listed in baseline template schema'
         variants:
           bng-service:
             heading: 'Unexpected feature layer "{layer}" — not a table of the BNG Service template'
 
     GPKG_BASELINE_CONTENTS_DATA_TYPE:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'expected data_type "{expected}" in gpkg_contents but found "{found}"'
         variants:
@@ -334,8 +366,8 @@ upload:
             heading: 'Layer "{layer}" does not match the BNG Service template'
 
     GPKG_BASELINE_SRS_ID:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'expected srs_id {expectedSrsId} but GeoPackage srs_id is {foundSrsId}'
         variants:
@@ -347,14 +379,14 @@ upload:
             detail: 'expected srs_id {expectedSrsId} but could not read a valid integer srs_id from gpkg_contents ({contentsSrsId}) nor gpkg_geometry_columns ({geometryColumnsSrsId})'
 
     GPKG_BASELINE_GPKG_SRS_INCONSISTENT:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" GeoPackage srs_id inconsistent'
         detail: 'gpkg_contents has {contentsSrsId} but gpkg_geometry_columns has {geometryColumnsSrsId}'
 
     GPKG_BASELINE_INVALID_GEOMETRY_COLUMN_NAME:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" geometry column "{column}" has an invalid name in gpkg_geometry_columns'
         variants:
           named:
@@ -362,8 +394,8 @@ upload:
             detail: 'its geometry column is named "{column}" but should be "{expected}"'
 
     GPKG_BASELINE_MULTIPLE_GEOMETRY_COLUMNS:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'expected exactly one geometry column in the feature table but found {found}'
         variants:
@@ -373,8 +405,8 @@ upload:
             detail: 'expected exactly one geometry column in gpkg_geometry_columns but found {found}'
 
     GPKG_BASELINE_GEOMETRY_TYPE_NAME:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'expected geometry type "{expected}" in gpkg_geometry_columns but found "{found}"'
         variants:
@@ -382,8 +414,8 @@ upload:
             heading: 'Layer "{layer}" does not match the BNG Service template'
 
     GPKG_BASELINE_MISSING_COLUMN:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'missing column "{column}"'
         variants:
@@ -393,8 +425,8 @@ upload:
             detail: 'missing geometry column "{column}"'
 
     GPKG_BASELINE_COLUMN_SQLITE_TYPE:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'column "{column}" has {actualType} data type but {expectedType} was expected'
         variants:
@@ -406,8 +438,8 @@ upload:
             detail: 'column "{column}" has no SQLite column type declared but {expectedType} was expected'
 
     GPKG_BASELINE_COLUMN_NOT_NULL:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'column "{column}" NOT NULL (required) does not match file'
         variants:
@@ -417,8 +449,8 @@ upload:
             detail: 'column "{column}" NOT NULL (optional) does not match file'
 
     GPKG_BASELINE_COLUMN_PRIMARY_KEY:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'primary key expectation for "{column}" does not match file'
         variants:
@@ -426,8 +458,8 @@ upload:
             heading: 'Layer "{layer}" does not match the BNG Service template'
 
     GPKG_BASELINE_GEOMETRY_REGISTRATION_MISSING:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" baseline mismatch'
         detail: 'no geometry column registered in gpkg_geometry_columns'
         variants:
@@ -437,43 +469,53 @@ upload:
     # ---------------------------------------------------------- BNG Service template
 
     LEGACY_TEMPLATE_NOT_ACCEPTED:
-      whenAlone:
+      singleProblemPage:
         title: There is a problem with your file
         subheading: Template
         body: >-
           Your file is using the legacy template. The service now uses the BNG
           service template.
-      inList:
+      problemsList:
         heading: 'This file is in the legacy Natural England template. The service now takes the BNG Service template'
         detail: 'convert the file with the QGIS plugin, then upload it again.'
 
     TEMPLATE_VERSION_MISSING:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: >-
           The file has no template version record, so it is not a BNG Service
           template file.
 
     TEMPLATE_VERSION_DUPLICATED:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: 'The file has {recordCount} template version records, so its template version is unclear. It should have one.'
 
     TEMPLATE_VERSION_INVALID:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: >-
           The file's template version record cannot be read, so its template
           version is unknown.
 
     TEMPLATE_VERSION_UNSUPPORTED:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: 'The file is in version {version} of the BNG Service template, which the service does not read. It reads version {supportedVersions}.'
 
     POST_INTERVENTION_TABLES_EMPTY:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: >-
           The Post-Intervention tables in this file are all empty, so it has no
           post-intervention habitats to upload. Upload it as a baseline, or add
@@ -482,114 +524,121 @@ upload:
     # ------------------------------------------------------- red line boundary
 
     NO_REDLINE:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           The redline boundary is missing. Draw the red line boundary and
           [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           Baseline file contains no redline boundary polygon
 
     GPKG_RLB_NO_POLYGON:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           The redline boundary is missing. Draw the red line boundary and
           [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           Zero red line boundaries in GeoPackage (expecting one)
 
     GPKG_RLB_TOO_MANY_POLYGONS:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           This file contains multiple red line boundaries. Draw the red line
           boundary again and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           Too many red line boundaries in GeoPackage (expecting one)
 
     GPKG_RLB_NO_GEOMETRY_COLUMN:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Red Line Boundary layer has no registered geometry column in gpkg_geometry_columns'
         variants:
           bng-service:
             heading: 'The Red Line Boundary table has no geometry column'
 
     GPKG_RLB_UNREADABLE_GEOMETRY:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Red Line Boundary contains unreadable geometry
 
     REDLINE_INVALID_GEOMETRY:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           The redline boundary is overlapping itself. Draw the boundary again and
           [upload a new file](upload).
-      inList:
+      problemsList:
         heading: 'Redline boundary geometry is invalid'
         detail:
           - '{reason}'
           - ' at {location}'
 
     REDLINE_OUTSIDE_ENGLAND:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: >-
           Redline boundary is outside England
 
     REDLINE_AREA_TOO_LARGE:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: 'Redline boundary area ({areaSqM} sq m) exceeds the 100 sq km limit'
 
     # ------------------------------------------------------------ area habitats
 
     NO_HABITAT_AREAS:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           The file doesn't contain any parcels. Draw parcels within your red line
           boundary and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: 'Baseline file contains no area habitat polygons'
         variants:
           structure:
             heading: 'Zero area habitat parcels in GeoPackage (expecting at least one)'
 
     GPKG_HABITATS_NO_GEOMETRY_COLUMN:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: >-
           Habitats layer has no registered geometry column in
           gpkg_geometry_columns
 
     GPKG_HABITATS_UNREADABLE_GEOMETRY:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Habitats contains unreadable geometry
 
     GPKG_HABITATS_WRONG_GEOMETRY_TYPE:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Habitats contains feature(s) with non-polygon geometry
 
     AREA_PARCELS_INVALID_GEOMETRY:
-      whenAlone:
-        title:
-          - This parcel {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          This parcel is overlapping itself. Draw the parcel again and
-          [upload a new file](upload).
-      inList:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
+      singleProblemPage:
+        one:
+          title:
+            - This parcel {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            This parcel is overlapping itself. Draw the parcel again and
+            [upload a new file](upload).
+      problemsList:
         heading: >-
           One or more area habitat polygons have invalid geometry
         item:
@@ -597,17 +646,24 @@ upload:
           - ' ({reason})'
 
     PARCEL_OVERLAPS:
-      whenAlone:
-        # Both parcels' refs known, then not.
-        - title: These parcels {refA}, {refB} contain an error
-          body: >-
-            These parcels are overlapping. Draw the parcels again and
-            [upload a new file](upload).
-        - title: Your Geopackage (.gpkg) file contains an error
+      # One overlapping pair, then several pairs.
+      singleProblemPage:
+        one:
+          # Both parcels' refs known, then not.
+          - title: These parcels {refA}, {refB} contain an error
+            body: >-
+              These parcels are overlapping. Draw the parcels again and
+              [upload a new file](upload).
+          - title: Your Geopackage (.gpkg) file contains an error
+            body: >-
+              Some parcels in this file are overlapping. Draw the affected
+              parcels again and [upload a new file](upload).
+        several:
+          title: Your Geopackage (.gpkg) file contains an error
           body: >-
             Some parcels in this file are overlapping. Draw the affected parcels
             again and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           One or more area habitat parcels overlap with other parcels
         item: '{featureA} ↔ {featureB}'
@@ -615,14 +671,17 @@ upload:
     # The check is on area alone; the 1 square metre is MIN_PARCEL_AREA_SQ_M in
     # the backend (validation/geopackage/postgis/index.js). Change both together.
     AREA_PARCELS_TOO_SMALL:
-      whenAlone:
-        title:
-          - This parcel {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          This parcel is smaller than 1 square metre. Draw the parcel again and
-          [upload a new file](upload).
-      inList:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
+      singleProblemPage:
+        one:
+          title:
+            - This parcel {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            This parcel is smaller than 1 square metre. Draw the parcel again and
+            [upload a new file](upload).
+      problemsList:
         heading: >-
           One or more area habitat parcels are smaller than 1 square metre
         item:
@@ -630,28 +689,34 @@ upload:
           - ' — ~{area} sq m'
 
     SLIVERS_OUTSIDE_REDLINE:
-      whenAlone:
-        title: Your Geopackage (.gpkg) file contains an error
-        body: >-
-          This parcel is a sliver (a thin strip of land). Draw the parcel again
-          and [upload a new file](upload).
-      # Hidden when AREA_PARCELS_OUTSIDE_REDLINE is shown, which reports the same
-      # problem parcel by parcel.
-      inList:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
+      singleProblemPage:
+        one:
+          title: Your Geopackage (.gpkg) file contains an error
+          body: >-
+            This parcel is a sliver (a thin strip of land). Draw the parcel again
+            and [upload a new file](upload).
+        # Hidden when AREA_PARCELS_OUTSIDE_REDLINE is shown, which reports the same
+        # problem parcel by parcel.
+      problemsList:
         heading: >-
           Baseline file contains habitat parcel parts outside the redline
           boundary
         item: '~{area} sq m near {location}'
 
     AREA_PARCELS_OUTSIDE_REDLINE:
-      whenAlone:
-        title:
-          - This parcel {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          This parcel is outside the red line boundary. Draw the parcel again and
-          [upload a new file](upload).
-      inList:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
+      singleProblemPage:
+        one:
+          title:
+            - This parcel {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            This parcel is outside the red line boundary. Draw the parcel again and
+            [upload a new file](upload).
+      problemsList:
         heading: >-
           One or more area habitat polygons are not entirely within the redline
           boundary
@@ -660,29 +725,31 @@ upload:
           - ' — ~{area} sq m near {location}'
 
     AREA_SUM_MISMATCH:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: 'Sum of area habitat polygons ({habitatsAreaSqM} sq m) does not equal redline boundary area ({redlineAreaSqM} sq m)'
 
     NO_DERIVED_BASELINE_HABITATS:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           This file has no baseline area habitats. Add baseline habitats and
           [upload a new file](upload).
-      inList:
+      problemsList:
         heading: 'This post-intervention file has no baseline area habitats, so it cannot replace the project baseline'
         variants:
           read:
             heading: 'The Area Habitats Baseline table in this file has no habitats, so it cannot replace the project baseline'
 
     BASELINE_TYPE_MISSING:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           Some retained or enhanced habitats have no baseline habitat type. Add a
           baseline habitat type for each of them and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: '{rowCount} retained or enhanced rows have no baseline habitat type, so the baseline cannot be derived from this file'
 
     # BMD-1195. A post-intervention upload refused because a baseline area
@@ -700,22 +767,35 @@ upload:
     # interim.
     BASELINE_HABITATS_INCOMPLETE:
       wording: interim
-      whenAlone:
-        - title: There is a problem with your file
-          subheading: '{onlyLayer}'
-          body: >-
-            Baseline habitat {onlyRef} cannot be processed by the service due to
-            a missing or incompatible value.
-        - title: There is a problem with your file
-          subheading: '{sharedLayer}'
-          body: >-
-            Some baseline habitats cannot be processed by the service due to a
-            missing or incompatible value.
-        - title: There is a problem with your file
-          body: >-
-            Some baseline habitats cannot be processed by the service due to a
-            missing or incompatible value.
-      inList:
+      singleProblemPage:
+        # Named, when it has a ref or fid; else as several are.
+        one:
+          - title: There is a problem with your file
+            subheading: '{onlyLayer}'
+            body: >-
+              Baseline habitat {onlyRef} cannot be processed by the service due
+              to a missing or incompatible value.
+          - title: There is a problem with your file
+            subheading: '{sharedLayer}'
+            body: >-
+              Some baseline habitats cannot be processed by the service due to
+              a missing or incompatible value.
+          - title: There is a problem with your file
+            body: >-
+              Some baseline habitats cannot be processed by the service due to
+              a missing or incompatible value.
+        # Under their layer when they share one.
+        several:
+          - title: There is a problem with your file
+            subheading: '{sharedLayer}'
+            body: >-
+              Some baseline habitats cannot be processed by the service due to
+              a missing or incompatible value.
+          - title: There is a problem with your file
+            body: >-
+              Some baseline habitats cannot be processed by the service due to
+              a missing or incompatible value.
+      problemsList:
         heading: >-
           One or more baseline habitats cannot be processed by the service due
           to a missing or incompatible value
@@ -727,32 +807,32 @@ upload:
     # --------------------------------------------------------------- hedgerows
 
     GPKG_HEDGEROWS_UNREADABLE_GEOMETRY:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Hedgerows contains unreadable geometry
 
     GPKG_HEDGEROWS_NO_LINESTRING_GEOMETRY:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Hedgerows has feature(s) but no readable linestring geometry
 
     GPKG_HEDGEROWS_WRONG_GEOMETRY_TYPE:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Hedgerows contains feature(s) with non-linestring geometry
 
     HEDGEROWS_OUTSIDE_REDLINE:
-      whenAlone:
+      singleProblemPage:
         title:
           - This hedgerow {ref} contains an error
           - Your Geopackage (.gpkg) file contains an error
         body: >-
           This hedgerow is outside the red line boundary. Draw the hedgerow again
           and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           One or more hedgerow habitats are not entirely within the redline
           boundary
@@ -760,32 +840,32 @@ upload:
     # ------------------------------------------------------------ watercourses
 
     GPKG_RIVERS_UNREADABLE_GEOMETRY:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Rivers contains unreadable geometry
 
     GPKG_RIVERS_NO_LINESTRING_GEOMETRY:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Rivers has feature(s) but no readable linestring geometry
 
     GPKG_RIVERS_WRONG_GEOMETRY_TYPE:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: >-
           Rivers contains feature(s) with non-linestring geometry
 
     WATERCOURSES_OUTSIDE_REDLINE:
-      whenAlone:
+      singleProblemPage:
         title:
           - This watercourse {ref} contains an error
           - Your Geopackage (.gpkg) file contains an error
         body: >-
           This watercourse is outside the red line boundary. Draw the watercourse
           again and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           One or more watercourse habitats are not entirely within the redline
           boundary
@@ -795,29 +875,32 @@ upload:
     # "Area (ha)" in the heading mirrors AREA_COLUMN in the backend
     # (validation/geopackage/vertical-area-check.js); change both together.
     VERTICAL_HABITAT_AREA_NOT_POSITIVE:
-      whenAlone:
-        title:
-          - This vertical area habitat {ref} contains an error
-          - Your Geopackage (.gpkg) file contains an error
-        body: >-
-          The Area (ha) of a vertical area habitat must be a number above 0.
-          Enter the area you estimated on site in hectares and
-          [upload a new file](upload).
-      inList:
+      # Worded for one habitat: an error naming several is shown in the
+      # problems list, until it has wording for several.
+      singleProblemPage:
+        one:
+          title:
+            - This vertical area habitat {ref} contains an error
+            - Your Geopackage (.gpkg) file contains an error
+          body: >-
+            The Area (ha) of a vertical area habitat must be a number above 0.
+            Enter the area you estimated on site in hectares and
+            [upload a new file](upload).
+      problemsList:
         heading: >-
           One or more vertical area habitats have an "Area (ha)" that is not a
           number above 0. Enter the area you estimated on site, in hectares
         item: '{feature} (Area: {area})'
 
     VERTICAL_HABITATS_OUTSIDE_REDLINE:
-      whenAlone:
+      singleProblemPage:
         title:
           - This vertical area habitat {ref} contains an error
           - Your Geopackage (.gpkg) file contains an error
         body: >-
           This vertical area habitat is outside the red line boundary. Draw the
           vertical area habitat again and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           One or more vertical area habitats are not entirely within the redline
           boundary
@@ -828,7 +911,7 @@ upload:
     # MIN_TREE_COUNT in the backend (validation/geopackage/tree-count-check.js);
     # change both together.
     TREE_COUNT_NOT_WHOLE:
-      whenAlone:
+      singleProblemPage:
         title:
           - This tree {ref} contains an error
           - Your Geopackage (.gpkg) file contains an error
@@ -836,22 +919,23 @@ upload:
           The Count for a tree is not a whole number of trees. Leave Count blank
           for one tree, or enter how many trees the point stands for and
           [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           One or more trees have a "Count" that is not a whole number of trees
           (1 or more). Enter how many trees each point stands for, or leave it
           blank for one tree
 
     TREES_OUTSIDE_REDLINE:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: >-
           One or more trees are not entirely within the redline boundary
 
     IRREPLACEABLE_TREE:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more trees are marked as irreplaceable habitat. The service
           does not accept irreplaceable trees, such as ancient and veteran trees
@@ -860,8 +944,10 @@ upload:
           - '{tree}'
 
     IGGIS_OUTSIDE_REDLINE:
-      whenAlone: list
-      inList:
+      # Shown in the problems list even alone, until it has single-problem
+      # wording of its own.
+      wording: interim
+      problemsList:
         heading: >-
           One or more IGGIs are not entirely within the redline boundary
 
@@ -869,12 +955,12 @@ upload:
     # A comment that is too long is TEXT_TOO_LONG, under "text values" below.
 
     COMMENT_INVALID_CHARACTERS:
-      whenAlone:
+      singleProblemPage:
         title: Your Geopackage (.gpkg) file contains an error
         body: >-
           The file contains a comment that uses non-UTF8 characters. Remove those
           characters and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: >-
           One or more comments contain characters that are not valid UTF-8
 
@@ -889,8 +975,7 @@ upload:
 
     TEXT_TOO_LONG:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more values are longer than their column allows. Shorten them
           and upload the file again
@@ -903,8 +988,7 @@ upload:
     # is not text.
     VALUE_NOT_ALLOWED:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more values are not in their column's drop-down list. Choose a
           value from the list and upload the file again
@@ -915,8 +999,7 @@ upload:
     # A BNG Service template feature's feature_uuid is not a UUID.
     FEATURE_UUID_INVALID:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more habitats have a feature_uuid that is not a valid UUID
         item: '{table}, {feature}'
@@ -924,8 +1007,7 @@ upload:
     # A post-intervention feature's parent_uuid is not a UUID.
     PARENT_UUID_INVALID:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more habitats have a parent_uuid that is not a valid UUID
         item: '{table}, {feature}'
@@ -934,8 +1016,7 @@ upload:
     # shape. {shape} is the table's geometry type, such as "polygon".
     PARENT_GEOM_INVALID:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more habitats have a parent_geom that is not the shape of their
           layer written as WKT
@@ -944,36 +1025,36 @@ upload:
     # ------------------------------------------------------------ habitat refs
 
     HABITAT_REF_MISSING:
-      whenAlone:
+      singleProblemPage:
         title: There is a problem with your project
         subheading: Habitat parcels
         body: Your file contains a habitat with no habitat reference.
       # One heading for every habitat it applies to: a habitat with no reference
       # has nothing to list it by.
-      inList:
+      problemsList:
         heading: Your file contains a habitat with no habitat reference
         listsHabitats: false
 
     HABITAT_REF_INVALID_CHARACTERS:
-      whenAlone:
+      singleProblemPage:
         title: There is a problem with your project
         subheading: Habitat parcels
         body: This habitat reference contains characters that are not allowed.
-      inList:
+      problemsList:
         heading: This habitat reference contains characters that are not allowed
         listsHabitats: false
 
     # --------------------------------------------------- habitat eligibility
 
     HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
-      whenAlone:
+      singleProblemPage:
         title: >-
           Very high and high distinctiveness habitats are not yet included in
           this service
         body: >-
           Use the [metric tool (spreadsheet)](metric-tool) to calculate
           biodiversity value.
-      inList:
+      problemsList:
         heading: >-
           One or more habitats have a distinctiveness that is out of scope for
           the BNG Beta service
@@ -982,7 +1063,7 @@ upload:
         note: 'Allowed distinctiveness: {bands}.'
 
     BASELINE_NOT_ENHANCEABLE:
-      whenAlone:
+      singleProblemPage:
         title: There is a problem with your project
         subheading: Service eligibility
         body: >-
@@ -992,7 +1073,7 @@ upload:
           value.
         # The link opens in this tab, and says nothing about a new one.
         opensInNewTab: false
-      inList:
+      problemsList:
         heading: >-
           One or more habitats are enhanced, but their baseline habitat cannot
           be enhanced in this service
@@ -1018,8 +1099,7 @@ upload:
 
     STAGED_PARENT_LINK_MISSING:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more Retained or Enhanced post-intervention habitats do not name
           the baseline habitat they continue
@@ -1030,8 +1110,7 @@ upload:
 
     STAGED_UNKNOWN_PARENT_REF:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more post-intervention habitats name a baseline habitat that is
           not in the file
@@ -1042,8 +1121,7 @@ upload:
 
     STAGED_AMBIGUOUS_PARENT:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more post-intervention habitats have a parent that matches more
           than one baseline habitat
@@ -1056,8 +1134,7 @@ upload:
 
     STAGED_BASELINE_DRIFTED:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more baseline habitats do not have the shape their
           post-intervention habitats were copied from
@@ -1069,8 +1146,7 @@ upload:
 
     STAGED_HEDGEROW_CHILDREN_TOO_LONG:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more baseline hedgerows are shorter than the post-intervention
           hedgerows linked to them together
@@ -1083,8 +1159,7 @@ upload:
 
     STAGED_VERTICAL_CHILDREN_TOO_LARGE:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more baseline vertical area habitats have a smaller Area (ha)
           than the post-intervention vertical area habitats linked to them
@@ -1098,8 +1173,7 @@ upload:
 
     STAGED_TREE_CHILDREN_TOO_MANY:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more baseline trees have fewer trees than the Retained and
           Enhanced post-intervention trees linked to them together. A tree that
@@ -1113,8 +1187,7 @@ upload:
 
     STAGED_WATERCOURSE_RETAINED_AND_CREATED:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more baseline watercourses have both a Retained or Enhanced part
           and a Created part, so their length cannot be split between what
@@ -1128,8 +1201,7 @@ upload:
 
     STAGED_NATURAL_WATERCOURSE_LOST:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more baseline watercourses have no post-intervention habitat,
           but only a canal or a ditch can be permanently lost. Record each as
@@ -1142,8 +1214,7 @@ upload:
 
     STAGED_DEGRADE_NOT_WORSE:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more habitats are Created in their baseline habitat type without
           a lower condition. A habitat that is kept should be Retained or
@@ -1157,8 +1228,7 @@ upload:
 
     STAGED_DEGRADE_ADVANCE_NOT_30_PLUS:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more habitats recorded as lost and created again in a lower
           condition are not created 30+ years in advance, as the Metric guide
@@ -1171,8 +1241,7 @@ upload:
 
     STAGED_WATERCOURSE_NO_INTERVENTION:
       wording: interim
-      whenAlone: list
-      inList:
+      problemsList:
         heading: >-
           One or more watercourses are Created in their baseline River Type with
           no lower condition, more encroachment or shorter length. A watercourse
@@ -1187,24 +1256,24 @@ upload:
     # ------------------------------------------------------ while uploading
 
     SIZING_FAILED:
-      whenAlone: service-problem
-      inList:
+      singleProblemPage: service-problem
+      problemsList:
         heading: 'Unable to calculate habitat sizes'
 
     VALIDATION_FAILED:
-      whenAlone: service-problem
-      inList: catch-all
+      singleProblemPage: service-problem
+      problemsList: catch-all
 
     VALIDATION_BUSY:
-      whenAlone: service-problem
-      inList:
+      singleProblemPage: service-problem
+      problemsList:
         # &serviceBusy: the upload page shows these same words when it gives up
         # waiting (forms.file.serviceBusy), so a change here changes both.
         heading: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
 
     VALIDATION_UNAVAILABLE:
-      whenAlone: service-problem
-      inList:
+      singleProblemPage: service-problem
+      problemsList:
         heading: 'The file checking service is currently unavailable. Please try again later.'
 
 # -------------------------------------------------------------------- edit

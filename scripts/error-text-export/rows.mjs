@@ -3,8 +3,8 @@ import {
   wordingStatus
 } from '../../src/server/common/error-text/wording.js'
 import {
-  IN_LIST_CATCH_ALL,
-  WHEN_ALONE
+  PROBLEMS_LIST_CATCH_ALL,
+  SHARED_PAGE
 } from '../../src/server/error-file/dropout-copy.js'
 import {
   ENTRY_PLACEHOLDERS,
@@ -44,12 +44,16 @@ const STATUS_ORDER = [STATUS.NEEDS_CONTENT, STATUS.AWAITING_UCD, STATUS.FINAL]
 export const COLUMNS = Object.freeze([
   { key: 'id', header: 'Error ID', width: 36 },
   { key: 'shown', header: 'Where it is shown', width: 20 },
+  { key: 'alone', header: 'When it is the only problem', width: 36 },
   { key: 'status', header: 'Status', width: 14 },
   { key: 'summary', header: 'Error summary', width: 40 },
   { key: 'inline', header: 'Inline message', width: 40 },
   { key: 'pageHeading', header: 'Page heading', width: 40 },
   { key: 'subheading', header: 'Subheading', width: 18 },
   { key: 'body', header: 'Body', width: 60 },
+  { key: 'pageHeadingSeveral', header: 'Page heading (several)', width: 40 },
+  { key: 'subheadingSeveral', header: 'Subheading (several)', width: 18 },
+  { key: 'bodySeveral', header: 'Body (several)', width: 60 },
   { key: 'listHeading', header: 'List heading', width: 60 },
   { key: 'item', header: 'Item', width: 40 },
   { key: 'detail', header: 'Detail', width: 40 },
@@ -68,6 +72,9 @@ export const WORDING_KEYS = Object.freeze([
   'pageHeading',
   'subheading',
   'body',
+  'pageHeadingSeveral',
+  'subheadingSeveral',
+  'bodySeveral',
   'listHeading',
   'item',
   'detail',
@@ -79,11 +86,23 @@ export const WORDING_KEYS = Object.freeze([
 export const SHOWN = Object.freeze({
   COMMON: 'Every page',
   UPLOAD: 'Drop-out page',
-  UPLOAD_AS_LIST: 'Drop-out page, always as a list',
   FALLBACK: 'Drop-out page, in place of an error’s own words',
   EDIT: 'Edit made on screen',
   FORM: 'Form',
   PAGE: 'Whole page'
+})
+
+/**
+ * What a drop-out page error shows when it is the file's only problem, as
+ * the When it is the only problem column says: from its singleProblemPage.
+ */
+export const ALONE = Object.freeze({
+  OWN: 'Its own page, worded for any number of habitats',
+  OWN_ONE_AND_SEVERAL: 'Its own page, worded for one habitat and for several',
+  OWN_ONE_ONLY:
+    'Its own page for one habitat; the problems list for several, until it has wording for several',
+  SHARED: 'A shared page, named in Shared fallback',
+  PROBLEMS_LIST: 'The problems list'
 })
 
 /**
@@ -119,9 +138,9 @@ export const DEFAULT_GROUPS = Object.freeze([ROW_GROUPS.CODES])
 /** Said of a {name} or link target that placeholders.mjs does not explain. */
 export const NOT_EXPLAINED = 'not explained yet'
 
-/** The upload section's shared fallbacks, by the name whenAlone gives them. */
+/** The upload section's shared fallbacks, by the name singleProblemPage gives them. */
 export const FALLBACKS = Object.freeze({
-  [WHEN_ALONE.CATCH_ALL]: {
+  [SHARED_PAGE.CATCH_ALL]: {
     key: 'catchAll',
     label: 'Catch-all',
     // The service-template flag decides which the page shows.
@@ -130,8 +149,8 @@ export const FALLBACKS = Object.freeze({
       ['serviceTemplate', 'BNG Service template']
     ]
   },
-  [WHEN_ALONE.FILE_PROBLEM]: { key: 'fileProblem', label: 'File problem' },
-  [WHEN_ALONE.SERVICE_PROBLEM]: {
+  [SHARED_PAGE.FILE_PROBLEM]: { key: 'fileProblem', label: 'File problem' },
+  [SHARED_PAGE.SERVICE_PROBLEM]: {
     key: 'serviceProblem',
     label: 'Service problem'
   }
@@ -176,12 +195,12 @@ function sameOrLabelled(labelled) {
 }
 
 /**
- * A key of an upload error's inList, with each variant that rewords it:
+ * A key of an upload error's problemsList, with each variant that rewords it:
  * "bng-service variant: …".
  */
-function withVariants(inList, key, render) {
-  const own = inList[key] === undefined ? [] : [render(inList[key])]
-  const variants = Object.entries(inList.variants ?? {})
+function withVariants(problemsList, key, render) {
+  const own = problemsList[key] === undefined ? [] : [render(problemsList[key])]
+  const variants = Object.entries(problemsList.variants ?? {})
     .filter(([, variant]) => variant[key] !== undefined)
     .map(([name, variant]) => `${name} variant: ${render(variant[key])}`)
   return variants.length > 0 || own.length > 0
@@ -189,7 +208,7 @@ function withVariants(inList, key, render) {
     : undefined
 }
 
-/** A drop-out page layout's words: one page copy, or options of them. */
+/** A single-problem page's words: one page copy, or options of them. */
 function pageCopyCells(copies) {
   const list = [copies].flat()
   const join = (key) => {
@@ -277,38 +296,69 @@ function fallbackStatuses(upload, fallback) {
  * An upload error's row, noting in `usage` each fallback it shows. A row
  * repeating a fallback's words is no further on than that fallback.
  */
+/** The words of a single-problem page worded for several, in their own columns. */
+function severalCells(copies) {
+  const { pageHeading, subheading, body } = pageCopyCells(copies)
+  return {
+    pageHeadingSeveral: pageHeading,
+    subheadingSeveral: subheading,
+    bodySeveral: body
+  }
+}
+
+/**
+ * An upload error's single-problem page: its words, and what the When it is
+ * the only problem column says of it.
+ */
+function singleProblemCells(page) {
+  if (page === undefined) {
+    return { alone: ALONE.PROBLEMS_LIST, cells: {} }
+  }
+  if (!Object.hasOwn(page, 'one')) {
+    return { alone: ALONE.OWN, cells: pageCopyCells(page) }
+  }
+  return page.several === undefined
+    ? { alone: ALONE.OWN_ONE_ONLY, cells: pageCopyCells(page.one) }
+    : {
+        alone: ALONE.OWN_ONE_AND_SEVERAL,
+        cells: { ...pageCopyCells(page.one), ...severalCells(page.several) }
+      }
+}
+
 function uploadErrorRow(upload, code, entry, usage) {
-  const { whenAlone, inList } = entry
+  const { singleProblemPage, problemsList } = entry
   const row = newRow(code, SHOWN.UPLOAD, entry, ['upload', 'errors', code])
 
-  if (whenAlone === WHEN_ALONE.LIST) {
-    row.shown = [SHOWN.UPLOAD_AS_LIST]
-  } else if (typeof whenAlone === 'string') {
-    const fallback = FALLBACKS[whenAlone]
+  if (typeof singleProblemPage === 'string') {
+    const fallback = FALLBACKS[singleProblemPage]
+    row.alone = ALONE.SHARED
     Object.assign(row.cells, fallbackCells(upload, fallback))
     row.statuses.push(...fallbackStatuses(upload, fallback))
     row.fallbacks.push(`${fallbackName(fallback)}, when alone`)
-    usage[whenAlone].alone.push(code)
+    usage[singleProblemPage].alone.push(code)
   } else {
-    Object.assign(row.cells, pageCopyCells(whenAlone))
+    const { alone, cells } = singleProblemCells(singleProblemPage)
+    row.alone = alone
+    Object.assign(row.cells, cells)
   }
 
-  if (inList === IN_LIST_CATCH_ALL) {
-    const fallback = FALLBACKS[WHEN_ALONE.CATCH_ALL]
+  if (problemsList === PROBLEMS_LIST_CATCH_ALL) {
+    const fallback = FALLBACKS[SHARED_PAGE.CATCH_ALL]
     row.cells.listHeading = fallbackCells(upload, fallback).pageHeading
     row.statuses.push(...fallbackStatuses(upload, fallback))
     row.fallbacks.push(`${fallbackName(fallback)} title, in a list`)
-    usage[WHEN_ALONE.CATCH_ALL].inList.push(code)
+    usage[SHARED_PAGE.CATCH_ALL].listed.push(code)
   } else {
     Object.assign(row.cells, {
-      listHeading: withVariants(inList, 'heading', String),
-      item: withVariants(inList, 'item', partsText),
-      detail: withVariants(inList, 'detail', partsText),
-      listNote: inList.note
+      listHeading: withVariants(problemsList, 'heading', String),
+      item: withVariants(problemsList, 'item', partsText),
+      detail: withVariants(problemsList, 'detail', partsText),
+      listNote: problemsList.note
     })
-    row.partsNote = [inList, ...Object.values(inList.variants ?? {})].some(
-      ({ item, detail }) => Array.isArray(item) || Array.isArray(detail)
-    )
+    row.partsNote = [
+      problemsList,
+      ...Object.values(problemsList.variants ?? {})
+    ].some(({ item, detail }) => Array.isArray(item) || Array.isArray(detail))
   }
   return row
 }
@@ -329,7 +379,7 @@ function fallbackRows(upload, usage) {
       paths: [['upload', fallback.key]],
       fallbacks: [
         ...usedBy(usage[name].alone, 'Shown alone'),
-        ...usedBy(usage[name].inList, 'Its title heads a list')
+        ...usedBy(usage[name].listed, 'Its title heads a list')
       ]
     }
     return row
@@ -369,7 +419,7 @@ function merge(upload, edit) {
 function uploadAndEditRows(value) {
   const { upload, edit } = value
   const usage = Object.fromEntries(
-    Object.keys(FALLBACKS).map((name) => [name, { alone: [], inList: [] }])
+    Object.keys(FALLBACKS).map((name) => [name, { alone: [], listed: [] }])
   )
   const edits = new Map(
     Object.entries(edit).map(([code, entry]) => [code, editRow(code, entry)])
@@ -466,6 +516,7 @@ function finish(row, file, sourceUrl) {
   return {
     id: row.id,
     shown: unique(row.shown).join('; '),
+    alone: row.alone ?? '',
     status,
     ...cells,
     fallback: row.fallbacks.join('\n'),

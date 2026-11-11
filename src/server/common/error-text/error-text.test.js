@@ -57,7 +57,7 @@ describe('error-text.yaml', () => {
 
   test("words the upload page's busy message as the drop-out page's", () => {
     expect(errorText.forms.file.serviceBusy).toBe(
-      errorText.upload.errors.VALIDATION_BUSY.inList.heading
+      errorText.upload.errors.VALIDATION_BUSY.problemsList.heading
     )
   })
 

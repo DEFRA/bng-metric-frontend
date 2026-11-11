@@ -30,7 +30,8 @@ export const PLACEHOLDERS = Object.freeze({
   condition: "the habitat's condition",
   contentsSrsId:
     'the spatial reference system id the gpkg_contents table gives the layer',
-  count: 'how many trees the baseline tree stands for: its Count',
+  count:
+    'how many: on a page worded for several, how many habitats the error names; for a tree, how many trees the baseline tree stands for, its Count',
   distinctiveness: "the habitat's distinctiveness, such as Very high",
   expected: 'what the template expects',
   expectedSrsId: 'the spatial reference system id the template expects',

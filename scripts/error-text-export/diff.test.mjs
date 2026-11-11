@@ -4,7 +4,14 @@ import {
   diffRows,
   isEmptyDiff
 } from './diff.mjs'
-import { ALL_GROUPS, ROW_GROUPS, SHOWN, STATUS, buildRows } from './rows.mjs'
+import {
+  ALL_GROUPS,
+  ALONE,
+  ROW_GROUPS,
+  SHOWN,
+  STATUS,
+  buildRows
+} from './rows.mjs'
 
 // Two small error-text.yaml files: the second adds, removes, rewords and
 // finishes entries, and moves a code from the drop-out page to an edit.
@@ -34,24 +41,21 @@ upload:
   distinctiveness: {}
   errors:
     KEPT:
-      whenAlone: list
-      inList:
+      problemsList:
         heading: Parcels are too small
     REMOVED:
-      whenAlone: list
-      inList:
+      problemsList:
         heading: Gone soon
     MOVED:
-      whenAlone: list
-      inList:
+      problemsList:
         heading: Moved soon
     ALONE_A:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: First
     ALONE_B:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: Second
 edit: {}
 forms:
@@ -69,21 +73,18 @@ const after = before
   )
   .replace(
     `    REMOVED:
-      whenAlone: list
-      inList:
+      problemsList:
         heading: Gone soon
 `,
     ''
   )
   .replace(
     `    MOVED:
-      whenAlone: list
-      inList:
+      problemsList:
         heading: Moved soon
 `,
     `    ADDED:
-      whenAlone: list
-      inList:
+      problemsList:
         heading: New
 `
   )
@@ -123,12 +124,17 @@ describe('diffRows', () => {
     const moved = diff.changed.find(({ ids }) => ids.includes('MOVED'))
     expect(moved.parts.map(({ part }) => part)).toEqual([
       'Where it is shown',
+      'When it is the only problem',
       'Error summary',
       'List heading'
     ])
     expect(moved.parts[0]).toMatchObject({
-      before: SHOWN.UPLOAD_AS_LIST,
+      before: SHOWN.UPLOAD,
       after: SHOWN.EDIT
+    })
+    expect(moved.parts[1]).toMatchObject({
+      before: ALONE.PROBLEMS_LIST,
+      after: ''
     })
   })
 
@@ -185,7 +191,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
   test("gives an added error's words, part by part", () => {
     expect(markdown).toContain(
       [
-        '**`ADDED`**: Drop-out page, always as a list, Final',
+        '**`ADDED`**: Drop-out page, Final',
         '',
         '| Part | Words |',
         '| --- | --- |',
@@ -223,14 +229,12 @@ describe('describeDiff, as plain text for the run log', () => {
   test("gives an added or removed error's words, as typed", () => {
     expect(described.text).toContain(
       [
-        '  ADDED (Drop-out page, always as a list, Final)',
+        '  ADDED (Drop-out page, Final)',
         '    List heading:',
         '        New'
       ].join('\n')
     )
-    expect(described.text).toContain(
-      '  REMOVED (Drop-out page, always as a list, Final)'
-    )
+    expect(described.text).toContain('  REMOVED (Drop-out page, Final)')
   })
 
   test('gives each changed part before and after, one ID a line', () => {
