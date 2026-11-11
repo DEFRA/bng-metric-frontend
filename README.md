@@ -127,8 +127,11 @@ Every message a customer can see when the service refuses something lives in
 npm run export:error-text
 ```
 
-This writes `export/error-messages-<date>-<branch>-<commit>` as `.xlsx`, `.csv`
-and `.html`, with one row for each of the backend's error codes, such as
+This writes `export/error-messages-<date>-<HHmmss>-<branch>-<commit>` as
+`.xlsx`, `.csv` and `.html`: the time is UTC, and a run in GitHub Actions adds
+`-run<run ID>`, as in
+`error-messages-2026-11-11-143005-main-ab640af-run43044358011.xlsx`. Each file
+has one row for each of the backend's error codes, such as
 `VALIDATION_UNAVAILABLE`: the `upload.errors` and `edit` entries, a code met in
 both as one row. The file's other entries are left out by default, to keep the
 export short enough to review. `-- --include GROUPS` adds them back, by group,

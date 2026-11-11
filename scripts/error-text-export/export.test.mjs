@@ -22,7 +22,7 @@ import {
 } from './export.mjs'
 import { ALL_GROUPS, ROW_GROUPS, STATUS } from './rows.mjs'
 
-const NOW = new Date('2026-11-10T09:00:00Z')
+const NOW = new Date('2026-11-10T09:05:07.250Z')
 const SHA = '39a95e5bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 const SOURCE = readFileSync(ERROR_TEXT_FILE, 'utf8')
 
@@ -36,16 +36,24 @@ function withBrokenUploadError() {
 }
 
 describe('fileStem', () => {
-  test('names the date, branch and short commit', () => {
-    expect(fileStem({ date: '2026-11-10', branch: 'main', commit: SHA })).toBe(
-      'error-messages-2026-11-10-main-39a95e5'
+  const when = { date: '2026-11-10', time: '143005' }
+
+  test('names the date, time, branch, short commit and GitHub Actions run', () => {
+    expect(
+      fileStem({ ...when, branch: 'main', commit: SHA, runId: '43044358011' })
+    ).toBe('error-messages-2026-11-10-143005-main-39a95e5-run43044358011')
+  })
+
+  test('leaves the run out when there is none, as on a laptop', () => {
+    expect(fileStem({ ...when, branch: 'main', commit: SHA })).toBe(
+      'error-messages-2026-11-10-143005-main-39a95e5'
     )
   })
 
   test('replaces a slash in a branch name', () => {
-    expect(
-      fileStem({ date: '2026-11-10', branch: 'feature/a b', commit: SHA })
-    ).toBe('error-messages-2026-11-10-feature-a-b-39a95e5')
+    expect(fileStem({ ...when, branch: 'feature/a b', commit: SHA })).toBe(
+      'error-messages-2026-11-10-143005-feature-a-b-39a95e5'
+    )
   })
 })
 
@@ -77,17 +85,39 @@ describe('exportMeta', () => {
       GITHUB_SHA: SHA,
       GITHUB_REF_NAME: 'main',
       GITHUB_SERVER_URL: 'https://github.com',
-      GITHUB_REPOSITORY: 'DEFRA/bng-metric-frontend'
+      GITHUB_REPOSITORY: 'DEFRA/bng-metric-frontend',
+      GITHUB_RUN_ID: '43044358011'
     }
     expect(exportMeta({}, env, NOW)).toEqual({
       repository: 'https://github.com/DEFRA/bng-metric-frontend',
       groups: [ROW_GROUPS.CODES],
       date: '2026-11-10',
+      time: '090507',
+      runId: '43044358011',
       branch: 'main',
       commit: SHA,
       commitUrl: `https://github.com/DEFRA/bng-metric-frontend/commit/${SHA}`,
       fileUrl: `https://github.com/DEFRA/bng-metric-frontend/blob/${SHA}/src/server/common/error-text/error-text.yaml`
     })
+  })
+
+  test('takes the time as HHmmss in UTC, and no run outside GitHub Actions', () => {
+    const meta = exportMeta(
+      { sha: SHA, branch: 'main' },
+      {},
+      new Date('2026-07-01T23:59:58+01:00')
+    )
+    expect(meta).toMatchObject({ date: '2026-07-01', time: '225958' })
+    expect(meta.runId).toBeUndefined()
+  })
+
+  test('ignores a run ID that is not digits, as it goes in a file name', () => {
+    const meta = exportMeta(
+      { sha: SHA, branch: 'main' },
+      { GITHUB_RUN_ID: '../x' },
+      NOW
+    )
+    expect(meta.runId).toBeUndefined()
   })
 
   test('names a pull request by its branch, not its merge ref', () => {
@@ -138,9 +168,9 @@ describe('writeExport', () => {
     const { rows, files } = await writeExport(SOURCE, outDir, meta)
 
     expect(readdirSync(outDir).sort()).toEqual([
-      'error-messages-2026-11-10-main-39a95e5.csv',
-      'error-messages-2026-11-10-main-39a95e5.html',
-      'error-messages-2026-11-10-main-39a95e5.xlsx'
+      'error-messages-2026-11-10-090507-main-39a95e5.csv',
+      'error-messages-2026-11-10-090507-main-39a95e5.html',
+      'error-messages-2026-11-10-090507-main-39a95e5.xlsx'
     ])
     expect(files).toHaveLength(3)
     expect(rows[0].source).toMatch(
