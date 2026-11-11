@@ -418,6 +418,31 @@ const habitatDetailsPayload = Joi.object({
   crumb: Joi.string().optional()
 })
 
+/**
+ * The refusal to show for a save the backend refused, or null when the error
+ * is not one for the form to show.
+ */
+function saveErrorRefusal(err, refToSave) {
+  // The backend checks a reference again; if it refuses one this side
+  // passed, or one another habitat already carries, say so at the field
+  // rather than on an error page.
+  if (isRefInUseError(err)) {
+    return HABITAT_REF_IN_USE_ERROR
+  }
+  // A value saved before the service checked text lengths and lists
+  // refuses any save of the habitat, whatever was changed.
+  if (isStoredValueRefusal(err)) {
+    return storedValueRefusal(err, { refTooLong: HABITAT_REF_TOO_LONG_ERROR })
+  }
+  if (
+    refToSave !== undefined &&
+    err.output?.statusCode === statusCodes.badRequest
+  ) {
+    return HABITAT_REF_ERROR
+  }
+  return null
+}
+
 function createPostController(uploadType) {
   return {
     options: { validate: { payload: habitatDetailsPayload } },
@@ -479,24 +504,9 @@ function createPostController(uploadType) {
           featureId
         )
       } catch (err) {
-        // The backend checks a reference again; if it refuses one this side
-        // passed, or one another habitat already carries, say so at the field
-        // rather than on an error page.
-        if (isRefInUseError(err)) {
-          return showRefused(HABITAT_REF_IN_USE_ERROR)
-        }
-        // A value saved before the service checked text lengths and lists
-        // refuses any save of the habitat, whatever was changed.
-        if (isStoredValueRefusal(err)) {
-          return showRefused(
-            storedValueRefusal(err, { refTooLong: HABITAT_REF_TOO_LONG_ERROR })
-          )
-        }
-        if (
-          refToSave !== undefined &&
-          err.output?.statusCode === statusCodes.badRequest
-        ) {
-          return showRefused(HABITAT_REF_ERROR)
+        const saveRefusal = saveErrorRefusal(err, refToSave)
+        if (saveRefusal) {
+          return showRefused(saveRefusal)
         }
         throw err
       }

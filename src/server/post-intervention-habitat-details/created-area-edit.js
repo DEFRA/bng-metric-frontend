@@ -339,6 +339,21 @@ function createdUploadHref(ctx, feature, returnUrl) {
   )
 }
 
+// A backend refusal comes first, unlinked; then each field's error in page
+// order, leaving out the delay error when the advance one is shown.
+function createdErrorList(errors, refusal) {
+  return [
+    ...(refusal ? [{ text: refusal.summaryOnly }] : []),
+    ...FIELD_ORDER.filter(
+      (field) =>
+        errors[field] && (field !== 'delayYears' || !errors.advanceYears)
+    ).map((field) => ({
+      text: errors[field].summary,
+      href: `#${field}`
+    }))
+  ]
+}
+
 /**
  * The Created edit page's view model. `values` and `errors` are set when the
  * form's own checks refused a save, and `ctx.refusal` when the backend refused
@@ -397,16 +412,7 @@ export function buildCreatedAreaEditViewModel(
       initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
         : null,
-    errorList: [
-      ...(ctx.refusal ? [{ text: ctx.refusal.summaryOnly }] : []),
-      ...FIELD_ORDER.filter(
-        (field) =>
-          errors[field] && (field !== 'delayYears' || !errors.advanceYears)
-      ).map((field) => ({
-        text: errors[field].summary,
-        href: `#${field}`
-      }))
-    ],
+    errorList: createdErrorList(errors, ctx.refusal),
     fields: buildCreatedEditFields(reference, values, storedValues, kind),
     referenceJson: createdReferenceJson(
       reference,
