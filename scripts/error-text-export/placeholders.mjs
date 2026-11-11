@@ -97,6 +97,10 @@ const TEXT_VALUE_PLACEHOLDERS = Object.freeze({
 
 export const ENTRY_PLACEHOLDERS = Object.freeze({
   GPKG_MISSING_SYSTEM_TABLE: { table: 'the name of the missing system table' },
+  BASELINE_HABITATS_INCOMPLETE: {
+    layer:
+      'the layer the habitat is in, as the page names it: Habitat parcels, Hedgerows or Watercourses'
+  },
   TEXT_TOO_LONG: {
     ...TEXT_VALUE_PLACEHOLDERS,
     length:
