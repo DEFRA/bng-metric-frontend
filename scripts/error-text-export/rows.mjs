@@ -62,7 +62,7 @@ export const COLUMNS = Object.freeze([
 ])
 
 // The columns that hold words a customer sees.
-const WORDING_KEYS = [
+export const WORDING_KEYS = Object.freeze([
   'summary',
   'inline',
   'pageHeading',
@@ -73,7 +73,7 @@ const WORDING_KEYS = [
   'detail',
   'listNote',
   'text'
-]
+])
 
 /** Where a customer meets an entry, as the Where it is shown column says. */
 export const SHOWN = Object.freeze({
@@ -308,9 +308,10 @@ function fallbackRows(upload, usage) {
 
 function editRow(code, entry) {
   const row = newRow(code, SHOWN.EDIT, entry, ['edit', code])
-  row.cells.summary = entry.summary
+  // A refusal no one field can put right is shown in the error summary only.
+  row.cells.summary = entry.summary ?? entry.summaryOnly
   row.cells.inline = entry.inline
-  if (entry.summary === undefined) {
+  if (row.cells.summary === undefined) {
     row.fallbacks.push(UNWORDED_EDIT)
   }
   return row

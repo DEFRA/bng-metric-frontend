@@ -100,9 +100,22 @@ describe('invalidFileController.handler — populated session', () => {
           'One or more comments contain characters that are not valid UTF-8: areas fid 1'
       },
       {
-        code: 'COMMENT_TOO_LONG',
+        code: 'TEXT_TOO_LONG',
         message:
-          'One or more comments are longer than 999 characters: areas fid 2'
+          'Text values longer than their column allows: Habitats H2 Comment',
+        details: {
+          count: 1,
+          sample: [
+            {
+              table: 'Habitats',
+              fid: 2,
+              ref: 'H2',
+              column: 'Comment',
+              limit: 999,
+              length: 1240
+            }
+          ]
+        }
       }
     ]
     const request = makeRequest({ baselineValidationErrors: errors })
@@ -120,7 +133,12 @@ describe('invalidFileController.handler — populated session', () => {
               'One or more comments contain characters that are not valid UTF-8'
           }),
           expect.objectContaining({
-            heading: 'One or more comments are longer than 999 characters'
+            heading:
+              'One or more values are longer than their column allows. Shorten them and upload the file again',
+            items: [
+              'Habitats, H2: Comment has 1,240 characters. The maximum is 999'
+            ],
+            more: 0
           })
         ]
       })
@@ -917,7 +935,7 @@ describe('invalidFileController.handler — populated session', () => {
     const errors = [
       { code: 'NO_REDLINE', message: 'Not shown: nor this' },
       {
-        code: 'COMMENT_TOO_LONG',
+        code: 'COMMENT_INVALID_CHARACTERS',
         message: 'Not shown: nor this',
         details: { count: 1, sample: [{ layer: 'areas', fid: 2, idx: 1 }] }
       }
@@ -935,7 +953,8 @@ describe('invalidFileController.handler — populated session', () => {
         more: 0
       },
       {
-        heading: 'One or more comments are longer than 999 characters',
+        heading:
+          'One or more comments contain characters that are not valid UTF-8',
         items: ['fid 2'],
         more: 0
       }
@@ -1894,6 +1913,61 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       expect(view.errorBlocks).toEqual([{ heading, items: [], more: 0 }])
     }
   )
+  // BMD-1175: each text-value problem lists the values that fail, by table,
+  // habitat (its ref, or its fid when it has none) and column.
+  test.each([
+    [
+      'TEXT_TOO_LONG',
+      { ref: 'H1', column: 'Comment', length: 1240, limit: 999 },
+      'Habitats, H1: Comment has 1,240 characters. The maximum is 999'
+    ],
+    [
+      'VALUE_NOT_ALLOWED',
+      { ref: null, column: 'Condition', value: 'Excellent' },
+      'Habitats, fid 3: Condition has "Excellent"'
+    ],
+    [
+      'VALUE_NOT_ALLOWED',
+      { ref: 'H1', column: 'Condition', value: null },
+      'Habitats, H1: Condition'
+    ],
+    [
+      'FEATURE_UUID_INVALID',
+      { ref: 'H1', column: 'feature_uuid' },
+      'Habitats, H1'
+    ],
+    [
+      'PARENT_UUID_INVALID',
+      { ref: 'H1', column: 'parent_uuid' },
+      'Habitats, H1'
+    ],
+    [
+      'PARENT_GEOM_INVALID',
+      { ref: 'H1', column: 'parent_geom', shape: 'multipolygon' },
+      'Habitats, H1 (expected a multipolygon)'
+    ]
+  ])('lists a lone %s by the values that fail', async (code, entry, item) => {
+    const view = await viewFor([
+      {
+        code,
+        message: 'not shown',
+        details: {
+          count: 3,
+          sample: [{ table: 'Habitats', fid: 3, ...entry }]
+        }
+      }
+    ])
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toEqual([
+      {
+        heading: expect.stringMatching(/^One or more /),
+        items: [item],
+        more: 2
+      }
+    ])
+  })
+
   test('shows a lone LEGACY_TEMPLATE_NOT_ACCEPTED as single-error copy, not split at its colon', async () => {
     const view = await viewFor([
       {

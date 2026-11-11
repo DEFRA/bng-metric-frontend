@@ -68,8 +68,8 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *                 format: uuid
  *               habitatRef:
  *                 type: string
- *                 maxLength: 100
- *                 description: Habitat reference. Longer values are truncated to 100 characters by the backend.
+ *                 maxLength: 99
+ *                 description: Habitat reference, 99 characters or fewer once trimmed. A changed reference that is longer is refused, not cut.
  *               broadHabitat:
  *                 type: string
  *               habitatType:

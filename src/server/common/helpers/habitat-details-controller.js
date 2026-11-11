@@ -10,11 +10,16 @@ import { habitatDetailsDestination } from './habitat-details-destination.js'
 import {
   HABITAT_REF_ERROR,
   HABITAT_REF_IN_USE_ERROR,
+  HABITAT_REF_TOO_LONG_ERROR,
   habitatRefFormFields,
+  habitatRefRefusal,
   isRefInUseError,
-  isRefUnchanged,
-  isValidHabitatRef
+  isRefUnchanged
 } from './habitat-ref.js'
+import {
+  isStoredValueRefusal,
+  storedValueRefusal
+} from './stored-value-refusal.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -243,9 +248,10 @@ function withSubmittedChoices(feature, submitted, reference) {
  * @param {import('@hapi/hapi').Request} request
  * @param {import('@hapi/hapi').ResponseToolkit} h
  * @param {object} uploadType
- * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, refusal?: { summary: string, inline: string } }} params
+ * @param {{ projectId: string, featureId: string, piBackHref?: string | null, submitted?: object, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
  *   `piBackHref` is the post-intervention page the user came from, if any.
- *   `refusal` is why the reference was refused (habitat-ref.js), when it was.
+ *   `refusal` is why the save was refused (habitat-ref.js,
+ *   stored-value-refusal.js), when it was.
  */
 async function renderDetailsPage(
   request,
@@ -295,26 +301,24 @@ async function renderDetailsPage(
   })
 }
 
-// What submittedRefToSave answers for a reference that must not be saved.
-const REFUSED_REF = Symbol('refused habitat reference')
-
 /**
- * The habitat reference to send with a save, undefined to leave the stored one
- * alone, or REFUSED_REF when the submitted one is invalid.
+ * The habitat reference to send with a save (`ref`, undefined to leave the
+ * stored one alone), or why the submitted one is refused (`refusal`).
  *
  * Only a reference the user changed is checked and sent. A habitat imported
- * before the BMD-1058 import check may hold one that would not pass today: no
- * reference at all, characters that are not UTF-8, surrounding spaces, or more
- * than 100 characters. Its page shows it as stored, so a save that leaves it
- * as it is only asks to change the dropdowns. Checking it would refuse that
- * save until the user made a new one up, and sending it would have the
- * backend trim or cut it, renaming the habitat unasked. Blanking the field
- * where a reference was saved is still a change, and still refused.
+ * before the BMD-1058 and BMD-1175 import checks may hold one that would not
+ * pass today: no reference at all, characters that are not UTF-8, surrounding
+ * spaces, or more than 99 characters. Its page shows it as stored, so a save
+ * that leaves it as it is only asks to change the dropdowns. Checking it would
+ * refuse that save until the user made a new one up, and sending it would
+ * have the backend trim or refuse it. Blanking the field where a reference
+ * was saved is still a change, and still refused; so is a changed reference
+ * that is still too long, which the user is asked to shorten.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {object} uploadType
  * @param {{ projectId: string, featureId: string, habitatRef: string | undefined }} params
- * @returns {Promise<string | undefined | symbol>}
+ * @returns {Promise<{ ref?: string, refusal?: { summary: string, inline: string } }>}
  */
 async function submittedRefToSave(
   request,
@@ -322,7 +326,7 @@ async function submittedRefToSave(
   { projectId, featureId, habitatRef }
 ) {
   if (habitatRef === undefined) {
-    return undefined
+    return {}
   }
   const { feature } = await fetchFeature(
     request,
@@ -331,9 +335,10 @@ async function submittedRefToSave(
     featureId
   )
   if (isRefUnchanged(habitatRef, feature?.ref)) {
-    return undefined
+    return {}
   }
-  return isValidHabitatRef(habitatRef) ? habitatRef : REFUSED_REF
+  const refusal = habitatRefRefusal(habitatRef)
+  return refusal ? { refusal } : { ref: habitatRef }
 }
 
 function createGetController(uploadType) {
@@ -362,8 +367,10 @@ function createGetController(uploadType) {
 /**
  * Save a habitat, so a refusal keeps its meaning instead of always reading as
  * an upstream failure (backendSaveError): an expired session passes through,
- * and 409, 404 and 400 keep theirs. Shared by the baseline and Created-area
- * forms.
+ * and 409, 404 and 400 keep theirs. A reference another habitat carries, or a
+ * value the habitat has held since before the service checked text lengths
+ * and lists (stored-value-refusal.js), is thrown as it is, for the form to
+ * show. Shared by the baseline and Created-area forms.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {string} path backend path, without the base URL
@@ -389,8 +396,9 @@ export async function saveHabitat(request, path, body, featureId) {
     }
     return payload
   } catch (err) {
-    // A reference another habitat already carries is for the form to show.
-    if (isRefInUseError(err)) {
+    // A reference another habitat already carries, or an older stored value,
+    // is for the form to show.
+    if (isRefInUseError(err) || isStoredValueRefusal(err)) {
       throw err
     }
     throw backendSaveError(err, featureId)
@@ -410,6 +418,31 @@ const habitatDetailsPayload = Joi.object({
   crumb: Joi.string().optional()
 })
 
+/**
+ * The refusal to show for a save the backend refused, or null when the error
+ * is not one for the form to show.
+ */
+function saveErrorRefusal(err, refToSave) {
+  // The backend checks a reference again; if it refuses one this side
+  // passed, or one another habitat already carries, say so at the field
+  // rather than on an error page.
+  if (isRefInUseError(err)) {
+    return HABITAT_REF_IN_USE_ERROR
+  }
+  // A value saved before the service checked text lengths and lists
+  // refuses any save of the habitat, whatever was changed.
+  if (isStoredValueRefusal(err)) {
+    return storedValueRefusal(err, { refTooLong: HABITAT_REF_TOO_LONG_ERROR })
+  }
+  if (
+    refToSave !== undefined &&
+    err.output?.statusCode === statusCodes.badRequest
+  ) {
+    return HABITAT_REF_ERROR
+  }
+  return null
+}
+
 function createPostController(uploadType) {
   return {
     options: { validate: { payload: habitatDetailsPayload } },
@@ -425,14 +458,18 @@ function createPostController(uploadType) {
         riparianEncroachment
       } = request.payload
 
-      const refToSave = await submittedRefToSave(request, uploadType, {
-        projectId,
-        featureId,
-        habitatRef
-      })
+      const { ref: refToSave, refusal } = await submittedRefToSave(
+        request,
+        uploadType,
+        {
+          projectId,
+          featureId,
+          habitatRef
+        }
+      )
       // A refused reference shows the page again with the error, keeping
       // what the user typed and chose, and the way back they came in by.
-      const showRefused = async (refusal) => {
+      const showRefused = async (refusalToShow) => {
         const response = await renderDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
@@ -441,12 +478,12 @@ function createPostController(uploadType) {
             projectId
           ),
           submitted: request.payload,
-          refusal
+          refusal: refusalToShow
         })
         return response.code(statusCodes.badRequest)
       }
-      if (refToSave === REFUSED_REF) {
-        return showRefused(HABITAT_REF_ERROR)
+      if (refusal) {
+        return showRefused(refusal)
       }
 
       const body = buildSaveBody({
@@ -467,17 +504,9 @@ function createPostController(uploadType) {
           featureId
         )
       } catch (err) {
-        // The backend checks a reference again; if it refuses one this side
-        // passed, or one another habitat already carries, say so at the field
-        // rather than on an error page.
-        if (isRefInUseError(err)) {
-          return showRefused(HABITAT_REF_IN_USE_ERROR)
-        }
-        if (
-          refToSave !== undefined &&
-          err.output?.statusCode === statusCodes.badRequest
-        ) {
-          return showRefused(HABITAT_REF_ERROR)
+        const saveRefusal = saveErrorRefusal(err, refToSave)
+        if (saveRefusal) {
+          return showRefused(saveRefusal)
         }
         throw err
       }

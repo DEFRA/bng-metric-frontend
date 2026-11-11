@@ -2,7 +2,8 @@ name: Error Messages Export
 
 # Writes every message in error-text.yaml as .xlsx, .csv and .html for
 # product, BAs and UCD to review (npm run export:error-text), keeps them as
-# one artifact, and counts each status in the run's summary.
+# one artifact, and counts each status in the run's summary. A pull request's
+# summary also says what it changes in the wording.
 #
 # It reports and never gates: it is not a required check, and is kept apart
 # from check-pull-request.yml, so an artifact outage cannot hold up a merge.
@@ -47,11 +48,32 @@ jobs:
       # A pull request's run exports its head commit, not the merge commit
       # checked out by default: each row links to its line of the file, and
       # only the head commit has a lasting URL whose lines match the rows.
+      #
+      # A pull request's run fetches the history it needs to find the commit
+      # its branch left main at.
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Quoted: 0 is falsy in an expression, so && 0 || 1 always gives 1.
+          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           persist-credentials: false
+
+      # The wording is compared with the commit the branch left main at, not
+      # main as it is now: a change merged to main since would otherwise show
+      # as this pull request undoing it. Not finding it leaves the comparison
+      # out, with a warning, rather than losing the export.
+      - name: Find where the branch left main
+        id: base
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if base=$(git merge-base "origin/$BASE_REF" HEAD); then
+            echo "sha=$base" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not find where the branch left $BASE_REF, so the summary does not say what the wording changes"
+          fi
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
         with:
@@ -64,11 +86,13 @@ jobs:
       - name: Export the error messages
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: >-
-          npm run export:error-text --
-          --out "$EXPORT_DIR"
-          --sha "$SOURCE_SHA"
-          --summary "$RUNNER_TEMP/summary.md"
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+        run: |
+          args=(--out "$EXPORT_DIR" --sha "$SOURCE_SHA" --summary "$RUNNER_TEMP/summary.md")
+          if [ -n "$BASE_SHA" ]; then
+            args+=(--base "$BASE_SHA")
+          fi
+          npm run export:error-text -- "${args[@]}"
 
       - name: Keep the files
         id: upload

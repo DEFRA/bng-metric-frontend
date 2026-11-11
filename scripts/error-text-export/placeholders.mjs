@@ -88,8 +88,37 @@ export const PLACEHOLDERS = Object.freeze({
  * not what PLACEHOLDERS says. A limit is read from the constant the page
  * applies, so the number here cannot drift from the code's.
  */
+// The text-value problems (BMD-1175) name each value that fails by its
+// table, habitat and column.
+const TEXT_VALUE_PLACEHOLDERS = Object.freeze({
+  feature: 'the habitat, by its Habitat Ref, or else its fid',
+  column: 'the name of the column the value is in'
+})
+
 export const ENTRY_PLACEHOLDERS = Object.freeze({
   GPKG_MISSING_SYSTEM_TABLE: { table: 'the name of the missing system table' },
+  TEXT_TOO_LONG: {
+    ...TEXT_VALUE_PLACEHOLDERS,
+    length:
+      'how many characters the value has, once spaces at its start and end are removed',
+    limit:
+      'the most characters the column can hold: 99 for a reference, Location and a drop-down, 255 for Spatial risk category, 999 for a comment and the other site details'
+  },
+  VALUE_NOT_ALLOWED: {
+    ...TEXT_VALUE_PLACEHOLDERS,
+    value:
+      'the value the file holds, cut to 99 characters; the part naming it is left out for a value that is not text'
+  },
+  FEATURE_UUID_INVALID: TEXT_VALUE_PLACEHOLDERS,
+  PARENT_UUID_INVALID: TEXT_VALUE_PLACEHOLDERS,
+  PARENT_GEOM_INVALID: {
+    ...TEXT_VALUE_PLACEHOLDERS,
+    shape: "the shape of the habitat's layer, such as polygon"
+  },
+  STORED_VALUE_NOT_ALLOWED: {
+    fields:
+      'the fields that hold the older value, in plain words, such as "habitat reference and proposed condition"'
+  },
   'upload.page.more': { count: 'how many habitats the list leaves out' },
   'forms.projectName.tooLong': {
     max: `the most characters a project name can have: ${MAX_PROJECT_NAME_LENGTH}`

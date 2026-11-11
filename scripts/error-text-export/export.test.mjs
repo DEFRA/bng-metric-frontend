@@ -57,6 +57,7 @@ describe('exportMeta', () => {
       GITHUB_REPOSITORY: 'DEFRA/bng-metric-frontend'
     }
     expect(exportMeta({}, env, NOW)).toEqual({
+      repository: 'https://github.com/DEFRA/bng-metric-frontend',
       date: '2026-11-10',
       branch: 'main',
       commit: SHA,
@@ -172,7 +173,7 @@ describe('npm run export:error-text -- --summary', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  function run(summary) {
+  function run(summary, ...more) {
     execFileSync(
       process.execPath,
       [
@@ -184,7 +185,8 @@ describe('npm run export:error-text -- --summary', () => {
         '--branch',
         'main',
         '--summary',
-        summary
+        summary,
+        ...more
       ],
       { stdio: 'pipe' }
     )
@@ -204,6 +206,39 @@ describe('npm run export:error-text -- --summary', () => {
         true
       )
       expect(text.match(/^## Error messages export$/gm)).toHaveLength(2)
+    },
+    TWO_RUNS_TIMEOUT_MS
+  )
+
+  test(
+    'with --base, adds what the wording changes from that commit',
+    () => {
+      const summary = path.join(dir, 'summary.md')
+
+      run(summary, '--base', 'HEAD')
+
+      expect(readFileSync(summary, 'utf8')).toMatch(
+        // What follows depends on any edit to the file not yet committed.
+        // The repository's URL comes from GitHub Actions when it runs there.
+        /\n### Wording changes from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
+      )
+    },
+    TWO_RUNS_TIMEOUT_MS
+  )
+
+  test(
+    'keeps the export, and says why, when git cannot find the base',
+    () => {
+      const summary = path.join(dir, 'summary.md')
+
+      run(summary, '--base', 'no-such-ref')
+
+      expect(
+        readdirSync(dir).filter((name) => name.endsWith('.xlsx'))
+      ).toHaveLength(1)
+      expect(readFileSync(summary, 'utf8')).toContain(
+        '### Wording changes from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
+      )
     },
     TWO_RUNS_TIMEOUT_MS
   )

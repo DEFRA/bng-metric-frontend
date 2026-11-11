@@ -9,12 +9,13 @@ import {
 } from '../../src/server/common/error-text/error-text.js'
 import { checkDropoutCopy } from '../../src/server/error-file/dropout-copy.js'
 import { toCsv } from './csv.mjs'
+import { compareWithBase, notCompared } from './diff.mjs'
 import { toHtml } from './html.mjs'
 import { buildRows, statusCounts } from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
 
 // npm run export:error-text [-- --out DIR] [--sha SHA] [--branch NAME]
-//   [--summary FILE]
+//   [--summary FILE] [--base REF]
 //
 // Writes every message in error-text.yaml as .xlsx, .csv and .html, for
 // product, BAs and UCD to review. The file is checked as the server checks it
@@ -27,9 +28,16 @@ import { toXlsx } from './xlsx.mjs'
 // lasting URL.
 //
 // --summary appends what was exported, as Markdown, to a file: in GitHub
-// Actions, the run's job summary.
+// Actions, the run's job summary. --base adds what the checked-out file
+// changes from the file at another commit: for a pull request, the commit
+// its branch left main at.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
+// error-text.yaml's path from the repository's root, as git names it.
+const ERROR_TEXT_PATH = path
+  .relative(REPO_ROOT, ERROR_TEXT_FILE)
+  .split(path.sep)
+  .join('/')
 const DEFAULT_OUT = 'export'
 const DEFAULT_REPOSITORY = 'https://github.com/DEFRA/bng-metric-frontend'
 const SHORT_SHA_LENGTH = 7
@@ -41,10 +49,16 @@ const USAGE = `Usage: npm run export:error-text [-- options]
   --sha SHA        the commit the source links name (default: GITHUB_SHA, or HEAD)
   --branch NAME    the branch the files are named for (default: the GitHub ref, or the current branch)
   --summary FILE   append what was exported, as Markdown, to FILE
+  --base REF       also say what the wording changes from the file at REF
   --help           show this message`
 
 function git(...args) {
-  return execFileSync('git', args, { cwd: REPO_ROOT, encoding: 'utf8' }).trim()
+  // stderr is kept, not printed: a failure's message carries it.
+  return execFileSync('git', args, {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  }).trim()
 }
 
 /** A branch name as part of a file name: "feature/x" as "feature-x". */
@@ -81,11 +95,12 @@ export function exportMeta(options, env = process.env, now = new Date()) {
     env.GITHUB_REF_NAME ||
     git('rev-parse', '--abbrev-ref', 'HEAD')
   return {
+    repository,
     date: now.toISOString().slice(0, DATE_LENGTH),
     branch,
     commit,
     commitUrl: `${repository}/commit/${commit}`,
-    fileUrl: `${repository}/blob/${commit}/${path.relative(REPO_ROOT, ERROR_TEXT_FILE).split(path.sep).join('/')}`
+    fileUrl: `${repository}/blob/${commit}/${ERROR_TEXT_PATH}`
   }
 }
 
@@ -155,6 +170,34 @@ export function summaryMarkdown(rows, meta, files) {
   ].join('\n')
 }
 
+/** error-text.yaml's text at a commit, or null when it has no such file. */
+function sourceAt(commit) {
+  try {
+    return git('show', `${commit}:${ERROR_TEXT_PATH}`)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * What the wording changes from the file at `ref`, as Markdown. Never throws:
+ * the export is written by now, and a failed comparison must not lose it.
+ *
+ * @param {Array<Record<string, string>>} rows - the export's rows
+ * @param {string} ref - a commit, branch or tag
+ * @param {ReturnType<typeof exportMeta>} meta
+ */
+function baseMarkdown(rows, ref, meta) {
+  let commit
+  try {
+    commit = git('rev-parse', '--verify', `${ref}^{commit}`)
+  } catch {
+    return notCompared(`\`${ref}\``, 'git cannot find that commit.')
+  }
+  const link = `[${commit.slice(0, SHORT_SHA_LENGTH)}](${meta.repository}/commit/${commit})`
+  return compareWithBase(rows, sourceAt(commit), link)
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -162,6 +205,7 @@ async function main() {
       sha: { type: 'string' },
       branch: { type: 'string' },
       summary: { type: 'string' },
+      base: { type: 'string' },
       help: { type: 'boolean', default: false }
     }
   })
@@ -186,9 +230,15 @@ async function main() {
     .map(([status, count]) => `${count} ${status}`)
     .join(', ')
   console.log(`${rows.length} error IDs: ${counts}`)
+  const summary = [summaryMarkdown(rows, meta, files)]
+  if (values.base) {
+    summary.push(baseMarkdown(rows, values.base, meta))
+  }
   if (values.summary) {
-    appendFileSync(values.summary, summaryMarkdown(rows, meta, files))
+    appendFileSync(values.summary, summary.join('\n'))
     console.log(`Appended the summary to ${values.summary}`)
+  } else if (values.base) {
+    console.log(`\n${summary.at(-1)}`)
   }
 }
 

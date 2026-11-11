@@ -89,7 +89,7 @@ describe('#postInterventionHabitatDetailsController', () => {
           id: 'habitatRef',
           value: 'P-1',
           error: undefined,
-          maxLength: 100
+          maxLength: 99
         },
         refForm: {
           action: '/post-intervention-habitat-details',
