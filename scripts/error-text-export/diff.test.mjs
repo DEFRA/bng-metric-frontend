@@ -203,7 +203,15 @@ describe('compareWithBase', () => {
 
   test('says so, rather than failing, when the base file cannot be read', () => {
     expect(compareWithBase(rows, 'upload: [', 'main')).toMatch(
-      /could not be read, so the changes are not shown: /
+      /^### Wording changes from main\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
     )
+  })
+
+  test('says so, rather than failing, when a base value is not text', () => {
+    const listNote = before.replace(
+      'heading: Parcels are too small',
+      'heading: Parcels are too small\n        note: [one, two]'
+    )
+    expect(() => compareWithBase(rows, listNote, 'main')).not.toThrow()
   })
 })

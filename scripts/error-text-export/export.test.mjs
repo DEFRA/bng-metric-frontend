@@ -219,7 +219,25 @@ describe('npm run export:error-text -- --summary', () => {
 
       expect(readFileSync(summary, 'utf8')).toMatch(
         // What follows depends on any edit to the file not yet committed.
-        /\n### Wording changes from \[[0-9a-f]{7}\]\(https:\/\/github\.com\/DEFRA\/bng-metric-frontend\/commit\/[0-9a-f]{40}\)\n/
+        // The repository's URL comes from GitHub Actions when it runs there.
+        /\n### Wording changes from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
+      )
+    },
+    TWO_RUNS_TIMEOUT_MS
+  )
+
+  test(
+    'keeps the export, and says why, when git cannot find the base',
+    () => {
+      const summary = path.join(dir, 'summary.md')
+
+      run(summary, '--base', 'no-such-ref')
+
+      expect(
+        readdirSync(dir).filter((name) => name.endsWith('.xlsx'))
+      ).toHaveLength(1)
+      expect(readFileSync(summary, 'utf8')).toContain(
+        '### Wording changes from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
       )
     },
     TWO_RUNS_TIMEOUT_MS

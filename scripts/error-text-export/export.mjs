@@ -9,7 +9,7 @@ import {
 } from '../../src/server/common/error-text/error-text.js'
 import { checkDropoutCopy } from '../../src/server/error-file/dropout-copy.js'
 import { toCsv } from './csv.mjs'
-import { compareWithBase } from './diff.mjs'
+import { compareWithBase, notCompared } from './diff.mjs'
 import { toHtml } from './html.mjs'
 import { buildRows, statusCounts } from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
@@ -180,14 +180,20 @@ function sourceAt(commit) {
 }
 
 /**
- * What the wording changes from the file at `ref`, as Markdown.
+ * What the wording changes from the file at `ref`, as Markdown. Never throws:
+ * the export is written by now, and a failed comparison must not lose it.
  *
  * @param {Array<Record<string, string>>} rows - the export's rows
  * @param {string} ref - a commit, branch or tag
  * @param {ReturnType<typeof exportMeta>} meta
  */
 function baseMarkdown(rows, ref, meta) {
-  const commit = git('rev-parse', '--verify', `${ref}^{commit}`)
+  let commit
+  try {
+    commit = git('rev-parse', '--verify', `${ref}^{commit}`)
+  } catch {
+    return notCompared(`\`${ref}\``, 'git cannot find that commit.')
+  }
   const link = `[${commit.slice(0, SHORT_SHA_LENGTH)}](${meta.repository}/commit/${commit})`
   return compareWithBase(rows, sourceAt(commit), link)
 }

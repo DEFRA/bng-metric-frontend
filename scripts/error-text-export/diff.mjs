@@ -75,7 +75,7 @@ const MARKDOWN_SPECIAL = /[\\`*_[\]<>|]/g
 /** Text as one table cell: its own characters, its line breaks kept. */
 function cell(text) {
   return text
-    ? text.replaceAll(MARKDOWN_SPECIAL, '\\$&').replaceAll('\n', '<br>')
+    ? String(text).replaceAll(MARKDOWN_SPECIAL, '\\$&').replaceAll('\n', '<br>')
     : '_(none)_'
 }
 
@@ -149,9 +149,20 @@ export function diffMarkdown(diff, base) {
 }
 
 /**
+ * Said in place of the changes when they cannot be worked out, so the run
+ * still keeps the export.
+ *
+ * @param {string} base - the base, as Markdown
+ * @param {string} reason
+ */
+export function notCompared(base, reason) {
+  return `### Wording changes from ${base}\n\nThe changes are not shown: ${cell(reason)}\n`
+}
+
+/**
  * What a change makes of the export, against error-text.yaml as it was at
  * the base: said, rather than thrown, when that file is missing or cannot be
- * read, so the run still reports the export.
+ * compared, so the run still keeps the export.
  *
  * @param {Array<Record<string, string>>} rows - rows from buildRows, after
  * @param {string | null} baseSource - error-text.yaml's text at the base, or
@@ -160,15 +171,15 @@ export function diffMarkdown(diff, base) {
  * @returns {string}
  */
 export function compareWithBase(rows, baseSource, base) {
-  const heading = `### Wording changes from ${base}\n\n`
   if (baseSource === null) {
-    return `${heading}error-text.yaml is not on the base commit, so there is nothing to compare.\n`
+    return notCompared(base, 'error-text.yaml is not on the base commit.')
   }
-  let before
   try {
-    before = buildRows(baseSource)
+    return diffMarkdown(diffRows(buildRows(baseSource), rows), base)
   } catch (error) {
-    return `${heading}The base commit's error-text.yaml could not be read, so the changes are not shown: ${cell(error.message)}\n`
+    return notCompared(
+      base,
+      `the base commit's error-text.yaml could not be compared: ${error.message}`
+    )
   }
-  return diffMarkdown(diffRows(before, rows), base)
 }

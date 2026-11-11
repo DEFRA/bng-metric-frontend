@@ -152,8 +152,11 @@ A pull request's summary also says what it changes in the wording, against the
 commit its branch left `main` at: the error IDs it adds and removes, a before
 and after for each part of a message it changes, and each status it moves.
 Errors changed alike, such as every error showing a reworded shared fallback,
-share one table. To see the same locally, add `-- --base REF`, for example
-`npm run export:error-text -- --base origin/main`.
+share one table. To see the same locally, add `-- --base REF`, naming the
+commit your branch left `main` at:
+`npm run export:error-text -- --base "$(git merge-base origin/main HEAD)"`.
+Naming `origin/main` itself would show a change merged to `main` since as your
+branch undoing it.
 
 ### Update dependencies
 
