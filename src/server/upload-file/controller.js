@@ -9,6 +9,7 @@ import {
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { hasBaselineData } from '../common/helpers/project-state.js'
 import { fetchProject } from '../common/services/projects.js'
+import { formErrorText } from '../common/error-text/error-text.js'
 
 const PROJECTS_PATH = '/manage-projects'
 
@@ -25,7 +26,8 @@ const FILE_TYPES = {
   }
 }
 
-const SELECT_FILE_TYPE_ERROR = 'Select the type of file you want to upload'
+// Shown in the error summary and against the radios alike.
+const SELECT_FILE_TYPE_ERROR = formErrorText('uploadType', 'required').inline
 
 const payloadSchema = Joi.object({
   uploadType: Joi.string()

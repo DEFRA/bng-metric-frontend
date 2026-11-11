@@ -1,3 +1,4 @@
+import { FILE_CHECK_CODES } from '../../shared/file-checks.js'
 import { validateFile } from './file-validation-rules.js'
 
 const FILE_UPLOAD_BUTTON_CLASS = 'govuk-file-upload-button'
@@ -6,11 +7,37 @@ const SCROLL_INTO_VIEW = { block: 'center', inline: 'nearest' }
 const ERROR_SUMMARY_SELECTOR = '.govuk-error-summary'
 const FORM_GROUP_SELECTOR = '.govuk-form-group'
 
+const hasText = (value) => typeof value === 'string' && value.trim() !== ''
+
+/**
+ * The form's messages for each check, which the server words from
+ * error-text.yaml and writes into its data-file-error-text attribute. Null
+ * unless it has words for every check, so a check is never shown without them.
+ *
+ * @param {HTMLFormElement} form
+ * @returns {Record<string, string> | null}
+ */
+function formErrorText(form) {
+  let messages
+  try {
+    messages = JSON.parse(form.dataset.fileErrorText ?? 'null')
+  } catch {
+    return null
+  }
+  const complete =
+    messages !== null &&
+    typeof messages === 'object' &&
+    !Array.isArray(messages) &&
+    Object.values(FILE_CHECK_CODES).every((code) => hasText(messages[code]))
+  return complete ? messages : null
+}
+
 /**
  * Initialises client-side validation for the file upload form.
  * Clears previous errors when a file is chosen. Validates extension, size
  * and filename when Continue is pressed.
- * Gracefully degrades — if JS is unavailable, the server handles validation.
+ * Gracefully degrades — if JS is unavailable, or the page carries no messages
+ * to show, the server handles validation.
  */
 export function initFileUploadValidation() {
   const form = document.querySelector('form[enctype="multipart/form-data"]')
@@ -20,8 +47,9 @@ export function initFileUploadValidation() {
   }
 
   const fileInput = form.querySelector('input[type="file"]')
+  const messages = formErrorText(form)
 
-  if (!fileInput) {
+  if (!fileInput || !messages) {
     return
   }
 
@@ -33,7 +61,7 @@ export function initFileUploadValidation() {
     clearErrors(fileInput)
 
     const file = fileInput.files[0]
-    const errors = validateFile(file)
+    const errors = validateFile(file, messages)
 
     if (errors.length) {
       event.preventDefault()

@@ -35,7 +35,7 @@
 
 {% block content %}
   {% if errorList.length %}
-    {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+    {{ govukErrorSummary({ titleText: errorSummaryTitle, errorList: errorList }) }}
   {% endif %}
   <div class="govuk-grid-row app-pi-edit-heading">
     <div class="govuk-grid-column-two-thirds">

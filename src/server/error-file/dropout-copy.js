@@ -2,6 +2,12 @@ import Joi from 'joi'
 import { load } from 'js-yaml'
 
 import { errorText } from '../common/error-text/error-text.js'
+import {
+  WORDING,
+  logErrorTextWarnings,
+  shownWordingField,
+  wordingField
+} from '../common/error-text/wording.js'
 import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 
 // The drop-out page's copy is the upload section of error-text.yaml, where
@@ -13,12 +19,13 @@ import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 /** What whenAlone can say in place of copy of its own. */
 export const WHEN_ALONE = Object.freeze({
   CATCH_ALL: 'catch-all',
-  PLACEHOLDER: 'placeholder',
+  FILE_PROBLEM: 'file-problem',
+  SERVICE_PROBLEM: 'service-problem',
   LIST: 'list'
 })
 
 /** The inList value that heads the list with the catch-all title. */
-const CATCH_ALL = 'catch-all'
+export const IN_LIST_CATCH_ALL = 'catch-all'
 
 /** The link targets a sentence can name, as [link text](target). */
 export const LINK_TARGETS = Object.freeze({
@@ -50,14 +57,28 @@ function oneKindOfBullet(inList, helpers) {
   return kinds.length > 1 ? helpers.error('any.invalid') : inList
 }
 
+// A shared fallback page, which can say its wording is interim.
+const fallbackCopy = pageCopy.keys({ wording: shownWordingField })
+
 const errorEntry = Joi.object({
+  // "none" says the error has no words of its own yet for when it is alone,
+  // so it can only be on one whose whenAlone names the shared fallback the
+  // page shows instead. Its inList heading is still shown in a list.
+  wording: wordingField.when('whenAlone', {
+    is: Joi.valid(
+      WHEN_ALONE.CATCH_ALL,
+      WHEN_ALONE.FILE_PROBLEM,
+      WHEN_ALONE.SERVICE_PROBLEM
+    ),
+    otherwise: Joi.invalid(WORDING.NONE)
+  }),
   whenAlone: Joi.alternatives(
     Joi.string().valid(...Object.values(WHEN_ALONE)),
     pageCopy,
     Joi.array().items(pageCopy).min(1)
   ).required(),
   inList: Joi.alternatives(
-    Joi.string().valid(CATCH_ALL),
+    Joi.string().valid(IN_LIST_CATCH_ALL),
     Joi.object({
       heading: text.required(),
       listsHabitats: Joi.boolean(),
@@ -110,10 +131,11 @@ const copySchema = Joi.object({
     [LINK_TARGETS.METRIC_TOOL]: Joi.string().uri().required()
   }).required(),
   catchAll: Joi.object({
-    legacyTemplate: pageCopy.required(),
-    serviceTemplate: pageCopy.required()
+    legacyTemplate: fallbackCopy.required(),
+    serviceTemplate: fallbackCopy.required()
   }).required(),
-  placeholder: pageCopy.keys({ more: text.required() }).required(),
+  fileProblem: fallbackCopy.required(),
+  serviceProblem: fallbackCopy.required(),
   names: Joi.object({
     feature: options.required(),
     tree: options.required(),
@@ -126,13 +148,22 @@ const copySchema = Joi.object({
     .required()
 })
 
-function checkDropoutCopy(section) {
-  const { value, error } = copySchema.validate(section, { abortEarly: false })
+/**
+ * Check the drop-out page's copy: the upload section, as read from the file.
+ * Exported so the error message export refuses a file the server would.
+ *
+ * @param {Record<string, any>} section
+ */
+export function checkDropoutCopy(section) {
+  const { value, error, warning } = copySchema.validate(section, {
+    abortEarly: false
+  })
   if (error) {
     throw new Error(
       `error-text.yaml's upload section is not valid: ${error.message}`
     )
   }
+  logErrorTextWarnings(warning, 'upload')
   return value
 }
 
@@ -176,11 +207,15 @@ export function canFill(templates, values = {}) {
   return [templates].flat().some((t) => hasValues(t, values))
 }
 
+/** The first of `templates` whose values are all known, not filled in. */
+export function firstKnownTemplate(templates, values = {}) {
+  const list = [templates].flat()
+  return list.find((t) => hasValues(t, values)) ?? list.at(-1)
+}
+
 /** The first of `templates` whose values are all known, filled in. */
 export function firstKnown(templates, values = {}) {
-  const list = [templates].flat()
-  const chosen = list.find((t) => hasValues(t, values)) ?? list.at(-1)
-  return fill(chosen, values)
+  return fill(firstKnownTemplate(templates, values), values)
 }
 
 /** Each of `parts` whose values are all known, filled in and joined. */
@@ -192,31 +227,7 @@ export function joinKnownParts(parts, values = {}) {
     .join('')
 }
 
-const LINK_OPEN = '['
-const LINK_MIDDLE = ']('
-const LINK_CLOSE = ')'
-
-/**
- * Split a sentence at its [link text](target), or return it whole as
- * `before` when it has none.
- *
- * @param {string} sentence
- * @returns {{ before: string, linkText?: string, target?: string, after?: string }}
- */
-export function splitLink(sentence) {
-  const open = sentence.indexOf(LINK_OPEN)
-  const middle = open === -1 ? -1 : sentence.indexOf(LINK_MIDDLE, open)
-  const close = middle === -1 ? -1 : sentence.indexOf(LINK_CLOSE, middle)
-  if (close === -1) {
-    return { before: sentence }
-  }
-  return {
-    before: sentence.slice(0, open),
-    linkText: sentence.slice(open + LINK_OPEN.length, middle),
-    target: sentence.slice(middle + LINK_MIDDLE.length, close),
-    after: sentence.slice(close + LINK_CLOSE.length)
-  }
-}
+export { splitLink } from '../common/error-text/links.js'
 
 /**
  * The {values} each page string can name: pageText fills these and no
@@ -260,4 +271,24 @@ export function catchAllPage() {
   return isServiceTemplateEnabled()
     ? dropoutCopy.catchAll.serviceTemplate
     : dropoutCopy.catchAll.legacyTemplate
+}
+
+/**
+ * The single-error page a whenAlone that names a fallback stands for: the
+ * catch-all, about layer and column names; the file problem, which says only
+ * that the file has an error; or the service problem, which says the fault is
+ * the service's. A code with no entry, or one the page always lists, takes the
+ * file problem, which cannot mislead about what is wrong.
+ *
+ * @param {string | undefined} whenAlone
+ */
+export function fallbackPage(whenAlone) {
+  switch (whenAlone) {
+    case WHEN_ALONE.CATCH_ALL:
+      return catchAllPage()
+    case WHEN_ALONE.SERVICE_PROBLEM:
+      return dropoutCopy.serviceProblem
+    default:
+      return dropoutCopy.fileProblem
+  }
 }

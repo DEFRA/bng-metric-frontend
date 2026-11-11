@@ -1,6 +1,7 @@
 import { dump } from 'js-yaml'
 import { describe, test, expect } from 'vitest'
 
+import { config } from '../../config/config.js'
 import { errorText } from '../common/error-text/error-text.js'
 
 import {
@@ -22,7 +23,13 @@ import {
   detailValueNames,
   itemValueNames
 } from './controller.js'
-import { PLACEHOLDER_VALUE_NAMES, pageValueNames } from './single-error-copy.js'
+import { pageValueNames, resolveSingleErrorCopy } from './single-error-copy.js'
+import { WORDING_STATUS, wordingStatus } from '../common/error-text/wording.js'
+
+const { mockWarn } = vi.hoisted(() => ({ mockWarn: vi.fn() }))
+vi.mock('../common/helpers/logging/logger.js', () => ({
+  createLogger: () => ({ warn: mockWarn, info: vi.fn(), error: vi.fn() })
+}))
 
 // The drop-out page's copy: error-text.yaml's upload section, as YAML.
 const COPY_SOURCE = dump(errorText.upload)
@@ -51,7 +58,9 @@ function pagesOf(entry) {
 const allPages = [
   ...entries.flatMap(([, entry]) => pagesOf(entry)),
   dropoutCopy.catchAll.legacyTemplate,
-  dropoutCopy.catchAll.serviceTemplate
+  dropoutCopy.catchAll.serviceTemplate,
+  dropoutCopy.fileProblem,
+  dropoutCopy.serviceProblem
 ]
 
 describe("error-text.yaml's upload section", () => {
@@ -103,10 +112,10 @@ describe("error-text.yaml's upload section", () => {
     }
   })
 
-  // The page's own strings, list notes and headings, and the placeholder copy:
+  // The page's own strings, list notes and headings, and the fallback pages:
   // each is filled with its own few values, or none, so a typo such as
   // {Count} would otherwise leave a blank on every page.
-  test('names only the {values} each page string, note, heading and placeholder is filled with', () => {
+  test('names only the {values} each page string, note, heading and fallback page is filled with', () => {
     for (const [key, value] of Object.entries(dropoutCopy.page)) {
       for (const name of placeholders(value)) {
         expect(PAGE_TEXT_VALUES[key] ?? [], `page.${key}: {${name}}`).toContain(
@@ -128,14 +137,12 @@ describe("error-text.yaml's upload section", () => {
         )
       }
     }
-    const { title, body } = dropoutCopy.placeholder
-    for (const name of placeholders([title, body].flat())) {
-      expect(PLACEHOLDER_VALUE_NAMES, `placeholder: {${name}}`).toContain(name)
+    // A fallback is shown for problems that send different values, so it
+    // names none.
+    for (const fallback of ['fileProblem', 'serviceProblem']) {
+      const { title, body } = dropoutCopy[fallback]
+      expect(placeholders([title, body].flat()), fallback).toEqual([])
     }
-    expect(
-      placeholders(dropoutCopy.placeholder.more),
-      'placeholder.more'
-    ).toEqual(['count'])
     for (const section of ['unknown', 'distinctiveness', 'links']) {
       expect(
         placeholders(Object.values(dropoutCopy[section])),
@@ -199,6 +206,110 @@ describe("error-text.yaml's upload section", () => {
 describe('parseDropoutCopy', () => {
   test('reads the committed copy', () => {
     expect(parseDropoutCopy(COPY_SOURCE).errors.NO_REDLINE).toBeDefined()
+  })
+
+  test("reads an error's and a fallback's wording field", () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    expect(wordingStatus(copy.errors.IRREPLACEABLE_TREE)).toBe(
+      WORDING_STATUS.INTERIM
+    )
+    expect(wordingStatus(copy.fileProblem)).toBe(WORDING_STATUS.INTERIM)
+    expect(wordingStatus(copy.errors.NO_REDLINE)).toBe(WORDING_STATUS.FINAL)
+  })
+
+  test('accepts "none" on an error the page shows a shared fallback for', () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    const [code] = Object.entries(copy.errors).find(
+      ([, entry]) => entry.whenAlone === WHEN_ALONE.FILE_PROBLEM
+    )
+    copy.errors[code].wording = 'none'
+
+    expect(
+      wordingStatus(parseDropoutCopy(JSON.stringify(copy)).errors[code])
+    ).toBe(WORDING_STATUS.NONE)
+  })
+
+  test.each([
+    [
+      'an error with copy of its own',
+      (copy) => copy.errors.NO_REDLINE,
+      /NO_REDLINE\.wording/
+    ],
+    [
+      'an error shown as its list',
+      (copy) => copy.errors.IRREPLACEABLE_TREE,
+      /IRREPLACEABLE_TREE\.wording/
+    ],
+    ['a shared fallback', (copy) => copy.fileProblem, /fileProblem\.wording/]
+  ])('refuses "none" on %s, whose words are shown', (_, entryOf, message) => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    entryOf(copy).wording = 'none'
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(message)
+  })
+
+  test('warns of a wording it does not know, rather than refusing the copy', () => {
+    mockWarn.mockClear()
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    copy.errors.NO_REDLINE.wording = 'pending'
+
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).not.toThrow()
+    expect(mockWarn).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^error-text\.yaml: upload\.errors\.NO_REDLINE\.wording is "pending"/
+      )
+    )
+  })
+
+  // Each page is checked by its own sentence: NO_REDLINE, the file problem and
+  // the catch-all share a title, so a reader that showed one for another would
+  // pass a check of the title alone.
+  test("shows an error's and a fallback's words whatever their wording field says", () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    copy.errors.NO_REDLINE.wording = 'pending'
+    for (const fallback of [
+      copy.fileProblem,
+      copy.serviceProblem,
+      copy.catchAll.legacyTemplate,
+      copy.catchAll.serviceTemplate
+    ]) {
+      fallback.wording = 'pending'
+    }
+    const parsed = parseDropoutCopy(JSON.stringify(copy))
+    const saved = { ...dropoutCopy }
+    const serviceTemplate = config.get('serviceTemplate.enabled')
+    config.set('serviceTemplate.enabled', false)
+    Object.assign(dropoutCopy, {
+      errors: parsed.errors,
+      fileProblem: parsed.fileProblem,
+      serviceProblem: parsed.serviceProblem,
+      catchAll: parsed.catchAll
+    })
+
+    try {
+      const page = (code) => resolveSingleErrorCopy({ code }, '/upload')
+      expect(page('NO_REDLINE')).toMatchObject({
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore:
+          'The redline boundary is missing. Draw the red line boundary and '
+      })
+      expect(page('GPKG_RLB_UNREADABLE_GEOMETRY')).toMatchObject({
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore: 'Check the habitats in your file and '
+      })
+      expect(page('FILENAME_TOO_LONG')).toMatchObject({
+        h1: 'Your Geopackage (.gpkg) file contains an error',
+        messageBefore:
+          'The layer names and column names do not match what is required by Natural England. Rename the layers and columns and '
+      })
+      expect(page('SIZING_FAILED')).toMatchObject({
+        h1: 'Sorry, there is a problem with the service',
+        helpText: 'Try again later.'
+      })
+    } finally {
+      Object.assign(dropoutCopy, saved)
+      config.set('serviceTemplate.enabled', serviceTemplate)
+    }
   })
 
   test('refuses an error with no inList', () => {

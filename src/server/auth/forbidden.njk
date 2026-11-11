@@ -1,5 +1,7 @@
 {% extends 'layouts/page.njk' %}
 
+{% from "error-text-body/macro.njk" import appErrorTextBody %}
+
 {% block content %}
   {{ appHeading({
     text: heading,
@@ -8,17 +10,7 @@
 
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      <p class="govuk-body" data-testid="forbidden-body">
-        You do not have permission to view this page.
-      </p>
-      <p class="govuk-body">
-        Access is limited to users with an <strong>approved BNG completer</strong>
-        role. If your role is still awaiting approval, or you think this is wrong,
-        contact your Defra administrator.
-      </p>
-      <p class="govuk-body">
-        <a class="govuk-link" href="/">Return to the home page</a>
-      </p>
+      {{ appErrorTextBody({ lines: body, testId: "forbidden-body" }) }}
     </div>
   </div>
 {% endblock %}

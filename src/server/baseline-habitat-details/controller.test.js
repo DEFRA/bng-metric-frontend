@@ -1746,6 +1746,19 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       )
     })
 
+    test('Answers a habitat type the backend refuses with the error page, not as a refused reference', async () => {
+      const refused = Boom.badData('out of scope')
+      refused.output.payload.code = 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE'
+      vi.mocked(wreck.put).mockRejectedValue(refused)
+
+      const { statusCode, result } = await postRef({ habitatRef: 'B-A1' })
+
+      expect(statusCode).toBe(422)
+      expect(result).toContain('Bad Request')
+      expect(result).not.toContain('invalid habitat reference')
+      expect(result).not.toContain('govuk-error-summary')
+    })
+
     test('Answers a 400 for a save that sent no reference with the error page', async () => {
       vi.mocked(wreck.put).mockRejectedValue(Boom.badRequest('invalid'))
 

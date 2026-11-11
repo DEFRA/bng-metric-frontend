@@ -10,9 +10,8 @@ import {
   Tabs
 } from 'govuk-frontend'
 
-import { SortableTable } from '@ministryofjustice/frontend'
-
 import { initFileUploadValidation } from './file-upload-validation.js'
+import { HabitatDetailsSortableTable } from './habitat-details-sortable-table.js'
 import { initBaselineHabitatDetails } from './baseline-habitat-details.js'
 import { initCreatedAreaDetails } from './created-area-details.js'
 
@@ -24,7 +23,7 @@ createAll(Radios)
 createAll(ServiceNavigation)
 createAll(SkipLink)
 createAll(Tabs)
-createAll(SortableTable)
+createAll(HabitatDetailsSortableTable)
 
 initFileUploadValidation()
 initBaselineHabitatDetails()

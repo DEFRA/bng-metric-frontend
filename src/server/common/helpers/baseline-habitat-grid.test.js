@@ -103,7 +103,7 @@ describe('buildBaselineHabitatGrid', () => {
       formatSizeTotal: formatBaselineTotalLengthSize
     })
 
-    expect(grid.columns).toHaveLength(7)
+    expect(grid.columns).toHaveLength(8)
     expect(
       grid.columns.some((column) => column.text === BROAD_HABITAT_HEADER)
     ).toBe(false)
@@ -111,15 +111,15 @@ describe('buildBaselineHabitatGrid', () => {
     expect(grid.habitatRows[0][0].href).toBe(
       `/baseline-habitat-details?featureId=hedge-1&projectId=${PROJECT_ID}`
     )
-    expect(grid.habitatRows[0][1].text).toBe('0.80')
-    expect(grid.habitatRows[0][2].text).toBe('1234.568km')
-    expect(grid.habitatRows[0][2].attributes['data-sort-value']).toBe(
+    expect(grid.habitatRows[0][2].text).toBe('0.80')
+    expect(grid.habitatRows[0][3].text).toBe('1234.568km')
+    expect(grid.habitatRows[0][3].attributes['data-sort-value']).toBe(
       1234567.891
     )
-    expect(grid.habitatRows[0][6].text).toBe('Low (1)')
+    expect(grid.habitatRows[0][7].text).toBe('Low (1)')
     expect(grid.totalsRow[0].text).toBe('Total')
-    expect(grid.totalsRow[1].text).toBe('0.80')
-    expect(grid.totalsRow[2].text).toBe('1234.567891km')
+    expect(grid.totalsRow[2].text).toBe('0.80')
+    expect(grid.totalsRow[3].text).toBe('1234.567891km')
     expect(grid.totalsRow).toHaveLength(grid.columns.length)
   })
 
@@ -133,11 +133,11 @@ describe('buildBaselineHabitatGrid', () => {
       extraColumns: [BROAD_HABITAT_COLUMN]
     })
 
-    expect(grid.columns).toHaveLength(8)
+    expect(grid.columns).toHaveLength(9)
     expect(grid.columns.map((column) => column.text)).toContain(
       BROAD_HABITAT_HEADER
     )
-    expect(grid.habitatRows[0][3].text).toBe('Grassland')
+    expect(grid.habitatRows[0][4].text).toBe('Grassland')
   })
 
   test('returns an empty body with the same column count when there are no features', () => {
@@ -150,9 +150,47 @@ describe('buildBaselineHabitatGrid', () => {
     })
 
     expect(grid.habitatRows).toEqual([])
-    expect(grid.columns).toHaveLength(7)
-    expect(grid.totalsRow).toHaveLength(7)
-    expect(grid.totalsRow[1].text).toBe('0.00')
-    expect(grid.totalsRow[2].text).toBe('0km')
+    expect(grid.columns).toHaveLength(8)
+    expect(grid.totalsRow).toHaveLength(8)
+    expect(grid.totalsRow[2].text).toBe('0.00')
+    expect(grid.totalsRow[3].text).toBe('0km')
+  })
+
+  test('shows a Status tag after Ref, sorted on the status and blank in the totals (BMD-1101)', () => {
+    const grid = buildBaselineHabitatGrid({
+      features: [
+        { featureId: 'a', ref: 'H-1', status: 'Complete' },
+        { featureId: 'b', ref: 'H-2', status: 'Incomplete' },
+        { featureId: 'c', ref: 'H-3' }
+      ],
+      projectId: PROJECT_ID,
+      readSize: (feature) => feature.sizeMetres,
+      formatSize: formatLengthKmDisplay,
+      formatSizeTotal: formatBaselineTotalLengthSize
+    })
+
+    expect(grid.columns.map((column) => column.text).slice(0, 3)).toEqual([
+      'Ref',
+      'Status',
+      'Units'
+    ])
+    expect(grid.columns[1].attributes).toEqual({
+      'data-sort-ties-by-ref': true
+    })
+    const [complete, incomplete, missing] = grid.habitatRows.map(
+      (row) => row[1]
+    )
+    expect(complete).toEqual({
+      text: 'Complete',
+      tag: { classes: 'govuk-tag--grey' },
+      attributes: { 'data-sort-value': 'Complete' }
+    })
+    expect(incomplete).toEqual({
+      text: 'Incomplete',
+      tag: { classes: 'govuk-tag--blue' },
+      attributes: { 'data-sort-value': 'Incomplete' }
+    })
+    expect(missing).toEqual({ text: '' })
+    expect(grid.totalsRow[1]).toEqual({ text: '' })
   })
 })

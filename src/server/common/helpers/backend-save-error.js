@@ -35,6 +35,12 @@ export function backendSaveError(err, featureId) {
       )
     case statusCodes.badRequest:
       return Boom.badRequest('The habitat could not be saved')
+    // The backend refusing a value that breaks one of the service's rules, such
+    // as a habitat type out of its scope: the save was refused, not lost, so it
+    // is not reported as an upstream failure. It stays a 422, apart from the
+    // 400 a refused reference gets, so a form does not take it for one.
+    case statusCodes.unprocessableEntity:
+      return Boom.badData('The habitat could not be saved')
     default:
       return Boom.badGateway('Failed to save habitat')
   }

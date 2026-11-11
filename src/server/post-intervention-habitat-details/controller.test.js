@@ -659,7 +659,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-feature-unsupported',
       expect.objectContaining({
-        message: expect.stringContaining('not yet supported')
+        body: [{ before: expect.stringContaining('not yet supported') }]
       })
     )
   })

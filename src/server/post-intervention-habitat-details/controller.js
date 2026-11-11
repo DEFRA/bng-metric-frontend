@@ -1,6 +1,7 @@
 import Boom from '@hapi/boom'
 import Joi from 'joi'
 import { statusCodes } from '../common/constants.js'
+import { pageErrorText } from '../common/error-text/error-text.js'
 
 import {
   fetchFeature,
@@ -173,7 +174,7 @@ const VIEW_ONLY_PAGES = new Map([
   ]
 ])
 
-const UNSUPPORTED_MESSAGE = 'IGGI features are not yet supported in this view.'
+const UNSUPPORTED_BODY = pageErrorText('featureUnsupported').body
 
 const DEFAULT_PROJECT_NAME = 'Project'
 
@@ -310,7 +311,7 @@ function renderUnsupportedFeature(
     pageTitle: PI_DETAILS_HEADING,
     heading: PI_DETAILS_HEADING,
     caption: projectName,
-    message: UNSUPPORTED_MESSAGE,
+    body: UNSUPPORTED_BODY,
     backHref: postInterventionBackHref(projectId, type, returnUrl)
   })
 }
