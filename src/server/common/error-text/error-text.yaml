@@ -1117,6 +1117,13 @@ upload:
 # has "wording: none" and no words: the page shows its generic error.
 
 edit:
+  # A dummy entry, to see the export's run summary report a new error. Not
+  # for merging.
+  DUMMY_EXPORT_CHECK:
+    wording: interim
+    summary: This is a dummy error message to check the export.
+    inline: Ignore this dummy error message.
+
   HABITAT_REF_IN_USE:
     # A rename onto a reference another baseline habitat in the same layer
     # already carries.
