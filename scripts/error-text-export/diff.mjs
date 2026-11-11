@@ -1,4 +1,4 @@
-import { COLUMNS, WORDING_KEYS, buildRows } from './rows.mjs'
+import { COLUMNS, DEFAULT_GROUPS, WORDING_KEYS, buildRows } from './rows.mjs'
 
 // What a change to error-text.yaml does to the export, for a pull request's
 // run: the error IDs it adds and removes, with their words, the parts of each
@@ -271,14 +271,21 @@ export function notCompared(base, reason) {
  *   null when the base has no such file
  * @param {{ markdown: string, text: string }} base - a link to the base, and
  *   its plain name
+ * @param {readonly string[]} [groups] - the groups of rows `rows` holds, so
+ *   the base is read alike
  * @returns {{ markdown: string, text: string }}
  */
-export function compareWithBase(rows, baseSource, base) {
+export function compareWithBase(
+  rows,
+  baseSource,
+  base,
+  groups = DEFAULT_GROUPS
+) {
   if (baseSource === null) {
     return notCompared(base, 'error-text.yaml is not on the base commit.')
   }
   try {
-    return describeDiff(diffRows(buildRows(baseSource), rows), base)
+    return describeDiff(diffRows(buildRows(baseSource, { groups }), rows), base)
   } catch (error) {
     return notCompared(
       base,

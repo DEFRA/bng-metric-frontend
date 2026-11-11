@@ -16,10 +16,11 @@ import {
   checkErrorText,
   exportMeta,
   fileStem,
+  groupsToExport,
   summaryMarkdown,
   writeExport
 } from './export.mjs'
-import { STATUS } from './rows.mjs'
+import { ALL_GROUPS, ROW_GROUPS, STATUS } from './rows.mjs'
 
 const NOW = new Date('2026-11-10T09:00:00Z')
 const SHA = '39a95e5bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
@@ -48,6 +49,28 @@ describe('fileStem', () => {
   })
 })
 
+describe('groupsToExport', () => {
+  test('gives the error codes alone by default', () => {
+    expect(groupsToExport()).toEqual([ROW_GROUPS.CODES])
+  })
+
+  test('adds the groups --include names, in the usual order, each once', () => {
+    expect(groupsToExport('pages, forms,codes')).toEqual([
+      ROW_GROUPS.CODES,
+      ROW_GROUPS.FORMS,
+      ROW_GROUPS.PAGES
+    ])
+  })
+
+  test('gives every group for "all"', () => {
+    expect(groupsToExport('all')).toEqual(ALL_GROUPS)
+  })
+
+  test('refuses a group it does not know', () => {
+    expect(() => groupsToExport('codes,form')).toThrow('Unknown row group form')
+  })
+})
+
 describe('exportMeta', () => {
   test('reads the commit, branch and repository from GitHub Actions', () => {
     const env = {
@@ -58,6 +81,7 @@ describe('exportMeta', () => {
     }
     expect(exportMeta({}, env, NOW)).toEqual({
       repository: 'https://github.com/DEFRA/bng-metric-frontend',
+      groups: [ROW_GROUPS.CODES],
       date: '2026-11-10',
       branch: 'main',
       commit: SHA,
@@ -145,7 +169,7 @@ describe('summaryMarkdown', () => {
     expect(summaryMarkdown(rows, meta, files).split('\n')).toEqual([
       '## Error messages export',
       '',
-      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10.`,
+      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10. Rows: codes.`,
       '',
       '| Status | Error IDs |',
       '| --- | ---: |',

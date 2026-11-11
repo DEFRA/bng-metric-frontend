@@ -11,11 +11,17 @@ import { checkDropoutCopy } from '../../src/server/error-file/dropout-copy.js'
 import { toCsv } from './csv.mjs'
 import { compareWithBase, notCompared } from './diff.mjs'
 import { toHtml } from './html.mjs'
-import { buildRows, statusCounts } from './rows.mjs'
+import {
+  ALL_GROUPS,
+  DEFAULT_GROUPS,
+  buildRows,
+  checkGroups,
+  statusCounts
+} from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
 
 // npm run export:error-text [-- --out DIR] [--sha SHA] [--branch NAME]
-//   [--summary FILE] [--base REF]
+//   [--summary FILE] [--base REF] [--include GROUPS]
 //
 // Writes every message in error-text.yaml as .xlsx, .csv and .html, for
 // product, BAs and UCD to review. The file is checked as the server checks it
@@ -31,6 +37,9 @@ import { toXlsx } from './xlsx.mjs'
 // Actions, the run's job summary. --base adds what the checked-out file
 // changes from the file at another commit, in the summary and in what it
 // prints: for a pull request, the commit its branch left main at.
+//
+// Only the backend's error codes are exported unless --include names other
+// groups of rows (rows.mjs's ROW_GROUPS), such as forms or pages, or all.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 // error-text.yaml's path from the repository's root, as git names it.
@@ -50,6 +59,8 @@ const USAGE = `Usage: npm run export:error-text [-- options]
   --branch NAME    the branch the files are named for (default: the GitHub ref, or the current branch)
   --summary FILE   append what was exported, as Markdown, to FILE
   --base REF       also say what the wording changes from the file at REF
+  --include GROUPS also export these groups of rows, separated by commas, or
+                   "all": ${ALL_GROUPS.filter((group) => !DEFAULT_GROUPS.includes(group)).join(', ')}
   --help           show this message`
 
 function git(...args) {
@@ -76,10 +87,38 @@ export function fileStem({ date, branch, commit }) {
   return `error-messages-${date}-${safeBranch(branch)}-${commit.slice(0, SHORT_SHA_LENGTH)}`
 }
 
+/** Value of --include that gives every group of rows. */
+const INCLUDE_ALL = 'all'
+
 /**
- * Which commit and branch the export is read from, and its date.
+ * The groups of rows to export: DEFAULT_GROUPS, and those --include names.
  *
- * @param {{ sha?: string, branch?: string }} options
+ * @param {string} [include] - group names separated by commas, or "all"
+ * @returns {string[]}
+ */
+export function groupsToExport(include) {
+  if (!include) {
+    return [...DEFAULT_GROUPS]
+  }
+  if (include.trim() === INCLUDE_ALL) {
+    return [...ALL_GROUPS]
+  }
+  const named = include
+    .split(',')
+    .map((group) => group.trim())
+    .filter(Boolean)
+  checkGroups(named)
+  // In ALL_GROUPS' order, each once.
+  return ALL_GROUPS.filter(
+    (group) => DEFAULT_GROUPS.includes(group) || named.includes(group)
+  )
+}
+
+/**
+ * Which commit and branch the export is read from, its date, and the groups
+ * of rows it gives.
+ *
+ * @param {{ sha?: string, branch?: string, include?: string }} options
  * @param {NodeJS.ProcessEnv} [env]
  * @param {Date} [now]
  */
@@ -96,6 +135,7 @@ export function exportMeta(options, env = process.env, now = new Date()) {
     git('rev-parse', '--abbrev-ref', 'HEAD')
   return {
     repository,
+    groups: groupsToExport(options.include),
     date: now.toISOString().slice(0, DATE_LENGTH),
     branch,
     commit,
@@ -124,7 +164,8 @@ export function checkErrorText(source) {
 export async function writeExport(source, outDir, meta) {
   checkErrorText(source)
   const rows = buildRows(source, {
-    sourceUrl: (line) => `${meta.fileUrl}#L${line}`
+    sourceUrl: (line) => `${meta.fileUrl}#L${line}`,
+    groups: meta.groups
   })
   const stem = path.join(outDir, fileStem(meta))
   const contents = {
@@ -159,7 +200,7 @@ export function summaryMarkdown(rows, meta, files) {
   return [
     '## Error messages export',
     '',
-    `${rows.length} error IDs from \`${meta.branch}\` at ${commit}, exported ${meta.date}.`,
+    `${rows.length} error IDs from \`${meta.branch}\` at ${commit}, exported ${meta.date}. Rows: ${meta.groups.join(', ')}.`,
     '',
     '| Status | Error IDs |',
     '| --- | ---: |',
@@ -199,10 +240,15 @@ function compareWithRef(rows, ref, meta) {
     )
   }
   const short = commit.slice(0, SHORT_SHA_LENGTH)
-  return compareWithBase(rows, sourceAt(commit), {
-    markdown: `[${short}](${meta.repository}/commit/${commit})`,
-    text: short
-  })
+  return compareWithBase(
+    rows,
+    sourceAt(commit),
+    {
+      markdown: `[${short}](${meta.repository}/commit/${commit})`,
+      text: short
+    },
+    meta.groups
+  )
 }
 
 async function main() {
@@ -213,6 +259,7 @@ async function main() {
       branch: { type: 'string' },
       summary: { type: 'string' },
       base: { type: 'string' },
+      include: { type: 'string' },
       help: { type: 'boolean', default: false }
     }
   })
@@ -223,7 +270,7 @@ async function main() {
 
   const meta = exportMeta(values)
   console.log(
-    `Exporting ${path.relative(REPO_ROOT, ERROR_TEXT_FILE)} at ${meta.branch} ${meta.commit.slice(0, SHORT_SHA_LENGTH)}`
+    `Exporting ${path.relative(REPO_ROOT, ERROR_TEXT_FILE)} at ${meta.branch} ${meta.commit.slice(0, SHORT_SHA_LENGTH)}: ${meta.groups.join(', ')}`
   )
   const { rows, files } = await writeExport(
     readFileSync(ERROR_TEXT_FILE, 'utf8'),

@@ -4,7 +4,7 @@ import {
   diffRows,
   isEmptyDiff
 } from './diff.mjs'
-import { SHOWN, STATUS, buildRows } from './rows.mjs'
+import { ALL_GROUPS, SHOWN, STATUS, buildRows } from './rows.mjs'
 
 // Two small error-text.yaml files: the second adds, removes, rewords and
 // finishes entries, and moves a code from the drop-out page to an edit.
@@ -95,7 +95,9 @@ const after = before
     '      text: Applicant'
   )
 
-const diff = diffRows(buildRows(before), buildRows(after))
+// Every group: these tests are about comparing, not which rows are given.
+const all = (source) => buildRows(source, { groups: ALL_GROUPS })
+const diff = diffRows(all(before), all(after))
 
 describe('diffRows', () => {
   test('lists the IDs added and removed', () => {
@@ -153,7 +155,7 @@ describe('diffRows', () => {
   })
 
   test('finds nothing between a file and itself', () => {
-    expect(isEmptyDiff(diffRows(buildRows(after), buildRows(after)))).toBe(true)
+    expect(isEmptyDiff(diffRows(all(after), all(after)))).toBe(true)
   })
 })
 
@@ -162,7 +164,7 @@ const base = {
   text: 'abc1234'
 }
 const described = describeDiff(diff, base)
-const empty = diffRows(buildRows(after), buildRows(after))
+const empty = diffRows(all(after), all(after))
 
 describe('describeDiff, as Markdown for the run summary', () => {
   const { markdown } = described
@@ -259,10 +261,16 @@ describe('describeDiff, as plain text for the run log', () => {
 })
 
 describe('compareWithBase', () => {
-  const rows = buildRows(after)
+  const rows = all(after)
 
   test('compares with the base file', () => {
-    expect(compareWithBase(rows, before, base)).toEqual(described)
+    expect(compareWithBase(rows, before, base, ALL_GROUPS)).toEqual(described)
+  })
+
+  test('reads the base as the default groups unless told otherwise', () => {
+    const { text } = compareWithBase(buildRows(after), before, base)
+    expect(text).not.toContain('forms.applicant.tooLong')
+    expect(text).toContain('  ADDED (')
   })
 
   test('says so when the base has no error-text.yaml', () => {

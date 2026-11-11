@@ -1,4 +1,4 @@
-import { COLUMNS, statusCounts } from './rows.mjs'
+import { COLUMNS, DEFAULT_GROUPS, statusCounts } from './rows.mjs'
 
 // The export as one self-contained web page: its styles and script inline, so
 // it opens from a CI artifact or an email with nothing else to fetch. A
@@ -127,7 +127,7 @@ export function toHtml(rows, meta, columns = COLUMNS) {
 </head>
 <body>
 <h1>Error messages</h1>
-<p>Every message in error-text.yaml, generated ${escape(meta.date)} from branch ${escape(meta.branch)}, commit <a href="${escape(meta.commitUrl)}">${escape(meta.commit.slice(0, 7))}</a>. ${rows.length} error IDs: ${counts}.</p>
+<p>Messages in error-text.yaml (rows: ${escape((meta.groups ?? DEFAULT_GROUPS).join(', '))}), generated ${escape(meta.date)} from branch ${escape(meta.branch)}, commit <a href="${escape(meta.commitUrl)}">${escape(meta.commit.slice(0, 7))}</a>. ${rows.length} error IDs: ${counts}.</p>
 <label for="search">Search</label>
 <input type="search" id="search" autocomplete="off">
 <p>Showing <span id="shown">${rows.length}</span> of ${rows.length}</p>
