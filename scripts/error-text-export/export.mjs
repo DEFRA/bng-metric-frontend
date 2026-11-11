@@ -53,6 +53,11 @@ const DEFAULT_OUT = 'export'
 const DEFAULT_REPOSITORY = 'https://github.com/DEFRA/bng-metric-frontend'
 const SHORT_SHA_LENGTH = 7
 const DATE_LENGTH = 10
+// Where an ISO time's hours, minutes and seconds sit: 2026-11-10T14:30:05.000Z.
+const TIME_START = 11
+const TIME_END = 19
+// GitHub Actions' run ID: digits alone, as in actions/runs/43044358011.
+const RUN_ID = /^\d+$/
 
 const USAGE = `Usage: npm run export:error-text [-- options]
 
@@ -81,12 +86,23 @@ function safeBranch(branch) {
 
 /**
  * Each file's name, but for its extension:
- * error-messages-2026-11-10-main-39a95e5.
+ * error-messages-2026-11-10-143005-main-39a95e5-run43044358011. The time is
+ * UTC, as HHmmss, so two exports of one day and commit are told apart; the
+ * GitHub Actions run, when there is one, names the run that made the files.
  *
- * @param {{ date: string, branch: string, commit: string }} meta
+ * @param {{ date: string, time?: string, branch: string, commit: string, runId?: string }} meta
  */
-export function fileStem({ date, branch, commit }) {
-  return `error-messages-${date}-${safeBranch(branch)}-${commit.slice(0, SHORT_SHA_LENGTH)}`
+export function fileStem({ date, time, branch, commit, runId }) {
+  return [
+    'error-messages',
+    date,
+    time,
+    safeBranch(branch),
+    commit.slice(0, SHORT_SHA_LENGTH),
+    runId && `run${runId}`
+  ]
+    .filter(Boolean)
+    .join('-')
 }
 
 /** Value of --include that gives every group of rows. */
@@ -117,8 +133,8 @@ export function groupsToExport(include) {
 }
 
 /**
- * Which commit and branch the export is read from, its date, and the groups
- * of rows it gives.
+ * Which commit and branch the export is read from, when, in which GitHub
+ * Actions run, if any, and the groups of rows it gives.
  *
  * @param {{ sha?: string, branch?: string, include?: string }} options
  * @param {NodeJS.ProcessEnv} [env]
@@ -139,6 +155,8 @@ export function exportMeta(options, env = process.env, now = new Date()) {
     repository,
     groups: groupsToExport(options.include),
     date: now.toISOString().slice(0, DATE_LENGTH),
+    time: now.toISOString().slice(TIME_START, TIME_END).replaceAll(':', ''),
+    runId: RUN_ID.test(env.GITHUB_RUN_ID ?? '') ? env.GITHUB_RUN_ID : undefined,
     branch,
     commit,
     commitUrl: `${repository}/commit/${commit}`,
