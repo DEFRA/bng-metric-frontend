@@ -6,8 +6,8 @@ name: Error Messages Export
 #
 # It reports and never gates: it is not a required check, and is kept apart
 # from check-pull-request.yml, so an artifact outage cannot hold up a merge.
-# It does not run in the merge queue, as a pull request's run already shows
-# the wording as it will be once merged.
+# It does not run in the merge queue: the pull request's run has already
+# exported its wording.
 on:
   pull_request:
     branches:
@@ -26,10 +26,12 @@ on:
 permissions:
   contents: read
 
-# A newer push to a pull request makes its older export out of date. Runs on
-# main all finish, so each commit there keeps its export.
+# A newer push to a pull request makes its older export out of date, so a
+# pull request's runs share a group and the newer cancels the older. Every
+# other run has a group of its own: a group holds one pending run at most, so
+# sharing one would drop a commit's export when merges land close together.
 concurrency:
-  group: error-messages-export-${{ github.ref }}
+  group: error-messages-export-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -42,9 +44,13 @@ jobs:
     name: Export the error messages
     runs-on: ubuntu-latest
     steps:
+      # A pull request's run exports its head commit, not the merge commit
+      # checked out by default: each row links to its line of the file, and
+      # only the head commit has a lasting URL whose lines match the rows.
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
@@ -55,9 +61,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # A pull request's run reads its merge commit, the wording as it will be
-      # once merged, but links each row to the pull request's head commit, as
-      # a merge commit has no lasting URL.
       - name: Export the error messages
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}

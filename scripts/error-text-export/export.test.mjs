@@ -1,4 +1,11 @@
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -149,4 +156,55 @@ describe('summaryMarkdown', () => {
       ''
     ])
   })
+})
+
+describe('npm run export:error-text -- --summary', () => {
+  const script = path.join(import.meta.dirname, 'export.mjs')
+  // Two runs of the script, each loading the server's modules.
+  const TWO_RUNS_TIMEOUT_MS = 20_000
+  let dir
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), 'error-text-export-'))
+  })
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  function run(summary) {
+    execFileSync(
+      process.execPath,
+      [
+        script,
+        '--out',
+        dir,
+        '--sha',
+        SHA,
+        '--branch',
+        'main',
+        '--summary',
+        summary
+      ],
+      { stdio: 'pipe' }
+    )
+  }
+
+  test(
+    'appends the summary to the file, keeping what it held',
+    () => {
+      const summary = path.join(dir, 'summary.md')
+      writeFileSync(summary, 'Earlier step\n')
+
+      run(summary)
+      run(summary)
+
+      const text = readFileSync(summary, 'utf8')
+      expect(text.startsWith('Earlier step\n## Error messages export\n')).toBe(
+        true
+      )
+      expect(text.match(/^## Error messages export$/gm)).toHaveLength(2)
+    },
+    TWO_RUNS_TIMEOUT_MS
+  )
 })
