@@ -80,6 +80,8 @@ upload:
     area: blank
   distinctiveness:
     V.High: Very high
+  layers:
+    hedgerows: Hedgerows
   errors:
     # A layer the template does not have.
     B_LAYER:
@@ -266,6 +268,7 @@ describe('buildRows, from a small file', () => {
       'upload.catchAll',
       'upload.distinctiveness.V.High',
       'upload.fileProblem',
+      'upload.layers.hedgerows',
       'upload.names.feature',
       'upload.page.title',
       'upload.serviceProblem',
@@ -304,7 +307,7 @@ describe('buildRows, from a small file', () => {
     expect(statusCounts(fixture)).toEqual({
       [STATUS.NEEDS_CONTENT]: 3,
       [STATUS.AWAITING_UCD]: 4,
-      [STATUS.FINAL]: 16
+      [STATUS.FINAL]: 17
     })
   })
 

@@ -515,7 +515,10 @@ describe('invalidFileController.handler — populated session', () => {
       expect(view.errorBlocks[0]).toEqual({
         heading:
           'One or more baseline habitats cannot be processed by the service due to a missing or incompatible value',
-        items: ['Feature Ref H002 — Ground based green wall', 'fid 7'],
+        items: [
+          'Habitat parcels: Feature Ref H002 — Ground based green wall',
+          'Watercourses: fid 7'
+        ],
         more: 0
       })
     })
@@ -538,7 +541,7 @@ describe('invalidFileController.handler — populated session', () => {
       })
     })
 
-    test('alone with one habitat with no ref, names it by its fid', async () => {
+    test('alone with one watercourse with no ref, names it by its fid under its layer', async () => {
       const view = await render([
         {
           ...incompleteBaseline,
@@ -546,21 +549,80 @@ describe('invalidFileController.handler — populated session', () => {
         }
       ])
 
-      expect(view.singleError.helpText).toBe(
-        'Baseline habitat 7 cannot be processed by the service due to a missing or incompatible value.'
-      )
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Watercourses',
+        helpText:
+          'Baseline habitat fid 7 cannot be processed by the service due to a missing or incompatible value.'
+      })
     })
 
-    test('alone with several habitats, does not name only the first', async () => {
+    test('alone with one hedgerow, puts it under Hedgerows', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: {
+            count: 1,
+            sample: [{ layer: 'hedgerows', idx: 0, fid: 3, feature_ref: 'HG1' }]
+          }
+        }
+      ])
+
+      expect(view.singleError).toMatchObject({
+        subheading: 'Hedgerows',
+        helpText:
+          'Baseline habitat HG1 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with several habitats in one layer, does not name only the first, and names their layer', async () => {
+      const hedgerow = (ref) => ({
+        layer: 'hedgerows',
+        idx: 0,
+        feature_ref: ref
+      })
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 2, sample: [hedgerow('HG1'), hedgerow('HG2')] }
+        }
+      ])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Hedgerows',
+        helpText:
+          'Some baseline habitats cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with habitats in more than one layer, names no one layer', async () => {
       const view = await render([incompleteBaseline])
 
       expect(view.singleError).toEqual({
         variant: 'text',
         h1: 'There is a problem with your file',
-        subheading: 'Habitat parcels',
         helpText:
           'Some baseline habitats cannot be processed by the service due to a missing or incompatible value.'
       })
+    })
+
+    test('alone with more habitats than the sample shows, names no one layer', async () => {
+      const hedgerow = (ref) => ({
+        layer: 'hedgerows',
+        idx: 0,
+        feature_ref: ref
+      })
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 3, sample: [hedgerow('HG1'), hedgerow('HG2')] }
+        }
+      ])
+
+      expect(view.singleError.subheading).toBeUndefined()
     })
   })
 

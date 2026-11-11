@@ -9,6 +9,7 @@ import {
   fill,
   firstKnown,
   joinKnownParts,
+  layerName,
   pageText
 } from './dropout-copy.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
@@ -137,8 +138,13 @@ function unenhanceableValues(s) {
 
 // BMD-1195: an incomplete baseline habitat, by its ref and, when it has one,
 // its habitat type.
+// The layer leads, as a fid repeats from layer to layer.
 function incompleteBaselineValues(s) {
-  return { ...featureValues(s), habitatType: known(s?.habitat_type) }
+  return {
+    ...featureValues(s),
+    layer: layerName(s?.layer),
+    habitatType: known(s?.habitat_type)
+  }
 }
 
 // A vertical area habitat's typed Area, with the value the file holds.

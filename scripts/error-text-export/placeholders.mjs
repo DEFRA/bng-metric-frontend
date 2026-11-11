@@ -60,9 +60,13 @@ export const PLACEHOLDERS = Object.freeze({
   max: 'the limit the page applies',
   maxFeatureCount: 'the most features the service can check',
   name: 'the habitat, by its Habitat Ref, or else its fid',
+  onlyLayer:
+    'the layer of the one habitat the problem names; unknown when it names several',
   onlyRef:
     'the Habitat Ref, or else fid, of the one habitat the problem names; unknown when it names several',
   parentRef: 'the Habitat Ref of the baseline habitat it was copied from',
+  sharedLayer:
+    'the layer every habitat the problem names is in; unknown when they are in more than one, or some are not shown',
   part: 'the part of the date left blank: day, month or year',
   parts: 'the parts of the date left blank, such as "day and month"',
   reason: 'why the shape is not valid, as the geometry check words it',

@@ -143,6 +143,7 @@ const copySchema = Joi.object({
   }).required(),
   unknown: unknownSchema.required(),
   distinctiveness: Joi.object().pattern(Joi.string(), text).required(),
+  layers: Joi.object().pattern(Joi.string(), text).required(),
   errors: Joi.object()
     .pattern(Joi.string().pattern(/^[A-Z][A-Z0-9_]*$/), errorEntry)
     .required()
@@ -205,6 +206,18 @@ export function fill(template, values = {}) {
 /** Whether any of `templates` has all its values known. */
 export function canFill(templates, values = {}) {
   return [templates].flat().some((t) => hasValues(t, values))
+}
+
+/**
+ * A layer as the page names it (the copy's layers), or null for a layer the
+ * copy does not name.
+ *
+ * @param {string | undefined} layer the backend's layer, such as "hedgerows"
+ */
+export function layerName(layer) {
+  return Object.hasOwn(dropoutCopy.layers, layer ?? '')
+    ? dropoutCopy.layers[layer]
+    : null
 }
 
 /** The first of `templates` whose values are all known, not filled in. */
