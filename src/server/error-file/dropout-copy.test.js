@@ -7,7 +7,7 @@ import { errorText } from '../common/error-text/error-text.js'
 import {
   LINK_TARGETS,
   PAGE_TEXT_VALUES,
-  WHEN_ALONE,
+  SHARED_PAGE,
   canFill,
   dropoutCopy,
   errorCopy,
@@ -16,6 +16,8 @@ import {
   joinKnownParts,
   pageText,
   parseDropoutCopy,
+  sharedPage,
+  singleProblemPages,
   splitLink
 } from './dropout-copy.js'
 import {
@@ -46,13 +48,20 @@ function placeholders(templates) {
 
 const entries = Object.entries(dropoutCopy.errors)
 
-/** A code's inList variants, as a list. */
-function variantsOf(inList) {
-  return Object.values(inList.variants ?? {})
+/** A code's problemsList variants, as a list. */
+function variantsOf(problemsList) {
+  return Object.values(problemsList.variants ?? {})
 }
 
+/** Every page an entry's singleProblemPage gives: plain, or one and several. */
 function pagesOf(entry) {
-  return typeof entry.whenAlone === 'object' ? [entry.whenAlone].flat() : []
+  const page = entry.singleProblemPage
+  if (typeof page !== 'object') {
+    return []
+  }
+  return Object.hasOwn(page, 'one')
+    ? [page.one, page.several ?? []].flat()
+    : [page].flat()
 }
 
 const allPages = [
@@ -64,16 +73,46 @@ const allPages = [
 ]
 
 describe("error-text.yaml's upload section", () => {
-  test('gives every error both layouts', () => {
+  // {ref} and the like name the first habitat an error names, so a page
+  // that uses one is worded for one, and must say so with `one:`.
+  test('words no page for any number of habitats with a value naming one', () => {
+    const naming = /\{(ref|refA|refB|onlyRef|onlyLayer)\}/
+    const plain = entries.filter(([, entry]) => {
+      const page = entry.singleProblemPage
+      return typeof page === 'object' && !Object.hasOwn(page, 'one')
+    })
+    for (const [code, entry] of plain) {
+      expect(JSON.stringify(entry.singleProblemPage), code).not.toMatch(naming)
+    }
+  })
+
+  test('gives every error its problems list entry', () => {
     for (const [code, entry] of entries) {
-      expect(entry.whenAlone, code).toBeDefined()
-      expect(entry.inList, code).toBeDefined()
+      expect(entry.problemsList, code).toBeDefined()
+    }
+  })
+
+  test('marks every error with no single-problem page, but a lineage one, as interim', () => {
+    // A lineage error is its list of habitats, by design. Any other with no
+    // single-problem page is waiting for UCD to word one.
+    const unworded = entries.filter(
+      ([code, entry]) =>
+        entry.singleProblemPage === undefined && !code.startsWith('STAGED_')
+    )
+    for (const [code, entry] of unworded) {
+      if (entry.problemsList?.item) {
+        continue
+      }
+      expect(wordingStatus(entry), code).toBe(WORDING_STATUS.INTERIM)
     }
   })
 
   test('names only the {values} the page fills in', () => {
     for (const page of allPages) {
-      for (const name of placeholders([page.title, page.body].flat())) {
+      const words = [page.title, page.subheading, page.body]
+        .flat()
+        .filter(Boolean)
+      for (const name of placeholders(words)) {
         expect(pageValueNames(), `${page.title}: {${name}}`).toContain(name)
       }
     }
@@ -81,24 +120,27 @@ describe("error-text.yaml's upload section", () => {
     // so {location} on a lineage bullet fails even though another code has it.
     // An item names a habitat's values and a detail the error's details, in
     // any of its variants.
-    const bulletsOf = (inList, key) =>
-      [inList[key], ...variantsOf(inList).map((v) => v[key])]
+    const bulletsOf = (problemsList, key) =>
+      [problemsList[key], ...variantsOf(problemsList).map((v) => v[key])]
         .filter(Boolean)
         .flat()
-    for (const [code, { inList }] of entries) {
+    for (const [code, { problemsList }] of entries) {
       // An item is shown once for each habitat, so one that names none of the
       // habitat's values says the same thing every time: it is a detail.
-      const items = [inList.item, ...variantsOf(inList).map((v) => v.item)]
+      const items = [
+        problemsList.item,
+        ...variantsOf(problemsList).map((v) => v.item)
+      ]
       for (const item of items.filter(Boolean)) {
         expect(
           placeholders([item].flat()),
           `${code} item: ${item}`
         ).not.toEqual([])
       }
-      for (const name of placeholders(bulletsOf(inList, 'item'))) {
+      for (const name of placeholders(bulletsOf(problemsList, 'item'))) {
         expect(itemValueNames(code), `${code} item: {${name}}`).toContain(name)
       }
-      for (const name of placeholders(bulletsOf(inList, 'detail'))) {
+      for (const name of placeholders(bulletsOf(problemsList, 'detail'))) {
         expect(detailValueNames(code), `${code} detail: {${name}}`).toContain(
           name
         )
@@ -123,13 +165,13 @@ describe("error-text.yaml's upload section", () => {
         )
       }
     }
-    for (const [code, { inList }] of entries) {
-      for (const name of placeholders(inList.note ?? [])) {
+    for (const [code, { problemsList }] of entries) {
+      for (const name of placeholders(problemsList.note ?? [])) {
         expect(NOTE_VALUE_NAMES, `${code} note: {${name}}`).toContain(name)
       }
       const headings = [
-        inList.heading,
-        ...variantsOf(inList).map((v) => v.heading)
+        problemsList.heading,
+        ...variantsOf(problemsList).map((v) => v.heading)
       ]
       for (const name of placeholders(headings.filter(Boolean))) {
         expect(detailValueNames(code), `${code} heading: {${name}}`).toContain(
@@ -197,8 +239,8 @@ describe("error-text.yaml's upload section", () => {
 
     expect(lineage.length).toBeGreaterThan(0)
     for (const [code, entry] of lineage) {
-      expect(entry.whenAlone, code).toBe(WHEN_ALONE.LIST)
-      expect(entry.inList?.heading, code).toBeTruthy()
+      expect(entry.singleProblemPage, code).toBeUndefined()
+      expect(entry.problemsList?.heading, code).toBeTruthy()
     }
   })
 })
@@ -220,7 +262,7 @@ describe('parseDropoutCopy', () => {
   test('accepts "none" on an error the page shows a shared fallback for', () => {
     const copy = parseDropoutCopy(COPY_SOURCE)
     const [code] = Object.entries(copy.errors).find(
-      ([, entry]) => entry.whenAlone === WHEN_ALONE.FILE_PROBLEM
+      ([, entry]) => entry.singleProblemPage === SHARED_PAGE.FILE_PROBLEM
     )
     copy.errors[code].wording = 'none'
 
@@ -312,51 +354,55 @@ describe('parseDropoutCopy', () => {
     }
   })
 
-  test('refuses an error with no inList', () => {
+  test('refuses an error with no problemsList', () => {
     const copy = parseDropoutCopy(COPY_SOURCE)
-    delete copy.errors.NO_REDLINE.inList
+    delete copy.errors.NO_REDLINE.problemsList
 
     expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
-      /NO_REDLINE.*inList/
+      /NO_REDLINE.*problemsList/
     )
   })
 
   // A problem lists habitats or not, however it is worded, so its bullets
   // and its variants' are of one kind.
   test.each([
-    ['the code', 'GPKG_MISSING_LAYER', (inList) => (inList.item = '{feature}')],
+    [
+      'the code',
+      'GPKG_MISSING_LAYER',
+      (problemsList) => (problemsList.item = '{feature}')
+    ],
     [
       'a variant',
       'GPKG_BASELINE_SRS_ID',
-      (inList) => (inList.variants.contents.item = '{feature}')
+      (problemsList) => (problemsList.variants.contents.item = '{feature}')
     ],
     [
       "a variant, beside the code's detail",
       'GPKG_BASELINE_MISSING_COLUMN',
-      (inList) => {
-        inList.variants.geometry = { item: '{feature}' }
+      (problemsList) => {
+        problemsList.variants.geometry = { item: '{feature}' }
       }
     ],
     [
       "a variant, beside the code's item",
       'AREA_PARCELS_INVALID_GEOMETRY',
-      (inList) => {
-        inList.variants = { odd: { detail: '{layer}' } }
+      (problemsList) => {
+        problemsList.variants = { odd: { detail: '{layer}' } }
       }
     ]
   ])('refuses an item and a detail in %s', (_, code, mix) => {
     const copy = parseDropoutCopy(COPY_SOURCE)
-    mix(copy.errors[code].inList)
+    mix(copy.errors[code].problemsList)
 
     expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
-      new RegExp(`errors\\.${code}\\.inList`)
+      new RegExp(`errors\\.${code}\\.problemsList`)
     )
   })
 
-  test('refuses a whenAlone that is neither copy nor a known keyword', () => {
+  test('refuses a singleProblemPage that is neither copy nor a known keyword', () => {
     const broken = COPY_SOURCE.replace(
-      / {4}whenAlone: catch-all\n/,
-      '    whenAlone: catchall\n'
+      / {4}singleProblemPage: catch-all\n/,
+      '    singleProblemPage: catchall\n'
     )
 
     expect(() => parseDropoutCopy(broken)).toThrow(/not valid/)
@@ -377,8 +423,8 @@ describe('parseDropoutCopy', () => {
 
   test('keeps the space that starts a bullet part', () => {
     expect(
-      parseDropoutCopy(COPY_SOURCE).errors.AREA_PARCELS_INVALID_GEOMETRY.inList
-        .item
+      parseDropoutCopy(COPY_SOURCE).errors.AREA_PARCELS_INVALID_GEOMETRY
+        .problemsList.item
     ).toEqual(['{feature}', ' ({reason})'])
   })
 })
@@ -452,6 +498,83 @@ describe('errorCopy', () => {
   })
 
   test('gives no heading where the list shows the catch-all title', () => {
-    expect(errorCopy('INVALID_FILENAME').inList).toBe('catch-all')
+    expect(errorCopy('INVALID_FILENAME').problemsList).toBe('catch-all')
+  })
+})
+
+describe('singleProblemPages', () => {
+  const error = (code, count) => ({ code, details: { count } })
+
+  test('gives a code with no entry the file problem page', () => {
+    expect(singleProblemPages(error('NOT_A_CODE', 1))).toBe(
+      dropoutCopy.fileProblem
+    )
+  })
+
+  test('gives the shared page a singleProblemPage names, for any count', () => {
+    const [code, entry] = Object.entries(dropoutCopy.errors).find(
+      ([, e]) => e.singleProblemPage === SHARED_PAGE.CATCH_ALL
+    )
+    expect(singleProblemPages(error(code, 5))).toBe(
+      sharedPage(entry.singleProblemPage)
+    )
+  })
+
+  test('gives no page to an error with no singleProblemPage', () => {
+    expect(
+      singleProblemPages(error('TEMPLATE_VERSION_DUPLICATED', 1))
+    ).toBeNull()
+  })
+
+  test('gives a page worded for any number for any count', () => {
+    const page = errorCopy(
+      'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE'
+    ).singleProblemPage
+    expect(
+      singleProblemPages(error('HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', 4))
+    ).toBe(page)
+  })
+
+  test('gives one for one habitat, or none, and no page for several with only one', () => {
+    const { one } = errorCopy('AREA_PARCELS_TOO_SMALL').singleProblemPage
+    expect(singleProblemPages(error('AREA_PARCELS_TOO_SMALL', 1))).toBe(one)
+    expect(singleProblemPages({ code: 'AREA_PARCELS_TOO_SMALL' })).toBe(one)
+    expect(singleProblemPages(error('AREA_PARCELS_TOO_SMALL', 2))).toBeNull()
+  })
+
+  test('gives several for several habitats when the entry has it', () => {
+    const { several } = errorCopy('PARCEL_OVERLAPS').singleProblemPage
+    expect(singleProblemPages(error('PARCEL_OVERLAPS', 2))).toBe(several)
+  })
+})
+
+describe('parseDropoutCopy, singleProblemPage for one and several', () => {
+  const withPage = (singleProblemPage) => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    copy.errors.NO_REDLINE.singleProblemPage = singleProblemPage
+    return JSON.stringify(copy)
+  }
+  const page = { title: 'A title', body: 'A body.' }
+
+  test('accepts one alone, and one with several', () => {
+    expect(() => parseDropoutCopy(withPage({ one: page }))).not.toThrow()
+    expect(() =>
+      parseDropoutCopy(withPage({ one: page, several: [page, page] }))
+    ).not.toThrow()
+  })
+
+  test('refuses several with no one', () => {
+    expect(() => parseDropoutCopy(withPage({ several: page }))).toThrow(
+      /NO_REDLINE\.singleProblemPage/
+    )
+  })
+
+  test('refuses "none" on an error with no single-problem page, whose words are always shown', () => {
+    const copy = parseDropoutCopy(COPY_SOURCE)
+    delete copy.errors.NO_REDLINE.singleProblemPage
+    copy.errors.NO_REDLINE.wording = 'none'
+    expect(() => parseDropoutCopy(JSON.stringify(copy))).toThrow(
+      /NO_REDLINE\.wording/
+    )
   })
 })

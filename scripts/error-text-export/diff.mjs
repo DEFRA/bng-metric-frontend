@@ -7,8 +7,16 @@ import { COLUMNS, DEFAULT_GROUPS, WORDING_KEYS, buildRows } from './rows.mjs'
 // without opening the summary. No I/O: it compares two lists of rows from
 // buildRows, matched by error ID.
 
-/** The columns compared: where an error is shown, and every part of it. */
-const COMPARED_KEYS = Object.freeze(['shown', ...WORDING_KEYS, 'fallback'])
+/**
+ * The columns compared: where an error is shown, what it shows when it is the
+ * only problem, and every part of it.
+ */
+const COMPARED_KEYS = Object.freeze([
+  'shown',
+  'alone',
+  ...WORDING_KEYS,
+  'fallback'
+])
 
 /** The parts of a message an added or removed error is shown with. */
 const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, 'fallback'])

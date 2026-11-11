@@ -8,16 +8,13 @@ vi.mock('./dropout-copy.js', async (importOriginal) => {
   const original = await importOriginal()
   return {
     ...original,
-    errorCopy: (code) =>
-      code === CODE
+    singleProblemPages: (error) =>
+      error?.code === CODE
         ? {
-            whenAlone: {
-              title: 'This parcel {ref} contains an error',
-              body: 'Parcel {ref} overlaps itself. Draw it again and [upload a new file](upload).'
-            },
-            inList: { heading: 'Parcel overlaps itself' }
+            title: 'This parcel {ref} contains an error',
+            body: 'Parcel {ref} overlaps itself. Draw it again and [upload a new file](upload).'
           }
-        : original.errorCopy(code)
+        : original.singleProblemPages(error)
   }
 })
 

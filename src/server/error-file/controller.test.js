@@ -488,6 +488,162 @@ describe('invalidFileController.handler — populated session', () => {
     })
   })
 
+  describe('BMD-1195 BASELINE_HABITATS_INCOMPLETE', () => {
+    const incompleteBaseline = {
+      code: 'BASELINE_HABITATS_INCOMPLETE',
+      message:
+        'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline: Feature Ref H002, watercourses fid 7',
+      details: {
+        count: 2,
+        sample: [
+          {
+            layer: 'habitats',
+            idx: 1,
+            fid: 2,
+            feature_ref: 'H002',
+            habitat_type: 'Ground based green wall'
+          },
+          {
+            layer: 'watercourses',
+            idx: 0,
+            fid: 7,
+            feature_ref: null,
+            habitat_type: null
+          }
+        ]
+      }
+    }
+
+    async function render(errors) {
+      const request = makeRequest({
+        postInterventionValidationErrors: errors,
+        validationUploadType: 'postIntervention'
+      })
+      const h = makeH()
+      await invalidFileController.handler(request, h)
+      return h.view.mock.calls[0][1]
+    }
+
+    test('lists each incomplete baseline habitat, with its habitat type when it has one', async () => {
+      const view = await render([
+        incompleteBaseline,
+        { code: 'NO_REDLINE', message: 'No red line boundary' }
+      ])
+
+      expect(view.errorBlocks[0]).toEqual({
+        heading:
+          'One or more baseline habitats cannot be processed by the service due to a missing or incompatible value',
+        items: [
+          'Habitat parcels: Feature Ref H002 — Ground based green wall',
+          'Watercourses: fid 7'
+        ],
+        more: 0
+      })
+    })
+
+    test('alone with one habitat, shows UCD ref 72, naming the habitat', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 1, sample: [incompleteBaseline.details.sample[0]] }
+        }
+      ])
+
+      expect(view.pageTitle).toBe('There is a problem with your file')
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Habitat parcels',
+        helpText:
+          'Baseline habitat H002 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with one watercourse with no ref, names it by its fid under its layer', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 1, sample: [incompleteBaseline.details.sample[1]] }
+        }
+      ])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Watercourses',
+        helpText:
+          'Baseline habitat fid 7 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with one hedgerow, puts it under Hedgerows', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: {
+            count: 1,
+            sample: [{ layer: 'hedgerows', idx: 0, fid: 3, feature_ref: 'HG1' }]
+          }
+        }
+      ])
+
+      expect(view.singleError).toMatchObject({
+        subheading: 'Hedgerows',
+        helpText:
+          'Baseline habitat HG1 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with several habitats in one layer, does not name only the first, and names their layer', async () => {
+      const hedgerow = (ref) => ({
+        layer: 'hedgerows',
+        idx: 0,
+        feature_ref: ref
+      })
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 2, sample: [hedgerow('HG1'), hedgerow('HG2')] }
+        }
+      ])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Hedgerows',
+        helpText:
+          'Some baseline habitats cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with habitats in more than one layer, names no one layer', async () => {
+      const view = await render([incompleteBaseline])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        helpText:
+          'Some baseline habitats cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with more habitats than the sample shows, names no one layer', async () => {
+      const hedgerow = (ref) => ({
+        layer: 'hedgerows',
+        idx: 0,
+        feature_ref: ref
+      })
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 3, sample: [hedgerow('HG1'), hedgerow('HG2')] }
+        }
+      ])
+
+      expect(view.singleError.subheading).toBeUndefined()
+    })
+  })
+
   test('errorBlocks: HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE falls back when habitat_type / distinctiveness are missing', async () => {
     const errors = [
       {
@@ -1291,6 +1447,110 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
     expect(view.singleError).not.toBeNull()
     expect(view.uploadHref).toBe(
       '/projects/proj-100/upload-post-intervention-file'
+    )
+  })
+})
+
+describe('invalidFileController.handler — one problem naming one habitat or several', () => {
+  const makeRequest = (sessionData) => {
+    const store = { ...sessionData }
+    return {
+      yar: {
+        get: vi.fn((key) => store[key] ?? null),
+        set: vi.fn(),
+        clear: vi.fn((key) => {
+          delete store[key]
+        })
+      }
+    }
+  }
+
+  const parcel = (ref) => ({ layer: 'areas', fid: 1, feature_ref: ref })
+
+  async function render(error) {
+    const request = makeRequest({ baselineValidationErrors: [error] })
+    const h = { view: vi.fn().mockReturnThis() }
+    await invalidFileController.handler(request, h)
+    return h.view.mock.calls[0][1]
+  }
+
+  test('shows a page worded for one habitat when the error names one', async () => {
+    const view = await render({
+      code: 'AREA_PARCELS_TOO_SMALL',
+      details: { count: 1, sample: [parcel('P1')] }
+    })
+
+    expect(view.singleError).toMatchObject({
+      h1: 'This parcel P1 contains an error'
+    })
+  })
+
+  test('shows the problems list, naming each, when that error names several', async () => {
+    const view = await render({
+      code: 'AREA_PARCELS_TOO_SMALL',
+      details: { count: 2, sample: [parcel('P1'), parcel('P2')] }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toHaveLength(1)
+    expect(view.errorBlocks[0].items).toHaveLength(2)
+  })
+
+  test('shows the problems list for several hedgerows outside the boundary, not the first alone', async () => {
+    const view = await render({
+      code: 'HEDGEROWS_OUTSIDE_REDLINE',
+      details: {
+        count: 2,
+        sample: [
+          { layer: 'hedgerows', fid: 1, feature_ref: 'H1' },
+          { layer: 'hedgerows', fid: 2, feature_ref: 'H2' }
+        ]
+      }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toContain('hedgerow habitats')
+  })
+
+  test("shows the page's wording for several when it has some", async () => {
+    const view = await render({
+      code: 'PARCEL_OVERLAPS',
+      details: {
+        count: 2,
+        sample: [
+          { feature_ref_a: 'P1', feature_ref_b: 'P2' },
+          { feature_ref_a: 'P3', feature_ref_b: 'P4' }
+        ]
+      }
+    })
+
+    // Not "These parcels P1, P2", which would name only the first pair.
+    expect(view.singleError).toMatchObject({
+      h1: 'Your Geopackage (.gpkg) file contains an error',
+      // No project in the session, so no link: the sentence ends there.
+      messageBefore:
+        'Some parcels in this file are overlapping. Draw the affected parcels again.'
+    })
+  })
+
+  test('shows a page worded for any number whatever the count', async () => {
+    const view = await render({
+      code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+      details: { count: 3, sample: [parcel('P1')] }
+    })
+
+    expect(view.singleError).not.toBeNull()
+  })
+
+  test('shows an error with no single-problem page in the problems list', async () => {
+    const view = await render({
+      code: 'TEMPLATE_VERSION_DUPLICATED',
+      details: { recordCount: 2 }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toContain(
+      'The file has 2 template version records'
     )
   })
 })
@@ -2192,7 +2452,7 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     test('has a case for every variant in the copy', () => {
       const worded = Object.entries(dropoutCopy.errors).flatMap(
         ([code, entry]) =>
-          Object.keys(entry.inList?.variants ?? {}).map(
+          Object.keys(entry.problemsList?.variants ?? {}).map(
             (variant) => `${code} ${variant}`
           )
       )

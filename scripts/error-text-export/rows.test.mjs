@@ -2,13 +2,14 @@ import { readFileSync } from 'node:fs'
 
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
 import {
-  IN_LIST_CATCH_ALL,
-  WHEN_ALONE
+  PROBLEMS_LIST_CATCH_ALL,
+  SHARED_PAGE
 } from '../../src/server/error-file/dropout-copy.js'
 import { PLACEHOLDERS } from './placeholders.mjs'
 import { readErrorTextSource } from './read.mjs'
 import {
   ALL_GROUPS,
+  ALONE,
   COLUMNS,
   DEFAULT_GROUPS,
   FALLBACKS,
@@ -26,15 +27,19 @@ const { value } = readErrorTextSource(source)
 const rows = buildRows(source, { groups: ALL_GROUPS })
 const rowOf = (id) => rows.find((row) => row.id === id)
 
-// What an upload error's whenAlone and inList name in place of words.
-const KEYWORDS = new Set([...Object.values(WHEN_ALONE), IN_LIST_CATCH_ALL])
+// What an upload error's singleProblemPage and problemsList name in place of words.
+const KEYWORDS = new Set([
+  ...Object.values(SHARED_PAGE),
+  PROBLEMS_LIST_CATCH_ALL
+])
 
 /** Every string a customer can see, with its place in the file. */
 function wordingIn(node, path = []) {
   if (typeof node === 'string') {
     const key = path.at(-1)
     const named =
-      (key === 'whenAlone' || key === 'inList') && KEYWORDS.has(node)
+      (key === 'singleProblemPage' || key === 'problemsList') &&
+      KEYWORDS.has(node)
     return key === 'wording' || named
       ? []
       : [{ path: path.join('.'), text: node }]
@@ -84,43 +89,44 @@ upload:
     area: blank
   distinctiveness:
     V.High: Very high
+  layers:
+    hedgerows: Hedgerows
   errors:
     # A layer the template does not have.
     B_LAYER:
-      whenAlone: catch-all
-      inList:
+      singleProblemPage: catch-all
+      problemsList:
         heading: 'Layer "{layer}" is not expected'
         variants:
           bng-service:
             heading: 'Layer "{layer}" is not in the template'
     a_parcel:
-      whenAlone:
+      singleProblemPage:
         title:
           - This parcel {ref} contains an error
           - Your file contains an error
         body: Draw it again and [upload a new file](upload).
-      inList:
+      problemsList:
         heading: Parcels are too small
         item:
           - '{feature}'
           - ' — {area} sq m'
     BOTH:
       wording: none
-      whenAlone: file-problem
-      inList: catch-all
+      singleProblemPage: file-problem
+      problemsList: catch-all
     C_ALONE:
-      whenAlone: file-problem
-      inList:
+      singleProblemPage: file-problem
+      problemsList:
         heading: Habitats are not valid
     D_LISTED:
-      whenAlone:
+      singleProblemPage:
         title: Your habitats contain an error
         body: Check them.
-      inList: catch-all
+      problemsList: catch-all
     UNKNOWN_WORDING:
       wording: someday
-      whenAlone: list
-      inList:
+      problemsList:
         heading: Something {mystery}
 edit:
   BOTH:
@@ -158,6 +164,47 @@ const fixture = buildRows(FIXTURE, {
   sourceUrl: (line) => `https://x/f#L${line}`
 })
 const fixtureRow = (id) => fixture.find((row) => row.id === id)
+
+describe('buildRows, what an error shows when it is the only problem', () => {
+  test.each([
+    ['HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', ALONE.OWN],
+    ['PARCEL_OVERLAPS', ALONE.OWN_ONE_AND_SEVERAL],
+    ['AREA_PARCELS_TOO_SMALL', ALONE.OWN_ONE_ONLY],
+    ['TEMPLATE_VERSION_DUPLICATED', ALONE.PROBLEMS_LIST],
+    ['STAGED_UNKNOWN_PARENT_REF', ALONE.PROBLEMS_LIST]
+  ])('says %s shows %s', (id, alone) => {
+    expect(rowOf(id).alone).toBe(alone)
+  })
+
+  test('says a code on a shared page shows it, and names it', () => {
+    const shared = rows.find(({ alone }) => alone === ALONE.SHARED)
+    expect(shared.fallback).toMatch(/, when alone$/m)
+  })
+
+  test("gives a page's wording for several in its own columns", () => {
+    const row = rowOf('PARCEL_OVERLAPS')
+    expect(row.pageHeading).toContain('These parcels {refA}, {refB}')
+    expect(row.pageHeadingSeveral).toBe(
+      'Your Geopackage (.gpkg) file contains an error'
+    )
+    expect(row.bodySeveral).toContain(
+      'Some parcels in this file are overlapping'
+    )
+  })
+
+  test('leaves the several columns empty for a page worded for one only', () => {
+    const row = rowOf('AREA_PARCELS_TOO_SMALL')
+    expect(row.pageHeading).toContain('This parcel {ref} contains an error')
+    expect(row.pageHeadingSeveral).toBe('')
+    expect(row.bodySeveral).toBe('')
+  })
+
+  test('marks an error with only a heading, and no single-problem page, as awaiting UCD', () => {
+    expect(rowOf('TEMPLATE_VERSION_DUPLICATED').status).toBe(
+      STATUS.AWAITING_UCD
+    )
+  })
+})
 
 describe('buildRows, from error-text.yaml', () => {
   test('every customer-facing string in the file appears in a row', () => {
@@ -232,7 +279,7 @@ describe('buildRows, from error-text.yaml', () => {
     ['upload.serviceProblem', 'service-problem']
   ])('%s lists every error shown with it alone', (id, name) => {
     const codes = Object.entries(value.upload.errors)
-      .filter(([, entry]) => entry.whenAlone === name)
+      .filter(([, entry]) => entry.singleProblemPage === name)
       .map(([code]) => code)
     expect(rowOf(id).fallback.split('\n')[0]).toBe(
       `Shown alone by ${codes.length}: ${codes.join(', ')}`
@@ -295,11 +342,10 @@ describe('buildRows, by group', () => {
 })
 
 describe('FALLBACKS', () => {
-  test('has a fallback for everything whenAlone can name but a list', () => {
-    const named = Object.values(WHEN_ALONE).filter(
-      (name) => name !== WHEN_ALONE.LIST
+  test('has a fallback for every shared page singleProblemPage can name', () => {
+    expect(Object.keys(FALLBACKS).sort()).toEqual(
+      Object.values(SHARED_PAGE).sort()
     )
-    expect(Object.keys(FALLBACKS).sort()).toEqual(named.sort())
   })
 })
 
@@ -325,6 +371,7 @@ describe('buildRows, from a small file', () => {
       'upload.catchAll',
       'upload.distinctiveness.V.High',
       'upload.fileProblem',
+      'upload.layers.hedgerows',
       'upload.names.feature',
       'upload.page.title',
       'upload.serviceProblem',
@@ -365,7 +412,7 @@ describe('buildRows, from a small file', () => {
     expect(statusCounts(fixture)).toEqual({
       [STATUS.NEEDS_CONTENT]: 3,
       [STATUS.AWAITING_UCD]: 4,
-      [STATUS.FINAL]: 16
+      [STATUS.FINAL]: 17
     })
   })
 

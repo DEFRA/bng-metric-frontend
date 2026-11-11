@@ -30,7 +30,8 @@ export const PLACEHOLDERS = Object.freeze({
   condition: "the habitat's condition",
   contentsSrsId:
     'the spatial reference system id the gpkg_contents table gives the layer',
-  count: 'how many trees the baseline tree stands for: its Count',
+  count:
+    'how many: on a page worded for several, how many habitats the error names; for a tree, how many trees the baseline tree stands for, its Count',
   distinctiveness: "the habitat's distinctiveness, such as Very high",
   expected: 'what the template expects',
   expectedSrsId: 'the spatial reference system id the template expects',
@@ -60,7 +61,13 @@ export const PLACEHOLDERS = Object.freeze({
   max: 'the limit the page applies',
   maxFeatureCount: 'the most features the service can check',
   name: 'the habitat, by its Habitat Ref, or else its fid',
+  onlyLayer:
+    'the layer of the one habitat the problem names; unknown when it names several',
+  onlyRef:
+    'the Habitat Ref, or else fid, of the one habitat the problem names; unknown when it names several',
   parentRef: 'the Habitat Ref of the baseline habitat it was copied from',
+  sharedLayer:
+    'the layer every habitat the problem names is in; unknown when they are in more than one, or some are not shown',
   part: 'the part of the date left blank: day, month or year',
   parts: 'the parts of the date left blank, such as "day and month"',
   reason: 'why the shape is not valid, as the geometry check words it',
@@ -91,6 +98,10 @@ const TEXT_VALUE_PLACEHOLDERS = Object.freeze({
 
 export const ENTRY_PLACEHOLDERS = Object.freeze({
   GPKG_MISSING_SYSTEM_TABLE: { table: 'the name of the missing system table' },
+  BASELINE_HABITATS_INCOMPLETE: {
+    layer:
+      'the layer the habitat is in, as the page names it: Habitat parcels, Hedgerows or Watercourses'
+  },
   TEXT_TOO_LONG: {
     ...TEXT_VALUE_PLACEHOLDERS,
     length:

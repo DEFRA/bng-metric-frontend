@@ -139,7 +139,11 @@ A code that shows a shared fallback names it and repeats its words either way.
 
 The rows give each part of the
 message, its status (Final, Awaiting UCD or Needs content, from the entry's
-`wording` field), any shared fallback it shows, what its `{values}` are filled
+`wording` field), what a drop-out page error shows when it is the file's only
+problem (its own page, worded for any number of habitats, for one and for
+several, or for one only; a shared page; or the problems list), its
+single-problem page's wording for several in the "(several)" columns, any
+shared fallback it shows, what its `{values}` are filled
 in with, and a link to its line in the file. A row that shows a shared
 fallback's words is no further on than that fallback, so an error with no
 `wording` field of its own is Awaiting UCD when its fallback is interim. Each

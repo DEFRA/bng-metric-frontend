@@ -1,7 +1,6 @@
 import { formatVerticalArea } from '../common/helpers/format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import {
-  WHEN_ALONE,
   canFill,
   catchAllPage,
   dropoutCopy,
@@ -9,7 +8,9 @@ import {
   fill,
   firstKnown,
   joinKnownParts,
-  pageText
+  layerName,
+  pageText,
+  singleProblemPages
 } from './dropout-copy.js'
 import { resolveSingleErrorCopy } from './single-error-copy.js'
 
@@ -135,6 +136,17 @@ function unenhanceableValues(s) {
   }
 }
 
+// BMD-1195: an incomplete baseline habitat, by its ref and, when it has one,
+// its habitat type.
+// The layer leads, as a fid repeats from layer to layer.
+function incompleteBaselineValues(s) {
+  return {
+    ...featureValues(s),
+    layer: layerName(s?.layer),
+    habitatType: known(s?.habitat_type)
+  }
+}
+
 // A vertical area habitat's typed Area, with the value the file holds.
 function verticalAreaValues(s) {
   return { ...featureValues(s), area: known(s?.area) ?? unknown.area }
@@ -183,6 +195,7 @@ const SAMPLE_VALUES = {
   AREA_PARCELS_OUTSIDE_REDLINE: outsideRedlineValues,
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: distinctivenessValues,
   BASELINE_NOT_ENHANCEABLE: unenhanceableValues,
+  BASELINE_HABITATS_INCOMPLETE: incompleteBaselineValues,
   VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaValues,
   IRREPLACEABLE_TREE: irreplaceableTreeValues,
   STAGED_AMBIGUOUS_PARENT: ambiguousParentValues,
@@ -198,7 +211,7 @@ const DEFAULT_ITEM = '{feature}'
 // How a code's bullets get their {values}. A code whose copy gives no item is
 // named by its ref, whatever it is.
 function valuesFor(code) {
-  if (!inListCopy(code).item) {
+  if (!problemsListCopy(code).item) {
     return featureValues
   }
   if (Object.hasOwn(SAMPLE_VALUES, code)) {
@@ -219,17 +232,17 @@ export function itemValueNames(code) {
   return Object.keys(valuesFor(code)({}))
 }
 
-// The copy for an error in a list. A code that words a problem more than one
-// way names the way in details.variants, and each variant's heading, item or
-// detail replaces the code's own.
-function inListCopy(code, variants = []) {
-  const inList = errorCopy(code)?.inList
-  if (typeof inList !== 'object') {
+// The copy for an error in the problems list. A code that words a problem
+// more than one way names the way in details.variants, and each variant's
+// heading, item or detail replaces the code's own.
+function problemsListCopy(code, variants = []) {
+  const problemsList = errorCopy(code)?.problemsList
+  if (typeof problemsList !== 'object') {
     return {}
   }
   return variants.reduce(
-    (copy, variant) => ({ ...copy, ...inList.variants?.[variant] }),
-    inList
+    (copy, variant) => ({ ...copy, ...problemsList.variants?.[variant] }),
+    problemsList
   )
 }
 
@@ -347,7 +360,7 @@ export function detailValueNames(code) {
 }
 
 function listsHabitats(code) {
-  return inListCopy(code).listsHabitats !== false
+  return problemsListCopy(code).listsHabitats !== false
 }
 
 function buildItems(err) {
@@ -357,11 +370,11 @@ function buildItems(err) {
   // An error that names no habitats has one bullet at most: its copy's
   // detail, filled from its details, when it gives one and any of it is known.
   if (!err.details?.sample) {
-    const { detail } = inListCopy(err.code, variantsOf(err))
+    const { detail } = problemsListCopy(err.code, variantsOf(err))
     const bullet = detail ? joinKnownParts(detail, detailValues(err)) : ''
     return bullet ? [bullet] : []
   }
-  const item = inListCopy(err.code).item ?? DEFAULT_ITEM
+  const item = problemsListCopy(err.code).item ?? DEFAULT_ITEM
   const values = valuesFor(err.code)
   // A bullet whose every part lacks a value would be an empty line, so name
   // the habitat by its ref instead.
@@ -372,7 +385,7 @@ function buildItems(err) {
   )
 }
 
-// The catch-all title, for a code with no heading of its own (inList:
+// The catch-all title, for a code with no heading of its own (problemsList:
 // catch-all, or none in the copy), or one whose details lack a value its
 // heading names.
 function catchAllHeading() {
@@ -380,7 +393,7 @@ function catchAllHeading() {
 }
 
 function buildHeading(err) {
-  const { heading } = inListCopy(err.code, variantsOf(err))
+  const { heading } = problemsListCopy(err.code, variantsOf(err))
   const values = detailValues(err)
   return heading && canFill(heading, values)
     ? fill(heading, values)
@@ -402,7 +415,7 @@ function joinWithAnd(items) {
 export const NOTE_VALUE_NAMES = Object.freeze(['bands'])
 
 function buildNote(err) {
-  const note = inListCopy(err.code).note
+  const note = problemsListCopy(err.code).note
   const bands = err.details?.allowedBands
   if (!note || !Array.isArray(bands) || bands.length === 0) {
     return null
@@ -446,17 +459,15 @@ function distinctBlocks(blocks) {
 
 const SINGLE_VALIDATION_ERROR = 1
 
-// Errors the page shows as their list even alone (whenAlone: list in the
-// copy): a lineage error is its list of habitats, which the user has to put
-// right, and a problem with no copy of its own shows its list heading, which
-// says what is wrong, rather than a fallback that cannot.
-function isShownAsList(code) {
-  return errorCopy(code)?.whenAlone === WHEN_ALONE.LIST
-}
-
+// The single-problem page is for a file with one problem whose entry gives
+// a page for it. Otherwise, the problems list shows it: an error with no
+// single-problem wording, as its heading says what is wrong, where a generic
+// page cannot; and one that names several habitats with wording only for
+// one, as the list names each.
 function isShownAsSingleError(errors) {
   return (
-    errors.length === SINGLE_VALIDATION_ERROR && !isShownAsList(errors[0].code)
+    errors.length === SINGLE_VALIDATION_ERROR &&
+    singleProblemPages(errors[0]) !== null
   )
 }
 
