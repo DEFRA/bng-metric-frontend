@@ -139,6 +139,25 @@ checked as the server checks it at start-up, so the export refuses a file the
 server would. `-- --out DIR` writes elsewhere, and `-- --help` lists the
 options.
 
+The Error Messages Export workflow runs the export on every pull request to
+`main`, on every push to `main`, and on demand from the Actions tab for the
+branch picked there. Each run keeps the three files as one
+`error-messages-export` artifact for 90 days, and its summary counts the error
+IDs with each status and links to the artifact. A pull request's run exports
+the wording on the pull request's branch, and links each row to its line at
+the branch's head commit. It is not a required check, so it never holds up a
+merge.
+
+A pull request's summary also says what it changes in the wording, against the
+commit its branch left `main` at: the error IDs it adds and removes, a before
+and after for each part of a message it changes, and each status it moves.
+Errors changed alike, such as every error showing a reworded shared fallback,
+share one table. To see the same locally, add `-- --base REF`, naming the
+commit your branch left `main` at:
+`npm run export:error-text -- --base "$(git merge-base origin/main HEAD)"`.
+Naming `origin/main` itself would show a change merged to `main` since as your
+branch undoing it.
+
 ### Update dependencies
 
 To update dependencies use [npm-check-updates](https://github.com/raineorshine/npm-check-updates):
