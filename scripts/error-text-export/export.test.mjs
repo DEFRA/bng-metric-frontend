@@ -5,7 +5,14 @@ import path from 'node:path'
 import { load } from 'js-yaml'
 
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
-import { checkErrorText, exportMeta, fileStem, writeExport } from './export.mjs'
+import {
+  checkErrorText,
+  exportMeta,
+  fileStem,
+  summaryMarkdown,
+  writeExport
+} from './export.mjs'
+import { STATUS } from './rows.mjs'
 
 const NOW = new Date('2026-11-10T09:00:00Z')
 const SHA = '39a95e5bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
@@ -115,5 +122,31 @@ describe('writeExport', () => {
       writeExport(withBrokenUploadError().source, outDir, meta)
     ).rejects.toThrow('upload section is not valid')
     expect(readdirSync(outDir)).toEqual([])
+  })
+})
+
+describe('summaryMarkdown', () => {
+  test('names where the export came from, and counts each status', () => {
+    const meta = exportMeta({ sha: SHA, branch: 'main' }, {}, NOW)
+    const rows = [
+      { status: STATUS.FINAL },
+      { status: STATUS.FINAL },
+      { status: STATUS.AWAITING_UCD }
+    ]
+    const files = ['/out/a.xlsx', '/out/a.csv']
+    expect(summaryMarkdown(rows, meta, files).split('\n')).toEqual([
+      '## Error messages export',
+      '',
+      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10.`,
+      '',
+      '| Status | Error IDs |',
+      '| --- | ---: |',
+      `| ${STATUS.NEEDS_CONTENT} | 0 |`,
+      `| ${STATUS.AWAITING_UCD} | 1 |`,
+      `| ${STATUS.FINAL} | 2 |`,
+      '',
+      'Files: `a.xlsx`, `a.csv`',
+      ''
+    ])
   })
 })
