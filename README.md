@@ -143,7 +143,8 @@ message, its status (Final, Awaiting UCD or Needs content, from the entry's
 in with, and a link to its line in the file. A row that shows a shared
 fallback's words is no further on than that fallback, so an error with no
 `wording` field of its own is Awaiting UCD when its fallback is interim. Each
-CSV row ends with the date, branch and commit it was read from. The file is
+CSV row ends with the date, branch and commit it was read from, and the
+groups of rows exported. The file is
 checked as the server checks it at start-up, so the export refuses a file the
 server would. `-- --out DIR` writes elsewhere, and `-- --help` lists the
 options.
@@ -162,7 +163,10 @@ A pull request's summary also says what it changes in the wording, against the
 commit its branch left `main` at: the error IDs it adds and removes, with their
 words, a before and after for each part of a message it changes, and each
 status it moves. Errors changed alike, such as every error showing a reworded
-shared fallback, share one table. The Export the error messages step's log
+shared fallback, share one table. Only the groups of rows exported are
+compared, and the heading names them, as in "Wording changes in codes": a
+change to a `forms.*` entry, say, shows only when `forms` is exported. The
+Export the error messages step's log
 gives the same as plain text, so the changes show without opening the
 summary. To see the same locally, add `-- --base REF`, naming the
 commit your branch left `main` at:

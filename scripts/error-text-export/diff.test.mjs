@@ -4,7 +4,7 @@ import {
   diffRows,
   isEmptyDiff
 } from './diff.mjs'
-import { ALL_GROUPS, SHOWN, STATUS, buildRows } from './rows.mjs'
+import { ALL_GROUPS, ROW_GROUPS, SHOWN, STATUS, buildRows } from './rows.mjs'
 
 // Two small error-text.yaml files: the second adds, removes, rewords and
 // finishes entries, and moves a code from the drop-out page to an edit.
@@ -163,7 +163,8 @@ const base = {
   markdown: '[abc1234](https://x/commit/abc1234)',
   text: 'abc1234'
 }
-const described = describeDiff(diff, base)
+const described = describeDiff(diff, base, ALL_GROUPS)
+const EVERY = ALL_GROUPS.join(', ')
 const empty = diffRows(all(after), all(after))
 
 describe('describeDiff, as Markdown for the run summary', () => {
@@ -172,7 +173,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
   test('heads each kind of change with its count', () => {
     expect(markdown.split('\n').filter((line) => line.startsWith('#'))).toEqual(
       [
-        '### Wording changes from [abc1234](https://x/commit/abc1234)',
+        `### Wording changes in ${EVERY} from [abc1234](https://x/commit/abc1234)`,
         '#### Added (1)',
         '#### Removed (1)',
         '#### Changed (5)',
@@ -201,7 +202,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).markdown).toBe(
-      '### Wording changes from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
+      '### Wording changes in codes from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
     )
   })
 })
@@ -211,7 +212,7 @@ describe('describeDiff, as plain text for the run log', () => {
 
   test('heads each kind of change with its count', () => {
     expect(lines.filter((line) => /^\S/.test(line))).toEqual([
-      'Wording changes from abc1234',
+      `Wording changes in ${EVERY} from abc1234`,
       'Added (1)',
       'Removed (1)',
       'Changed (5)',
@@ -247,6 +248,20 @@ describe('describeDiff, as plain text for the run log', () => {
     expect(described.text).toContain('        Parcels are | too <small>')
   })
 
+  test('says "(none)" for a part with no words, as the summary does', () => {
+    expect(described.text).toContain(
+      [
+        '    Error summary, before:',
+        '        (none)',
+        '    Error summary, after:',
+        '        Moved here.'
+      ].join('\n')
+    )
+    expect(described.markdown).toContain(
+      '| Error summary | _(none)_ | Moved here. |'
+    )
+  })
+
   test('gives each status that moved', () => {
     expect(lines).toContain(
       `  forms.applicant.tooLong: ${STATUS.AWAITING_UCD} -> ${STATUS.FINAL}`
@@ -255,7 +270,14 @@ describe('describeDiff, as plain text for the run log', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).text).toBe(
-      'Wording changes from abc1234: none.\n'
+      'Wording changes in codes from abc1234: none.\n'
+    )
+  })
+
+  test('names the groups it compared, so a "none" is not read as more', () => {
+    const groups = [ROW_GROUPS.CODES, ROW_GROUPS.FORMS]
+    expect(describeDiff(empty, base, groups).text).toBe(
+      'Wording changes in codes, forms from abc1234: none.\n'
     )
   })
 })
@@ -277,13 +299,13 @@ describe('compareWithBase', () => {
     const { markdown, text } = compareWithBase(rows, null, base)
     expect(markdown).toContain('error-text.yaml is not on the base commit')
     expect(text).toBe(
-      'Wording changes from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
+      'Wording changes in codes from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
     )
   })
 
   test('says so, rather than failing, when the base file cannot be read', () => {
     expect(compareWithBase(rows, 'upload: [', base).markdown).toMatch(
-      /^### Wording changes from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
+      /^### Wording changes in codes from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
     )
   })
 

@@ -236,7 +236,8 @@ function compareWithRef(rows, ref, meta) {
   } catch {
     return notCompared(
       { markdown: `\`${ref}\``, text: ref },
-      'git cannot find that commit.'
+      'git cannot find that commit.',
+      meta.groups
     )
   }
   const short = commit.slice(0, SHORT_SHA_LENGTH)

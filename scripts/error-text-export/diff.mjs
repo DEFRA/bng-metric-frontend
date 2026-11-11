@@ -142,10 +142,13 @@ function sectionMarkdown(title, count, lines) {
 
 const INDENT = '    '
 
-/** Text under a label, each of its lines indented alike. */
+/**
+ * Text under a label, each of its lines indented alike. A part with no words
+ * is '' in a row, and says "(none)", as `cell` does in the summary.
+ */
 function indented(text, depth) {
   const pad = INDENT.repeat(depth)
-  return String(text ?? '(none)')
+  return String(text || '(none)')
     .split('\n')
     .map((line) => `${pad}${line}`)
 }
@@ -186,16 +189,31 @@ function sectionText(title, count, lines) {
 // --- Both ---
 
 /**
+ * What the changes are of, and from where, as a heading: "Wording changes in
+ * codes from abc1234". The groups are named, as a group left out of the
+ * export is left out of the comparison too: a "none" is only for them.
+ */
+function headings(base, groups) {
+  const scope = `Wording changes in ${groups.join(', ')}`
+  return {
+    markdown: `### ${scope} from ${base.markdown}`,
+    text: `${scope} from ${base.text}`
+  }
+}
+
+/**
  * The diff as Markdown, for a run summary, and as plain text, for its log.
  *
  * @param {ReturnType<typeof diffRows>} diff
  * @param {{ markdown: string, text: string }} base - what the rows before
  *   came from: a link, and its plain name
+ * @param {readonly string[]} [groups] - the groups of rows compared
  * @returns {{ markdown: string, text: string }}
  */
-export function describeDiff(diff, base) {
-  const markdownHeading = [`### Wording changes from ${base.markdown}`, '']
-  const textHeading = `Wording changes from ${base.text}`
+export function describeDiff(diff, base, groups = DEFAULT_GROUPS) {
+  const heading = headings(base, groups)
+  const markdownHeading = [heading.markdown, '']
+  const textHeading = heading.text
   if (isEmptyDiff(diff)) {
     return {
       markdown: [...markdownHeading, 'No wording changes.', ''].join('\n'),
@@ -252,12 +270,14 @@ export function describeDiff(diff, base) {
  *
  * @param {{ markdown: string, text: string }} base
  * @param {string} reason
+ * @param {readonly string[]} [groups] - the groups of rows to compare
  * @returns {{ markdown: string, text: string }}
  */
-export function notCompared(base, reason) {
+export function notCompared(base, reason, groups = DEFAULT_GROUPS) {
+  const heading = headings(base, groups)
   return {
-    markdown: `### Wording changes from ${base.markdown}\n\nThe changes are not shown: ${cell(reason)}\n`,
-    text: `Wording changes from ${base.text} are not shown: ${reason}\n`
+    markdown: `${heading.markdown}\n\nThe changes are not shown: ${cell(reason)}\n`,
+    text: `${heading.text} are not shown: ${reason}\n`
   }
 }
 
@@ -282,14 +302,23 @@ export function compareWithBase(
   groups = DEFAULT_GROUPS
 ) {
   if (baseSource === null) {
-    return notCompared(base, 'error-text.yaml is not on the base commit.')
+    return notCompared(
+      base,
+      'error-text.yaml is not on the base commit.',
+      groups
+    )
   }
   try {
-    return describeDiff(diffRows(buildRows(baseSource, { groups }), rows), base)
+    return describeDiff(
+      diffRows(buildRows(baseSource, { groups }), rows),
+      base,
+      groups
+    )
   } catch (error) {
     return notCompared(
       base,
-      `the base commit's error-text.yaml could not be compared: ${error.message}`
+      `the base commit's error-text.yaml could not be compared: ${error.message}`,
+      groups
     )
   }
 }
