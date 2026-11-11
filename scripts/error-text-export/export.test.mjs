@@ -173,8 +173,9 @@ describe('npm run export:error-text -- --summary', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  /** Run the script, returning what it printed. */
   function run(summary, ...more) {
-    execFileSync(
+    return execFileSync(
       process.execPath,
       [
         script,
@@ -188,7 +189,7 @@ describe('npm run export:error-text -- --summary', () => {
         summary,
         ...more
       ],
-      { stdio: 'pipe' }
+      { stdio: 'pipe', encoding: 'utf8' }
     )
   }
 
@@ -211,12 +212,13 @@ describe('npm run export:error-text -- --summary', () => {
   )
 
   test(
-    'with --base, adds what the wording changes from that commit',
+    'with --base, says what the wording changes, in the summary and the log',
     () => {
       const summary = path.join(dir, 'summary.md')
 
-      run(summary, '--base', 'HEAD')
+      const printed = run(summary, '--base', 'HEAD')
 
+      expect(printed).toMatch(/\nWording changes from [0-9a-f]{7}\b/)
       expect(readFileSync(summary, 'utf8')).toMatch(
         // What follows depends on any edit to the file not yet committed.
         // The repository's URL comes from GitHub Actions when it runs there.

@@ -29,8 +29,8 @@ import { toXlsx } from './xlsx.mjs'
 //
 // --summary appends what was exported, as Markdown, to a file: in GitHub
 // Actions, the run's job summary. --base adds what the checked-out file
-// changes from the file at another commit: for a pull request, the commit
-// its branch left main at.
+// changes from the file at another commit, in the summary and in what it
+// prints: for a pull request, the commit its branch left main at.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 // error-text.yaml's path from the repository's root, as git names it.
@@ -180,22 +180,29 @@ function sourceAt(commit) {
 }
 
 /**
- * What the wording changes from the file at `ref`, as Markdown. Never throws:
- * the export is written by now, and a failed comparison must not lose it.
+ * What the wording changes from the file at `ref`, as Markdown and as plain
+ * text. Never throws: the export is written by now, and a failed comparison
+ * must not lose it.
  *
  * @param {Array<Record<string, string>>} rows - the export's rows
  * @param {string} ref - a commit, branch or tag
  * @param {ReturnType<typeof exportMeta>} meta
  */
-function baseMarkdown(rows, ref, meta) {
+function compareWithRef(rows, ref, meta) {
   let commit
   try {
     commit = git('rev-parse', '--verify', `${ref}^{commit}`)
   } catch {
-    return notCompared(`\`${ref}\``, 'git cannot find that commit.')
+    return notCompared(
+      { markdown: `\`${ref}\``, text: ref },
+      'git cannot find that commit.'
+    )
   }
-  const link = `[${commit.slice(0, SHORT_SHA_LENGTH)}](${meta.repository}/commit/${commit})`
-  return compareWithBase(rows, sourceAt(commit), link)
+  const short = commit.slice(0, SHORT_SHA_LENGTH)
+  return compareWithBase(rows, sourceAt(commit), {
+    markdown: `[${short}](${meta.repository}/commit/${commit})`,
+    text: short
+  })
 }
 
 async function main() {
@@ -232,13 +239,14 @@ async function main() {
   console.log(`${rows.length} error IDs: ${counts}`)
   const summary = [summaryMarkdown(rows, meta, files)]
   if (values.base) {
-    summary.push(baseMarkdown(rows, values.base, meta))
+    // In the log as well as the summary, to be read in the step's output.
+    const changes = compareWithRef(rows, values.base, meta)
+    console.log(`\n${changes.text}`)
+    summary.push(changes.markdown)
   }
   if (values.summary) {
     appendFileSync(values.summary, summary.join('\n'))
     console.log(`Appended the summary to ${values.summary}`)
-  } else if (values.base) {
-    console.log(`\n${summary.at(-1)}`)
   }
 }
 

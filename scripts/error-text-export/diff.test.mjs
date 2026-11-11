@@ -1,6 +1,6 @@
 import {
   compareWithBase,
-  diffMarkdown,
+  describeDiff,
   diffRows,
   isEmptyDiff
 } from './diff.mjs'
@@ -157,8 +157,15 @@ describe('diffRows', () => {
   })
 })
 
-describe('diffMarkdown', () => {
-  const markdown = diffMarkdown(diff, '[abc1234](https://x/commit/abc1234)')
+const base = {
+  markdown: '[abc1234](https://x/commit/abc1234)',
+  text: 'abc1234'
+}
+const described = describeDiff(diff, base)
+const empty = diffRows(buildRows(after), buildRows(after))
+
+describe('describeDiff, as Markdown for the run summary', () => {
+  const { markdown } = described
 
   test('heads each kind of change with its count', () => {
     expect(markdown.split('\n').filter((line) => line.startsWith('#'))).toEqual(
@@ -172,6 +179,18 @@ describe('diffMarkdown', () => {
     )
   })
 
+  test("gives an added error's words, part by part", () => {
+    expect(markdown).toContain(
+      [
+        '**`ADDED`**: Drop-out page, always as a list, Final',
+        '',
+        '| Part | Words |',
+        '| --- | --- |',
+        '| List heading | New |'
+      ].join('\n')
+    )
+  })
+
   test('keeps wording from breaking the table or reading as Markdown', () => {
     expect(markdown).toContain(
       '| List heading | Parcels are too small | Parcels are \\| too \\<small\\> |'
@@ -179,9 +198,62 @@ describe('diffMarkdown', () => {
   })
 
   test('says when there is nothing to show', () => {
-    const empty = diffRows(buildRows(after), buildRows(after))
-    expect(diffMarkdown(empty, 'main')).toBe(
-      '### Wording changes from main\n\nNo wording changes.\n'
+    expect(describeDiff(empty, base).markdown).toBe(
+      '### Wording changes from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
+    )
+  })
+})
+
+describe('describeDiff, as plain text for the run log', () => {
+  const lines = described.text.split('\n')
+
+  test('heads each kind of change with its count', () => {
+    expect(lines.filter((line) => /^\S/.test(line))).toEqual([
+      'Wording changes from abc1234',
+      'Added (1)',
+      'Removed (1)',
+      'Changed (5)',
+      'Status changed (1)'
+    ])
+  })
+
+  test("gives an added or removed error's words, as typed", () => {
+    expect(described.text).toContain(
+      [
+        '  ADDED (Drop-out page, always as a list, Final)',
+        '    List heading:',
+        '        New'
+      ].join('\n')
+    )
+    expect(described.text).toContain(
+      '  REMOVED (Drop-out page, always as a list, Final)'
+    )
+  })
+
+  test('gives each changed part before and after, one ID a line', () => {
+    expect(described.text).toContain(
+      [
+        '  ALONE_A',
+        '  ALONE_B',
+        '  upload.fileProblem',
+        '    Body, before:',
+        '        Check the habitats.',
+        '    Body, after:',
+        '        Check every habitat.'
+      ].join('\n')
+    )
+    expect(described.text).toContain('        Parcels are | too <small>')
+  })
+
+  test('gives each status that moved', () => {
+    expect(lines).toContain(
+      `  forms.applicant.tooLong: ${STATUS.AWAITING_UCD} -> ${STATUS.FINAL}`
+    )
+  })
+
+  test('says when there is nothing to show', () => {
+    expect(describeDiff(empty, base).text).toBe(
+      'Wording changes from abc1234: none.\n'
     )
   })
 })
@@ -190,20 +262,20 @@ describe('compareWithBase', () => {
   const rows = buildRows(after)
 
   test('compares with the base file', () => {
-    expect(compareWithBase(rows, before, 'main')).toBe(
-      diffMarkdown(diff, 'main')
-    )
+    expect(compareWithBase(rows, before, base)).toEqual(described)
   })
 
   test('says so when the base has no error-text.yaml', () => {
-    expect(compareWithBase(rows, null, 'main')).toContain(
-      'error-text.yaml is not on the base commit'
+    const { markdown, text } = compareWithBase(rows, null, base)
+    expect(markdown).toContain('error-text.yaml is not on the base commit')
+    expect(text).toBe(
+      'Wording changes from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
     )
   })
 
   test('says so, rather than failing, when the base file cannot be read', () => {
-    expect(compareWithBase(rows, 'upload: [', 'main')).toMatch(
-      /^### Wording changes from main\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
+    expect(compareWithBase(rows, 'upload: [', base).markdown).toMatch(
+      /^### Wording changes from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
     )
   })
 
@@ -212,6 +284,6 @@ describe('compareWithBase', () => {
       'heading: Parcels are too small',
       'heading: Parcels are too small\n        note: [one, two]'
     )
-    expect(() => compareWithBase(rows, listNote, 'main')).not.toThrow()
+    expect(() => compareWithBase(rows, listNote, base)).not.toThrow()
   })
 })
