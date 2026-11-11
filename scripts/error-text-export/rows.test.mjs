@@ -1,10 +1,15 @@
 import { readFileSync } from 'node:fs'
 
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
+import {
+  IN_LIST_CATCH_ALL,
+  WHEN_ALONE
+} from '../../src/server/error-file/dropout-copy.js'
 import { PLACEHOLDERS } from './placeholders.mjs'
 import { readErrorTextSource } from './read.mjs'
 import {
   COLUMNS,
+  FALLBACKS,
   NOT_EXPLAINED,
   SHOWN,
   STATUS,
@@ -18,12 +23,7 @@ const rows = buildRows(source)
 const rowOf = (id) => rows.find((row) => row.id === id)
 
 // What an upload error's whenAlone and inList name in place of words.
-const KEYWORDS = new Set([
-  'catch-all',
-  'file-problem',
-  'service-problem',
-  'list'
-])
+const KEYWORDS = new Set([...Object.values(WHEN_ALONE), IN_LIST_CATCH_ALL])
 
 /** Every string a customer can see, with its place in the file. */
 function wordingIn(node, path = []) {
@@ -103,6 +103,15 @@ upload:
     BOTH:
       wording: none
       whenAlone: file-problem
+      inList: catch-all
+    C_ALONE:
+      whenAlone: file-problem
+      inList:
+        heading: Habitats are not valid
+    D_LISTED:
+      whenAlone:
+        title: Your habitats contain an error
+        body: Check them.
       inList: catch-all
     UNKNOWN_WORDING:
       wording: someday
@@ -226,14 +235,25 @@ describe('buildRows, from error-text.yaml', () => {
   })
 })
 
+describe('FALLBACKS', () => {
+  test('has a fallback for everything whenAlone can name but a list', () => {
+    const named = Object.values(WHEN_ALONE).filter(
+      (name) => name !== WHEN_ALONE.LIST
+    )
+    expect(Object.keys(FALLBACKS).sort()).toEqual(named.sort())
+  })
+})
+
 describe('buildRows, from a small file', () => {
   test('orders IDs as a reader would, ignoring case', () => {
     expect(fixture.map((row) => row.id)).toEqual([
       'a_parcel',
       'B_LAYER',
       'BOTH',
+      'C_ALONE',
       'common.summaryTitle',
       'common.unworded',
+      'D_LISTED',
       'EDIT_ONLY',
       'forms.applicant.tooLong',
       'forms.pair.both',
@@ -266,11 +286,25 @@ describe('buildRows, from a small file', () => {
     expect(fixtureRow('UNKNOWN_WORDING').status).toBe(STATUS.NEEDS_CONTENT)
   })
 
+  test('is no further on than a fallback it shows alone', () => {
+    expect(fixtureRow('C_ALONE').status).toBe(STATUS.AWAITING_UCD)
+  })
+
+  test('is no further on than the catch-all whose title heads its list', () => {
+    expect(fixtureRow('D_LISTED').status).toBe(STATUS.FINAL)
+    const interim = FIXTURE.replace(
+      '  catchAll:\n    legacyTemplate:\n',
+      '  catchAll:\n    legacyTemplate:\n      wording: interim\n'
+    )
+    const row = buildRows(interim).find(({ id }) => id === 'D_LISTED')
+    expect(row.status).toBe(STATUS.AWAITING_UCD)
+  })
+
   test('counts each status', () => {
     expect(statusCounts(fixture)).toEqual({
       [STATUS.NEEDS_CONTENT]: 3,
-      [STATUS.AWAITING_UCD]: 3,
-      [STATUS.FINAL]: 15
+      [STATUS.AWAITING_UCD]: 4,
+      [STATUS.FINAL]: 16
     })
   })
 
@@ -295,10 +329,11 @@ describe('buildRows, from a small file', () => {
   test('gives each fallback a row naming the errors that show it', () => {
     expect(fixtureRow('upload.catchAll')).toMatchObject({
       shown: SHOWN.FALLBACK,
-      fallback: 'Shown alone by 1: B_LAYER\nIts title heads a list by 1: BOTH'
+      fallback:
+        'Shown alone by 1: B_LAYER\nIts title heads a list by 2: BOTH, D_LISTED'
     })
     expect(fixtureRow('upload.fileProblem').fallback).toBe(
-      'Shown alone by 1: BOTH'
+      'Shown alone by 2: BOTH, C_ALONE'
     )
   })
 

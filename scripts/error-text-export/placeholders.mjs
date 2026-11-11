@@ -1,6 +1,6 @@
 import { MAX_PROJECT_NAME_LENGTH } from '../../src/server/common/helpers/project-name.js'
 import { MAX_REF_LENGTH } from '../../src/server/post-intervention-habitat-details/constants.js'
-import { MAX_TEXT_FIELD_LENGTH } from '../../src/server/project-details/controller.js'
+import { MAX_TEXT_FIELD_LENGTH } from '../../src/server/project-details/constants.js'
 import {
   MAX_FILENAME_LENGTH,
   MAX_FILE_SIZE_LABEL

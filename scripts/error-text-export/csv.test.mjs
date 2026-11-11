@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
-import { toCsv } from './csv.mjs'
+import { META_COLUMNS, toCsv } from './csv.mjs'
 import { COLUMNS, buildRows } from './rows.mjs'
 
 /** A CSV's records, read as RFC 4180 says, for checking the writer. */
@@ -44,28 +44,42 @@ const columns = [
   { key: 'text', header: 'Text' }
 ]
 
+const meta = { date: '2026-11-10', branch: 'main', commit: '39a95e5' }
+const metaHeaders = 'Generated,Branch,Commit'
+const metaValues = '2026-11-10,main,39a95e5'
+
 describe('toCsv', () => {
   test('starts with a byte-order mark and ends each record with CRLF', () => {
-    const csv = toCsv([{ id: 'A', text: 'x' }], columns)
-    expect(csv).toBe('\uFEFFError ID,Text\r\nA,x\r\n')
+    const csv = toCsv([{ id: 'A', text: 'x' }], meta, columns)
+    expect(csv).toBe(
+      `\uFEFFError ID,Text,${metaHeaders}\r\nA,x,${metaValues}\r\n`
+    )
   })
 
   test('quotes a field holding a comma, a quote or a line break', () => {
     const csv = toCsv(
       [{ id: 'A', text: 'Layer "{layer}", line\nnext' }],
+      meta,
       columns
     )
     expect(csv).toBe(
-      '\uFEFFError ID,Text\r\nA,"Layer ""{layer}"", line\nnext"\r\n'
+      `\uFEFFError ID,Text,${metaHeaders}\r\nA,"Layer ""{layer}"", line\nnext",${metaValues}\r\n`
     )
   })
 
-  test('reads back as the rows it was given', () => {
+  test('reads back as the rows it was given, each saying where it came from', () => {
     const rows = buildRows(readFileSync(ERROR_TEXT_FILE, 'utf8'))
-    const [header, ...records] = parseCsv(toCsv(rows).slice(1))
-    expect(header).toEqual(COLUMNS.map(({ header: name }) => name))
+    const [header, ...records] = parseCsv(toCsv(rows, meta).slice(1))
+    expect(header).toEqual(
+      [...COLUMNS, ...META_COLUMNS].map(({ header: name }) => name)
+    )
     expect(records).toEqual(
-      rows.map((row) => COLUMNS.map(({ key }) => row[key]))
+      rows.map((row) => [
+        ...COLUMNS.map(({ key }) => row[key]),
+        meta.date,
+        meta.branch,
+        meta.commit
+      ])
     )
   })
 })

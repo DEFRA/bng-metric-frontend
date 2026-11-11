@@ -8,6 +8,7 @@ import {
 import { statusCodes, HTTP_SUCCESS_MAX } from '../common/constants.js'
 import { fetchLocalPlanningAuthorities } from '../common/services/local-planning-authorities.js'
 import { formErrorText } from '../common/error-text/error-text.js'
+import { MAX_TEXT_FIELD_LENGTH } from './constants.js'
 import {
   UNWORDED,
   joiErrorText,
@@ -25,7 +26,6 @@ const DATE_PART_NAMES = ['day', 'month', 'year']
 const YEAR_DIGIT_LENGTH = 4
 const DIGITS_PATTERN = /^\d+$/
 const DATE_ERROR_TYPE = 'surveyCompletionDate.invalid'
-export const MAX_TEXT_FIELD_LENGTH = 500
 
 // These messages show the same words in the error summary and against the
 // field, so only the inline text is needed.

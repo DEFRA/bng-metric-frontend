@@ -131,8 +131,13 @@ This writes `export/error-messages-<date>-<branch>-<commit>` as `.xlsx`, `.csv`
 and `.html`, with one row for each error ID. The rows give each part of the
 message, its status (Final, Awaiting UCD or Needs content, from the entry's
 `wording` field), any shared fallback it shows, what its `{values}` are filled
-in with, and a link to its line in the file. `-- --out DIR` writes elsewhere,
-and `-- --help` lists the options.
+in with, and a link to its line in the file. A row that shows a shared
+fallback's words is no further on than that fallback, so an error with no
+`wording` field of its own is Awaiting UCD when its fallback is interim. Each
+CSV row ends with the date, branch and commit it was read from. The file is
+checked as the server checks it at start-up, so the export refuses a file the
+server would. `-- --out DIR` writes elsewhere, and `-- --help` lists the
+options.
 
 ### Update dependencies
 

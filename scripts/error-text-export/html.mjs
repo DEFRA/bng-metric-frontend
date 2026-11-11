@@ -69,8 +69,11 @@ th, td {
 }
 th { position: sticky; top: 0; background: var(--head); z-index: 1; }
 th:first-child, td:first-child {
-  position: sticky; left: 0; background: var(--head); min-width: 16rem;
-  font-family: ui-monospace, Menlo, Consolas, monospace; z-index: 2;
+  position: sticky; left: 0; background: var(--head); z-index: 2;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  /* Wide enough for most IDs, but never most of a phone's screen. */
+  min-width: min(14rem, 40vw); max-width: min(18rem, 40vw);
+  overflow-wrap: anywhere;
 }
 th:first-child { z-index: 3; }
 tr[hidden] { display: none; }

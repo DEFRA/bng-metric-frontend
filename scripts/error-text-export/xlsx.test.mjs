@@ -67,4 +67,15 @@ describe('toXlsx', async () => {
       hyperlink: meta.commitUrl
     })
   })
+
+  test('counts the error IDs, and those with each status', () => {
+    const about = workbook.getWorksheet('About')
+    const counts = [4, 5, 6, 7].map((n) => about.getRow(n).values.slice(1))
+    expect(counts).toEqual([
+      ['Error IDs', 2],
+      [STATUS.NEEDS_CONTENT, 0],
+      [STATUS.AWAITING_UCD, 1],
+      [STATUS.FINAL, 1]
+    ])
+  })
 })

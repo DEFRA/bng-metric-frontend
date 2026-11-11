@@ -3,6 +3,10 @@ import {
   wordingStatus
 } from '../../src/server/common/error-text/wording.js'
 import {
+  IN_LIST_CATCH_ALL,
+  WHEN_ALONE
+} from '../../src/server/error-file/dropout-copy.js'
+import {
   ENTRY_PLACEHOLDERS,
   LINK_TARGET_NAMES,
   PLACEHOLDERS
@@ -85,13 +89,9 @@ export const SHOWN = Object.freeze({
 /** Said of a {name} or link target that placeholders.mjs does not explain. */
 export const NOT_EXPLAINED = 'not explained yet'
 
-// What an upload error's whenAlone or inList can name in place of words.
-const WHEN_ALONE_LIST = 'list'
-const CATCH_ALL = 'catch-all'
-
 /** The upload section's shared fallbacks, by the name whenAlone gives them. */
-const FALLBACKS = Object.freeze({
-  [CATCH_ALL]: {
+export const FALLBACKS = Object.freeze({
+  [WHEN_ALONE.CATCH_ALL]: {
     key: 'catchAll',
     label: 'Catch-all',
     // The service-template flag decides which the page shows.
@@ -100,8 +100,11 @@ const FALLBACKS = Object.freeze({
       ['serviceTemplate', 'BNG Service template']
     ]
   },
-  'file-problem': { key: 'fileProblem', label: 'File problem' },
-  'service-problem': { key: 'serviceProblem', label: 'Service problem' }
+  [WHEN_ALONE.FILE_PROBLEM]: { key: 'fileProblem', label: 'File problem' },
+  [WHEN_ALONE.SERVICE_PROBLEM]: {
+    key: 'serviceProblem',
+    label: 'Service problem'
+  }
 })
 
 const UNWORDED_EDIT =
@@ -234,27 +237,37 @@ function fallbackName(fallback) {
   return `${fallback.label} (upload.${fallback.key})`
 }
 
-/** An upload error's row, noting in `usage` each fallback it shows. */
+/** The status of each copy of a fallback, as words a row repeats. */
+function fallbackStatuses(upload, fallback) {
+  return fallbackCopies(upload, fallback).map(({ copy }) => statusOf(copy))
+}
+
+/**
+ * An upload error's row, noting in `usage` each fallback it shows. A row
+ * repeating a fallback's words is no further on than that fallback.
+ */
 function uploadErrorRow(upload, code, entry, usage) {
   const { whenAlone, inList } = entry
   const row = newRow(code, SHOWN.UPLOAD, entry, ['upload', 'errors', code])
 
-  if (whenAlone === WHEN_ALONE_LIST) {
+  if (whenAlone === WHEN_ALONE.LIST) {
     row.shown = [SHOWN.UPLOAD_AS_LIST]
   } else if (typeof whenAlone === 'string') {
     const fallback = FALLBACKS[whenAlone]
     Object.assign(row.cells, fallbackCells(upload, fallback))
+    row.statuses.push(...fallbackStatuses(upload, fallback))
     row.fallbacks.push(`${fallbackName(fallback)}, when alone`)
     usage[whenAlone].alone.push(code)
   } else {
     Object.assign(row.cells, pageCopyCells(whenAlone))
   }
 
-  if (inList === CATCH_ALL) {
-    const fallback = FALLBACKS[CATCH_ALL]
+  if (inList === IN_LIST_CATCH_ALL) {
+    const fallback = FALLBACKS[WHEN_ALONE.CATCH_ALL]
     row.cells.listHeading = fallbackCells(upload, fallback).pageHeading
+    row.statuses.push(...fallbackStatuses(upload, fallback))
     row.fallbacks.push(`${fallbackName(fallback)} title, in a list`)
-    usage[CATCH_ALL].inList.push(code)
+    usage[WHEN_ALONE.CATCH_ALL].inList.push(code)
   } else {
     Object.assign(row.cells, {
       listHeading: withVariants(inList, 'heading', String),
@@ -277,11 +290,10 @@ function usedBy(codes, when) {
 
 function fallbackRows(upload, usage) {
   return Object.entries(FALLBACKS).map(([name, fallback]) => {
-    const copies = fallbackCopies(upload, fallback)
     const row = {
       id: `upload.${fallback.key}`,
       shown: [SHOWN.FALLBACK],
-      statuses: copies.map(({ copy }) => statusOf(copy)),
+      statuses: fallbackStatuses(upload, fallback),
       cells: fallbackCells(upload, fallback),
       paths: [['upload', fallback.key]],
       fallbacks: [

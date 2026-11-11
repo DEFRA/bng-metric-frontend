@@ -2,11 +2,23 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import { load } from 'js-yaml'
+
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
-import { exportMeta, fileStem, writeExport } from './export.mjs'
+import { checkErrorText, exportMeta, fileStem, writeExport } from './export.mjs'
 
 const NOW = new Date('2026-11-10T09:00:00Z')
 const SHA = '39a95e5bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+const SOURCE = readFileSync(ERROR_TEXT_FILE, 'utf8')
+
+/** error-text.yaml with its first upload error's whenAlone misspelt. */
+function withBrokenUploadError() {
+  const value = load(SOURCE)
+  const [code] = Object.keys(value.upload.errors)
+  value.upload.errors[code].whenAlone = 'catch_all'
+  // JSON is YAML, so the export reads it as it reads the file.
+  return { code, source: JSON.stringify(value) }
+}
 
 describe('fileStem', () => {
   test('names the date, branch and short commit', () => {
@@ -58,6 +70,19 @@ describe('exportMeta', () => {
   })
 })
 
+describe('checkErrorText', () => {
+  test('accepts error-text.yaml', () => {
+    expect(() => checkErrorText(SOURCE)).not.toThrow()
+  })
+
+  test('refuses an upload error the server would refuse, naming it', () => {
+    const { code, source } = withBrokenUploadError()
+    expect(() => checkErrorText(source)).toThrow(
+      new RegExp(`upload section is not valid: .*${code}\\.whenAlone`)
+    )
+  })
+})
+
 describe('writeExport', () => {
   let outDir
 
@@ -71,11 +96,7 @@ describe('writeExport', () => {
 
   test('writes the .xlsx, .csv and .html, with links to the commit', async () => {
     const meta = exportMeta({ sha: SHA, branch: 'main' }, {}, NOW)
-    const { rows, files } = await writeExport(
-      readFileSync(ERROR_TEXT_FILE, 'utf8'),
-      outDir,
-      meta
-    )
+    const { rows, files } = await writeExport(SOURCE, outDir, meta)
 
     expect(readdirSync(outDir).sort()).toEqual([
       'error-messages-2026-11-10-main-39a95e5.csv',
@@ -86,5 +107,13 @@ describe('writeExport', () => {
     expect(rows[0].source).toMatch(
       new RegExp(`^${meta.fileUrl.replaceAll('.', '\\.')}#L\\d+$`)
     )
+  })
+
+  test('writes nothing for a file the server would refuse', async () => {
+    const meta = exportMeta({ sha: SHA, branch: 'main' }, {}, NOW)
+    await expect(
+      writeExport(withBrokenUploadError().source, outDir, meta)
+    ).rejects.toThrow('upload section is not valid')
+    expect(readdirSync(outDir)).toEqual([])
   })
 })

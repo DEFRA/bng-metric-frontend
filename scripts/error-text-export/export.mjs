@@ -3,7 +3,11 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
-import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
+import {
+  ERROR_TEXT_FILE,
+  parseErrorText
+} from '../../src/server/common/error-text/error-text.js'
+import { checkDropoutCopy } from '../../src/server/error-file/dropout-copy.js'
 import { toCsv } from './csv.mjs'
 import { toHtml } from './html.mjs'
 import { buildRows, statusCounts } from './rows.mjs'
@@ -12,8 +16,9 @@ import { toXlsx } from './xlsx.mjs'
 // npm run export:error-text [-- --out DIR] [--sha SHA] [--branch NAME]
 //
 // Writes every message in error-text.yaml as .xlsx, .csv and .html, for
-// product, BAs and UCD to review. Importing error-text.js checks the file as
-// the server does, so a file the server would refuse is not exported.
+// product, BAs and UCD to review. The file is checked as the server checks it
+// at start-up, the upload section included, so a file the server would refuse
+// is not exported, and the message says which entry is wrong.
 //
 // Each row links to its line of the file at the commit it was read from: by
 // default the one checked out, or in GitHub Actions GITHUB_SHA. A pull
@@ -80,6 +85,15 @@ export function exportMeta(options, env = process.env, now = new Date()) {
 }
 
 /**
+ * Refuse a file the server would refuse to start with.
+ *
+ * @param {string} source - error-text.yaml's text
+ */
+export function checkErrorText(source) {
+  checkDropoutCopy(parseErrorText(source).upload)
+}
+
+/**
  * Write the three files into `outDir`.
  *
  * @param {string} source - error-text.yaml's text
@@ -88,13 +102,14 @@ export function exportMeta(options, env = process.env, now = new Date()) {
  * @returns {Promise<{ rows: Array<Record<string, string>>, files: string[] }>}
  */
 export async function writeExport(source, outDir, meta) {
+  checkErrorText(source)
   const rows = buildRows(source, {
     sourceUrl: (line) => `${meta.fileUrl}#L${line}`
   })
   const stem = path.join(outDir, fileStem(meta))
   const contents = {
     xlsx: await toXlsx(rows, meta),
-    csv: toCsv(rows),
+    csv: toCsv(rows, meta),
     html: toHtml(rows, meta)
   }
   mkdirSync(outDir, { recursive: true })
