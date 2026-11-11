@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs'
 
-import { COLUMNS, statusCounts } from './rows.mjs'
+import { COLUMNS, DEFAULT_GROUPS, statusCounts } from './rows.mjs'
 
 // The export as an Excel workbook: a sheet of the rows, filterable, with its
 // header row and error IDs frozen in view, and a sheet saying which commit
@@ -62,7 +62,8 @@ export async function toXlsx(rows, meta, columns = COLUMNS) {
     ['Branch', meta.branch],
     ['Commit', { text: meta.commit, hyperlink: meta.commitUrl }],
     ['Error IDs', rows.length],
-    ...Object.entries(statusCounts(rows))
+    ...Object.entries(statusCounts(rows)),
+    ['Rows', (meta.groups ?? DEFAULT_GROUPS).join(', ')]
   ])
 
   return Buffer.from(await workbook.xlsx.writeBuffer())

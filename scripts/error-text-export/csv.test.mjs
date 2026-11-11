@@ -45,8 +45,8 @@ const columns = [
 ]
 
 const meta = { date: '2026-11-10', branch: 'main', commit: '39a95e5' }
-const metaHeaders = 'Generated,Branch,Commit'
-const metaValues = '2026-11-10,main,39a95e5'
+const metaHeaders = 'Generated,Branch,Commit,Rows'
+const metaValues = '2026-11-10,main,39a95e5,codes'
 
 describe('toCsv', () => {
   test('starts with a byte-order mark and ends each record with CRLF', () => {
@@ -78,8 +78,23 @@ describe('toCsv', () => {
         ...COLUMNS.map(({ key }) => row[key]),
         meta.date,
         meta.branch,
-        meta.commit
+        meta.commit,
+        'codes'
       ])
+    )
+  })
+
+  test('names the groups of rows exported, separated by commas', () => {
+    const csv = toCsv(
+      [{ id: 'A', text: 'x' }],
+      {
+        ...meta,
+        groups: ['codes', 'forms']
+      },
+      columns
+    )
+    expect(csv.split('\r\n')[1]).toBe(
+      'A,x,2026-11-10,main,39a95e5,"codes, forms"'
     )
   })
 })

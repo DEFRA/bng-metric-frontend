@@ -23,6 +23,13 @@ on:
       - main
   # On demand: "Use workflow from" picks the branch to export.
   workflow_dispatch:
+    inputs:
+      include:
+        description: >-
+          Groups of rows to add to the error codes, separated by commas
+          (fallbacks, upload-text, common, forms, pages), or "all"
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -87,10 +94,15 @@ jobs:
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           BASE_SHA: ${{ steps.base.outputs.sha }}
+          # Empty but for a run on demand that asks for more groups of rows.
+          INCLUDE: ${{ inputs.include }}
         run: |
           args=(--out "$EXPORT_DIR" --sha "$SOURCE_SHA" --summary "$RUNNER_TEMP/summary.md")
           if [ -n "$BASE_SHA" ]; then
             args+=(--base "$BASE_SHA")
+          fi
+          if [ -n "$INCLUDE" ]; then
+            args+=(--include "$INCLUDE")
           fi
           npm run export:error-text -- "${args[@]}"
 

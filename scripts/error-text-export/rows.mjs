@@ -14,13 +14,14 @@ import {
 import { readErrorTextSource } from './read.mjs'
 
 // error-text.yaml as rows, one for each error ID, for product, BAs and UCD to
-// review every message in one table. No I/O: each writer takes these rows and
+// review its messages in one table. No I/O: each writer takes these rows and
 // COLUMNS as they are, so the three formats hold the same content.
 //
 // An ID is the backend's code for a drop-out page or edit error, so a code
 // met in both is one row, and the entry's dotted place in the file for
-// anything else. An error with no words of its own shows a shared fallback's,
-// so its row repeats them and names the fallback, which has a row of its own.
+// anything else. By default only the codes are given: see ROW_GROUPS. An
+// error with no words of its own shows a shared fallback's, so its row
+// repeats them and names the fallback, which can have a row of its own.
 
 /** How far an error's wording has got, as the Status column says it. */
 export const STATUS = Object.freeze({
@@ -57,7 +58,6 @@ export const COLUMNS = Object.freeze([
   { key: 'fallback', header: 'Shared fallback', width: 40 },
   { key: 'values', header: 'Values it fills in', width: 60 },
   { key: 'links', header: 'Links', width: 40 },
-  { key: 'comments', header: 'Comments in the file', width: 60 },
   { key: 'source', header: 'Source', width: 50 }
 ])
 
@@ -85,6 +85,36 @@ export const SHOWN = Object.freeze({
   FORM: 'Form',
   PAGE: 'Whole page'
 })
+
+/**
+ * The kinds of row the file gives, by the part of it they come from. The
+ * export gives DEFAULT_GROUPS; any other can be given back, with --include
+ * or buildRows' `groups`, without changing how its rows are built.
+ */
+export const ROW_GROUPS = Object.freeze({
+  /** The backend's error codes, such as VALIDATION_UNAVAILABLE: upload.errors and edit. */
+  CODES: 'codes',
+  /** The drop-out page's shared fallbacks, such as upload.catchAll. */
+  FALLBACKS: 'fallbacks',
+  /** The drop-out page's other words, such as upload.page.title. */
+  UPLOAD_TEXT: 'upload-text',
+  /** common.*: what every page falls back to. */
+  COMMON: 'common',
+  /** forms.*: each form check's message. */
+  FORMS: 'forms',
+  /** pages.*: whole error pages. */
+  PAGES: 'pages'
+})
+
+/** Every group, in the order a full export lists them. */
+export const ALL_GROUPS = Object.freeze(Object.values(ROW_GROUPS))
+
+/**
+ * What the export gives unless told otherwise: the error codes alone. The
+ * rest made the export too long to review; a code that shows a shared
+ * fallback still names it and repeats its words.
+ */
+export const DEFAULT_GROUPS = Object.freeze([ROW_GROUPS.CODES])
 
 /** Said of a {name} or link target that placeholders.mjs does not explain. */
 export const NOT_EXPLAINED = 'not explained yet'
@@ -328,8 +358,6 @@ function merge(upload, edit) {
       inline: edit.cells.inline
     },
     paths: [...upload.paths, ...edit.paths],
-    // Which part of the row each path's comments are about.
-    pathLabels: [...upload.shown, ...edit.shown],
     fallbacks: [
       ...upload.fallbacks,
       ...edit.fallbacks.map((fallback) => `${SHOWN.EDIT}: ${fallback}`)
@@ -351,7 +379,10 @@ function uploadAndEditRows(value) {
     edits.delete(code)
     return met ? merge(row, met) : row
   })
-  return [...errors, ...edits.values(), ...fallbackRows(upload, usage)]
+  return {
+    codes: [...errors, ...edits.values()],
+    fallbacks: fallbackRows(upload, usage)
+  }
 }
 
 function formRows({ forms, common }) {
@@ -425,18 +456,6 @@ function linksText(words, value) {
     .join('\n')
 }
 
-/** The comments on the row's entries, each said of its part when it has two. */
-function commentsText(row, file) {
-  return row.paths
-    .map((path, index) => {
-      const comments = file.commentsOf(path)
-      const label = row.pathLabels?.[index]
-      return comments && label ? `${label}: ${comments}` : comments
-    })
-    .filter(Boolean)
-    .join('\n')
-}
-
 function finish(row, file, sourceUrl) {
   const words = WORDING_KEYS.map((key) => row.cells[key]).filter(Boolean)
   const status = STATUS_ORDER.find((s) => row.statuses.includes(s))
@@ -451,7 +470,6 @@ function finish(row, file, sourceUrl) {
     fallback: row.fallbacks.join('\n'),
     values: valuesText(row, words),
     links: linksText(words, file.value),
-    comments: commentsText(row, file),
     source: row.paths.map((path) => sourceUrl(file.lineOf(path))).join('\n')
   }
 }
@@ -462,22 +480,50 @@ function byId(a, b) {
 }
 
 /**
+ * Refuse a group buildRows does not know, naming those it does.
+ *
+ * @param {string[]} groups
+ */
+export function checkGroups(groups) {
+  const unknown = groups.filter((group) => !ALL_GROUPS.includes(group))
+  if (unknown.length > 0) {
+    throw new Error(
+      `Unknown row group ${unknown.join(', ')}: choose from ${ALL_GROUPS.join(', ')}`
+    )
+  }
+}
+
+/** Each group's rows, before they are finished. */
+function rowsByGroup(value) {
+  const { codes, fallbacks } = uploadAndEditRows(value)
+  return {
+    [ROW_GROUPS.CODES]: codes,
+    [ROW_GROUPS.FALLBACKS]: fallbacks,
+    [ROW_GROUPS.UPLOAD_TEXT]: uploadTextRows(value),
+    [ROW_GROUPS.COMMON]: commonRows(value),
+    [ROW_GROUPS.FORMS]: formRows(value),
+    [ROW_GROUPS.PAGES]: pageRows(value)
+  }
+}
+
+/**
  * error-text.yaml's rows, sorted by error ID.
  *
  * @param {string} source - error-text.yaml's text
- * @param {{ sourceUrl?: (line: number) => string }} [options]
- *   the link to a line of the file; by default its line anchor alone
+ * @param {{ sourceUrl?: (line: number) => string, groups?: readonly string[] }} [options]
+ *   sourceUrl: the link to a line of the file, by default its line anchor
+ *   alone; groups: which of ROW_GROUPS to give, by default DEFAULT_GROUPS
  * @returns {Array<Record<string, string>>} a row has a value for each of COLUMNS' keys
  */
-export function buildRows(source, { sourceUrl = (line) => `#L${line}` } = {}) {
+export function buildRows(
+  source,
+  { sourceUrl = (line) => `#L${line}`, groups = DEFAULT_GROUPS } = {}
+) {
+  checkGroups(groups)
   const file = readErrorTextSource(source)
-  return [
-    ...commonRows(file.value),
-    ...uploadTextRows(file.value),
-    ...uploadAndEditRows(file.value),
-    ...formRows(file.value),
-    ...pageRows(file.value)
-  ]
+  const byGroup = rowsByGroup(file.value)
+  return unique(groups)
+    .flatMap((group) => byGroup[group])
     .map((row) => finish(row, file, sourceUrl))
     .sort(byId)
 }

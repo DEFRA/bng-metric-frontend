@@ -1,12 +1,17 @@
-import { COLUMNS, WORDING_KEYS, buildRows } from './rows.mjs'
+import { COLUMNS, DEFAULT_GROUPS, WORDING_KEYS, buildRows } from './rows.mjs'
 
 // What a change to error-text.yaml does to the export, for a pull request's
-// run summary: the error IDs it adds and removes, the parts of each message
-// it changes, and the statuses it moves. No I/O: it compares two lists of
-// rows from buildRows, matched by error ID.
+// run: the error IDs it adds and removes, with their words, the parts of each
+// message it changes, and the statuses it moves. Each is given as Markdown,
+// for the run's summary, and as plain text, for its log, where it shows
+// without opening the summary. No I/O: it compares two lists of rows from
+// buildRows, matched by error ID.
 
 /** The columns compared: where an error is shown, and every part of it. */
 const COMPARED_KEYS = Object.freeze(['shown', ...WORDING_KEYS, 'fallback'])
+
+/** The parts of a message an added or removed error is shown with. */
+const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, 'fallback'])
 
 const HEADERS = Object.fromEntries(
   COLUMNS.map(({ key, header }) => [key, header])
@@ -83,17 +88,28 @@ function code(id) {
   return `\`${id}\``
 }
 
-function rowTable(rows) {
-  return [
-    '| Error ID | Where it is shown | Status |',
-    '| --- | --- | --- |',
-    ...rows.map(
-      (row) => `| ${code(row.id)} | ${cell(row.shown)} | ${row.status} |`
-    )
-  ]
+/** An added or removed row's parts that have words, as [header, text]. */
+function messageParts(row) {
+  return MESSAGE_KEYS.filter((key) => row[key]).map((key) => [
+    HEADERS[key],
+    row[key]
+  ])
 }
 
-function changedSection(changed) {
+// --- Markdown, for the run summary ---
+
+function rowsMarkdown(rows) {
+  return rows.flatMap((row) => [
+    `**${code(row.id)}**: ${cell(row.shown)}, ${row.status}`,
+    '',
+    '| Part | Words |',
+    '| --- | --- |',
+    ...messageParts(row).map(([part, text]) => `| ${part} | ${cell(text)} |`),
+    ''
+  ])
+}
+
+function changedMarkdown(changed) {
   return changed.flatMap(({ ids, parts }) => [
     `**${ids.map(code).join(', ')}**`,
     '',
@@ -107,56 +123,162 @@ function changedSection(changed) {
   ])
 }
 
-function statusTable(statuses) {
+function statusesMarkdown(statuses) {
   return [
     '| Error ID | Before | After |',
     '| --- | --- | --- |',
     ...statuses.map(
       ({ id, before, after }) => `| ${code(id)} | ${before} | ${after} |`
-    )
+    ),
+    ''
   ]
 }
 
-function section(title, list, lines) {
-  return list.length > 0
-    ? [`#### ${title} (${list.length})`, '', ...lines, '']
-    : []
+function sectionMarkdown(title, count, lines) {
+  return count > 0 ? [`#### ${title} (${count})`, '', ...lines] : []
+}
+
+// --- Plain text, for the run's log ---
+
+const INDENT = '    '
+
+/**
+ * Text under a label, each of its lines indented alike. A part with no words
+ * is '' in a row, and says "(none)", as `cell` does in the summary.
+ */
+function indented(text, depth) {
+  const pad = INDENT.repeat(depth)
+  return String(text || '(none)')
+    .split('\n')
+    .map((line) => `${pad}${line}`)
+}
+
+function rowsText(rows) {
+  return rows.flatMap((row) => [
+    `  ${row.id} (${row.shown}, ${row.status})`,
+    ...messageParts(row).flatMap(([part, text]) => [
+      `${INDENT}${part}:`,
+      ...indented(text, 2)
+    ])
+  ])
+}
+
+function changedText(changed) {
+  return changed.flatMap(({ ids, parts }) => [
+    // One ID a line: a reworded fallback can change a score of them alike.
+    ...ids.map((id) => `  ${id}`),
+    ...parts.flatMap(({ part, before, after }) => [
+      `${INDENT}${part}, before:`,
+      ...indented(before, 2),
+      `${INDENT}${part}, after:`,
+      ...indented(after, 2)
+    ])
+  ])
+}
+
+function statusesText(statuses) {
+  return statuses.map(
+    ({ id, before, after }) => `  ${id}: ${before} -> ${after}`
+  )
+}
+
+function sectionText(title, count, lines) {
+  return count > 0 ? ['', `${title} (${count})`, ...lines] : []
+}
+
+// --- Both ---
+
+/**
+ * What the changes are of, and from where, as a heading: "Wording changes in
+ * codes from abc1234". The groups are named, as a group left out of the
+ * export is left out of the comparison too: a "none" is only for them.
+ */
+function headings(base, groups) {
+  const scope = `Wording changes in ${groups.join(', ')}`
+  return {
+    markdown: `### ${scope} from ${base.markdown}`,
+    text: `${scope} from ${base.text}`
+  }
 }
 
 /**
- * The diff as Markdown, for a run summary.
+ * The diff as Markdown, for a run summary, and as plain text, for its log.
  *
  * @param {ReturnType<typeof diffRows>} diff
- * @param {string} base - what the rows before came from, as Markdown
- * @returns {string}
+ * @param {{ markdown: string, text: string }} base - what the rows before
+ *   came from: a link, and its plain name
+ * @param {readonly string[]} [groups] - the groups of rows compared
+ * @returns {{ markdown: string, text: string }}
  */
-export function diffMarkdown(diff, base) {
-  const heading = [`### Wording changes from ${base}`, '']
+export function describeDiff(diff, base, groups = DEFAULT_GROUPS) {
+  const heading = headings(base, groups)
+  const markdownHeading = [heading.markdown, '']
+  const textHeading = heading.text
   if (isEmptyDiff(diff)) {
-    return [...heading, 'No wording changes.', ''].join('\n')
+    return {
+      markdown: [...markdownHeading, 'No wording changes.', ''].join('\n'),
+      text: `${textHeading}: none.\n`
+    }
   }
-  return [
-    ...heading,
-    ...section('Added', diff.added, rowTable(diff.added)),
-    ...section('Removed', diff.removed, rowTable(diff.removed)),
-    ...section(
+  const changedCount = diff.changed.flatMap(({ ids }) => ids).length
+  const sections = [
+    [
+      'Added',
+      diff.added.length,
+      rowsMarkdown(diff.added),
+      rowsText(diff.added)
+    ],
+    [
+      'Removed',
+      diff.removed.length,
+      rowsMarkdown(diff.removed),
+      rowsText(diff.removed)
+    ],
+    [
       'Changed',
-      diff.changed.flatMap(({ ids }) => ids),
-      changedSection(diff.changed)
-    ),
-    ...section('Status changed', diff.statuses, statusTable(diff.statuses))
-  ].join('\n')
+      changedCount,
+      changedMarkdown(diff.changed),
+      changedText(diff.changed)
+    ],
+    [
+      'Status changed',
+      diff.statuses.length,
+      statusesMarkdown(diff.statuses),
+      statusesText(diff.statuses)
+    ]
+  ]
+  return {
+    markdown: [
+      ...markdownHeading,
+      ...sections.flatMap(([title, count, lines]) =>
+        sectionMarkdown(title, count, lines)
+      )
+    ].join('\n'),
+    text: [
+      textHeading,
+      ...sections.flatMap(([title, count, , lines]) =>
+        sectionText(title, count, lines)
+      ),
+      ''
+    ].join('\n')
+  }
 }
 
 /**
  * Said in place of the changes when they cannot be worked out, so the run
  * still keeps the export.
  *
- * @param {string} base - the base, as Markdown
+ * @param {{ markdown: string, text: string }} base
  * @param {string} reason
+ * @param {readonly string[]} [groups] - the groups of rows to compare
+ * @returns {{ markdown: string, text: string }}
  */
-export function notCompared(base, reason) {
-  return `### Wording changes from ${base}\n\nThe changes are not shown: ${cell(reason)}\n`
+export function notCompared(base, reason, groups = DEFAULT_GROUPS) {
+  const heading = headings(base, groups)
+  return {
+    markdown: `${heading.markdown}\n\nThe changes are not shown: ${cell(reason)}\n`,
+    text: `${heading.text} are not shown: ${reason}\n`
+  }
 }
 
 /**
@@ -167,19 +289,36 @@ export function notCompared(base, reason) {
  * @param {Array<Record<string, string>>} rows - rows from buildRows, after
  * @param {string | null} baseSource - error-text.yaml's text at the base, or
  *   null when the base has no such file
- * @param {string} base - the base, as Markdown
- * @returns {string}
+ * @param {{ markdown: string, text: string }} base - a link to the base, and
+ *   its plain name
+ * @param {readonly string[]} [groups] - the groups of rows `rows` holds, so
+ *   the base is read alike
+ * @returns {{ markdown: string, text: string }}
  */
-export function compareWithBase(rows, baseSource, base) {
+export function compareWithBase(
+  rows,
+  baseSource,
+  base,
+  groups = DEFAULT_GROUPS
+) {
   if (baseSource === null) {
-    return notCompared(base, 'error-text.yaml is not on the base commit.')
+    return notCompared(
+      base,
+      'error-text.yaml is not on the base commit.',
+      groups
+    )
   }
   try {
-    return diffMarkdown(diffRows(buildRows(baseSource), rows), base)
+    return describeDiff(
+      diffRows(buildRows(baseSource, { groups }), rows),
+      base,
+      groups
+    )
   } catch (error) {
     return notCompared(
       base,
-      `the base commit's error-text.yaml could not be compared: ${error.message}`
+      `the base commit's error-text.yaml could not be compared: ${error.message}`,
+      groups
     )
   }
 }

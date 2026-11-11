@@ -128,13 +128,23 @@ npm run export:error-text
 ```
 
 This writes `export/error-messages-<date>-<branch>-<commit>` as `.xlsx`, `.csv`
-and `.html`, with one row for each error ID. The rows give each part of the
+and `.html`, with one row for each of the backend's error codes, such as
+`VALIDATION_UNAVAILABLE`: the `upload.errors` and `edit` entries, a code met in
+both as one row. The file's other entries are left out by default, to keep the
+export short enough to review. `-- --include GROUPS` adds them back, by group,
+separated by commas: `fallbacks` (the shared fallbacks, such as
+`upload.catchAll`), `upload-text` (the drop-out page's other words, such as
+`upload.page.title`), `common`, `forms` and `pages`, or `all` for every one.
+A code that shows a shared fallback names it and repeats its words either way.
+
+The rows give each part of the
 message, its status (Final, Awaiting UCD or Needs content, from the entry's
 `wording` field), any shared fallback it shows, what its `{values}` are filled
 in with, and a link to its line in the file. A row that shows a shared
 fallback's words is no further on than that fallback, so an error with no
 `wording` field of its own is Awaiting UCD when its fallback is interim. Each
-CSV row ends with the date, branch and commit it was read from. The file is
+CSV row ends with the date, branch and commit it was read from, and the
+groups of rows exported. The file is
 checked as the server checks it at start-up, so the export refuses a file the
 server would. `-- --out DIR` writes elsewhere, and `-- --help` lists the
 options.
@@ -143,16 +153,22 @@ The Error Messages Export workflow runs the export on every pull request to
 `main`, on every push to `main`, and on demand from the Actions tab for the
 branch picked there. Each run keeps the three files as one
 `error-messages-export` artifact for 90 days, and its summary counts the error
-IDs with each status and links to the artifact. A pull request's run exports
+IDs with each status and links to the artifact. A run on demand can add groups
+of rows, as `--include` does, in its `include` field. A pull request's run exports
 the wording on the pull request's branch, and links each row to its line at
 the branch's head commit. It is not a required check, so it never holds up a
 merge.
 
 A pull request's summary also says what it changes in the wording, against the
-commit its branch left `main` at: the error IDs it adds and removes, a before
-and after for each part of a message it changes, and each status it moves.
-Errors changed alike, such as every error showing a reworded shared fallback,
-share one table. To see the same locally, add `-- --base REF`, naming the
+commit its branch left `main` at: the error IDs it adds and removes, with their
+words, a before and after for each part of a message it changes, and each
+status it moves. Errors changed alike, such as every error showing a reworded
+shared fallback, share one table. Only the groups of rows exported are
+compared, and the heading names them, as in "Wording changes in codes": a
+change to a `forms.*` entry, say, shows only when `forms` is exported. The
+Export the error messages step's log
+gives the same as plain text, so the changes show without opening the
+summary. To see the same locally, add `-- --base REF`, naming the
 commit your branch left `main` at:
 `npm run export:error-text -- --base "$(git merge-base origin/main HEAD)"`.
 Naming `origin/main` itself would show a change merged to `main` since as your

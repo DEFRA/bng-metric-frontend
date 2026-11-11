@@ -8,8 +8,11 @@ import {
 import { PLACEHOLDERS } from './placeholders.mjs'
 import { readErrorTextSource } from './read.mjs'
 import {
+  ALL_GROUPS,
   COLUMNS,
+  DEFAULT_GROUPS,
   FALLBACKS,
+  ROW_GROUPS,
   NOT_EXPLAINED,
   SHOWN,
   STATUS,
@@ -19,7 +22,8 @@ import {
 
 const source = readFileSync(ERROR_TEXT_FILE, 'utf8')
 const { value } = readErrorTextSource(source)
-const rows = buildRows(source)
+// Every group, so each kind of row is still built and checked.
+const rows = buildRows(source, { groups: ALL_GROUPS })
 const rowOf = (id) => rows.find((row) => row.id === id)
 
 // What an upload error's whenAlone and inList name in place of words.
@@ -150,6 +154,7 @@ pages:
       - '[Return to the home page](home)'
 `
 const fixture = buildRows(FIXTURE, {
+  groups: ALL_GROUPS,
   sourceUrl: (line) => `https://x/f#L${line}`
 })
 const fixtureRow = (id) => fixture.find((row) => row.id === id)
@@ -235,6 +240,60 @@ describe('buildRows, from error-text.yaml', () => {
   })
 })
 
+describe('buildRows, by group', () => {
+  const ids = (groups) => buildRows(FIXTURE, { groups }).map(({ id }) => id)
+
+  test('gives only the error codes by default', () => {
+    expect(DEFAULT_GROUPS).toEqual([ROW_GROUPS.CODES])
+    expect(buildRows(FIXTURE).map(({ id }) => id)).toEqual([
+      'a_parcel',
+      'B_LAYER',
+      'BOTH',
+      'C_ALONE',
+      'D_LISTED',
+      'EDIT_ONLY',
+      'UNKNOWN_WORDING'
+    ])
+  })
+
+  test('gives each group asked for, and only those', () => {
+    expect(ids([ROW_GROUPS.FORMS])).toEqual([
+      'forms.applicant.tooLong',
+      'forms.pair.both',
+      'forms.projectName.required',
+      'forms.projectName.tooLong',
+      'forms.unworded.rule'
+    ])
+    expect(ids([ROW_GROUPS.PAGES, ROW_GROUPS.COMMON])).toEqual([
+      'common.summaryTitle',
+      'common.unworded',
+      'pages.accessDenied',
+      'pages.notFound'
+    ])
+    expect(ids([ROW_GROUPS.FALLBACKS])).toEqual([
+      'upload.catchAll',
+      'upload.fileProblem',
+      'upload.serviceProblem'
+    ])
+  })
+
+  test('gives every row from every group', () => {
+    expect(ids(ALL_GROUPS)).toEqual(fixture.map(({ id }) => id))
+  })
+
+  test('still names a fallback a code shows, without its row', () => {
+    const [row] = buildRows(FIXTURE).filter(({ id }) => id === 'B_LAYER')
+    expect(row.fallback).toBe('Catch-all (upload.catchAll), when alone')
+    expect(row.pageHeading).toBe('Your file contains an error')
+  })
+
+  test('refuses a group it does not know, naming those it does', () => {
+    expect(() => buildRows(FIXTURE, { groups: ['form'] })).toThrow(
+      `Unknown row group form: choose from ${ALL_GROUPS.join(', ')}`
+    )
+  })
+})
+
 describe('FALLBACKS', () => {
   test('has a fallback for everything whenAlone can name but a list', () => {
     const named = Object.values(WHEN_ALONE).filter(
@@ -296,7 +355,9 @@ describe('buildRows, from a small file', () => {
       '  catchAll:\n    legacyTemplate:\n',
       '  catchAll:\n    legacyTemplate:\n      wording: interim\n'
     )
-    const row = buildRows(interim).find(({ id }) => id === 'D_LISTED')
+    const row = buildRows(interim, { groups: ALL_GROUPS }).find(
+      ({ id }) => id === 'D_LISTED'
+    )
     expect(row.status).toBe(STATUS.AWAITING_UCD)
   })
 
@@ -342,7 +403,6 @@ describe('buildRows, from a small file', () => {
     expect(row.shown).toBe(`${SHOWN.UPLOAD}; ${SHOWN.EDIT}`)
     expect(row.status).toBe(STATUS.NEEDS_CONTENT)
     expect(row.source.split('\n')).toHaveLength(2)
-    expect(row.comments).toBe(`${SHOWN.EDIT}: Not shown by the pages yet.`)
     expect(row.fallback).toContain(`${SHOWN.EDIT}: None yet`)
   })
 
@@ -399,10 +459,10 @@ describe('buildRows, from a small file', () => {
     })
   })
 
-  test('keeps the comment above a first key, and drops a group’s', () => {
-    expect(fixtureRow('forms.projectName.required').comments).toBe('Blank.')
-    expect(fixtureRow('B_LAYER').comments).toBe(
-      'A layer the template does not have.'
+  test('has no column for the file’s comments', () => {
+    expect(COLUMNS.map(({ key }) => key)).not.toContain('comments')
+    expect(Object.keys(fixtureRow('B_LAYER'))).toEqual(
+      COLUMNS.map(({ key }) => key)
     )
   })
 

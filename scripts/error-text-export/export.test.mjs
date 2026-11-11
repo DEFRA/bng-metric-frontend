@@ -16,10 +16,11 @@ import {
   checkErrorText,
   exportMeta,
   fileStem,
+  groupsToExport,
   summaryMarkdown,
   writeExport
 } from './export.mjs'
-import { STATUS } from './rows.mjs'
+import { ALL_GROUPS, ROW_GROUPS, STATUS } from './rows.mjs'
 
 const NOW = new Date('2026-11-10T09:00:00Z')
 const SHA = '39a95e5bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
@@ -48,6 +49,28 @@ describe('fileStem', () => {
   })
 })
 
+describe('groupsToExport', () => {
+  test('gives the error codes alone by default', () => {
+    expect(groupsToExport()).toEqual([ROW_GROUPS.CODES])
+  })
+
+  test('adds the groups --include names, in the usual order, each once', () => {
+    expect(groupsToExport('pages, forms,codes')).toEqual([
+      ROW_GROUPS.CODES,
+      ROW_GROUPS.FORMS,
+      ROW_GROUPS.PAGES
+    ])
+  })
+
+  test('gives every group for "all"', () => {
+    expect(groupsToExport('all')).toEqual(ALL_GROUPS)
+  })
+
+  test('refuses a group it does not know', () => {
+    expect(() => groupsToExport('codes,form')).toThrow('Unknown row group form')
+  })
+})
+
 describe('exportMeta', () => {
   test('reads the commit, branch and repository from GitHub Actions', () => {
     const env = {
@@ -58,6 +81,7 @@ describe('exportMeta', () => {
     }
     expect(exportMeta({}, env, NOW)).toEqual({
       repository: 'https://github.com/DEFRA/bng-metric-frontend',
+      groups: [ROW_GROUPS.CODES],
       date: '2026-11-10',
       branch: 'main',
       commit: SHA,
@@ -145,7 +169,7 @@ describe('summaryMarkdown', () => {
     expect(summaryMarkdown(rows, meta, files).split('\n')).toEqual([
       '## Error messages export',
       '',
-      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10.`,
+      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10. Rows: codes.`,
       '',
       '| Status | Error IDs |',
       '| --- | ---: |',
@@ -173,8 +197,9 @@ describe('npm run export:error-text -- --summary', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  /** Run the script, returning what it printed. */
   function run(summary, ...more) {
-    execFileSync(
+    return execFileSync(
       process.execPath,
       [
         script,
@@ -188,7 +213,7 @@ describe('npm run export:error-text -- --summary', () => {
         summary,
         ...more
       ],
-      { stdio: 'pipe' }
+      { stdio: 'pipe', encoding: 'utf8' }
     )
   }
 
@@ -211,16 +236,17 @@ describe('npm run export:error-text -- --summary', () => {
   )
 
   test(
-    'with --base, adds what the wording changes from that commit',
+    'with --base, says what the wording changes, in the summary and the log',
     () => {
       const summary = path.join(dir, 'summary.md')
 
-      run(summary, '--base', 'HEAD')
+      const printed = run(summary, '--base', 'HEAD')
 
+      expect(printed).toMatch(/\nWording changes in codes from [0-9a-f]{7}\b/)
       expect(readFileSync(summary, 'utf8')).toMatch(
         // What follows depends on any edit to the file not yet committed.
         // The repository's URL comes from GitHub Actions when it runs there.
-        /\n### Wording changes from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
+        /\n### Wording changes in codes from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
       )
     },
     TWO_RUNS_TIMEOUT_MS
@@ -237,7 +263,7 @@ describe('npm run export:error-text -- --summary', () => {
         readdirSync(dir).filter((name) => name.endsWith('.xlsx'))
       ).toHaveLength(1)
       expect(readFileSync(summary, 'utf8')).toContain(
-        '### Wording changes from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
+        '### Wording changes in codes from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
       )
     },
     TWO_RUNS_TIMEOUT_MS
