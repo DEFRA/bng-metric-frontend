@@ -157,9 +157,10 @@
           ]
         }) }}
 
-        {# Areas, vertical area habitats, hedgerows and watercourses only: an
-           individual tree's comment is out of scope (BMD-1112), so its page
-           submits no comment and its stored one is left alone. #}
+        {# Every baseline feature type offers the box (BMD-1112): areas,
+           vertical area habitats, hedgerows, watercourses and individual
+           trees. A page that leaves showCommentRow unset submits no comment,
+           and buildSaveBody then leaves the stored one alone. #}
         {% if showCommentRow %}
           {{ govukTextarea({
             id: "comment",

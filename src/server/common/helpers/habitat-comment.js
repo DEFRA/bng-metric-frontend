@@ -16,7 +16,13 @@
 import { formErrorText } from '../error-text/error-text.js'
 import { hasInvalidUtf8Text } from './utf8-text.js'
 
-/** Mirrors backend comment-check.js MAX_COMMENT_LENGTH. */
+/**
+ * Mirrors the backend's MAX_COMMENT_LENGTH (comment-check.js), which since
+ * BMD-1175 is LONG_TEXT_LIMIT from text-limits.js: one limit shared by every
+ * 999-character free-text column of an upload, in both templates. The feature
+ * edit route checks it again on save (shared-params.js), so the two sides have
+ * to agree — change it there first, then here.
+ */
 export const MAX_COMMENT_LENGTH = 999
 
 // The textarea's id and name, which the error summary links to.
@@ -70,19 +76,52 @@ export function commentRefusals(value) {
   return refusals
 }
 
+// Characters that would be markup if a message were placed in the error html.
+const HTML_ESCAPE = Object.freeze({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+})
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeInline(text) {
+  return text.replaceAll(/[&<>"']/g, (character) => HTML_ESCAPE[character])
+}
+
+/**
+ * The message shown against the text box. One failed rule is the GOV.UK
+ * error message's text. Both rules are the same component, each message on
+ * its own line and invalid characters first, matching the summary (BMD-1112
+ * AC5).
+ *
+ * @param {Array<{ inline: string }>} refusals
+ * @returns {{ text: string } | { html: string } | undefined}
+ */
+function inlineError(refusals) {
+  if (refusals.length === 0) {
+    return undefined
+  }
+  if (refusals.length === 1) {
+    return { text: refusals[0].inline }
+  }
+  return {
+    html: refusals.map((refusal) => escapeInline(refusal.inline)).join('<br>')
+  }
+}
+
 /**
  * The error summary entries and the textarea for the supporting information.
  * Deliberately returns neither a page title nor an `errors` key: the details
  * page composes both once the reference and the comment have been checked, so
  * neither field's fields can quietly overwrite the other's.
  *
- * Where a comment breaks both rules the summary names each, one entry per
- * failed rule, while the field carries the first — invalid characters before
- * length — so the inline error stays the single message the GOV.UK error
- * message component is built around.
- *
  * @param {{ savedComment?: string | null, submittedComment?: string, refusals?: Array<{ summary: string, inline: string }> }} params
- * @returns {{ commentErrors: Array<{ text: string, href: string }>, commentInput: { id: string, value: string, error?: { text: string } } }}
+ * @returns {{ commentErrors: Array<{ text: string, href: string }>, commentInput: { id: string, value: string, error?: { text: string } | { html: string } } }}
  */
 export function commentFormFields({
   savedComment,
@@ -97,7 +136,7 @@ export function commentFormFields({
     commentInput: {
       id: COMMENT_FIELD_ID,
       value: submittedComment ?? savedComment ?? '',
-      error: refusals.length > 0 ? { text: refusals[0].inline } : undefined
+      error: inlineError(refusals)
     }
   }
 }

@@ -42,10 +42,12 @@ export const treeStrategy = {
       showBroadHabitatRow: false,
       fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
       habitatTypeOptions: treeTypeItems(reference.habitatTypes, tree.type),
-      // A tree's comment is out of scope (BMD-1112), so the page offers no
-      // box to type one into. A comment imported with the tree is left as it
-      // is.
-      showCommentRow: false
+      // Supporting information is editable on a tree as on any other area
+      // habitat (BMD-1112). Tree size and Number of trees stay read-only, so
+      // a save cannot move the tree's notional area, and Broad habitat is
+      // fixed while Habitat type offers only the two tree settings
+      // (BMD-1172), so a save cannot make the tree another habitat.
+      showCommentRow: true
     }
   }
 }

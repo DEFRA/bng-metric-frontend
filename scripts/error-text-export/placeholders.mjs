@@ -1,3 +1,4 @@
+import { MAX_COMMENT_LENGTH } from '../../src/server/common/helpers/habitat-comment.js'
 import { MAX_PROJECT_NAME_LENGTH } from '../../src/server/common/helpers/project-name.js'
 import { MAX_REF_LENGTH } from '../../src/server/post-intervention-habitat-details/constants.js'
 import { MAX_TEXT_FIELD_LENGTH } from '../../src/server/project-details/constants.js'
@@ -136,6 +137,9 @@ export const ENTRY_PLACEHOLDERS = Object.freeze({
   },
   'forms.habitatRef.tooLong': {
     max: `the most characters a habitat reference can have: ${MAX_REF_LENGTH}`
+  },
+  'forms.comment.tooLong': {
+    max: `the most characters a habitat's supporting information can have: ${MAX_COMMENT_LENGTH}`
   },
   'forms.file.tooLarge': {
     max: `the largest file the service takes: ${MAX_FILE_SIZE_LABEL}`

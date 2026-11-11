@@ -2016,12 +2016,59 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(commentAt).toBeGreaterThan(referenceAt)
       expect(result).toContain(COMMENT_INVALID_CHARACTERS_ERROR.summary)
       expect(result).toContain(COMMENT_TOO_LONG_ERROR.summary)
-      // The summary names both rules; the field carries the first of them, as
-      // one error message, so the markup holds no joined-up pair.
+      expect(result).toContain(
+        `<span class="govuk-visually-hidden">Error:</span> ${COMMENT_INVALID_CHARACTERS_ERROR.inline}<br>${COMMENT_TOO_LONG_ERROR.inline}`
+      )
+    })
+
+    // The only route-level test of this rule elsewhere pairs it with a comment
+    // that is also too long, so this pins what one failed rule alone looks
+    // like: one summary entry, one inline message, and no length error.
+    test('Refuses a comment holding an invalid character, with one summary entry', async () => {
+      const { statusCode, result } = await postRef({ comment: 'note \uFFFD' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toContain(
+        `<a href="#comment">${COMMENT_INVALID_CHARACTERS_ERROR.summary}</a>`
+      )
       expect(result).toContain(
         `<span class="govuk-visually-hidden">Error:</span> ${COMMENT_INVALID_CHARACTERS_ERROR.inline}`
       )
+      expect(result).not.toContain(COMMENT_TOO_LONG_ERROR.summary)
       expect(result).not.toContain(COMMENT_TOO_LONG_ERROR.inline)
+      expect(result).not.toContain('href="#habitatRef"')
+      expect(result).toContain('>note \uFFFD</textarea>')
+    })
+
+    // AC4: the save overwrites whatever the habitat already held, whether that
+    // came from the upload or an earlier save, and a box left blank removes it.
+    test('Overwrites a previously saved comment, and removes it when left blank', async () => {
+      vi.mocked(wreck.get).mockImplementation((requestUrl) => {
+        if (requestUrl.endsWith(`/features/${habitatId}`)) {
+          return Promise.resolve({
+            res: { statusCode: 200 },
+            payload: {
+              type: 'habitat',
+              feature: { ...mockHabitat, comment: 'The imported note' }
+            }
+          })
+        }
+        return Promise.resolve(routeWreck(requestUrl))
+      })
+
+      const replaced = await postRef({ comment: 'A replacement note' })
+      expect(replaced.statusCode).toBe(302)
+      const [, replacedOptions] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(replacedOptions.payload).comment).toBe(
+        'A replacement note'
+      )
+      expect(replacedOptions.payload).not.toContain('The imported note')
+
+      const removed = await postRef({ comment: '   ' })
+      expect(removed.statusCode).toBe(302)
+      const [, removedOptions] = vi.mocked(wreck.put).mock.calls[1]
+      expect(JSON.parse(removedOptions.payload).comment).toBeNull()
     })
 
     // A browser newline-normalises a textarea's value to CRLF on submission,
@@ -2466,9 +2513,10 @@ describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
   })
 })
 
-// An individual tree is an area habitat on this page, but its comment is out
-// of scope (BMD-1112): the page offers no box, so nothing can overwrite a
-// comment imported with the tree.
+// An individual tree is an area habitat on this page, and takes supporting
+// information like one (BMD-1112). Covered separately from the area habitat
+// tests above because a tree reaches the box through treeStrategy, and
+// because its size class and number of trees must survive a save untouched.
 describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)', () => {
   let server
   let crumb
@@ -2538,7 +2586,7 @@ describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)'
     vi.restoreAllMocks()
   })
 
-  test('Shows no supporting information box, and does not show the stored comment', async () => {
+  test("Shows the box filled from the tree's stored comment", async () => {
     const { statusCode, result } = await server.inject({
       method: 'GET',
       url: `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`,
@@ -2546,15 +2594,16 @@ describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)'
     })
 
     expect(statusCode).toBe(statusCodes.ok)
-    expect(result).not.toContain('id="comment"')
-    expect(result).not.toContain('Supporting information')
-    expect(result).not.toContain('Imported tree note')
+    expect(result).toMatch(
+      /<label class="govuk-label govuk-label--m" for="comment">\s*Supporting information\s*<\/label>/
+    )
+    expect(result).toContain('>Imported tree note</textarea>')
     // The rest of the tree's page is unchanged by this story.
     expect(result).toContain('Number of trees')
   })
 
-  test('Sends no comment on save, so the imported one stays', async () => {
-    const { statusCode } = await server.inject({
+  const postTree = (payload) =>
+    server.inject({
       method: 'POST',
       url: '/baseline-habitat-details',
       payload: {
@@ -2563,14 +2612,40 @@ describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)'
         broadHabitat: 'Individual trees',
         habitatType: 'Urban tree',
         condition: 'Good',
-        crumb: crumb.token
+        crumb: crumb.token,
+        ...payload
       },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
 
+  test('Saves a trimmed comment on a tree, overwriting the imported one', async () => {
+    const { statusCode } = await postTree({ comment: '  A tree  note  ' })
+
     expect(statusCode).toBe(302)
     const [, options] = vi.mocked(wreck.put).mock.calls[0]
-    expect(JSON.parse(options.payload)).not.toHaveProperty('comment')
+    expect(JSON.parse(options.payload).comment).toBe('A tree  note')
+  })
+
+  test('Sends null for a tree comment cleared to whitespace', async () => {
+    const { statusCode } = await postTree({ comment: ' \n\t ' })
+
+    expect(statusCode).toBe(302)
+    const [, options] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(options.payload).comment).toBeNull()
+  })
+
+  // The rules are the comment's own, not the page's, so a tree is refused the
+  // same way an area habitat is.
+  test('Refuses a tree comment of 1000 characters, keeping what was typed', async () => {
+    const overLimit = 'a'.repeat(MAX_COMMENT_LENGTH + 1)
+    const { statusCode, result } = await postTree({ comment: overLimit })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    expect(result).toContain(
+      `<a href="#comment">${COMMENT_TOO_LONG_ERROR.summary}</a>`
+    )
+    expect(result).toContain(`>${overLimit}</textarea>`)
   })
 })

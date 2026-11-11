@@ -1311,19 +1311,23 @@ forms:
       text: Enter a habitat reference of {max} characters or fewer.
 
   # The supporting information (the habitat's comment) on the baseline habitat
-  # details page, for areas, hedgerows and watercourses alike (BMD-1112). The
+  # details page, for every feature type it serves alike (BMD-1112). The
   # same two rules the upload applies, whose wording for a whole file is
   # upload.errors.COMMENT_TOO_LONG and COMMENT_INVALID_CHARACTERS. {max} is
   # MAX_COMMENT_LENGTH in habitat-comment.js, which mirrors the backend's.
-  # AWAITING UCD: interim wording, shown until content design words it.
+  # Both rules are shown but have not been through UCD, so each says
+  # "wording: interim" rather than marking it in a comment (BMD-1112 AC5
+  # words them as placeholders).
   comment:
     # Longer than {max} characters once leading and trailing whitespace has
     # been removed. A comment of exactly {max} is allowed.
     tooLong:
+      wording: interim
       summary: The supporting information is too long.
       inline: Supporting information must be {max} characters or less.
     # Holds characters that are not valid UTF-8.
     invalidCharacters:
+      wording: interim
       summary: The supporting information uses invalid characters.
       inline: The supporting information can only use UTF-8 characters.
 

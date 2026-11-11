@@ -103,7 +103,7 @@ describe('commentFormFields', () => {
     ).toBe('typed')
   })
 
-  test('lists every failed rule in the summary, showing the first at the field', () => {
+  test('lists every failed rule in the summary and against the field', () => {
     const fields = commentFormFields({
       submittedComment: OVER_LIMIT,
       refusals: [COMMENT_INVALID_CHARACTERS_ERROR, COMMENT_TOO_LONG_ERROR]
@@ -113,7 +113,7 @@ describe('commentFormFields', () => {
       { text: COMMENT_TOO_LONG_ERROR.summary, href: '#comment' }
     ])
     expect(fields.commentInput.error).toEqual({
-      text: COMMENT_INVALID_CHARACTERS_ERROR.inline
+      html: `${COMMENT_INVALID_CHARACTERS_ERROR.inline}<br>${COMMENT_TOO_LONG_ERROR.inline}`
     })
   })
 
