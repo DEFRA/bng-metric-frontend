@@ -25,7 +25,7 @@ export const WHEN_ALONE = Object.freeze({
 })
 
 /** The inList value that heads the list with the catch-all title. */
-const CATCH_ALL = 'catch-all'
+export const IN_LIST_CATCH_ALL = 'catch-all'
 
 /** The link targets a sentence can name, as [link text](target). */
 export const LINK_TARGETS = Object.freeze({
@@ -78,7 +78,7 @@ const errorEntry = Joi.object({
     Joi.array().items(pageCopy).min(1)
   ).required(),
   inList: Joi.alternatives(
-    Joi.string().valid(CATCH_ALL),
+    Joi.string().valid(IN_LIST_CATCH_ALL),
     Joi.object({
       heading: text.required(),
       listsHabitats: Joi.boolean(),
@@ -148,7 +148,13 @@ const copySchema = Joi.object({
     .required()
 })
 
-function checkDropoutCopy(section) {
+/**
+ * Check the drop-out page's copy: the upload section, as read from the file.
+ * Exported so the error message export refuses a file the server would.
+ *
+ * @param {Record<string, any>} section
+ */
+export function checkDropoutCopy(section) {
   const { value, error, warning } = copySchema.validate(section, {
     abortEarly: false
   })
