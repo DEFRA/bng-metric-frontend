@@ -48,12 +48,24 @@
 # code missing from its section, or an entry for a code the backend no longer
 # has.
 #
-# "placeholder" in the edit section means the wording is awaiting UCD, and
-# the page shows its generic message instead.
+# Wording that is not final says so, in any section, with a "wording" field
+# on its entry:
 #
-# "# AWAITING UCD" in a comment marks interim wording that the pages do show
-# but UCD has not reviewed. Search for both to find everything UCD still has
-# to word.
+#   wording: interim   the pages show it, but UCD has not reviewed it
+#   wording: none      it has no words of its own yet, so the page shows a
+#                      generic message instead. Only where that is so: an
+#                      edit or forms rule, which then has no words, or an
+#                      upload error whose whenAlone names a shared fallback.
+#                      On an upload error it means the page it is alone on:
+#                      its inList heading is still shown when the page lists
+#                      it with others. A common text, a page or a shared
+#                      fallback is always shown, so can only be interim
+#
+# An entry with no "wording" field is final. Search for "wording:" to find
+# everything UCD still has to word. A "none" where the page would show words
+# fails the file's check. Any other value is logged as a warning when the
+# service starts and counts as unfinished wording, but changes nothing the
+# page shows: it still shows the entry's words, so the entry must have them.
 #
 # What each upload rule checks, and which example file shows it:
 # https://github.com/DEFRA/bng-metric-harness/blob/main/docs/geopackage-validation-explained.md
@@ -69,8 +81,9 @@ common:
   # The gap is logged for a developer to add a rule. Also shown on purpose for
   # a check only a form posted from elsewhere can fail, such as a radio
   # button's value.
-  # AWAITING UCD: interim wording, shown until content design words it.
-  unworded: There is a problem with this answer
+  unworded:
+    wording: interim
+    text: There is a problem with this answer
 
 # ------------------------------------------------------------------ upload
 #
@@ -179,8 +192,8 @@ upload:
 
   # A problem in the file with no copy of its own, outside its layers and
   # columns: shown for whenAlone: file-problem, and for a code with no entry.
-  # AWAITING UCD: interim wording, shown until content design words it.
   fileProblem:
+    wording: interim
     title: Your Geopackage (.gpkg) file contains an error
     body: >-
       Check the habitats in your file and [upload a new file](upload).
@@ -188,8 +201,8 @@ upload:
   # The service failed to check the file, so there is nothing for the user to
   # change: shown for whenAlone: service-problem. GOV.UK's wording for a
   # service problem.
-  # AWAITING UCD: interim wording, shown until content design words it.
   serviceProblem:
+    wording: interim
     title: Sorry, there is a problem with the service
     body: Try again later.
 
@@ -809,8 +822,8 @@ upload:
         heading: >-
           One or more trees are not entirely within the redline boundary
 
-    # AWAITING UCD
     IRREPLACEABLE_TREE:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -916,7 +929,7 @@ upload:
     # baseline parent by its template layer, Habitat Ref and habitat type, then
     # the parent it was copied from, or the rows copied from it.
     #
-    # AWAITING UCD: interim copy for this whole group (BMD-1086).
+    # Every heading in this group is interim wording.
     #
     # Each heading was copied word for word from the backend's message
     # (bng-metric-backend, src/validation/geopackage/service-template/lineage/
@@ -926,6 +939,7 @@ upload:
     # check compares only the codes, not the wording.
 
     STAGED_PARENT_LINK_MISSING:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -937,6 +951,7 @@ upload:
           - ' — {habitatType}'
 
     STAGED_UNKNOWN_PARENT_REF:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -948,6 +963,7 @@ upload:
           - ' — {habitatType}'
 
     STAGED_AMBIGUOUS_PARENT:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -961,6 +977,7 @@ upload:
           - ', named by {childRefs}'
 
     STAGED_BASELINE_DRIFTED:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -973,6 +990,7 @@ upload:
           - ', copied to {childRefs}'
 
     STAGED_HEDGEROW_CHILDREN_TOO_LONG:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -986,6 +1004,7 @@ upload:
           - ' ({length} m, linked {childLength} m)'
 
     STAGED_VERTICAL_CHILDREN_TOO_LARGE:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -999,8 +1018,8 @@ upload:
           - ', copied to {childRefs}'
           - '; Area {area}, linked {childArea}'
 
-    # AWAITING UCD
     STAGED_TREE_CHILDREN_TOO_MANY:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -1015,6 +1034,7 @@ upload:
           - '; Count {count}, linked {childCount}'
 
     STAGED_WATERCOURSE_RETAINED_AND_CREATED:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -1029,6 +1049,7 @@ upload:
           - ', copied to {childRefs}'
 
     STAGED_NATURAL_WATERCOURSE_LOST:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -1042,6 +1063,7 @@ upload:
           - ', copied to {childRefs}'
 
     STAGED_DEGRADE_NOT_WORSE:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -1056,6 +1078,7 @@ upload:
           - ', copied from {parentRef}'
 
     STAGED_DEGRADE_ADVANCE_NOT_30_PLUS:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -1069,6 +1092,7 @@ upload:
           - ', copied from {parentRef}'
 
     STAGED_WATERCOURSE_NO_INTERVENTION:
+      wording: interim
       whenAlone: list
       inList:
         heading: >-
@@ -1110,29 +1134,33 @@ upload:
 # A refusal of a change made on screen. "summary" is shown in the error
 # summary at the top of the page and "inline" by the field; content design
 # words them differently on purpose. An edit code the pages do not show yet
-# is a placeholder: the page shows its generic error.
+# has "wording: none" and no words: the page shows its generic error.
 
 edit:
   HABITAT_REF_IN_USE:
     # A rename onto a reference another baseline habitat in the same layer
     # already carries.
-    # AWAITING UCD: interim wording, shown until content design words it.
+    wording: interim
     summary: You have entered a habitat reference that is already in use.
     inline: Enter a habitat reference that is not already in use.
 
   # An edit that would leave an enhanced habitat that is not a valid
   # enhancement of its baseline. Not shown by the pages yet.
-  ENHANCEMENT_NOT_VALID: placeholder
+  ENHANCEMENT_NOT_VALID:
+    wording: none
 
   # A habitat type chosen on screen whose distinctiveness is out of the
   # service's scope. Not shown by the pages yet.
-  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: placeholder
+  HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
+    wording: none
 
 # ------------------------------------------------------------------- forms
 #
 # A form field's own validation, by field, then rule. "summary" and "inline"
-# as for edit. A rule given as one line shows the same words in both. {braces}
-# are filled in by the page, from a limit it applies or what was entered.
+# as for edit. A rule given as one line shows the same words in both, as does
+# one given as "text" beside its "wording". {braces} are filled in by the
+# page, from a limit it applies or what was entered. A rule with
+# "wording: none" and no words shows common.unworded.
 
 forms:
   projectName:
@@ -1148,12 +1176,14 @@ forms:
     notInList: Select a Local Planning Authority from the list
 
   surveyCompleters:
-    # AWAITING UCD: interim wording, shown until content design words it.
-    tooLong: Survey completer(s) must be {max} characters or fewer
+    tooLong:
+      wording: interim
+      text: Survey completer(s) must be {max} characters or fewer
 
   applicant:
-    # AWAITING UCD: interim wording, shown until content design words it.
-    tooLong: Applicant must be {max} characters or fewer
+    tooLong:
+      wording: interim
+      text: Applicant must be {max} characters or fewer
 
   surveyCompletionDate:
     # Some of the day, month and year are blank, but not all three. {part} is
@@ -1232,13 +1262,13 @@ pages:
   notFound:
     title: Page not found
   forbidden:
-    # AWAITING UCD: interim wording, shown until content design words it.
+    wording: interim
     title: Forbidden
   unauthorized:
-    # AWAITING UCD: interim wording, shown until content design words it.
+    wording: interim
     title: Unauthorized
   badRequest:
-    # AWAITING UCD: interim wording, shown until content design words it.
+    wording: interim
     title: Bad Request
   conflict:
     # Someone else saved the project first.

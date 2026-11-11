@@ -5,6 +5,14 @@ import Joi from 'joi'
 import { load } from 'js-yaml'
 
 import { splitLink } from './links.js'
+import {
+  WORDING,
+  forbiddenWhenNone,
+  logErrorTextWarnings,
+  shownWordingField,
+  wordingField,
+  wordsUnlessNone
+} from './wording.js'
 
 // Every message a customer can see when the service refuses something lives
 // in error-text.yaml, for product, BAs and UCD to review in one place. This
@@ -15,23 +23,35 @@ import { splitLink } from './links.js'
 
 export const ERROR_TEXT_FILE = path.join(import.meta.dirname, 'error-text.yaml')
 
-/** An entry whose wording is awaiting UCD. */
-export const PLACEHOLDER = 'placeholder'
-
 const text = Joi.string().pattern(/\S/)
 const code = Joi.string().pattern(/^[A-Z][A-Z0-9_]*$/)
 
 // The error summary and the inline message say different things by design.
+// An entry with no wording yet has neither, and the page shows its generic
+// error.
 const message = Joi.object({
-  summary: text.required(),
-  inline: text.required()
-})
+  wording: wordingField,
+  summary: wordsUnlessNone(text),
+  inline: wordsUnlessNone(text)
+}).and('summary', 'inline')
 
-// A form field's message is either a pair, or one text that the error summary
-// and the inline message both show.
+// A form field's message is one text that the error summary and the inline
+// message both show, either alone or as `text` beside a `wording` field, or a
+// pair. One with no wording yet has none of them, and shows common.unworded.
 const formMessage = Joi.alternatives().conditional(Joi.string(), {
   then: text,
-  otherwise: message
+  otherwise: Joi.object({
+    wording: wordingField,
+    text: forbiddenWhenNone(text),
+    summary: forbiddenWhenNone(text),
+    inline: forbiddenWhenNone(text)
+  })
+    .and('summary', 'inline')
+    .oxor('text', 'summary')
+    // Only "none" frees a rule of its words, as for wordsUnlessNone.
+    .when(Joi.object({ wording: Joi.invalid(WORDING.NONE) }).unknown(), {
+      then: Joi.object().or('text', 'summary')
+    })
 })
 
 // A {name} in a message, filled in by the page from a value it knows.
@@ -50,23 +70,23 @@ const pageLine = plainText.custom((line, helpers) => {
     : helpers.message(`links to "${target}", which is not a page link target`)
 })
 
+// Common text is what other entries fall back to, so it always has words:
+// alone, or as `text` beside a `wording` field.
+const commonText = Joi.alternatives().conditional(Joi.string(), {
+  then: plainText,
+  otherwise: Joi.object({
+    wording: shownWordingField,
+    text: plainText.required()
+  })
+})
+
 const errorTextSchema = Joi.object({
   common: Joi.object({
-    summaryTitle: plainText.required(),
-    unworded: plainText.required()
+    summaryTitle: commonText.required(),
+    unworded: commonText.required()
   }).required(),
   upload: Joi.object().required(),
-  // Chosen by type, so a slip names the field it is in: "inline is required"
-  // rather than "matches none of the allowed types".
-  edit: Joi.object()
-    .pattern(
-      code,
-      Joi.alternatives().conditional(Joi.string(), {
-        then: Joi.string().valid(PLACEHOLDER),
-        otherwise: message
-      })
-    )
-    .required(),
+  edit: Joi.object().pattern(code, message).required(),
   forms: Joi.object()
     .pattern(Joi.string(), Joi.object().pattern(Joi.string(), formMessage))
     .required(),
@@ -74,6 +94,7 @@ const errorTextSchema = Joi.object({
     .pattern(
       Joi.string(),
       Joi.object({
+        wording: shownWordingField,
         title: plainText,
         body: Joi.array().items(pageLine).min(1)
       }).or('title', 'body')
@@ -88,20 +109,31 @@ const errorTextSchema = Joi.object({
  * @param {string} source - YAML text
  */
 export function parseErrorText(source) {
-  const { value, error } = errorTextSchema.validate(load(source), {
+  const { value, error, warning } = errorTextSchema.validate(load(source), {
     abortEarly: false
   })
   if (error) {
     throw new Error(`error-text.yaml is not valid: ${error.message}`)
   }
+  logErrorTextWarnings(warning)
   return value
+}
+
+/**
+ * The words of an entry given as words alone, or as `text` beside a
+ * `wording` field.
+ *
+ * @param {string | { text?: string }} entry
+ */
+function wordsOf(entry) {
+  return typeof entry === 'string' ? entry : entry.text
 }
 
 export const errorText = parseErrorText(readFileSync(ERROR_TEXT_FILE, 'utf8'))
 
 /**
  * The wording for an edit the backend refused with `errorCode`, or null when
- * it has none yet: a placeholder, or no entry.
+ * it has none yet: an entry with no words, or no entry.
  *
  * @param {string} errorCode
  * @returns {{ summary: string, inline: string } | null}
@@ -110,7 +142,9 @@ export function editErrorText(errorCode) {
   const entry = Object.hasOwn(errorText.edit, errorCode ?? '')
     ? errorText.edit[errorCode]
     : null
-  return typeof entry === 'object' ? entry : null
+  return entry?.summary
+    ? { summary: entry.summary, inline: entry.inline }
+    : null
 }
 
 /**
@@ -133,9 +167,27 @@ export function fillErrorText(template, values) {
 }
 
 /**
+ * A form rule's summary and inline wording: the same words for both when it
+ * has one text, and common.unworded when it has no wording yet.
+ *
+ * @param {string | { text?: string, summary?: string, inline?: string }} entry
+ */
+function formWords(entry) {
+  if (typeof entry === 'string' || entry.text) {
+    const words = wordsOf(entry)
+    return { summary: words, inline: words }
+  }
+  if (entry.summary) {
+    return { summary: entry.summary, inline: entry.inline }
+  }
+  const unworded = commonErrorText('unworded')
+  return { summary: unworded, inline: unworded }
+}
+
+/**
  * A form field's validation wording, with any {braces} filled in from
- * `values`. Throws when the file has none, so a page that names a missing one
- * fails as it loads, not when a user meets it.
+ * `values`. Throws when the file has no such rule, so a page that names a
+ * missing one fails as it loads, not when a user meets it.
  *
  * @param {string} field
  * @param {string} rule
@@ -147,8 +199,7 @@ export function formErrorText(field, rule, values = {}) {
   if (!entry) {
     throw new Error(`error-text.yaml has no forms.${field}.${rule}`)
   }
-  const { summary, inline } =
-    typeof entry === 'string' ? { summary: entry, inline: entry } : entry
+  const { summary, inline } = formWords(entry)
   return {
     summary: fillErrorText(summary, values),
     inline: fillErrorText(inline, values)
@@ -162,7 +213,7 @@ export function formErrorText(field, rule, values = {}) {
  * @returns {string}
  */
 export function commonErrorText(key) {
-  return errorText.common[key]
+  return wordsOf(errorText.common[key])
 }
 
 /**

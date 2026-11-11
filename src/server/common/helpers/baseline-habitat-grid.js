@@ -2,6 +2,7 @@ import { formatHabitatUnits } from './format-habitat-values.js'
 import { HABITAT_UPLOAD_TYPES } from './habitat-upload-types.js'
 import {
   FIXED_STRATEGIC_SIGNIFICANCE,
+  STATUS_COLUMN,
   TOTALS_LABEL,
   boldCell,
   buildHabitatGrid,
@@ -30,6 +31,7 @@ function buildColumns({ readSize, formatSize, formatSizeTotal, extraColumns }) {
         ),
       total: () => boldCell(textCell(TOTALS_LABEL))
     },
+    STATUS_COLUMN,
     {
       text: 'Units',
       numeric: true,

@@ -23,3 +23,6 @@ tsconfig.tsbuildinfo
 id_rsa
 id_ed25519
 *.kdbx
+
+# npm run export:error-text
+/export/

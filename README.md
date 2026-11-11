@@ -118,6 +118,36 @@ To view them in your command line run:
 npm run
 ```
 
+### Exporting the error messages
+
+Every message a customer can see when the service refuses something lives in
+`src/server/common/error-text/error-text.yaml`. To review them as a table:
+
+```bash
+npm run export:error-text
+```
+
+This writes `export/error-messages-<date>-<branch>-<commit>` as `.xlsx`, `.csv`
+and `.html`, with one row for each error ID. The rows give each part of the
+message, its status (Final, Awaiting UCD or Needs content, from the entry's
+`wording` field), any shared fallback it shows, what its `{values}` are filled
+in with, and a link to its line in the file. A row that shows a shared
+fallback's words is no further on than that fallback, so an error with no
+`wording` field of its own is Awaiting UCD when its fallback is interim. Each
+CSV row ends with the date, branch and commit it was read from. The file is
+checked as the server checks it at start-up, so the export refuses a file the
+server would. `-- --out DIR` writes elsewhere, and `-- --help` lists the
+options.
+
+The Error Messages Export workflow runs the export on every pull request to
+`main`, on every push to `main`, and on demand from the Actions tab for the
+branch picked there. Each run keeps the three files as one
+`error-messages-export` artifact for 90 days, and its summary counts the error
+IDs with each status and links to the artifact. A pull request's run exports
+the wording on the pull request's branch, and links each row to its line at
+the branch's head commit. It is not a required check, so it never holds up a
+merge.
+
 ### Update dependencies
 
 To update dependencies use [npm-check-updates](https://github.com/raineorshine/npm-check-updates):
