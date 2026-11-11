@@ -507,9 +507,9 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
       )
     )
   }
-  const errors = validateCreatedArea(values, reference)
-  if (Object.keys(errors).length) {
-    return showRefused({ errors })
+  const fieldErrors = validateCreatedArea(values, reference)
+  if (Object.keys(fieldErrors).length) {
+    return showRefused({ errors: fieldErrors })
   }
   try {
     await saveCreatedArea(request, values, kind, feature)
