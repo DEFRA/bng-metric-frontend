@@ -31,11 +31,18 @@ function describeCount(error, key) {
   return Number.isFinite(value) ? value.toLocaleString('en-GB') : null
 }
 
+// The ref of the one habitat an error names, and null when it names several,
+// so a page about one habitat is not shown for the first of many.
+function describeOnlyRef(error, sample) {
+  return error?.details?.count === 1 ? describeRef(sample) : null
+}
+
 // The {values} a single error's copy can name.
 function valuesFor(error) {
   const sample = error?.details?.sample?.[0] ?? null
   return {
     ref: describeRef(sample),
+    onlyRef: describeOnlyRef(error, sample),
     refA: describeRef(sample, '_a'),
     refB: describeRef(sample, '_b'),
     featureCount: describeCount(error, 'featureCount'),

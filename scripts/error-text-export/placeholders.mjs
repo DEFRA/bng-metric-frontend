@@ -60,6 +60,8 @@ export const PLACEHOLDERS = Object.freeze({
   max: 'the limit the page applies',
   maxFeatureCount: 'the most features the service can check',
   name: 'the habitat, by its Habitat Ref, or else its fid',
+  onlyRef:
+    'the Habitat Ref, or else fid, of the one habitat the problem names; unknown when it names several',
   parentRef: 'the Habitat Ref of the baseline habitat it was copied from',
   part: 'the part of the date left blank: day, month or year',
   parts: 'the parts of the date left blank, such as "day and month"',

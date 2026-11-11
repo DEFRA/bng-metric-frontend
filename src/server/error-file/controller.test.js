@@ -514,24 +514,53 @@ describe('invalidFileController.handler — populated session', () => {
 
       expect(view.errorBlocks[0]).toEqual({
         heading:
-          'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline',
+          'One or more baseline habitats cannot be processed by the service due to a missing or incompatible value',
         items: ['Feature Ref H002 — Ground based green wall', 'fid 7'],
         more: 0
       })
     })
 
-    test('alone, still lists the habitats to complete, not a single-error page', async () => {
-      const view = await render([incompleteBaseline])
-
-      expect(view.singleError).toBeFalsy()
-      expect(view.errorBlocks).toEqual([
+    test('alone with one habitat, shows UCD ref 72, naming the habitat', async () => {
+      const view = await render([
         {
-          heading:
-            'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline',
-          items: ['Feature Ref H002 — Ground based green wall', 'fid 7'],
-          more: 0
+          ...incompleteBaseline,
+          details: { count: 1, sample: [incompleteBaseline.details.sample[0]] }
         }
       ])
+
+      expect(view.pageTitle).toBe('There is a problem with your file')
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Habitat parcels',
+        helpText:
+          'Baseline habitat H002 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with one habitat with no ref, names it by its fid', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 1, sample: [incompleteBaseline.details.sample[1]] }
+        }
+      ])
+
+      expect(view.singleError.helpText).toBe(
+        'Baseline habitat 7 cannot be processed by the service due to a missing or incompatible value.'
+      )
+    })
+
+    test('alone with several habitats, does not name only the first', async () => {
+      const view = await render([incompleteBaseline])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Habitat parcels',
+        helpText:
+          'Some baseline habitats cannot be processed by the service due to a missing or incompatible value.'
+      })
     })
   })
 

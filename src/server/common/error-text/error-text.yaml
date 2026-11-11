@@ -683,17 +683,28 @@ upload:
     # cannot be edited once a post-intervention file is uploaded (BMD-1194).
     # A baseline-only upload is not refused for it.
     #
-    # Shown as its list even alone: the user has to complete the habitats it
-    # names.
-    #
-    # AWAITING UCD: interim heading and bullet; the wording is awaiting UCD
-    # (Jack Arnott).
+    # Ref 72 in UCD's dropout error text. The page for one habitat is UCD's
+    # (Jack Arnott). {onlyRef} is known only when one habitat is incomplete, so
+    # a file with several shows the second page rather than naming just the
+    # first. That page and the list heading follow UCD's sentence but UCD has
+    # not reviewed them, hence interim.
     BASELINE_HABITATS_INCOMPLETE:
-      whenAlone: list
+      wording: interim
+      whenAlone:
+        - title: There is a problem with your file
+          subheading: Habitat parcels
+          body: >-
+            Baseline habitat {onlyRef} cannot be processed by the service due to
+            a missing or incompatible value.
+        - title: There is a problem with your file
+          subheading: Habitat parcels
+          body: >-
+            Some baseline habitats cannot be processed by the service due to a
+            missing or incompatible value.
       inList:
         heading: >-
-          One or more baseline habitats are incomplete, so this
-          post-intervention file cannot replace the project baseline
+          One or more baseline habitats cannot be processed by the service due
+          to a missing or incompatible value
         item:
           - '{feature}'
           - ' — {habitatType}'
