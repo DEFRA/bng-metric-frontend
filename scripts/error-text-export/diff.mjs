@@ -16,11 +16,19 @@ import {
 // without opening the summary. No I/O: it compares two lists of rows from
 // buildRows, matched by error ID.
 
-/** The columns compared: where an error is shown, and every part of it. */
-const COMPARED_KEYS = Object.freeze(['shown', ...WORDING_KEYS, ...SHARED_KEYS])
+/**
+ * The columns compared: where an error is shown, every part of it, and where
+ * its links go, as the cells show a link by its words alone.
+ */
+const COMPARED_KEYS = Object.freeze([
+  'shown',
+  ...WORDING_KEYS,
+  ...SHARED_KEYS,
+  'links'
+])
 
 /** The parts of a message an added or removed error is shown with. */
-const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, ...SHARED_KEYS])
+const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, ...SHARED_KEYS, 'links'])
 
 const HEADERS = Object.fromEntries(
   COLUMNS.map(({ key, header }) => [key, header])
@@ -58,10 +66,6 @@ export function diffRows(before, after) {
 }
 
 /**
- * Each kept row's changed parts. Rows with the same changes share one entry:
- * rewording a shared fallback changes every error that shows it alike.
- */
-/**
  * The columns compared for a row. A shared page's own row lists the codes
  * that use it in Shared page and Shared list heading, which change whenever
  * a code joins or leaves it, with no change to its wording, so those are
@@ -73,6 +77,10 @@ function comparedKeys(row) {
     : COMPARED_KEYS
 }
 
+/**
+ * Each kept row's changed parts. Rows with the same changes share one entry:
+ * rewording a shared fallback changes every error that shows it alike.
+ */
 function groupChanges(kept, was) {
   const groups = new Map()
   for (const row of kept) {

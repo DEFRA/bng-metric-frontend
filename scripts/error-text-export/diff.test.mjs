@@ -380,3 +380,58 @@ describe('diffRows, a code joining a shared page', () => {
     expect(joinedDiff.changed).toEqual([])
   })
 })
+
+describe('diffRows, a link that goes elsewhere', () => {
+  test('lists the change, though the words the link is shown as are the same', () => {
+    const page = `
+common:
+  summaryTitle: There is a problem
+  unworded: There is a problem with this answer
+upload:
+  page:
+    title: There is a problem with your file
+  links:
+    metric-tool: https://example.com/metric
+  catchAll:
+    legacyTemplate:
+      title: Your file contains an error
+      body: Check your file.
+    serviceTemplate:
+      title: Your file contains an error
+      body: Check your file.
+  fileProblem:
+    title: Your file contains an error
+    body: Check the habitats.
+  serviceProblem:
+    title: Sorry, there is a problem with the service
+    body: Try again later.
+  names: {}
+  unknown: {}
+  distinctiveness: {}
+  errors:
+    LINKED:
+      singleProblemPage:
+        title: A title
+        body: Fix it and [see the guide](TARGET).
+      problemsList:
+        heading: A heading
+edit: {}
+forms: {}
+pages: {}
+`
+    const linkDiff = diffRows(
+      all(page.replace('TARGET', 'upload')),
+      all(page.replace('TARGET', 'metric-tool'))
+    )
+    const [change] = linkDiff.changed
+    expect(change.ids).toEqual(['LINKED'])
+    expect(change.parts).toEqual([
+      {
+        part: 'Links',
+        before: '"see the guide": the upload page',
+        after:
+          '"see the guide": the statutory biodiversity metric tools and guides, on GOV.UK, https://example.com/metric'
+      }
+    ])
+  })
+})
