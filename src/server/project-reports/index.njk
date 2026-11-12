@@ -28,10 +28,13 @@
         The report is generated from your project as it is now, so download it
         again after making changes.
       </p>
+      {#- No download attribute: the report's content-disposition already
+          makes the browser save the PDF, and without the attribute an error,
+          such as "too many requests", shows as a page, not a failed download. #}
       {{ govukButton({
         text: "Download site report (PDF)",
         href: siteReportHref,
-        attributes: { download: "", "data-testid": "site-report-link" }
+        attributes: { "data-testid": "site-report-link" }
       }) }}
     </div>
   </div>

@@ -164,6 +164,40 @@ describe('#validateBaseline', () => {
     message: 'Service Unavailable'
   })
 
+  /** A 429 from a backend rate limit, as wreck rejects with it. */
+  const rateLimitedResponse = (retryAfter) => {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': retryAfter } },
+      payload: { statusCode: 429, error: 'Too Many Requests' }
+    }
+    return error
+  }
+
+  test('Should answer a 429 from a rate limit as busy, so the page waits and asks again', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(rateLimitedResponse('20'))
+    mockLoggerError.mockClear()
+
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
+
+    expect(result).toEqual({
+      valid: false,
+      busy: true,
+      retryAfterSeconds: 20,
+      errors: []
+    })
+    expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+
+  test('Should hold a rate-limit wait to the busy maximum of 30 seconds', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(rateLimitedResponse('55'))
+
+    const result = await validateBaseline(makeRequest(), projectId, uploadId)
+
+    expect(result.retryAfterSeconds).toBe(30)
+  })
+
   test('Should report a 503 from the backend as busy rather than an error', async () => {
     vi.mocked(wreck.post).mockRejectedValue(busyResponse({}))
 

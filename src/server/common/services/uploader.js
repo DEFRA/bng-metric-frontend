@@ -4,6 +4,7 @@ import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
 import { describeBackendFailure } from '../helpers/backend-failure.js'
+import { isRateLimited, pollWaitSeconds } from '../helpers/rate-limited.js'
 
 const logger = createLogger()
 
@@ -70,6 +71,15 @@ export async function initiateUpload(
       uploadUrl
     }
   } catch (error) {
+    // A rate limit refused the upload start: not a backend failure. The
+    // "too many requests" page shows it (catchAll).
+    if (isRateLimited(error)) {
+      logger.info(
+        `Upload start refused by the backend's rate limit - retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+      )
+      throw error
+    }
+
     const statusCode = error?.output?.statusCode
     // Gives only the safe fields of the backend's body, never its messages.
     const failure = describeBackendFailure(error, {
@@ -89,7 +99,7 @@ export async function initiateUpload(
  * Get the upload status from the backend
  * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {string} uploadId - The upload ID to check status for
- * @returns {Promise<{uploadStatus: string, error?: string}>}
+ * @returns {Promise<{uploadStatus: string, error?: string, retryAfterSeconds?: number | null}>}
  */
 export async function getUploadStatus(request, uploadId) {
   const url = `${backendUrl}/upload/${uploadId}/status`
@@ -114,6 +124,22 @@ export async function getUploadStatus(request, uploadId) {
       uploadStatus: payload.uploadStatus ?? 'unknown'
     }
   } catch (error) {
+    // A rate limit refused the status check: not a backend failure, and not a
+    // reason to end the poll. It answers as any failed check does, below, so
+    // the page refreshes and checks again — at the backend's pace, so it does
+    // not send more checks into the same limit.
+    if (isRateLimited(error)) {
+      const retryAfterSeconds = pollWaitSeconds(error)
+      logger.info(
+        `Upload status check refused by the backend's rate limit - uploadId: ${uploadId}, retryAfterSeconds: ${retryAfterSeconds ?? 'unset'}`
+      )
+      return {
+        uploadStatus: 'error',
+        error: 'Unable to check upload status',
+        retryAfterSeconds
+      }
+    }
+
     const statusCode = error?.output?.statusCode
     // Gives only the safe fields of the backend's body, never its messages.
     const failure = describeBackendFailure(error, {

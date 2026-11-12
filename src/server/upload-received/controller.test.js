@@ -361,6 +361,21 @@ describe('upload-received controller', () => {
   })
 
   // The backend sets the pace via Retry-After; the jitter stays on this side.
+  it('should pace the status check from the backend when a rate limit refused it', async () => {
+    vi.mocked(getUploadStatus).mockResolvedValue({
+      uploadStatus: 'error',
+      error: 'Unable to check upload status',
+      retryAfterSeconds: 20
+    })
+
+    const h = createMockH()
+    await getController.handler(createMockRequest('test-upload-id'), h)
+
+    const { refreshInterval } = h.view.mock.calls.at(-1)[1]
+    expect(refreshInterval).toBeGreaterThanOrEqual(20)
+    expect(refreshInterval).toBeLessThanOrEqual(23)
+  })
+
   it('should pace the retry from the backend Retry-After when given one', async () => {
     vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
     vi.mocked(validateBaseline).mockResolvedValue({
