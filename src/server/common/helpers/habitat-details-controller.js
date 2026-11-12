@@ -100,6 +100,17 @@ export function normalizePostInterventionFeatureForDisplay(feature) {
   }
 }
 
+/**
+ * A submitted field as the backend expects it: an empty value clears whatever
+ * is stored, which the backend represents as null rather than ''.
+ *
+ * @param {string | undefined} value
+ * @returns {string | null}
+ */
+function orNull(value) {
+  return value || null
+}
+
 function buildSaveBody({
   habitatRef,
   broadHabitat,
@@ -113,21 +124,21 @@ function buildSaveBody({
   // reference field never clears it.
   const body = habitatRef === undefined ? {} : { ref: habitatRef.trim() }
   Object.assign(body, {
-    broadType: broadHabitat || null,
-    habitatType: habitatType || null,
-    condition: condition || null
+    broadType: orNull(broadHabitat),
+    habitatType: orNull(habitatType),
+    condition: orNull(condition)
   })
   // Only the watercourse form submits encroachment fields.
   if (watercourseEncroachment !== undefined) {
-    body.watercourseEncroachment = watercourseEncroachment || null
+    body.watercourseEncroachment = orNull(watercourseEncroachment)
   }
   if (riparianEncroachment !== undefined) {
-    body.riparianEncroachment = riparianEncroachment || null
+    body.riparianEncroachment = orNull(riparianEncroachment)
   }
   // A form without the comment field must not clear a stored comment.
   // Whitespace-only is stored as no value.
   if (comment !== undefined) {
-    body.comment = cleanComment(comment) || null
+    body.comment = orNull(cleanComment(comment))
   }
   return body
 }
@@ -471,6 +482,53 @@ function saveErrorRefusal(err, refToSave) {
   return null
 }
 
+/**
+ * Show the details page again with field errors, keeping what the user typed
+ * and chose, and the way back they came in by.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {import('@hapi/hapi').ResponseToolkit} h
+ * @param {object} uploadType
+ * @param {{ projectId: string, featureId: string, refusals: object }} options
+ */
+async function showRefusedDetailsPage(
+  request,
+  h,
+  uploadType,
+  { projectId, featureId, refusals }
+) {
+  const response = await renderDetailsPage(request, h, uploadType, {
+    projectId,
+    featureId,
+    piBackHref: returnedPostInterventionHref(
+      request.payload.returnUrl,
+      projectId
+    ),
+    submitted: request.payload,
+    refusals
+  })
+  return response.code(statusCodes.badRequest)
+}
+
+/**
+ * The field errors a submission carries. A bad reference and a bad comment are
+ * reported together, so this collects both before the page is shown again.
+ *
+ * @param {{ refusal: string | null | undefined, comment: string | undefined }} submitted
+ * @returns {object} refusals by field name; empty when the submission is good
+ */
+function submittedFieldRefusals({ refusal, comment }) {
+  const fieldRefusals = {}
+  if (refusal) {
+    fieldRefusals.habitatRef = refusal
+  }
+  const commentProblems = commentRefusals(comment)
+  if (commentProblems.length > 0) {
+    fieldRefusals.comment = commentProblems
+  }
+  return fieldRefusals
+}
+
 function createPostController(uploadType) {
   return {
     options: { validate: { payload: habitatDetailsPayload } },
@@ -496,30 +554,14 @@ function createPostController(uploadType) {
           habitatRef
         }
       )
-      // A refused reference or comment shows the page again with the error,
-      // keeping what the user typed and chose, and the way back they came in by.
-      const showRefused = async (refusedFields) => {
-        const response = await renderDetailsPage(request, h, uploadType, {
+      const showRefused = (refusedFields) =>
+        showRefusedDetailsPage(request, h, uploadType, {
           projectId,
           featureId,
-          piBackHref: returnedPostInterventionHref(
-            request.payload.returnUrl,
-            projectId
-          ),
-          submitted: request.payload,
           refusals: refusedFields
         })
-        return response.code(statusCodes.badRequest)
-      }
-      // A bad reference and a bad comment are reported together.
-      const fieldRefusals = {}
-      if (refusal) {
-        fieldRefusals.habitatRef = refusal
-      }
-      const commentProblems = commentRefusals(comment)
-      if (commentProblems.length > 0) {
-        fieldRefusals.comment = commentProblems
-      }
+
+      const fieldRefusals = submittedFieldRefusals({ refusal, comment })
       if (Object.keys(fieldRefusals).length > 0) {
         return showRefused(fieldRefusals)
       }
