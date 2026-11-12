@@ -59,11 +59,14 @@ function entryWarning(change, file) {
   return `::warning ${properties.join(',')}::${escapeData(message(change))}`
 }
 
-/** The last warning, in place of those GitHub would drop: how many more. */
+/**
+ * The last warning, in place of those GitHub would drop: how many more. Only
+ * past 10, so always 2 or more: a single extra entry has the tenth slot.
+ */
 function moreWarning(more) {
   const title = escapeProperty('More error wording left unfinished')
   return `::warning title=${title}::${escapeData(
-    `${more} more ${more === 1 ? 'entry is' : 'entries are'} left unfinished. The run's summary and log list every change.`
+    `${more} more entries are left unfinished. The run's summary and log list every change.`
   )}`
 }
 
