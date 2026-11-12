@@ -1832,7 +1832,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each irreplaceable tree, in the table of the stage that marks it, even alone', async () => {
+  test('lists each tree whose Irreplaceable Habitat is not No, in the table of the stage that has it, even alone', async () => {
     const tree = (table, ref, fid) => ({
       layer: 'trees',
       table,
@@ -1844,7 +1844,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       {
         code: 'IRREPLACEABLE_TREE',
         message:
-          'One or more trees are marked as irreplaceable habitat. The service does not accept irreplaceable trees: Individual Trees Baseline Habitat Ref T001',
+          'One or more trees have an Irreplaceable Habitat other than "No". Irreplaceable Habitat must be "No" for every tree, because the service does not accept irreplaceable trees: Individual Trees Baseline Habitat Ref T001',
         stage: 'baseline',
         details: {
           count: 2,
@@ -1860,7 +1860,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more trees are marked as irreplaceable habitat. The service does not accept irreplaceable trees, such as ancient and veteran trees',
+        'Irreplaceable Habitat must be "No" for every tree, because the service does not accept irreplaceable trees, such as ancient and veteran trees. These trees have Irreplaceable Habitat "Yes", blank or another value',
         [
           'Individual Trees Baseline Habitat Ref T001',
           'Individual Trees Baseline fid 7'
