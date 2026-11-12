@@ -146,8 +146,8 @@ message, its status (Final, Awaiting UCD or Needs content, from the entry's
 problem (its own page, worded for any number of habitats, for one and for
 several, or for one only; a shared page; or the problems list), its
 single-problem page's wording for several in the "(several)" columns, any
-shared fallback it shows (for an edit with no words of its own, the error page
-a refused change shows in its place, quoted), what its `{values}` are filled
+shared fallback it shows, named and with its words quoted (for an edit with no
+words of its own, the error page a refused change shows in its place), what its `{values}` are filled
 in with, and a link to its line in the file. A row that shows a shared
 fallback's words is no further on than that fallback, so an error with no
 `wording` field of its own is Awaiting UCD when its fallback is interim. Each

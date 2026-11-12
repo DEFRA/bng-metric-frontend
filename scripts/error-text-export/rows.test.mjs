@@ -221,7 +221,8 @@ describe('buildRows, what an error shows when it is the only problem', () => {
 
   test('says a code on a shared page shows it, and names it', () => {
     const shared = rows.find(({ alone }) => alone === ALONE.SHARED)
-    expect(shared.fallback).toMatch(/, when alone$/m)
+    // Named, then its words quoted: on the same line, or a line a template.
+    expect(shared.fallback).toMatch(/, when alone:[ \n](.+: )?".+" then ".+"/)
   })
 
   test("gives a page's wording for several in its own columns", () => {
@@ -373,7 +374,7 @@ describe('buildRows, by group', () => {
 
   test('still names a fallback a code shows, without its row', () => {
     const [row] = buildRows(FIXTURE).filter(({ id }) => id === 'B_LAYER')
-    expect(row.fallback).toBe('Catch-all (upload.catchAll), when alone')
+    expect(row.fallback).toMatch(/^Catch-all \(upload\.catchAll\), when alone:/)
     expect(row.pageHeading).toBe('Your file contains an error')
   })
 
@@ -466,14 +467,27 @@ describe('buildRows, from a small file', () => {
       'Legacy template: Rename the layers and [upload a new file](upload).\n' +
         'BNG Service template: Match the template and [upload a new file](upload).'
     )
-    expect(row.fallback).toBe('Catch-all (upload.catchAll), when alone')
+    // Named, and its words quoted: each template's, as they differ.
+    expect(row.fallback).toBe(
+      [
+        'Catch-all (upload.catchAll), when alone:',
+        'Legacy template: "Your file contains an error" then "Rename the layers and [upload a new file](upload)."',
+        'BNG Service template: "Your file contains an error" then "Match the template and [upload a new file](upload)."'
+      ].join('\n')
+    )
+  })
+
+  test('quotes a shared page worded alike for every template on one line', () => {
+    expect(fixtureRow('C_ALONE').fallback).toBe(
+      'File problem (upload.fileProblem), when alone: "Your file contains an error" then "Check the habitats."'
+    )
   })
 
   test('heads a catch-all list entry with the catch-all title', () => {
     const row = fixtureRow('BOTH')
     expect(row.listHeading).toBe('Your file contains an error')
     expect(row.fallback).toContain(
-      'Catch-all (upload.catchAll) title, in a list'
+      'Catch-all (upload.catchAll) title, in a list: "Your file contains an error"'
     )
   })
 

@@ -139,16 +139,36 @@ describe('diffRows', () => {
     })
   })
 
-  test('makes one entry of a shared fallback and the IDs it rewords alike', () => {
-    const fallback = diff.changed.find(({ ids }) => ids.includes('ALONE_A'))
-    expect(fallback.ids).toEqual(['ALONE_A', 'ALONE_B', 'upload.fileProblem'])
-    expect(fallback.parts).toEqual([
-      {
-        part: 'Body',
-        before: 'Check the habitats.',
-        after: 'Check every habitat.'
-      }
+  test('makes one entry of the IDs a shared fallback rewords alike', () => {
+    const shown = diff.changed.find(({ ids }) => ids.includes('ALONE_A'))
+    expect(shown.ids).toEqual(['ALONE_A', 'ALONE_B'])
+    // Its words, and the quote of them in the Shared fallback column.
+    expect(shown.parts.map(({ part }) => part)).toEqual([
+      'Body',
+      'Shared fallback'
     ])
+    expect(shown.parts[0]).toEqual({
+      part: 'Body',
+      before: 'Check the habitats.',
+      after: 'Check every habitat.'
+    })
+    expect(shown.parts[1].after).toContain('then "Check every habitat."')
+  })
+
+  test("gives the shared fallback's own row its reworded body", () => {
+    const own = diff.changed.find(({ ids }) =>
+      ids.includes('upload.fileProblem')
+    )
+    expect(own).toEqual({
+      ids: ['upload.fileProblem'],
+      parts: [
+        {
+          part: 'Body',
+          before: 'Check the habitats.',
+          after: 'Check every habitat.'
+        }
+      ]
+    })
   })
 
   test('lists each status that moved', () => {
@@ -243,7 +263,6 @@ describe('describeDiff, as plain text for the run log', () => {
       [
         '  ALONE_A',
         '  ALONE_B',
-        '  upload.fileProblem',
         '    Body, before:',
         '        Check the habitats.',
         '    Body, after:',

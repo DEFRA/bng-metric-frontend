@@ -293,6 +293,39 @@ function fallbackName(fallback) {
   return `${fallback.label} (upload.${fallback.key})`
 }
 
+/** Words as a reviewer reads them in one cell: "Title" then "Body". */
+function quoted(texts) {
+  return texts
+    .filter((text) => text !== undefined && text !== '')
+    .map((text) => `"${text}"`)
+    .join(' then ')
+}
+
+/**
+ * A shared fallback named, and the words it shows quoted, so whoever reviews
+ * the wording reads them in the row: the page's title, subheading and body
+ * when the error is alone, or its title as a list's heading. The catch-all
+ * words each template its own way, labelled when they differ.
+ */
+function fallbackEntry(upload, fallback, how, keys) {
+  const quotes = fallbackCopies(upload, fallback).map(({ label, copy }) => [
+    label,
+    quoted(
+      keys.map((key) =>
+        copy[key] === undefined ? undefined : optionsText(copy[key])
+      )
+    )
+  ])
+  const words = sameOrLabelled(quotes)
+  const name = `${fallbackName(fallback)}${how}`
+  if (!words) {
+    return name
+  }
+  return words.includes('\n') ? `${name}:\n${words}` : `${name}: ${words}`
+}
+
+const PAGE_KEYS = ['title', 'subheading', 'body']
+
 /** The status of each copy of a fallback, as words a row repeats. */
 function fallbackStatuses(upload, fallback) {
   return fallbackCopies(upload, fallback).map(({ copy }) => statusOf(copy))
@@ -340,7 +373,9 @@ function uploadErrorRow(upload, code, entry, usage) {
     row.alone = ALONE.SHARED
     Object.assign(row.cells, fallbackCells(upload, fallback))
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(`${fallbackName(fallback)}, when alone`)
+    row.fallbacks.push(
+      fallbackEntry(upload, fallback, ', when alone', PAGE_KEYS)
+    )
     usage[singleProblemPage].alone.push(code)
   } else {
     const { alone, cells } = singleProblemCells(singleProblemPage)
@@ -352,7 +387,9 @@ function uploadErrorRow(upload, code, entry, usage) {
     const fallback = FALLBACKS[SHARED_PAGE.CATCH_ALL]
     row.cells.listHeading = fallbackCells(upload, fallback).pageHeading
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(`${fallbackName(fallback)} title, in a list`)
+    row.fallbacks.push(
+      fallbackEntry(upload, fallback, ' title, in a list', ['title'])
+    )
     usage[SHARED_PAGE.CATCH_ALL].listed.push(code)
   } else {
     Object.assign(row.cells, {
@@ -399,10 +436,7 @@ function fallbackRows(upload, usage) {
  */
 function unwordedEditText(pages) {
   const page = pages?.[REFUSED_EDIT_PAGE]
-  const words = [page?.title, ...(page?.body ?? [])]
-    .filter(Boolean)
-    .map((text) => `"${text}"`)
-    .join(' then ')
+  const words = quoted([page?.title, ...(page?.body ?? [])])
   return `None yet: a refused change shows the error page pages.${REFUSED_EDIT_PAGE}, in place of the form${words ? `: ${words}` : ''}`
 }
 
