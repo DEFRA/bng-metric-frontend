@@ -128,27 +128,39 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
       }
     }
 
-    // Client errors from the backend indicate a validation problem —
-    // surface the structured errors if present.
-    if (
-      statusCode >= statusCodes.badRequest &&
-      statusCode < statusCodes.internalServerError
-    ) {
-      const errors = Array.isArray(responsePayload?.errors)
-        ? responsePayload.errors
-        : [
-            {
-              code: 'VALIDATION_FAILED',
-              message: responsePayload?.error ?? 'Unable to validate file'
-            }
-          ]
-      return { valid: false, errors }
-    }
-
-    // Server or network errors — throw a Boom error so Hapi handles
-    // the response with the appropriate HTTP status code
-    throw Boom.badGateway('Unable to validate file', error)
+    return validationFailedResult(error, statusCode, responsePayload)
   }
+}
+
+/**
+ * Answer a failed validation call that was neither rate limited nor busy.
+ *
+ * @param {Error} error the error the backend call threw
+ * @param {number} [statusCode]
+ * @param {object} [responsePayload] parsed response body, when the body was JSON
+ * @returns {{valid: false, errors: object[]}}
+ */
+function validationFailedResult(error, statusCode, responsePayload) {
+  // Client errors from the backend indicate a validation problem —
+  // surface the structured errors if present.
+  if (
+    statusCode >= statusCodes.badRequest &&
+    statusCode < statusCodes.internalServerError
+  ) {
+    const errors = Array.isArray(responsePayload?.errors)
+      ? responsePayload.errors
+      : [
+          {
+            code: 'VALIDATION_FAILED',
+            message: responsePayload?.error ?? 'Unable to validate file'
+          }
+        ]
+    return { valid: false, errors }
+  }
+
+  // Server or network errors — throw a Boom error so Hapi handles
+  // the response with the appropriate HTTP status code
+  throw Boom.badGateway('Unable to validate file', error)
 }
 
 /**

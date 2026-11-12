@@ -29,20 +29,20 @@ import { expireSession } from './session-expiry.js'
  */
 export async function backendRequest(request, method, url, options = {}) {
   const send = async () => {
-    let result
+    let response
     try {
-      result = await wreck[method](url, {
+      response = await wreck[method](url, {
         ...options,
         headers: { ...options.headers, ...authHeaders(request) }
       })
     } catch (error) {
       throw rateLimitedErrorFor(error?.data?.res) ?? error
     }
-    const refused = rateLimitedErrorFor(result?.res)
+    const refused = rateLimitedErrorFor(response?.res)
     if (refused) {
       throw refused
     }
-    return result
+    return response
   }
 
   let result
