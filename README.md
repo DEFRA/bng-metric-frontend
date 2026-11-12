@@ -145,10 +145,12 @@ message, its status (Final, Awaiting UCD or Needs content, from the entry's
 `wording` field), its
 single-problem page's wording for several in the "(several)" columns (a
 wording given as options says when each after the first is used, as "If {ref}
-is not known:", and a page given in versions numbers them), any
-shared fallback it shows, named and with its words quoted (for an edit with no
-words of its own, the error page a refused change shows in its place), what its `{values}` are filled
-in with, and a link to its line in the file. A row that shows a shared
+is not known:", and a page given in versions gives each a line, after when it is shown), any
+shared fallback it shows, said plainly with the words the user sees (for an
+edit with no words of its own, the error page a refused change shows in its
+place), what its `{values}` are filled
+in with, where each link goes (a link shows as its text, as the user sees it),
+and a link to its line in the file. A row that shows a shared
 fallback's words is no further on than that fallback, so an error with no
 `wording` field of its own is Awaiting UCD when its fallback is interim. Each
 CSV row ends with the date, branch and commit it was read from, and the

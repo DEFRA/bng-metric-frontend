@@ -165,16 +165,19 @@ const fixture = buildRows(FIXTURE, {
 const fixtureRow = (id) => fixture.find((row) => row.id === id)
 
 describe('buildRows, an edit with no words of its own', () => {
-  test('quotes the error page a refused change shows in its place', () => {
+  const REFUSED =
+    'If a change made on screen is refused, it has no words of its own yet: the error page pages.badRequest, in place of the form:'
+
+  test('gives the words of the error page a refused change shows in its place', () => {
     const { title } = value.pages.badRequest
     expect(rowOf('ENHANCEMENT_NOT_VALID').fallback).toBe(
-      `None yet: a refused change shows the error page pages.badRequest, in place of the form: "${title}"`
+      `${REFUSED}\n  Heading: ${title}`
     )
   })
 
   test('says so of the edit, in a row with drop-out page wording too', () => {
     expect(rowOf('HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE').fallback).toContain(
-      `${SHOWN.EDIT}: None yet: a refused change shows the error page pages.badRequest`
+      REFUSED
     )
   })
 
@@ -196,9 +199,14 @@ describe('buildRows, an edit with no words of its own', () => {
     )
   ).find(({ id }) => id === 'QUIET_EDIT')
 
-  test("quotes the page's title and each line of its body", () => {
+  test("gives the page's heading and each line of its body", () => {
     expect(quiet.fallback).toBe(
-      'None yet: a refused change shows the error page pages.badRequest, in place of the form: "Bad Request" then "Check what you entered." then "Try again."'
+      [
+        REFUSED,
+        '  Heading: Bad Request',
+        '  Body: Check what you entered.',
+        '  Body: Try again.'
+      ].join('\n')
     )
   })
 
@@ -208,26 +216,33 @@ describe('buildRows, an edit with no words of its own', () => {
 })
 
 describe('buildRows, a page given in versions', () => {
-  test('numbers each version alike in every cell, and says each part once where they agree', () => {
+  test('gives each version a line, after when it is shown, alike in every cell', () => {
     const row = rowOf('BASELINE_HABITATS_INCOMPLETE')
+    // The same in every version: once.
     expect(row.pageHeading).toBe('There is a problem with your file')
     expect(row.subheading).toBe(
-      'Version 1: {onlyLayer}\nVersion 2: {sharedLayer}\nVersion 3: (none)'
+      [
+        'If {onlyLayer} and {onlyRef} are known: {onlyLayer}',
+        'If {sharedLayer} is known: {sharedLayer}',
+        'Otherwise: (none)'
+      ].join('\n')
     )
     expect(row.body.split('\n')).toEqual([
-      expect.stringMatching(/^Version 1: Baseline habitat \{onlyRef\} /),
-      expect.stringMatching(/^Versions 2 and 3: Some baseline habitats /)
+      expect.stringMatching(
+        /^If \{onlyLayer\} and \{onlyRef\} are known: Baseline habitat \{onlyRef\} /
+      ),
+      expect.stringMatching(/^If \{sharedLayer\} is known: Some baseline /),
+      expect.stringMatching(/^Otherwise: Some baseline /)
     ])
   })
 
-  test('says when each version is shown, for one and for several', () => {
-    const { values } = rowOf('BASELINE_HABITATS_INCOMPLETE')
-    expect(values).toContain(
-      'Version 1 when {onlyLayer} and {onlyRef} are known; version 2 when {sharedLayer} is known; otherwise version 3.'
+  test('says when each version is shown in its own cells, for several too', () => {
+    const row = rowOf('BASELINE_HABITATS_INCOMPLETE')
+    expect(row.subheadingSeveral).toBe(
+      'If {sharedLayer} is known: {sharedLayer}\nOtherwise: (none)'
     )
-    expect(values).toContain(
-      'With several habitats: Version 1 when {sharedLayer} is known; otherwise version 2.'
-    )
+    // Not in another column, to be matched up.
+    expect(row.values).not.toMatch(/version/i)
   })
 
   test('says when a backup heading is used, by the value it does without', () => {
@@ -236,9 +251,9 @@ describe('buildRows, a page given in versions', () => {
     )
   })
 
-  test('says Otherwise nowhere', () => {
+  test('numbers no versions, as each line says when it is shown', () => {
     const cells = rows.flatMap((row) => Object.values(row))
-    expect(cells.filter((cell) => String(cell).includes('Otherwise:'))).toEqual(
+    expect(cells.filter((cell) => /\bVersions? \d/.test(String(cell)))).toEqual(
       []
     )
   })
@@ -252,8 +267,21 @@ describe('buildRows, a single-problem page', () => {
 
   test('says a code on a shared page shows it, and names it', () => {
     const shared = rowOf('FILENAME_TOO_LONG')
-    // Named, then its words quoted: on the same line, or a line a template.
-    expect(shared.fallback).toMatch(/, when alone:[ \n](.+: )?".+" then ".+"/)
+    expect(shared.fallback.split('\n')).toEqual([
+      "If this is the file's only problem, the shared Catch-all page (upload.catchAll):",
+      '  For a legacy template file:',
+      '    Heading: Your Geopackage (.gpkg) file contains an error',
+      expect.stringMatching(
+        /^ {4}Body: The layer names .* Natural England\. .*upload a new file\.$/
+      ),
+      '  For a BNG Service template file:',
+      '    Heading: Your Geopackage (.gpkg) file contains an error',
+      expect.stringMatching(
+        /^ {4}Body: .* BNG Service template\. .*upload a new file\.$/
+      ),
+      'If the file has other problems too, listed under the Catch-all heading:',
+      '  Your Geopackage (.gpkg) file contains an error'
+    ])
   })
 
   test("gives a page's wording for several in its own columns", () => {
@@ -286,10 +314,19 @@ describe('buildRows, from error-text.yaml', () => {
     const text = rows
       .map((row) => COLUMNS.map(({ key }) => row[key]).join('\n'))
       .join('\n')
+    // As the user sees it: a link by its text, as the export shows it.
+    const asShown = (words) => words.replaceAll(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     const missing = wordingIn(value).filter(
-      ({ text: words }) => !text.includes(words)
+      ({ text: words }) => !text.includes(asShown(words))
     )
     expect(missing).toEqual([])
+  })
+
+  test('shows a link by its text, and says where it goes in Links', () => {
+    const row = rowOf('AREA_PARCELS_TOO_SMALL')
+    expect(row.body).toContain('Draw the parcel again and upload a new file.')
+    expect(row.body).not.toContain('](upload)')
+    expect(row.links).toBe('upload: the upload page')
   })
 
   test('has one row per error ID', () => {
@@ -405,7 +442,9 @@ describe('buildRows, by group', () => {
 
   test('still names a fallback a code shows, without its row', () => {
     const [row] = buildRows(FIXTURE).filter(({ id }) => id === 'B_LAYER')
-    expect(row.fallback).toMatch(/^Catch-all \(upload\.catchAll\), when alone:/)
+    expect(row.fallback).toMatch(
+      /^If this is the file's only problem, the shared Catch-all page \(upload\.catchAll\):/
+    )
     expect(row.pageHeading).toBe('Your file contains an error')
   })
 
@@ -495,22 +534,30 @@ describe('buildRows, from a small file', () => {
     const row = fixtureRow('B_LAYER')
     expect(row.pageHeading).toBe('Your file contains an error')
     expect(row.body).toBe(
-      'Legacy template: Rename the layers and [upload a new file](upload).\n' +
-        'BNG Service template: Match the template and [upload a new file](upload).'
+      'For a legacy template file: Rename the layers and upload a new file.\n' +
+        'For a BNG Service template file: Match the template and upload a new file.'
     )
-    // Named, and its words quoted: each template's, as they differ.
+    // Named, and its words given: each template's, as they differ.
     expect(row.fallback).toBe(
       [
-        'Catch-all (upload.catchAll), when alone:',
-        'Legacy template: "Your file contains an error" then "Rename the layers and [upload a new file](upload)."',
-        'BNG Service template: "Your file contains an error" then "Match the template and [upload a new file](upload)."'
+        "If this is the file's only problem, the shared Catch-all page (upload.catchAll):",
+        '  For a legacy template file:',
+        '    Heading: Your file contains an error',
+        '    Body: Rename the layers and upload a new file.',
+        '  For a BNG Service template file:',
+        '    Heading: Your file contains an error',
+        '    Body: Match the template and upload a new file.'
       ].join('\n')
     )
   })
 
-  test('quotes a shared page worded alike for every template on one line', () => {
+  test('gives a shared page worded alike for every template once', () => {
     expect(fixtureRow('C_ALONE').fallback).toBe(
-      'File problem (upload.fileProblem), when alone: "Your file contains an error" then "Check the habitats."'
+      [
+        "If this is the file's only problem, the shared File problem page (upload.fileProblem):",
+        '  Heading: Your file contains an error',
+        '  Body: Check the habitats.'
+      ].join('\n')
     )
   })
 
@@ -518,7 +565,7 @@ describe('buildRows, from a small file', () => {
     const row = fixtureRow('BOTH')
     expect(row.listHeading).toBe('Your file contains an error')
     expect(row.fallback).toContain(
-      'Catch-all (upload.catchAll) title, in a list: "Your file contains an error"'
+      'If the file has other problems too, listed under the Catch-all heading:\n  Your file contains an error'
     )
   })
 
@@ -538,7 +585,9 @@ describe('buildRows, from a small file', () => {
     expect(row.shown).toBe(`${SHOWN.UPLOAD}; ${SHOWN.EDIT}`)
     expect(row.status).toBe(STATUS.NEEDS_CONTENT)
     expect(row.source.split('\n')).toHaveLength(2)
-    expect(row.fallback).toContain(`${SHOWN.EDIT}: None yet`)
+    expect(row.fallback).toContain(
+      'If a change made on screen is refused, it has no words of its own yet'
+    )
   })
 
   test('words a layout given as options, and a bullet given as parts', () => {

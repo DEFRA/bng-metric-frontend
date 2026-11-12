@@ -140,7 +140,7 @@ describe('diffRows', () => {
       before: 'Check the habitats.',
       after: 'Check every habitat.'
     })
-    expect(shown.parts[1].after).toContain('then "Check every habitat."')
+    expect(shown.parts[1].after).toContain('  Body: Check every habitat.')
   })
 
   test("gives the shared fallback's own row its reworded body", () => {

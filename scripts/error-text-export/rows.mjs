@@ -135,8 +135,8 @@ export const FALLBACKS = Object.freeze({
     label: 'Catch-all',
     // The service-template flag decides which the page shows.
     templates: [
-      ['legacyTemplate', 'Legacy template'],
-      ['serviceTemplate', 'BNG Service template']
+      ['legacyTemplate', 'For a legacy template file'],
+      ['serviceTemplate', 'For a BNG Service template file']
     ]
   },
   [SHARED_PAGE.FILE_PROBLEM]: { key: 'fileProblem', label: 'File problem' },
@@ -153,6 +153,13 @@ const REFUSED_EDIT_PAGE = 'badRequest'
 
 const PLACEHOLDER = /\{(\w+)\}/g
 const LINK = /\[[^\]]+\]\(([^)]+)\)/g
+// A link as the user sees it: its text alone. The Links column says where
+// each goes.
+const LINK_TEXT = /\[([^\]]+)\]\([^)]+\)/g
+
+function asShown(text) {
+  return text.replaceAll(LINK_TEXT, '$1')
+}
 
 /** The {names} texts use, each once, in order. */
 function placeholdersIn(texts) {
@@ -201,49 +208,34 @@ function optionsText(options) {
 // subheading and body it can fill.
 const NO_TEXT = '(none)'
 
-/** "Version 1", "Versions 2 and 3". */
-function versionsLabel(numbers) {
-  if (numbers.length === 1) {
-    return `Version ${numbers[0]}`
-  }
-  return `Versions ${numbers.slice(0, -1).join(', ')} and ${numbers.at(-1)}`
+/**
+ * When each version of a page is shown, as a line of a cell begins: the
+ * values it needs are known, and the last otherwise.
+ */
+function versionConditions(pages) {
+  return pages.map((page, index) => {
+    const names = placeholdersIn([page.title, page.subheading, page.body])
+    return index === pages.length - 1 || names.length === 0
+      ? 'Otherwise'
+      : `If ${listed(names, 'and')} ${names.length === 1 ? 'is' : 'are'} known`
+  })
 }
 
 /**
  * One part of a page given in versions: shown once when every version says
- * the same, and otherwise each text after the versions that say it.
+ * the same, and otherwise a line a version, after when it is shown, so each
+ * column of the row reads alike.
  */
-function versionsText(texts) {
+function versionsText(texts, conditions) {
   if (texts.every((text) => text === undefined)) {
     return undefined
   }
   if (new Set(texts).size === 1) {
     return texts[0]
   }
-  const versions = new Map()
-  texts.forEach((text, index) => {
-    const key = text ?? NO_TEXT
-    versions.set(key, [...(versions.get(key) ?? []), index + 1])
-  })
-  return [...versions]
-    .map(([text, numbers]) => `${versionsLabel(numbers)}: ${text}`)
+  return texts
+    .map((text, index) => `${conditions[index]}: ${text ?? NO_TEXT}`)
     .join('\n')
-}
-
-/** When each version of a page is shown: the values it needs are known. */
-function versionsNote(pages) {
-  const conditions = pages.map((page, index) => {
-    const number = index + 1
-    const names = placeholdersIn([page.title, page.subheading, page.body])
-    if (index === pages.length - 1) {
-      return `otherwise version ${number}`
-    }
-    return names.length > 0
-      ? `version ${number} when ${listed(names, 'and')} ${names.length === 1 ? 'is' : 'are'} known`
-      : `version ${number}`
-  })
-  const text = conditions.join('; ')
-  return `${text[0].toUpperCase()}${text.slice(1)}.`
 }
 
 /** A bullet given as parts, each shown when its values are known. */
@@ -289,23 +281,20 @@ function withVariants(problemsList, key, render) {
 /** A single-problem page's words: one page copy, or options of them. */
 /**
  * A single-problem page's words, one cell a part. A page given in versions
- * numbers them alike in every cell, and adds to `notes` when each is shown.
+ * gives each its line in every cell, after when it is shown.
  *
  * @param {object | object[]} copies - a page, or its versions
- * @param {string[]} [notes] - where to say when each version is shown
- * @param {string} [prefix] - what the note is about, as "With several habitats: "
  */
-function pageCopyCells(copies, notes = [], prefix = '') {
+function pageCopyCells(copies) {
   const list = [copies].flat()
+  const conditions = versionConditions(list)
   const cell = (key) =>
     versionsText(
       list.map((copy) =>
         copy[key] === undefined ? undefined : optionsText(copy[key])
-      )
+      ),
+      conditions
     )
-  if (list.length > 1) {
-    notes.push(`${prefix}${versionsNote(list)}`)
-  }
   return {
     pageHeading: cell('title'),
     subheading: cell('subheading'),
@@ -371,42 +360,61 @@ function fallbackCells(upload, fallback) {
   }
 }
 
-function fallbackName(fallback) {
-  return `${fallback.label} (upload.${fallback.key})`
+const INDENT = '  '
+
+/** Each line of a text indented by `depth` steps. */
+function indented(text, depth) {
+  return text
+    .split('\n')
+    .map((line) => `${INDENT.repeat(depth)}${line}`)
+    .join('\n')
 }
 
-/** Words as a reviewer reads them in one cell: "Title" then "Body". */
-function quoted(texts) {
-  return texts
-    .filter((text) => text !== undefined && text !== '')
-    .map((text) => `"${text}"`)
-    .join(' then ')
+// A page's parts as a reviewer reads them: the part, then its words.
+const PAGE_PARTS = Object.freeze([
+  ['title', 'Heading'],
+  ['subheading', 'Subheading'],
+  ['body', 'Body']
+])
+
+/** A page's words, a labelled line a part: "Heading: …", "Body: …". */
+function pageLines(copy) {
+  return PAGE_PARTS.filter(([key]) => copy[key] !== undefined)
+    .map(([key, part]) => `${part}: ${optionsText(copy[key])}`)
+    .join('\n')
 }
 
 /**
- * A shared fallback named, and the words it shows quoted, so whoever reviews
- * the wording reads them in the row: the page's title, subheading and body
- * when the error is alone, or its title as a list's heading. The catch-all
- * words each template its own way, labelled when they differ.
+ * Lines for each of a fallback's copies, under "For a … template file:"
+ * where its copies differ, as the catch-all's do.
  */
-function fallbackEntry(upload, fallback, how, keys) {
-  const quotes = fallbackCopies(upload, fallback).map(({ label, copy }) => [
+function copiesLines(upload, fallback, render) {
+  const copies = fallbackCopies(upload, fallback).map(({ label, copy }) => [
     label,
-    quoted(
-      keys.map((key) =>
-        copy[key] === undefined ? undefined : optionsText(copy[key])
-      )
-    )
+    render(copy)
   ])
-  const words = sameOrLabelled(quotes)
-  const name = `${fallbackName(fallback)}${how}`
-  if (!words) {
-    return name
-  }
-  return words.includes('\n') ? `${name}:\n${words}` : `${name}: ${words}`
+  return new Set(copies.map(([, text]) => text)).size === 1
+    ? copies[0][1]
+    : copies
+        .map(([label, text]) => `${label}:\n${indented(text, 1)}`)
+        .join('\n')
 }
 
-const PAGE_KEYS = ['title', 'subheading', 'body']
+/**
+ * A shared fallback a code shows, said plainly, with the words the user sees:
+ * its page when the code is the file's only problem, or its title heading
+ * the code in the problems list.
+ */
+function fallbackEntry(upload, fallback, inList) {
+  if (inList) {
+    const title = copiesLines(upload, fallback, (copy) =>
+      optionsText(copy.title)
+    )
+    return `If the file has other problems too, listed under the ${fallback.label} heading:\n${indented(title, 1)}`
+  }
+  const page = copiesLines(upload, fallback, pageLines)
+  return `If this is the file's only problem, the shared ${fallback.label} page (upload.${fallback.key}):\n${indented(page, 1)}`
+}
 
 /** The status of each copy of a fallback, as words a row repeats. */
 function fallbackStatuses(upload, fallback) {
@@ -414,12 +422,8 @@ function fallbackStatuses(upload, fallback) {
 }
 
 /** The words of a single-problem page worded for several, in their own columns. */
-function severalCells(copies, notes) {
-  const { pageHeading, subheading, body } = pageCopyCells(
-    copies,
-    notes,
-    'With several habitats: '
-  )
+function severalCells(copies) {
+  const { pageHeading, subheading, body } = pageCopyCells(copies)
   return {
     pageHeadingSeveral: pageHeading,
     subheadingSeveral: subheading,
@@ -429,22 +433,18 @@ function severalCells(copies, notes) {
 
 /**
  * An upload error's single-problem page's words: worded for any number, or
- * for one and for several, the last in its own columns. `notes` gains when
- * each version of a page given in versions is shown.
+ * for one and for several, the last in its own columns.
  */
-function singleProblemCells(page, notes) {
+function singleProblemCells(page) {
   if (page === undefined) {
     return {}
   }
   if (!Object.hasOwn(page, 'one')) {
-    return pageCopyCells(page, notes)
+    return pageCopyCells(page)
   }
   return page.several === undefined
-    ? pageCopyCells(page.one, notes)
-    : {
-        ...pageCopyCells(page.one, notes),
-        ...severalCells(page.several, notes)
-      }
+    ? pageCopyCells(page.one)
+    : { ...pageCopyCells(page.one), ...severalCells(page.several) }
 }
 
 /**
@@ -459,25 +459,17 @@ function uploadErrorRow(upload, code, entry, usage) {
     const fallback = FALLBACKS[singleProblemPage]
     Object.assign(row.cells, fallbackCells(upload, fallback))
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(
-      fallbackEntry(upload, fallback, ', when alone', PAGE_KEYS)
-    )
+    row.fallbacks.push(fallbackEntry(upload, fallback, false))
     usage[singleProblemPage].alone.push(code)
   } else {
-    row.versionNotes = []
-    Object.assign(
-      row.cells,
-      singleProblemCells(singleProblemPage, row.versionNotes)
-    )
+    Object.assign(row.cells, singleProblemCells(singleProblemPage))
   }
 
   if (problemsList === PROBLEMS_LIST_CATCH_ALL) {
     const fallback = FALLBACKS[SHARED_PAGE.CATCH_ALL]
     row.cells.listHeading = fallbackCells(upload, fallback).pageHeading
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(
-      fallbackEntry(upload, fallback, ' title, in a list', ['title'])
-    )
+    row.fallbacks.push(fallbackEntry(upload, fallback, true))
     usage[SHARED_PAGE.CATCH_ALL].listed.push(code)
   } else {
     Object.assign(row.cells, {
@@ -524,8 +516,14 @@ function fallbackRows(upload, usage) {
  */
 function unwordedEditText(pages) {
   const page = pages?.[REFUSED_EDIT_PAGE]
-  const words = quoted([page?.title, ...(page?.body ?? [])])
-  return `None yet: a refused change shows the error page pages.${REFUSED_EDIT_PAGE}, in place of the form${words ? `: ${words}` : ''}`
+  const lines = [
+    ...(page?.title ? [`Heading: ${page.title}`] : []),
+    ...(page?.body ?? []).map((line) => `Body: ${line}`)
+  ]
+  const intro = `If a change made on screen is refused, it has no words of its own yet: the error page pages.${REFUSED_EDIT_PAGE}, in place of the form`
+  return lines.length > 0
+    ? `${intro}:\n${indented(lines.join('\n'), 1)}`
+    : intro
 }
 
 function editRow(code, entry, pages) {
@@ -557,7 +555,8 @@ function merge(upload, edit) {
     paths: [...upload.paths, ...edit.paths],
     fallbacks: [
       ...upload.fallbacks,
-      ...edit.fallbacks.map((fallback) => `${SHOWN.EDIT}: ${fallback}`)
+      // Each says it is of a change made on screen.
+      ...edit.fallbacks
     ]
   }
 }
@@ -638,7 +637,6 @@ function valuesText(row, words) {
       'A part of a bullet is left out when any of its values is not known.'
     )
   }
-  lines.push(...(row.versionNotes ?? []))
   return lines.join('\n')
 }
 
@@ -661,16 +659,19 @@ function finish(row, file, sourceUrl) {
   const words = WORDING_KEYS.map((key) => row.cells[key]).filter(Boolean)
   const status = STATUS_ORDER.find((s) => row.statuses.includes(s))
   const cells = Object.fromEntries(
-    WORDING_KEYS.map((key) => [key, row.cells[key] ?? ''])
+    WORDING_KEYS.map((key) => [key, asShown(row.cells[key] ?? '')])
   )
+  const fallback = row.fallbacks.join('\n')
   return {
     id: row.id,
     shown: unique(row.shown).join('; '),
     status,
     ...cells,
-    fallback: row.fallbacks.join('\n'),
+    fallback: asShown(fallback),
     values: valuesText(row, words),
-    links: linksText(words, file.value),
+    // From the words as written, before their links are shown as text, and
+    // the fallbacks' too, as their words now hold links.
+    links: linksText([...words, fallback], file.value),
     source: row.paths.map((path) => sourceUrl(file.lineOf(path))).join('\n')
   }
 }
