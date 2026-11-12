@@ -1,5 +1,3 @@
-import Boom from '@hapi/boom'
-
 import { initiateUpload } from '../common/services/uploader.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 
@@ -15,7 +13,17 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
   }
 }))
 
+// A refresh that fails, so a 401 from the backend ends the session.
+vi.mock(
+  '../common/helpers/auth/refresh-session.js',
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    refreshSession: vi.fn().mockResolvedValue(false)
+  })
+)
+
 const { getController } = await import('./controller.js')
+const realUploader = await vi.importActual('../common/services/uploader.js')
 
 const createMockH = () => {
   const response = {
@@ -120,9 +128,12 @@ describe('upload-post-intervention-file controller', () => {
     )
   })
 
+  // These run the real initiateUpload, failing at the backend call, so the
+  // error the controller sees is the one initiateUpload really throws.
   describe('when the upload cannot start', () => {
-    const unavailable = () =>
-      Boom.badGateway('Unable to initiate upload', new Error('ECONNREFUSED'))
+    beforeEach(() => {
+      vi.mocked(initiateUpload).mockImplementation(realUploader.initiateUpload)
+    })
 
     const requestWithError = (stored) => {
       const request = createMockRequest()
@@ -133,7 +144,7 @@ describe('upload-post-intervention-file controller', () => {
     }
 
     test('keeps the timeout message on the upload page, in place of the form', async () => {
-      vi.mocked(initiateUpload).mockRejectedValue(unavailable())
+      vi.mocked(wreck.post).mockRejectedValue(new Error('ECONNREFUSED'))
       const h = createMockH()
       const request = requestWithError('timedOut')
 
@@ -163,7 +174,7 @@ describe('upload-post-intervention-file controller', () => {
     })
 
     test('still shows the error page when there is no message to keep', async () => {
-      vi.mocked(initiateUpload).mockRejectedValue(unavailable())
+      vi.mocked(wreck.post).mockRejectedValue(new Error('ECONNREFUSED'))
 
       await expect(
         getController.handler(createMockRequest(), createMockH())
@@ -171,24 +182,35 @@ describe('upload-post-intervention-file controller', () => {
     })
 
     test('still shows the "too many requests" page for a rate limit', async () => {
-      const rateLimited = Boom.tooManyRequests('Too many requests', {
-        rateLimited: true
-      })
-      vi.mocked(initiateUpload).mockRejectedValue(rateLimited)
+      const tooManyRequests = new Error('Response Error: 429 Too Many Requests')
+      tooManyRequests.data = {
+        isResponseError: true,
+        res: { statusCode: 429, headers: { 'retry-after': '5' } }
+      }
+      vi.mocked(wreck.post).mockRejectedValue(tooManyRequests)
 
       await expect(
         getController.handler(requestWithError('timedOut'), createMockH())
-      ).rejects.toBe(rateLimited)
+      ).rejects.toMatchObject({
+        output: { statusCode: 429 },
+        data: { rateLimited: true }
+      })
     })
 
     test('still sends an expired sign-in to sign in again', async () => {
-      const expired = Boom.unauthorized('Session expired')
-      expired.data = { sessionExpired: true }
-      vi.mocked(initiateUpload).mockRejectedValue(expired)
+      vi.mocked(wreck.post).mockResolvedValue({
+        res: { statusCode: 401 },
+        payload: {}
+      })
+      const request = requestWithError('timedOut')
+      request.yar.reset = vi.fn()
 
       await expect(
-        getController.handler(requestWithError('timedOut'), createMockH())
-      ).rejects.toBe(expired)
+        getController.handler(request, createMockH())
+      ).rejects.toMatchObject({
+        output: { statusCode: 401 },
+        data: { sessionExpired: true }
+      })
     })
   })
 })

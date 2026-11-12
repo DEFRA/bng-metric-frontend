@@ -106,4 +106,22 @@ describe('#buildRedisClient', () => {
       expect(callback).toHaveBeenCalledWith(null, 'redis.example.com')
     })
   })
+
+  describe('When the Redis timeouts are invalid', () => {
+    test.each([
+      ['the command timeout is 0', { commandTimeoutMs: 0 }],
+      [
+        'the socket timeout equals the command timeout',
+        { commandTimeoutMs: 2000, socketTimeoutMs: 2000 }
+      ],
+      [
+        'the socket timeout is below the command timeout',
+        { commandTimeoutMs: 2000, socketTimeoutMs: 1000 }
+      ]
+    ])('Should refuse to build a client when %s', (_case, timeouts) => {
+      expect(() =>
+        buildRedisClient({ ...config.get('redis'), ...timeouts })
+      ).toThrow('Invalid Redis timeouts')
+    })
+  })
 })
