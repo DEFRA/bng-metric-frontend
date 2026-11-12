@@ -143,7 +143,9 @@ A code that shows a shared fallback names it and repeats its words either way.
 The rows give each part of the
 message, its status (Final, Awaiting UCD or Needs content, from the entry's
 `wording` field), its
-single-problem page's wording for several in the "(several)" columns, any
+single-problem page's wording for several in the "(several)" columns (a
+wording given as options says when each after the first is used, as "If {ref}
+is not known:", and a page given in versions numbers them), any
 shared fallback it shows, named and with its words quoted (for an edit with no
 words of its own, the error page a refused change shows in its place), what its `{values}` are filled
 in with, and a link to its line in the file. A row that shows a shared

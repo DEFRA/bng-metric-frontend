@@ -151,13 +151,99 @@ export const FALLBACKS = Object.freeze({
 // (src/server/common/helpers/errors.js).
 const REFUSED_EDIT_PAGE = 'badRequest'
 
-const OTHERWISE = '\nOtherwise: '
 const PLACEHOLDER = /\{(\w+)\}/g
 const LINK = /\[[^\]]+\]\(([^)]+)\)/g
 
-/** A list of options, the first whose values are known, as one text. */
+/** The {names} texts use, each once, in order. */
+function placeholdersIn(texts) {
+  return unique(
+    texts
+      .flat()
+      .filter(Boolean)
+      .flatMap((text) => [...String(text).matchAll(PLACEHOLDER)])
+      .map(([, name]) => name)
+  )
+}
+
+/** Names as a reader lists them: "{a}", "{a} and {b}", "{a}, {b} and {c}". */
+function listed(names, last) {
+  const braced = names.map((name) => `{${name}}`)
+  return braced.length < 2
+    ? braced.join('')
+    : `${braced.slice(0, -1).join(', ')} ${last} ${braced.at(-1)}`
+}
+
+/**
+ * A list of options as one text, each after the first saying when it is
+ * used: the page shows the first whose {values} it can fill, so a later one
+ * stands in when a value the one before it names is not known.
+ * "This parcel {ref} …", then "If {ref} is not known: Your … file …".
+ */
 function optionsText(options) {
-  return [options].flat().join(OTHERWISE)
+  const list = [options].flat()
+  return list
+    .map((text, index) => {
+      if (index === 0) {
+        return text
+      }
+      const own = placeholdersIn([text])
+      const missing = placeholdersIn([list[index - 1]]).filter(
+        (name) => !own.includes(name)
+      )
+      return missing.length > 0
+        ? `If ${listed(missing, 'or')} is not known: ${text}`
+        : `Otherwise: ${text}`
+    })
+    .join('\n')
+}
+
+// A whole page given in versions: the page shows the first whose title,
+// subheading and body it can fill.
+const NO_TEXT = '(none)'
+
+/** "Version 1", "Versions 2 and 3". */
+function versionsLabel(numbers) {
+  if (numbers.length === 1) {
+    return `Version ${numbers[0]}`
+  }
+  return `Versions ${numbers.slice(0, -1).join(', ')} and ${numbers.at(-1)}`
+}
+
+/**
+ * One part of a page given in versions: shown once when every version says
+ * the same, and otherwise each text after the versions that say it.
+ */
+function versionsText(texts) {
+  if (texts.every((text) => text === undefined)) {
+    return undefined
+  }
+  if (new Set(texts).size === 1) {
+    return texts[0]
+  }
+  const versions = new Map()
+  texts.forEach((text, index) => {
+    const key = text ?? NO_TEXT
+    versions.set(key, [...(versions.get(key) ?? []), index + 1])
+  })
+  return [...versions]
+    .map(([text, numbers]) => `${versionsLabel(numbers)}: ${text}`)
+    .join('\n')
+}
+
+/** When each version of a page is shown: the values it needs are known. */
+function versionsNote(pages) {
+  const conditions = pages.map((page, index) => {
+    const number = index + 1
+    const names = placeholdersIn([page.title, page.subheading, page.body])
+    if (index === pages.length - 1) {
+      return `otherwise version ${number}`
+    }
+    return names.length > 0
+      ? `version ${number} when ${listed(names, 'and')} ${names.length === 1 ? 'is' : 'are'} known`
+      : `version ${number}`
+  })
+  const text = conditions.join('; ')
+  return `${text[0].toUpperCase()}${text.slice(1)}.`
 }
 
 /** A bullet given as parts, each shown when its values are known. */
@@ -201,19 +287,29 @@ function withVariants(problemsList, key, render) {
 }
 
 /** A single-problem page's words: one page copy, or options of them. */
-function pageCopyCells(copies) {
+/**
+ * A single-problem page's words, one cell a part. A page given in versions
+ * numbers them alike in every cell, and adds to `notes` when each is shown.
+ *
+ * @param {object | object[]} copies - a page, or its versions
+ * @param {string[]} [notes] - where to say when each version is shown
+ * @param {string} [prefix] - what the note is about, as "With several habitats: "
+ */
+function pageCopyCells(copies, notes = [], prefix = '') {
   const list = [copies].flat()
-  const join = (key) => {
-    const texts = list
-      .map((copy) => copy[key])
-      .filter((text) => text !== undefined)
-      .map(optionsText)
-    return texts.length > 0 ? texts.join(OTHERWISE) : undefined
+  const cell = (key) =>
+    versionsText(
+      list.map((copy) =>
+        copy[key] === undefined ? undefined : optionsText(copy[key])
+      )
+    )
+  if (list.length > 1) {
+    notes.push(`${prefix}${versionsNote(list)}`)
   }
   return {
-    pageHeading: join('title'),
-    subheading: join('subheading'),
-    body: join('body')
+    pageHeading: cell('title'),
+    subheading: cell('subheading'),
+    body: cell('body')
   }
 }
 
@@ -318,8 +414,12 @@ function fallbackStatuses(upload, fallback) {
 }
 
 /** The words of a single-problem page worded for several, in their own columns. */
-function severalCells(copies) {
-  const { pageHeading, subheading, body } = pageCopyCells(copies)
+function severalCells(copies, notes) {
+  const { pageHeading, subheading, body } = pageCopyCells(
+    copies,
+    notes,
+    'With several habitats: '
+  )
   return {
     pageHeadingSeveral: pageHeading,
     subheadingSeveral: subheading,
@@ -329,18 +429,22 @@ function severalCells(copies) {
 
 /**
  * An upload error's single-problem page's words: worded for any number, or
- * for one and for several, the last in its own columns.
+ * for one and for several, the last in its own columns. `notes` gains when
+ * each version of a page given in versions is shown.
  */
-function singleProblemCells(page) {
+function singleProblemCells(page, notes) {
   if (page === undefined) {
     return {}
   }
   if (!Object.hasOwn(page, 'one')) {
-    return pageCopyCells(page)
+    return pageCopyCells(page, notes)
   }
   return page.several === undefined
-    ? pageCopyCells(page.one)
-    : { ...pageCopyCells(page.one), ...severalCells(page.several) }
+    ? pageCopyCells(page.one, notes)
+    : {
+        ...pageCopyCells(page.one, notes),
+        ...severalCells(page.several, notes)
+      }
 }
 
 /**
@@ -360,7 +464,11 @@ function uploadErrorRow(upload, code, entry, usage) {
     )
     usage[singleProblemPage].alone.push(code)
   } else {
-    Object.assign(row.cells, singleProblemCells(singleProblemPage))
+    row.versionNotes = []
+    Object.assign(
+      row.cells,
+      singleProblemCells(singleProblemPage, row.versionNotes)
+    )
   }
 
   if (problemsList === PROBLEMS_LIST_CATCH_ALL) {
@@ -530,6 +638,7 @@ function valuesText(row, words) {
       'A part of a bullet is left out when any of its values is not known.'
     )
   }
+  lines.push(...(row.versionNotes ?? []))
   return lines.join('\n')
 }
 

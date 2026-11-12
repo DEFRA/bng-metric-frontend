@@ -207,6 +207,43 @@ describe('buildRows, an edit with no words of its own', () => {
   })
 })
 
+describe('buildRows, a page given in versions', () => {
+  test('numbers each version alike in every cell, and says each part once where they agree', () => {
+    const row = rowOf('BASELINE_HABITATS_INCOMPLETE')
+    expect(row.pageHeading).toBe('There is a problem with your file')
+    expect(row.subheading).toBe(
+      'Version 1: {onlyLayer}\nVersion 2: {sharedLayer}\nVersion 3: (none)'
+    )
+    expect(row.body.split('\n')).toEqual([
+      expect.stringMatching(/^Version 1: Baseline habitat \{onlyRef\} /),
+      expect.stringMatching(/^Versions 2 and 3: Some baseline habitats /)
+    ])
+  })
+
+  test('says when each version is shown, for one and for several', () => {
+    const { values } = rowOf('BASELINE_HABITATS_INCOMPLETE')
+    expect(values).toContain(
+      'Version 1 when {onlyLayer} and {onlyRef} are known; version 2 when {sharedLayer} is known; otherwise version 3.'
+    )
+    expect(values).toContain(
+      'With several habitats: Version 1 when {sharedLayer} is known; otherwise version 2.'
+    )
+  })
+
+  test('says when a backup heading is used, by the value it does without', () => {
+    expect(rowOf('AREA_PARCELS_TOO_SMALL').pageHeading).toBe(
+      'This parcel {ref} contains an error\nIf {ref} is not known: Your Geopackage (.gpkg) file contains an error'
+    )
+  })
+
+  test('says Otherwise nowhere', () => {
+    const cells = rows.flatMap((row) => Object.values(row))
+    expect(cells.filter((cell) => String(cell).includes('Otherwise:'))).toEqual(
+      []
+    )
+  })
+})
+
 describe('buildRows, a single-problem page', () => {
   test('has no When it is the only problem column', () => {
     expect(COLUMNS.map(({ key }) => key)).not.toContain('alone')
@@ -507,7 +544,7 @@ describe('buildRows, from a small file', () => {
   test('words a layout given as options, and a bullet given as parts', () => {
     const row = fixtureRow('a_parcel')
     expect(row.pageHeading).toBe(
-      'This parcel {ref} contains an error\nOtherwise: Your file contains an error'
+      'This parcel {ref} contains an error\nIf {ref} is not known: Your file contains an error'
     )
     expect(row.item).toBe('{feature} — {area} sq m')
     expect(row.values).toContain('A part of a bullet is left out')
