@@ -333,7 +333,7 @@ describe('#postInterventionHabitatDetailsController', () => {
   })
 
   test('GET renders a Retained individual tree with its reference form, in the area layout', async () => {
-    mockTree('Retained')
+    mockTree('Retained', treeCreationReference)
 
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
@@ -347,6 +347,43 @@ describe('#postInterventionHabitatDetailsController', () => {
         refForm: expect.objectContaining({ featureId })
       })
     )
+  })
+
+  test('GET renders a Retained individual tree read-only while the backend cannot rename trees', async () => {
+    mockTree('Retained', () =>
+      Promise.reject(
+        Object.assign(new Error('Not Found'), {
+          output: { statusCode: 404 }
+        })
+      )
+    )
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details',
+      expect.objectContaining({ ...treeRows, habitatTypeDisplay: 'Urban tree' })
+    )
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
+  })
+
+  test('POST refuses to rename a Retained tree while the backend cannot rename trees', async () => {
+    mockTree('Retained', () =>
+      Promise.reject(
+        Object.assign(new Error('Not Found'), {
+          output: { statusCode: 404 }
+        })
+      )
+    )
+
+    await expect(
+      postController.handler(
+        { payload: { projectId, featureId, habitatRef: 'T-2' } },
+        createMockH()
+      )
+    ).rejects.toMatchObject({ output: { statusCode: 501 } })
+    expect(wreck.put).not.toHaveBeenCalled()
   })
 
   test('GET renders a Created individual tree on the edit page, its broad habitat fixed and offered only Urban tree or Rural tree', async () => {

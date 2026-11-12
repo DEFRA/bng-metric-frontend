@@ -29,6 +29,7 @@ import {
   storedValueRefusal
 } from '../common/helpers/stored-value-refusal.js'
 import { RETENTION_RETAINED } from './retention.js'
+import { loadCreatedTreeReference } from './created-edit-reference.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -64,6 +65,35 @@ export function isRefEditable(type, retentionCategory) {
   return (
     retentionCategory === RETENTION_RETAINED && HEADING_PREFIX_BY_TYPE.has(type)
   )
+}
+
+/**
+ * Whether the backend can rename this feature now. A Retained tree is renamed
+ * only by a backend that also serves the tree creation reference, so until
+ * that is deployed the tree's page stays read-only, as a Created tree's does.
+ * Otherwise a rename would come back as the bare 400 the page reads as a
+ * refused reference, and blame a valid one.
+ *
+ * @param {string} type feature type from the PI feature endpoint
+ * @param {string|null} retentionCategory normalised retention category
+ * @returns {Promise<boolean>}
+ */
+export async function canRenameNow(type, retentionCategory) {
+  if (!isRefEditable(type, retentionCategory)) {
+    return false
+  }
+  if (type !== 'tree') {
+    return true
+  }
+  try {
+    await loadCreatedTreeReference()
+    return true
+  } catch (error) {
+    if (error.output?.statusCode === statusCodes.notFound) {
+      return false
+    }
+    throw error
+  }
 }
 
 /**

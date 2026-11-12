@@ -52,7 +52,7 @@ import {
   withFixedBroadHabitat
 } from './created-area-edit.js'
 import {
-  isRefEditable,
+  canRenameNow,
   retainedRefEditFields,
   retainedRefPayloadSchema,
   saveRetainedRef
@@ -318,7 +318,7 @@ async function renderDetailsPage(
     }
   )
   const backHref = postInterventionBackHref(projectId, type, returnUrl)
-  const refEditFields = isRefEditable(type, retentionCategory)
+  const refEditFields = (await canRenameNow(type, retentionCategory))
     ? retainedRefEditFields({
         type,
         feature,
@@ -510,7 +510,7 @@ const postController = {
         payload: request.payload
       })
     }
-    if (isRefEditable(type, retentionCategory)) {
+    if (await canRenameNow(type, retentionCategory)) {
       return saveRetainedReference(request, h, {
         type,
         feature,
