@@ -157,8 +157,9 @@ A row gives:
   file's only problem, and the shared title heading its entry when there are
   others. Their words are in the row's Page heading, Body and List heading;
 - Shown instead: what the user sees in place of words an entry has yet to
-  have, as the error page a refused change made on screen shows, with its
-  words;
+  have: the problems list, for an error with no single-problem page or none
+  worded for several habitats, or the error page a refused change made on
+  screen shows, with its words;
 - what its `{values}` are filled in with, and a link to its line in the file.
 
 Each CSV row ends with the date, branch and commit it was read from, and the

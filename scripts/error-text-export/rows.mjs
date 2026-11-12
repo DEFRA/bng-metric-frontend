@@ -410,6 +410,24 @@ function singleProblemCells(page) {
     : { ...pageCopyCells(page.one), ...severalCells(page.several) }
 }
 
+// What a user sees in place of a single-problem page an error has no
+// wording for: its entry in the problems list.
+const LIST_INSTEAD =
+  "the problems list, under this error's heading (in List heading)"
+
+/**
+ * When an error is shown in the problems list for want of a single-problem
+ * page: it has none, or one worded for one habitat when it names several.
+ */
+function listShownInstead(page) {
+  if (page === undefined) {
+    return [`If this is the file's only problem: ${LIST_INSTEAD}`]
+  }
+  return Object.hasOwn(page, 'one') && page.several === undefined
+    ? [`With several habitats: ${LIST_INSTEAD}`]
+    : []
+}
+
 /**
  * An upload error's row, noting in `usage` each fallback it shows. A row
  * repeating a fallback's words is no further on than that fallback.
@@ -428,6 +446,7 @@ function uploadErrorRow(upload, code, entry, usage) {
     usage[singleProblemPage].alone.push(code)
   } else {
     Object.assign(row.cells, singleProblemCells(singleProblemPage))
+    row.shared.shownInstead.push(...listShownInstead(singleProblemPage))
   }
 
   if (problemsList === PROBLEMS_LIST_CATCH_ALL) {

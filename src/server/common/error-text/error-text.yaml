@@ -180,9 +180,24 @@ common:
 #
 # - The page never shows the service's own message. It is for its logs.
 #
-# - A heading that was the service's message is copied from the backend word
-#   for word, so nothing fails when the backend changes that message or a
-#   limit it names. A heading that names a limit must change with it.
+# - Some wording repeats what the backend defines, word for word. Nothing
+#   fails when the backend changes it, as the nightly check compares only the
+#   codes, so change the wording here in the same change. In
+#   bng-metric-backend, src/validation/geopackage/:
+#
+#     AREA_PARCELS_TOO_SMALL              "1 square metre": MIN_PARCEL_AREA_SQ_M,
+#                                         in geometry-constants.js
+#     VERTICAL_HABITAT_AREA_NOT_POSITIVE  "Area (ha)": AREA_COLUMN, in
+#                                         vertical-area-check.js
+#     TREE_COUNT_NOT_WHOLE                "Count" and "(1 or more)": COUNT_COLUMN
+#                                         and MIN_TREE_COUNT, in
+#                                         tree-count-check.js
+#     STAGED_* (the lineage errors)       each heading: the backend's message,
+#                                         in service-template/lineage/
+#                                         lineage-rules.js and parent-links.js
+#
+#   A {value} the backend sends, such as TEXT_TOO_LONG's {limit}, cannot fall
+#   out of step, and needs no entry here.
 
 upload:
   page:

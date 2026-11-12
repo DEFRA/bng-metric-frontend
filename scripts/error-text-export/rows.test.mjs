@@ -285,6 +285,27 @@ describe('buildRows, a page given in versions', () => {
   })
 })
 
+describe('buildRows, shown in the problems list for want of a page', () => {
+  const LIST = "the problems list, under this error's heading (in List heading)"
+
+  test('says so of an error with no single-problem page', () => {
+    expect(rowOf('TEMPLATE_VERSION_MISSING').shownInstead).toBe(
+      `If this is the file's only problem: ${LIST}`
+    )
+  })
+
+  test('says so of a page worded for one habitat, for several', () => {
+    expect(rowOf('AREA_PARCELS_TOO_SMALL').shownInstead).toBe(
+      `With several habitats: ${LIST}`
+    )
+  })
+
+  test('says nothing of a page worded for one and several, or for any number', () => {
+    expect(rowOf('PARCEL_OVERLAPS').shownInstead).toBe('')
+    expect(rowOf('NO_REDLINE').shownInstead).toBe('')
+  })
+})
+
 describe('buildRows, a single-problem page', () => {
   test('has no When it is the only problem column', () => {
     expect(COLUMNS.map(({ key }) => key)).not.toContain('alone')

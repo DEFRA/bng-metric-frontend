@@ -116,10 +116,12 @@ describe('diffRows', () => {
 
   test('says where a code moved between sections is now shown', () => {
     const moved = diff.changed.find(({ ids }) => ids.includes('MOVED'))
+    // On the drop-out page it had no single-problem page; on an edit, words.
     expect(moved.parts.map(({ part }) => part)).toEqual([
       'Where it is shown',
       'Error summary',
-      'List heading'
+      'List heading',
+      'Shown instead'
     ])
     expect(moved.parts[0]).toMatchObject({
       before: SHOWN.UPLOAD,
