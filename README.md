@@ -189,8 +189,10 @@ When the comparison finds a change that leaves wording unfinished, an error
 added that is not Final, or one whose status moves back, as from Final to
 Awaiting UCD, the run warns of it with a GitHub annotation on that entry's line
 of `error-text.yaml`. It shows beside the line in a pull request's Files
-changed, and on the run. It warns of nothing that was unfinished before the
-change, and never fails the run.
+changed, and on the run. GitHub keeps only 10 warnings from a step, so past 9
+the tenth says how many more there are; the run's summary and log list every
+change. It warns of nothing that was unfinished before the change, and never
+fails the run.
 
 ### Update dependencies
 

@@ -8,6 +8,10 @@ import { STATUS } from './rows.mjs'
 
 const LINE_ANCHOR = /#L(\d+)/
 
+// GitHub keeps at most 10 warning annotations from one step, and drops the
+// rest unseen.
+const MAX_STEP_WARNINGS = 10
+
 const TITLES = Object.freeze({
   [STATUS.NEEDS_CONTENT]: 'Error wording needs content',
   [STATUS.AWAITING_UCD]: 'Error wording awaiting UCD'
@@ -45,8 +49,31 @@ function message({ row, before }) {
   return `${what} ${WHAT_IT_NEEDS[row.status] ?? ''}`.trim()
 }
 
+function entryWarning(change, file) {
+  const line = lineOf(change.row)
+  const properties = [
+    `file=${escapeProperty(file)}`,
+    ...(line ? [`line=${line}`] : []),
+    `title=${escapeProperty(TITLES[change.row.status] ?? 'Error wording')}`
+  ]
+  return `::warning ${properties.join(',')}::${escapeData(message(change))}`
+}
+
 /**
- * A warning annotation for each change that leaves wording unfinished.
+ * The last warning, in place of those GitHub would drop: how many more. Only
+ * past 10, so always 2 or more: a single extra entry has the tenth slot.
+ */
+function moreWarning(more) {
+  const title = escapeProperty('More error wording left unfinished')
+  return `::warning title=${title}::${escapeData(
+    `${more} more entries are left unfinished. The run's summary and log list every change.`
+  )}`
+}
+
+/**
+ * A warning annotation for each change that leaves wording unfinished, on
+ * its entry's line. GitHub keeps only 10 from a step, so past that the
+ * tenth says how many more there are, rather than GitHub dropping them unseen.
  *
  * @param {Array<{ row: Record<string, string>, before?: string }>} changes
  *   from unfinishedChanges
@@ -54,13 +81,12 @@ function message({ row, before }) {
  * @returns {string[]} one workflow command a line
  */
 export function warningAnnotations(changes, file) {
-  return changes.map((change) => {
-    const line = lineOf(change.row)
-    const properties = [
-      `file=${escapeProperty(file)}`,
-      ...(line ? [`line=${line}`] : []),
-      `title=${escapeProperty(TITLES[change.row.status] ?? 'Error wording')}`
-    ]
-    return `::warning ${properties.join(',')}::${escapeData(message(change))}`
-  })
+  if (changes.length <= MAX_STEP_WARNINGS) {
+    return changes.map((change) => entryWarning(change, file))
+  }
+  const shown = MAX_STEP_WARNINGS - 1
+  return [
+    ...changes.slice(0, shown).map((change) => entryWarning(change, file)),
+    moreWarning(changes.length - shown)
+  ]
 }
