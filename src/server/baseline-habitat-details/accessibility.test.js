@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 /* global DOMParser */
 import { createServer } from '../server.js'
+import { MAX_COMMENT_LENGTH } from '../common/helpers/habitat-comment.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
 import { loadPage } from '../test-helpers/load-page.js'
@@ -114,6 +115,33 @@ describe('Baseline habitat details page accessibility checks', () => {
         broadHabitat: 'Grassland',
         habitatType: 'Modified grassland',
         condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+    expect(response.statusCode).toBe(400)
+    const document = new DOMParser().parseFromString(
+      response.result,
+      'text/html'
+    )
+    assertLayoutLandmarks(document)
+    await runAxeChecks(document.documentElement)
+  })
+
+  it('should have no HTML accessibility issues when the comment is refused', async () => {
+    const crumb = await primeCrumb(server)
+    const response = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId,
+        habitatRef: 'B-A1',
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        condition: 'Good',
+        comment: 'a'.repeat(MAX_COMMENT_LENGTH + 1),
         crumb: crumb.token
       },
       headers: { cookie: crumb.cookie },

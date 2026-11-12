@@ -1233,6 +1233,21 @@ edit:
       lengths and lists, in its {fields}. Upload the file again, with the
       value corrected, to update this habitat.
 
+  # An edit the backend cannot carry out on this habitat, as against a value it
+  # will not accept: the change would make the habitat something its kind
+  # cannot become, such as a tree that is no longer a tree. The dropdowns do
+  # not offer such a change, so a page in step with the backend cannot raise
+  # it; a stale page or a crafted post can. No field the page can edit is to
+  # blame, so this is shown in the error summary only, keeping what was typed,
+  # rather than blaming the habitat reference or dropping the user on an error
+  # page (BMD-1112).
+  FEATURE_NOT_EDITABLE:
+    wording: interim
+    summaryOnly: >-
+      This habitat cannot be changed in that way, so nothing has been saved.
+      Check what you have changed, or upload the file again with the habitat
+      corrected.
+
 # ------------------------------------------------------------------- forms
 #
 # A form field's own validation, by field, then rule. "summary" and "inline"
@@ -1309,6 +1324,27 @@ forms:
     tooLong:
       wording: interim
       text: Enter a habitat reference of {max} characters or fewer.
+
+  # The supporting information (the habitat's comment) on the baseline habitat
+  # details page, for every feature type it serves alike (BMD-1112). The
+  # same two rules the upload applies, whose wording for a whole file is
+  # upload.errors.COMMENT_TOO_LONG and COMMENT_INVALID_CHARACTERS. {max} is
+  # MAX_COMMENT_LENGTH in habitat-comment.js, which mirrors the backend's.
+  # Both rules are shown but have not been through UCD, so each says
+  # "wording: interim" rather than marking it in a comment (BMD-1112 AC5
+  # words them as placeholders).
+  comment:
+    # Longer than {max} characters once leading and trailing whitespace has
+    # been removed. A comment of exactly {max} is allowed.
+    tooLong:
+      wording: interim
+      summary: The supporting information is too long.
+      inline: Supporting information must be {max} characters or less.
+    # Holds characters that are not valid UTF-8.
+    invalidCharacters:
+      wording: interim
+      summary: The supporting information uses invalid characters.
+      inline: The supporting information can only use UTF-8 characters.
 
   # The created habitat, hedgerow and watercourse page's choices. A choice that is not one
   # of its options can only be an imported value no longer offered.

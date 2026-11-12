@@ -13,6 +13,7 @@
 
 import { editErrorText, formErrorText } from '../error-text/error-text.js'
 import { backendStatusOf } from './backend-save-error.js'
+import { hasInvalidUtf8Text } from './utf8-text.js'
 
 // In characters (Unicode code points), as the backend counts them. The
 // tooLong wording in error-text.yaml names the same number.
@@ -48,20 +49,13 @@ if (!refInUse?.inline) {
 export const HABITAT_REF_IN_USE_ERROR = Object.freeze(refInUse)
 const UNPROCESSABLE = 422
 
-// What a UTF-8 decoder puts in place of bytes that are not valid UTF-8.
-const REPLACEMENT_CHARACTER = '�'
-
 /**
  * @param {unknown} value the submitted habitat reference
  * @returns {boolean} whether the reference can be saved
  */
 export function isValidHabitatRef(value) {
   const trimmed = typeof value === 'string' ? value.trim() : ''
-  return (
-    trimmed !== '' &&
-    !trimmed.includes(REPLACEMENT_CHARACTER) &&
-    trimmed.isWellFormed()
-  )
+  return trimmed !== '' && !hasInvalidUtf8Text(trimmed)
 }
 
 /**

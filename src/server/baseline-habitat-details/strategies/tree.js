@@ -41,7 +41,13 @@ export const treeStrategy = {
       showTreeRows: true,
       showBroadHabitatRow: false,
       fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
-      habitatTypeOptions: treeTypeItems(reference.habitatTypes, tree.type)
+      habitatTypeOptions: treeTypeItems(reference.habitatTypes, tree.type),
+      // Supporting information is editable on a tree as on any other area
+      // habitat (BMD-1112). Tree size and Number of trees stay read-only, so
+      // a save cannot move the tree's notional area, and Broad habitat is
+      // fixed while Habitat type offers only the two tree settings
+      // (BMD-1172), so a save cannot make the tree another habitat.
+      showCommentRow: true
     }
   }
 }
