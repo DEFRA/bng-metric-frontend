@@ -215,7 +215,8 @@ export function summaryMarkdown(rows, meta, files) {
   const counts = Object.entries(statusCounts(rows)).map(
     ([status, count]) => `| ${status} | ${count} |`
   )
-  const names = files.map((file) => `\`${path.basename(file)}\``).join(', ')
+  // One a line: the names are long, and run together in a sentence.
+  const names = files.map((file) => `- \`${path.basename(file)}\``)
   const commit = `[${meta.commit.slice(0, SHORT_SHA_LENGTH)}](${meta.commitUrl})`
   return [
     '## Error messages export',
@@ -226,7 +227,9 @@ export function summaryMarkdown(rows, meta, files) {
     '| --- | ---: |',
     ...counts,
     '',
-    `Files: ${names}`,
+    'Files:',
+    '',
+    ...names,
     ''
   ].join('\n')
 }
