@@ -74,11 +74,21 @@ export function isRefEditable(type, retentionCategory) {
  * Otherwise a rename would come back as the bare 400 the page reads as a
  * refused reference, and blame a valid one.
  *
+ * The page itself needs nothing from the reference, so on showing it any
+ * failure to load it leaves the page read-only, logged, rather than an error
+ * page. With `strict`, as on a save, only a 404 means the backend cannot
+ * rename trees; any other failure is thrown.
+ *
  * @param {string} type feature type from the PI feature endpoint
  * @param {string|null} retentionCategory normalised retention category
+ * @param {{ strict?: boolean, logger?: { warn: Function } }} [options]
  * @returns {Promise<boolean>}
  */
-export async function canRenameNow(type, retentionCategory) {
+export async function canRenameNow(
+  type,
+  retentionCategory,
+  { strict = false, logger } = {}
+) {
   if (!isRefEditable(type, retentionCategory)) {
     return false
   }
@@ -92,7 +102,13 @@ export async function canRenameNow(type, retentionCategory) {
     if (error.output?.statusCode === statusCodes.notFound) {
       return false
     }
-    throw error
+    if (strict) {
+      throw error
+    }
+    logger?.warn(
+      `Retained tree shown read-only: the tree creation reference could not be loaded (${error.message})`
+    )
+    return false
   }
 }
 

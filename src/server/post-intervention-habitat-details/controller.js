@@ -318,7 +318,10 @@ async function renderDetailsPage(
     }
   )
   const backHref = postInterventionBackHref(projectId, type, returnUrl)
-  const refEditFields = (await canRenameNow(type, retentionCategory))
+  const canRename = await canRenameNow(type, retentionCategory, {
+    logger: request.logger
+  })
+  const refEditFields = canRename
     ? retainedRefEditFields({
         type,
         feature,
@@ -510,7 +513,7 @@ const postController = {
         payload: request.payload
       })
     }
-    if (await canRenameNow(type, retentionCategory)) {
+    if (await canRenameNow(type, retentionCategory, { strict: true })) {
       return saveRetainedReference(request, h, {
         type,
         feature,

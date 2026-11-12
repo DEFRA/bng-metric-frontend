@@ -368,6 +368,64 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
   })
 
+  test.each([
+    [
+      'answers 500',
+      () =>
+        Promise.reject(
+          Object.assign(new Error('Internal Server Error'), {
+            output: { statusCode: 500 }
+          })
+        )
+    ],
+    [
+      'sends a reference of the wrong shape',
+      () => Promise.resolve({ res: { statusCode: 200 }, payload: {} })
+    ]
+  ])(
+    'GET renders a Retained individual tree read-only, and logs it, when the tree reference %s',
+    async (_label, treeCreation) => {
+      mockTree('Retained', treeCreation)
+      const logger = { warn: vi.fn() }
+
+      const h = createMockH()
+      await getController.handler(
+        { query: { projectId, featureId }, logger },
+        h
+      )
+
+      expect(h.view).toHaveBeenCalledWith(
+        'habitat-details/pi-habitat-details',
+        expect.objectContaining({
+          ...treeRows,
+          habitatTypeDisplay: 'Urban tree'
+        })
+      )
+      expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Retained tree shown read-only')
+      )
+    }
+  )
+
+  test('POST fails, rather than guessing, when the tree reference answers 500', async () => {
+    mockTree('Retained', () =>
+      Promise.reject(
+        Object.assign(new Error('Internal Server Error'), {
+          output: { statusCode: 500 }
+        })
+      )
+    )
+
+    await expect(
+      postController.handler(
+        { payload: { projectId, featureId, habitatRef: 'T-2' } },
+        createMockH()
+      )
+    ).rejects.toThrow('Internal Server Error')
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
   test('POST refuses to rename a Retained tree while the backend cannot rename trees', async () => {
     mockTree('Retained', () =>
       Promise.reject(
