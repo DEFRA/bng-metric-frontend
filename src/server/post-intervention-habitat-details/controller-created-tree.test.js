@@ -168,13 +168,39 @@ describe('Created tree controller', () => {
     )
   })
 
-  test('refuses another broad habitat without saving', async () => {
+  test('saves the tree as Individual trees whatever broad habitat is posted', async () => {
     const h = createMockH()
     await postController.handler(request({ broadHabitat: 'Grassland' }), h)
 
-    expect(wreck.put).not.toHaveBeenCalled()
-    expect(h.view.mock.calls[0][1].errors).toHaveProperty('broadHabitat')
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+      broadType: 'Individual trees',
+      habitatType: 'Urban tree'
+    })
+    expect(h.redirect).toHaveBeenCalled()
   })
+
+  test.each([
+    ['blank', null],
+    ['another', 'Trees']
+  ])(
+    'offers Urban tree and Rural tree for a tree stored with %s broad habitat',
+    async (_label, broadType) => {
+      mockTree({
+        ...createdTree,
+        proposed: { ...createdTree.proposed, broadType }
+      })
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      const vm = h.view.mock.calls[0][1]
+      expect(vm.values.broadHabitat).toBe('Individual trees')
+      expect(vm.fields.habitatType.items.map((item) => item.value)).toEqual([
+        'Rural tree',
+        'Urban tree'
+      ])
+      expect(vm.distinctivenessDisplay).not.toBe('')
+    }
+  )
 })
 
 describe('Created tree authenticated form', () => {

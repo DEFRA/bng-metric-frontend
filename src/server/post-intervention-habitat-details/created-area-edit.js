@@ -222,7 +222,22 @@ function createdEditValues(feature, reference) {
   if (reference.importedCondition) {
     saved.condition = UNCHANGED_VALUE
   }
-  return saved
+  return withFixedBroadHabitat(saved, createdKind(reference))
+}
+
+/**
+ * The values with a kind's fixed broad habitat in place of whatever was
+ * stored or posted: a tree is always Individual trees, so its habitat types,
+ * conditions and checks are read against that, however the tree was saved.
+ *
+ * @param {object} values
+ * @param {{ fixedBroadHabitat?: string }} kind
+ * @returns {object}
+ */
+export function withFixedBroadHabitat(values, kind) {
+  return kind.fixedBroadHabitat
+    ? { ...values, broadHabitat: kind.fixedBroadHabitat }
+    : values
 }
 
 function importedLinearCondition(reference, values) {

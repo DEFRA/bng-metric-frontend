@@ -93,6 +93,15 @@ function fieldNames($) {
     .get()
 }
 
+// The fields a user edits: not the form's hidden inputs or its CSRF token.
+function editableFieldNames($) {
+  return $('form [name]')
+    .filter((_, field) => $(field).attr('type') !== 'hidden')
+    .map((_, field) => $(field).attr('name'))
+    .get()
+    .sort()
+}
+
 function headings($) {
   return $('h2')
     .map((_, h2) => normalise($(h2).text()))
@@ -347,7 +356,17 @@ describe('details pages of a BNG Service template project', () => {
     test.each([
       ['Retained', ['habitatRef']],
       ['Enhanced', []],
-      ['Created', ['ref', 'broadHabitat', 'habitatType', 'condition']]
+      [
+        'Created',
+        [
+          'ref',
+          'habitatType',
+          'strategicSignificance',
+          'condition',
+          'advanceYears',
+          'delayYears'
+        ]
+      ]
     ])(
       'a %s individual tree renders in the area layout, sized in hectares',
       async (retentionCategory, editableFields) => {
@@ -370,7 +389,7 @@ describe('details pages of a BNG Service template project', () => {
           fieldValue($, 'Habitat type') ??
             $('[name="habitatType"] option[selected]').attr('value')
         ).toBe(tree.proposed.type)
-        expect(fieldNames($)).toEqual(expect.arrayContaining(editableFields))
+        expect(editableFieldNames($)).toEqual([...editableFields].sort())
         expect(viewBaselineHref($)).toBe(
           tree.parentFeatureId
             ? baselineDetailsUrl(body, tree.parentFeatureId)
