@@ -128,6 +128,50 @@ describe('initiateUpload', () => {
   })
 })
 
+describe('initiateUpload refused by a rate limit', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // What wreck throws for the backend's 429: its shortcut methods reject on
+  // a 4xx with the response attached.
+  function tooManyRequests(retryAfter) {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': retryAfter } },
+      payload: { statusCode: 429, error: 'Too Many Requests' }
+    }
+    return error
+  }
+
+  it('passes the refusal on as a 429 with the wait, not a 502', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(tooManyRequests('42'))
+
+    await expect(
+      initiateUpload(makeRequest(), {
+        redirect: '/projects/1/upload-received',
+        s3Bucket: 'baseline-files'
+      })
+    ).rejects.toMatchObject({
+      isBoom: true,
+      output: { statusCode: 429 },
+      data: { rateLimited: true, retryAfterSeconds: 42 }
+    })
+  })
+
+  it('does not log the refusal as a backend failure', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(tooManyRequests('42'))
+
+    await initiateUpload(makeRequest(), {
+      redirect: '/projects/1/upload-received',
+      s3Bucket: 'baseline-files'
+    }).catch(() => {})
+
+    expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+})
+
 describe('getUploadStatus', () => {
   it('should return uploadStatus from backend', async () => {
     vi.mocked(wreck.get).mockResolvedValue({

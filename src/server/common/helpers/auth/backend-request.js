@@ -1,6 +1,7 @@
 import Boom from '@hapi/boom'
 
 import { statusCodes } from '../../constants.js'
+import { rateLimitedErrorFor } from '../rate-limited.js'
 import { wreck } from '../wreck-client.js'
 import { authHeaders } from './auth-headers.js'
 import { refreshSession } from './refresh-session.js'
@@ -17,17 +18,32 @@ import { expireSession } from './session-expiry.js'
  * thrown, which `catchAll` turns into a redirect to /auth/session-expired
  * rather than rendering a bare error page. (BMD-829)
  *
+ * When the backend answers 429, one of its rate limits refused the call. That
+ * is thrown as `rateLimitedError`, with the backend's wait, which `catchAll`
+ * shows as the "too many requests" page. (BMD-1203)
+ *
  * @param {import('@hapi/hapi').Request} request
  * @param {'get'|'post'|'put'|'patch'|'delete'} method
  * @param {string} url absolute backend URL
  * @param {object} [options] wreck options (payload, headers, …)
  */
 export async function backendRequest(request, method, url, options = {}) {
-  const send = () =>
-    wreck[method](url, {
-      ...options,
-      headers: { ...options.headers, ...authHeaders(request) }
-    })
+  const send = async () => {
+    let result
+    try {
+      result = await wreck[method](url, {
+        ...options,
+        headers: { ...options.headers, ...authHeaders(request) }
+      })
+    } catch (error) {
+      throw rateLimitedErrorFor(error?.data?.res) ?? error
+    }
+    const refused = rateLimitedErrorFor(result?.res)
+    if (refused) {
+      throw refused
+    }
+    return result
+  }
 
   let result
   let unauthorized

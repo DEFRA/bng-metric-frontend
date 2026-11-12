@@ -23,6 +23,44 @@ function statusCodePage(statusCode) {
   return ERROR_PAGES.get(statusCode) ?? SERVER_ERROR_PAGE
 }
 
+/**
+ * The "too many requests" page for the wait the backend gave, in seconds: a
+ * page for each grammatical form, and one for no wait at all.
+ *
+ * @param {number | null | undefined} seconds
+ */
+export function tooManyRequestsPage(seconds) {
+  if (!seconds) {
+    return pageErrorText('tooManyRequestsNoWait')
+  }
+  if (seconds === 1) {
+    return pageErrorText('tooManyRequestsOneSecond')
+  }
+  return pageErrorText('tooManyRequests', { seconds })
+}
+
+/**
+ * A backend rate limit refused the request (rate-limited.js). The page says
+ * how long to wait, and so does the Retry-After header. It is not logged: the
+ * service did what it should.
+ */
+function renderTooManyRequests(response, h) {
+  const seconds = response.data?.retryAfterSeconds
+  const page = tooManyRequestsPage(seconds)
+  const view = h
+    .view('error/index', {
+      pageTitle: page.title,
+      heading: statusCodes.tooManyRequests,
+      message: page.title,
+      body: page.body
+    })
+    .code(statusCodes.tooManyRequests)
+  if (seconds) {
+    view.header('Retry-After', String(seconds))
+  }
+  return view
+}
+
 export function catchAll(request, h) {
   const { response } = request
 
@@ -38,6 +76,10 @@ export function catchAll(request, h) {
   }
 
   const statusCode = response.output.statusCode
+  if (statusCode === statusCodes.tooManyRequests) {
+    return renderTooManyRequests(response, h)
+  }
+
   const page = statusCodePage(statusCode)
 
   if (statusCode >= statusCodes.internalServerError) {

@@ -1458,6 +1458,30 @@ pages:
     # Anything else, including a service the page needed being down.
     title: Something went wrong
 
+  # The backend refused a request because this user, or all users together,
+  # sent too many in a short time (HTTP 429). One page for each form of the
+  # wait the backend gives: some seconds, 1 second, or none.
+  # TODO(open point 1): UCD may want different words. Until they say so, the
+  # page follows the GOV.UK error page pattern.
+  tooManyRequests:
+    wording: interim
+    title: &tooManyRequestsTitle Too many requests
+    body:
+      - &tooManyRequestsCause You have sent too many requests in a short time.
+      - Wait {seconds} seconds, then try again.
+  tooManyRequestsOneSecond:
+    wording: interim
+    title: *tooManyRequestsTitle
+    body:
+      - *tooManyRequestsCause
+      - Wait 1 second, then try again.
+  tooManyRequestsNoWait:
+    wording: interim
+    title: *tooManyRequestsTitle
+    body:
+      - *tooManyRequestsCause
+      - Wait a minute, then try again.
+
   # Signed in, but without the role the service needs.
   accessDenied:
     title: Access denied

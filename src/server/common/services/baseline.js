@@ -6,6 +6,7 @@ import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
 import { HABITAT_UPLOAD_TYPES } from '../helpers/habitat-upload-types.js'
 import { describeBackendFailure } from '../helpers/backend-failure.js'
+import { isRateLimited } from '../helpers/rate-limited.js'
 
 const logger = createLogger()
 
@@ -103,6 +104,15 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
 
     return { valid: true }
   } catch (error) {
+    // A rate limit refused the call: not a backend failure and not a problem
+    // with the file. The "too many requests" page shows it (catchAll).
+    if (isRateLimited(error)) {
+      logger.info(
+        `${uploadType.label} habitat validation refused by the backend's rate limit - uploadId: ${uploadId}, retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+      )
+      throw error
+    }
+
     const statusCode = error?.output?.statusCode
     const responsePayload = error?.data?.payload
 

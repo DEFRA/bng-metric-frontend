@@ -4,6 +4,7 @@ import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
 import { describeBackendFailure } from '../helpers/backend-failure.js'
+import { isRateLimited } from '../helpers/rate-limited.js'
 
 const logger = createLogger()
 
@@ -70,6 +71,15 @@ export async function initiateUpload(
       uploadUrl
     }
   } catch (error) {
+    // A rate limit refused the upload start: not a backend failure. The
+    // "too many requests" page shows it (catchAll).
+    if (isRateLimited(error)) {
+      logger.info(
+        `Upload start refused by the backend's rate limit - retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+      )
+      throw error
+    }
+
     const statusCode = error?.output?.statusCode
     // Gives only the safe fields of the backend's body, never its messages.
     const failure = describeBackendFailure(error, {
@@ -114,6 +124,15 @@ export async function getUploadStatus(request, uploadId) {
       uploadStatus: payload.uploadStatus ?? 'unknown'
     }
   } catch (error) {
+    // A rate limit refused the upload start: not a backend failure. The
+    // "too many requests" page shows it (catchAll).
+    if (isRateLimited(error)) {
+      logger.info(
+        `Upload start refused by the backend's rate limit - retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+      )
+      throw error
+    }
+
     const statusCode = error?.output?.statusCode
     // Gives only the safe fields of the backend's body, never its messages.
     const failure = describeBackendFailure(error, {

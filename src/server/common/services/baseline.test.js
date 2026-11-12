@@ -164,6 +164,25 @@ describe('#validateBaseline', () => {
     message: 'Service Unavailable'
   })
 
+  test('Should pass a 429 from a rate limit on, not as busy or a file problem', async () => {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': '20' } },
+      payload: { statusCode: 429, error: 'Too Many Requests' }
+    }
+    vi.mocked(wreck.post).mockRejectedValue(error)
+    mockLoggerError.mockClear()
+
+    await expect(
+      validateBaseline(makeRequest(), projectId, uploadId)
+    ).rejects.toMatchObject({
+      output: { statusCode: 429 },
+      data: { rateLimited: true, retryAfterSeconds: 20 }
+    })
+    expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+
   test('Should report a 503 from the backend as busy rather than an error', async () => {
     vi.mocked(wreck.post).mockRejectedValue(busyResponse({}))
 
