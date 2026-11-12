@@ -1,6 +1,7 @@
 import { statusCodes } from '../constants.js'
 import { SESSION_EXPIRED_PATH } from './auth/session-expiry.js'
 import { pageErrorText } from '../error-text/error-text.js'
+import { shownWaitSeconds } from './rate-limited.js'
 
 // The pages section's page for each status; any other is serverError. A 422,
 // a save the backend refused under one of the service's rules, shows the same
@@ -46,7 +47,7 @@ export function tooManyRequestsPage(seconds) {
  */
 function renderTooManyRequests(response, h) {
   const seconds = response.data?.retryAfterSeconds
-  const page = tooManyRequestsPage(seconds)
+  const page = tooManyRequestsPage(shownWaitSeconds(seconds))
   const view = h
     .view('error/index', {
       pageTitle: page.title,

@@ -195,6 +195,20 @@ describe('getUploadStatus', () => {
     expect(mockLoggerError).not.toHaveBeenCalled()
   })
 
+  it('polls at the 30-second maximum when the backend asks for an hour', async () => {
+    // Not faster: a wait too long to print on the page is still a long wait.
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': '3600' } }
+    }
+    vi.mocked(wreck.get).mockRejectedValue(error)
+
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
+
+    expect(result.retryAfterSeconds).toBe(30)
+  })
+
   it('holds a rate-limited status check to the polling maximum of 30 seconds', async () => {
     const error = new Error('Response Error: 429 Too Many Requests')
     error.data = {

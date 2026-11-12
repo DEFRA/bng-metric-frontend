@@ -25,6 +25,19 @@ export const MAX_RETRY_AFTER_SECONDS = 30
 const MAX_SHOWN_WAIT_SECONDS = 300
 
 /**
+ * The wait the "too many requests" page states: the backend's, or null when
+ * there is none or it is over {@link MAX_SHOWN_WAIT_SECONDS}. Only the page
+ * applies this limit; the polling pace uses the wait as given, capped by
+ * {@link pollWaitSeconds}.
+ *
+ * @param {number | null | undefined} seconds
+ * @returns {number | null}
+ */
+export function shownWaitSeconds(seconds) {
+  return seconds && seconds <= MAX_SHOWN_WAIT_SECONDS ? seconds : null
+}
+
+/**
  * Seconds from a `Retry-After` header, or null if it does not carry a usable
  * one. The one parser for every `Retry-After` the frontend honours.
  *
@@ -60,9 +73,7 @@ export function retryAfterSeconds(headers, { max = Infinity } = {}) {
 export function rateLimitedError(headers) {
   return Boom.tooManyRequests('The backend refused the request: rate limit', {
     rateLimited: true,
-    retryAfterSeconds: retryAfterSeconds(headers, {
-      max: MAX_SHOWN_WAIT_SECONDS
-    })
+    retryAfterSeconds: retryAfterSeconds(headers)
   })
 }
 

@@ -5,7 +5,8 @@ import {
   isRateLimited,
   rateLimitedError,
   rateLimitedErrorFor,
-  retryAfterSeconds
+  retryAfterSeconds,
+  shownWaitSeconds
 } from './rate-limited.js'
 
 const mockLoggerError = vi.hoisted(() => vi.fn())
@@ -105,6 +106,18 @@ describe('#rateLimitedErrorFor', () => {
     expect(error.output.statusCode).toBe(statusCodes.tooManyRequests)
     expect(error.data).toEqual({ rateLimited: true, retryAfterSeconds: 12 })
     expect(isRateLimited(error)).toBe(true)
+  })
+
+  test('keeps a long wait as given; only the page leaves it out', () => {
+    const error = rateLimitedErrorFor({
+      statusCode: statusCodes.tooManyRequests,
+      headers: { 'retry-after': '3600' }
+    })
+
+    expect(error.data.retryAfterSeconds).toBe(3600)
+    expect(shownWaitSeconds(3600)).toBeNull()
+    expect(shownWaitSeconds(300)).toBe(300)
+    expect(shownWaitSeconds(null)).toBeNull()
   })
 
   test('is null for any other status', () => {
