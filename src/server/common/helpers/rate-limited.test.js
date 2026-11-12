@@ -173,6 +173,23 @@ describe('the "too many requests" page', () => {
     })
   })
 
+  describe('when a rate limit refuses the project fetch', () => {
+    test('shows the page, not a 502', async () => {
+      vi.mocked(wreck.get).mockRejectedValue(backendTooManyRequests('20'))
+
+      const response = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/reports`,
+        auth
+      })
+
+      expect(response.statusCode).toBe(statusCodes.tooManyRequests)
+      expect(response.result).toContain('Wait 20 seconds, then try again.')
+      expect(response.result).not.toContain('Something went wrong')
+      expect(errorLogs()).toEqual([])
+    })
+  })
+
   describe('when the backend refuses the PDF report', () => {
     function getReport() {
       return server.inject({

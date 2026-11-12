@@ -74,12 +74,12 @@ export const PLACEHOLDERS = Object.freeze({
   recordCount: 'the number of template version records in the file',
   redlineAreaSqM: "the red line boundary's area, in square metres",
   ref: "the habitat's Habitat Ref",
-  seconds:
-    "how long to wait before trying again, in whole seconds: the backend's Retry-After when a rate limit refused the request",
   refA: 'the Habitat Ref of the first of the two overlapping parcels',
   refB: 'the Habitat Ref of the second of the two overlapping parcels',
   rowCount:
     'the number of retained or enhanced rows with no baseline habitat type',
+  seconds:
+    "how long to wait before trying again, in whole seconds: the backend's Retry-After when a rate limit refused the request",
   supportedVersions: 'the template versions the service reads',
   table: 'the template table the habitat is in',
   tree: 'the tree, by its Habitat Ref, or else its fid or its place in the file',

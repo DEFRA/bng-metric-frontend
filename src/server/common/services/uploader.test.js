@@ -173,6 +173,26 @@ describe('initiateUpload refused by a rate limit', () => {
 })
 
 describe('getUploadStatus', () => {
+  it('keeps polling when a rate limit refuses the status check', async () => {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': '5' } }
+    }
+    vi.mocked(wreck.get).mockRejectedValue(error)
+    mockLoggerError.mockClear()
+
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
+
+    // The same answer as any failed check, so the checking page refreshes
+    // and asks again rather than ending on the "too many requests" page.
+    expect(result).toEqual({
+      uploadStatus: 'error',
+      error: 'Unable to check upload status'
+    })
+    expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+
   it('should return uploadStatus from backend', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },

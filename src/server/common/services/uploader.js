@@ -124,13 +124,17 @@ export async function getUploadStatus(request, uploadId) {
       uploadStatus: payload.uploadStatus ?? 'unknown'
     }
   } catch (error) {
-    // A rate limit refused the upload start: not a backend failure. The
-    // "too many requests" page shows it (catchAll).
+    // A rate limit refused the status check: not a backend failure, and not a
+    // reason to end the poll. It answers as any failed check does, below, so
+    // the page refreshes and checks again.
     if (isRateLimited(error)) {
       logger.info(
-        `Upload start refused by the backend's rate limit - retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+        `Upload status check refused by the backend's rate limit - uploadId: ${uploadId}, retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
       )
-      throw error
+      return {
+        uploadStatus: 'error',
+        error: 'Unable to check upload status'
+      }
     }
 
     const statusCode = error?.output?.statusCode

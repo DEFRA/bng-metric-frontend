@@ -1,5 +1,6 @@
 import { config } from '../../../config/config.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
+import { isRateLimited } from '../helpers/rate-limited.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -22,8 +23,9 @@ async function callBackend(send) {
   } catch (error) {
     // A dead, unrefreshable session (backend-request.js) must reach the
     // global error handler so it can redirect to /auth/session-expired,
-    // rather than being reported here as a generic backend failure.
-    if (error?.data?.sessionExpired) {
+    // rather than being reported here as a generic backend failure. So must a
+    // refusal by a rate limit, which shows the "too many requests" page.
+    if (error?.data?.sessionExpired || isRateLimited(error)) {
       throw error
     }
     if (error?.data?.isResponseError) {

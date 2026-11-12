@@ -1,6 +1,7 @@
 import Boom from '@hapi/boom'
 
 import { statusCodes } from '../constants.js'
+import { isRateLimited } from './rate-limited.js'
 
 /**
  * The status the backend answered a failed save with. wreck reports it on the
@@ -16,14 +17,15 @@ export function backendStatusOf(err) {
 /**
  * The error to show for a habitat save the backend refused, so a refusal is not
  * reported as an upstream failure. An expired session passes through for
- * catchAll to handle (a redirect to sign in again).
+ * catchAll to handle (a redirect to sign in again), and so does a refusal by a
+ * rate limit (the "too many requests" page).
  *
  * @param {unknown} err what backendRequest threw
  * @param {string} [featureId]
  * @returns {Error}
  */
 export function backendSaveError(err, featureId) {
-  if (err?.data?.sessionExpired) {
+  if (err?.data?.sessionExpired || isRateLimited(err)) {
     return err
   }
   switch (backendStatusOf(err)) {
