@@ -15,7 +15,7 @@ const projectId = 'aa0e8400-e29b-41d4-a716-446655440000'
 const featureId = 'aa0e8400-e29b-41d4-a716-446655440001'
 
 describe('isRefEditable', () => {
-  test.each(['habitat', 'hedgerow', 'watercourse'])(
+  test.each(['habitat', 'tree', 'hedgerow', 'watercourse'])(
     'is true for a Retained %s',
     (type) => {
       expect(isRefEditable(type, 'Retained')).toBe(true)
@@ -26,7 +26,8 @@ describe('isRefEditable', () => {
     ['habitat', 'Created'],
     ['habitat', 'Enhanced'],
     ['habitat', null],
-    ['tree', 'Retained']
+    ['tree', 'Enhanced'],
+    ['verticalHabitat', 'Retained']
   ])('is false for a %s that is %s', (type, retentionCategory) => {
     expect(isRefEditable(type, retentionCategory)).toBe(false)
   })

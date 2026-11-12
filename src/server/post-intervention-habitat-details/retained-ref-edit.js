@@ -1,6 +1,6 @@
 // Editing the reference of a Retained post-intervention habitat (BMD-1180).
 //
-// A Retained area habitat, hedgerow or watercourse is its baseline parcel
+// A Retained area habitat, tree, hedgerow or watercourse is its baseline parcel
 // carried forward, so its reference is the one thing on the page the user can
 // change. The page stays the read-only details page with a reference input at
 // the top of the first section and Save / Cancel below; the rules and the
@@ -29,6 +29,7 @@ import {
   storedValueRefusal
 } from '../common/helpers/stored-value-refusal.js'
 import { RETENTION_RETAINED } from './retention.js'
+import { loadCreatedTreeReference } from './created-edit-reference.js'
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
@@ -44,16 +45,17 @@ export const retainedRefPayloadSchema = Joi.object({
 })
 
 // The page heading names the habitat by its saved reference, as the baseline
-// details pages do (BMD-1061).
+// details pages do (BMD-1061). An individual tree is an area habitat there.
 const HEADING_PREFIX_BY_TYPE = new Map([
   ['habitat', 'Habitat'],
+  ['tree', 'Habitat'],
   ['hedgerow', 'Hedgerow'],
   ['watercourse', 'Watercourse']
 ])
 
 /**
  * Whether the page for this feature carries the reference input: Retained area
- * habitats, hedgerows and watercourses only.
+ * habitats, trees, hedgerows and watercourses only.
  *
  * @param {string} type feature type from the PI feature endpoint
  * @param {string|null} retentionCategory normalised retention category
@@ -63,6 +65,51 @@ export function isRefEditable(type, retentionCategory) {
   return (
     retentionCategory === RETENTION_RETAINED && HEADING_PREFIX_BY_TYPE.has(type)
   )
+}
+
+/**
+ * Whether the backend can rename this feature now. A Retained tree is renamed
+ * only by a backend that also serves the tree creation reference, so until
+ * that is deployed the tree's page stays read-only, as a Created tree's does.
+ * Otherwise a rename would come back as the bare 400 the page reads as a
+ * refused reference, and blame a valid one.
+ *
+ * The page itself needs nothing from the reference, so on showing it any
+ * failure to load it leaves the page read-only, logged, rather than an error
+ * page. With `strict`, as on a save, only a 404 means the backend cannot
+ * rename trees; any other failure is thrown.
+ *
+ * @param {string} type feature type from the PI feature endpoint
+ * @param {string|null} retentionCategory normalised retention category
+ * @param {{ strict?: boolean, logger?: { warn: Function } }} [options]
+ * @returns {Promise<boolean>}
+ */
+export async function canRenameNow(
+  type,
+  retentionCategory,
+  { strict = false, logger } = {}
+) {
+  if (!isRefEditable(type, retentionCategory)) {
+    return false
+  }
+  if (type !== 'tree') {
+    return true
+  }
+  try {
+    await loadCreatedTreeReference()
+    return true
+  } catch (error) {
+    if (error.output?.statusCode === statusCodes.notFound) {
+      return false
+    }
+    if (strict) {
+      throw error
+    }
+    logger?.warn(
+      `Retained tree shown read-only: the tree creation reference could not be loaded (${error.message})`
+    )
+    return false
+  }
 }
 
 /**

@@ -8,7 +8,6 @@ import {
   fetchProject
 } from '../common/helpers/habitat-details-controller.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
-import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
 import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
@@ -22,6 +21,10 @@ import {
 } from './tree-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
+  createdBaselineFeatureId,
+  viewOnlyBaselineFeatureId
+} from './baseline-feature-link.js'
+import {
   HABITAT_REF_ERROR,
   HABITAT_REF_IN_USE_ERROR,
   habitatRefRefusal,
@@ -31,6 +34,10 @@ import {
   isStoredValueRefusal,
   storedValueRefusal
 } from '../common/helpers/stored-value-refusal.js'
+import {
+  featureNotEditableRefusal,
+  isFeatureNotEditableError
+} from '../common/helpers/feature-not-editable-refusal.js'
 import { PI_DETAILS_HEADING } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
@@ -41,10 +48,11 @@ import {
   createdWatercoursePayloadSchema,
   createdReferenceForFeature,
   saveCreatedArea,
-  validateCreatedArea
+  validateCreatedArea,
+  withFixedBroadHabitat
 } from './created-area-edit.js'
 import {
-  isRefEditable,
+  canRenameNow,
   retainedRefEditFields,
   retainedRefPayloadSchema,
   saveRetainedRef
@@ -61,12 +69,13 @@ const uploadType = HABITAT_UPLOAD_TYPES.postIntervention
 const AREA_HABITAT_TYPE = 'habitat'
 const HEDGEROW_TYPE = 'hedgerow'
 const WATERCOURSE_TYPE = 'watercourse'
+const TREE_TYPE = 'tree'
 const CREATED_EDIT_TYPES = new Set([
   AREA_HABITAT_TYPE,
+  TREE_TYPE,
   HEDGEROW_TYPE,
   WATERCOURSE_TYPE
 ])
-const TREE_TYPE = 'tree'
 
 // The area habitat details templates, shared by vertical area habitats and
 // individual trees: the single-section page, and the two-section page with
@@ -96,15 +105,17 @@ const VERTICAL_RETENTION_PAGES = new Map([
 ])
 
 // An individual tree uses the area layout with its size class and number of
-// trees, view-only whatever its retention: it cannot be edited after
-// intervention. Enhanced and Created ones show their timing and difficulty.
-const TREE_SECTIONS_PAGE = {
-  template: AREA_SECTIONS_TEMPLATE,
-  buildViewModel: buildTreeSectionsViewOnlyViewModel
-}
+// trees. As for an area habitat, a Created one gets the edit page, and a
+// Retained one the reference form; an Enhanced one is view-only, with its
+// timing and difficulty.
 const TREE_RETENTION_PAGES = new Map([
-  [RETENTION_ENHANCED, TREE_SECTIONS_PAGE],
-  [RETENTION_CREATED, TREE_SECTIONS_PAGE]
+  [
+    RETENTION_ENHANCED,
+    {
+      template: AREA_SECTIONS_TEMPLATE,
+      buildViewModel: buildTreeSectionsViewOnlyViewModel
+    }
+  ]
 ])
 
 // Created/Enhanced hedgerows also use a two-section layout, keyed by
@@ -179,121 +190,6 @@ const UNSUPPORTED_BODY = pageErrorText('featureUnsupported').body
 const DEFAULT_PROJECT_NAME = 'Project'
 
 /**
- * A ref as the backend stores it: as text, trimmed (the backend's
- * cleanHabitatRef). Since BMD-1175 a ref over the limit is refused, never
- * cut, so it is not cut here either. A baseline saved before BMD-1058 may
- * hold ' H001' or 12, so both sides are compared cleaned. Null when there is
- * none.
- */
-function comparableRef(ref) {
-  if (typeof ref !== 'string' && typeof ref !== 'number') {
-    return null
-  }
-  const cleaned = String(ref).trim()
-  return cleaned === '' ? null : cleaned
-}
-
-// The baseline layer a post-intervention feature of each type is joined to.
-const BASELINE_LAYER_BY_TYPE = new Map([
-  [AREA_HABITAT_TYPE, 'habitats'],
-  [VERTICAL_HABITAT_TYPE, 'verticalHabitats'],
-  [TREE_TYPE, 'trees'],
-  [HEDGEROW_TYPE, 'hedgerows'],
-  [WATERCOURSE_TYPE, 'watercourses']
-])
-
-// The values a post-intervention row's `baseline` snapshot copies from its
-// parcel, which tell parcels sharing a ref apart (as the backend's re-sync does).
-const SNAPSHOT_FIELDS = ['type', 'broadType', 'condition']
-
-function matchesSnapshot(candidate, snapshot) {
-  return SNAPSHOT_FIELDS.every(
-    (field) =>
-      !Object.hasOwn(candidate, field) || candidate[field] === snapshot?.[field]
-  )
-}
-
-/**
- * Resolve the baseline feature that corresponds to a post-intervention parcel
- * of a legacy project. Baseline and PI are separate uploads with independent
- * featureIds, so the only stable join key is the parcel ref, matched within
- * the feature's own layer: a hedgerow and an area habitat may share a ref.
- * Where an import left several parcels on the ref, the one the row's baseline
- * snapshot describes wins, else the first. Returns null when no baseline has
- * been uploaded or no baseline feature in the layer shares the ref.
- *
- * @param {object} project
- * @param {string} type the feature type from the PI feature endpoint
- * @param {object} feature the post-intervention feature
- * @returns {string|null}
- */
-function resolveBaselineFeatureId(project, type, feature) {
-  const wanted = comparableRef(feature.ref)
-  const layer = BASELINE_LAYER_BY_TYPE.get(type)
-  if (!wanted || !layer) {
-    return null
-  }
-  const candidates = (project?.project?.baseline?.[layer] ?? []).filter(
-    (candidate) => comparableRef(candidate.ref) === wanted
-  )
-  const described = candidates.filter((candidate) =>
-    matchesSnapshot(candidate, feature.baseline)
-  )
-  const match = described.length === 1 ? described[0] : candidates[0]
-  return match?.featureId ?? null
-}
-
-const BASELINE_LAYERS = [
-  'habitats',
-  'verticalHabitats',
-  'trees',
-  'hedgerows',
-  'watercourses'
-]
-
-/**
- * The baseline feature a BNG Service template post-intervention feature names
- * as its parent, whatever its Retention Category: the one it continues,
- * enhances, or degrades by being Created over it (BMD-1083). The backend links
- * it by the parent_uuid in the file, so refs play no part: a feature with no
- * parentFeatureId has no baseline link, and neither does one whose parent the
- * baseline no longer holds.
- */
-function parentBaselineFeatureId(project, feature, layers = BASELINE_LAYERS) {
-  const parentId = feature.parentFeatureId
-  if (!parentId) {
-    return null
-  }
-  const baseline = project?.project?.baseline
-  const exists = layers.some((layer) =>
-    baseline?.[layer]?.some((f) => f.featureId === parentId)
-  )
-  return exists ? parentId : null
-}
-
-function isServiceTemplateProject(project) {
-  return isServiceTemplateDocument(project?.project?.postIntervention)
-}
-
-function viewOnlyBaselineFeatureId(project, type, feature) {
-  if (isServiceTemplateProject(project)) {
-    return parentBaselineFeatureId(project, feature)
-  }
-  return resolveBaselineFeatureId(project, type, feature)
-}
-
-function createdBaselineFeatureId(project, type, feature) {
-  if (
-    isServiceTemplateProject(project) ||
-    Object.hasOwn(feature, 'parentFeatureId')
-  ) {
-    const layer = CREATED_EDIT_KINDS[type].savePath
-    return parentBaselineFeatureId(project, feature, [layer])
-  }
-  return resolveBaselineFeatureId(project, type, feature)
-}
-
-/**
  * @param {string} type
  * @param {string|null} retentionCategory
  */
@@ -333,8 +229,9 @@ async function loadCreationReferenceForFeature(type, feature) {
 }
 
 /**
- * Render a Created area habitat, hedgerow or watercourse: its edit page, or the read-only
- * page for a linear feature while the backend reference endpoint is not deployed.
+ * Render a Created area habitat, tree, hedgerow or watercourse: its edit page,
+ * or the read-only page for a tree or linear feature while the backend
+ * reference endpoint is not deployed.
  */
 async function renderCreatedFeature(
   h,
@@ -369,8 +266,8 @@ async function renderCreatedFeature(
 
 /**
  * Render the details page for one post-intervention feature. A Created area
- * habitat, hedgerow or watercourse gets its edit page (BMD-1048, BMD-1049, BMD-1050); a Retained area habitat, hedgerow or
- * watercourse gets the reference form (BMD-1180), with `submittedRef` and
+ * habitat, tree, hedgerow or watercourse gets its edit page (BMD-1048, BMD-1049, BMD-1050); a Retained area habitat, tree,
+ * hedgerow or watercourse gets the reference form (BMD-1180), with `submittedRef` and
  * `refusal` set when a save of it was refused.
  *
  * @param {import('@hapi/hapi').Request} request
@@ -421,7 +318,10 @@ async function renderDetailsPage(
     }
   )
   const backHref = postInterventionBackHref(projectId, type, returnUrl)
-  const refEditFields = isRefEditable(type, retentionCategory)
+  const canRename = await canRenameNow(type, retentionCategory, {
+    logger: request.logger
+  })
+  const refEditFields = canRename
     ? retainedRefEditFields({
         type,
         feature,
@@ -454,6 +354,7 @@ const getController = {
 
 const CREATED_PAYLOAD_SCHEMAS = {
   habitat: createdAreaPayloadSchema,
+  tree: createdAreaPayloadSchema,
   hedgerow: createdHedgerowPayloadSchema,
   watercourse: createdWatercoursePayloadSchema
 }
@@ -470,16 +371,17 @@ function validatedPayload(schema, payload) {
   return value
 }
 
-/** Save Created area, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050). */
+/** Save Created area, tree, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050). */
 async function saveCreatedDetails(request, h, { type, feature, payload }) {
   const kind = CREATED_EDIT_KINDS[type]
   if (kind.hasBroadHabitat && !Object.hasOwn(payload, 'broadHabitat')) {
     throw Boom.badRequest('Broad habitat field is required for area edits')
   }
-  const { projectId, returnUrl, ...values } = validatedPayload(
+  const { projectId, returnUrl, ...posted } = validatedPayload(
     CREATED_PAYLOAD_SCHEMAS[type],
     payload
   )
+  const values = withFixedBroadHabitat(posted, kind)
   delete values.featureId
   const reference = await loadCreationReferenceForFeature(type, feature)
   if (!reference) {
@@ -518,6 +420,14 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
     // refuses any save of the habitat, whatever was changed.
     if (isStoredValueRefusal(err)) {
       const response = await showRefused({ refusal: storedValueRefusal(err) })
+      return response.code(statusCodes.badRequest)
+    }
+    // A stale page or a crafted post asking for a tree that is no longer a
+    // tree: shown in the error summary, keeping what was chosen.
+    if (isFeatureNotEditableError(err)) {
+      const response = await showRefused({
+        refusal: featureNotEditableRefusal()
+      })
       return response.code(statusCodes.badRequest)
     }
     throw err
@@ -603,7 +513,7 @@ const postController = {
         payload: request.payload
       })
     }
-    if (isRefEditable(type, retentionCategory)) {
+    if (await canRenameNow(type, retentionCategory, { strict: true })) {
       return saveRetainedReference(request, h, {
         type,
         feature,
