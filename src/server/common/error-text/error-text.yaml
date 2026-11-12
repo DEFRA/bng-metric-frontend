@@ -182,8 +182,7 @@ common:
 #
 # - A heading that was the service's message is copied from the backend word
 #   for word, so nothing fails when the backend changes that message or a
-#   limit it names. A comment beside a heading names any backend constant it
-#   repeats. Change both together.
+#   limit it names. A heading that names a limit must change with it.
 
 upload:
   page:
@@ -480,8 +479,6 @@ upload:
         detail: 'convert the file with the QGIS plugin, then upload it again.'
 
     TEMPLATE_VERSION_MISSING:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: >-
@@ -489,15 +486,11 @@ upload:
           template file.
 
     TEMPLATE_VERSION_DUPLICATED:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: 'The file has {recordCount} template version records, so its template version is unclear. It should have one.'
 
     TEMPLATE_VERSION_INVALID:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: >-
@@ -505,15 +498,11 @@ upload:
           version is unknown.
 
     TEMPLATE_VERSION_UNSUPPORTED:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: 'The file is in version {version} of the BNG Service template, which the service does not read. It reads version {supportedVersions}.'
 
     POST_INTERVENTION_TABLES_EMPTY:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: >-
@@ -580,16 +569,12 @@ upload:
           - ' at {location}'
 
     REDLINE_OUTSIDE_ENGLAND:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: >-
           Redline boundary is outside England
 
     REDLINE_AREA_TOO_LARGE:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: 'Redline boundary area ({areaSqM} sq m) exceeds the 100 sq km limit'
@@ -628,8 +613,6 @@ upload:
           Habitats contains feature(s) with non-polygon geometry
 
     AREA_PARCELS_INVALID_GEOMETRY:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -646,10 +629,8 @@ upload:
           - ' ({reason})'
 
     PARCEL_OVERLAPS:
-      # One overlapping pair, then several pairs.
       singleProblemPage:
         one:
-          # Both parcels' refs known, then not.
           - title: These parcels {refA}, {refB} contain an error
             body: >-
               These parcels are overlapping. Draw the parcels again and
@@ -668,11 +649,7 @@ upload:
           One or more area habitat parcels overlap with other parcels
         item: '{featureA} ↔ {featureB}'
 
-    # The check is on area alone; the 1 square metre is MIN_PARCEL_AREA_SQ_M in
-    # the backend (validation/geopackage/postgis/index.js). Change both together.
     AREA_PARCELS_TOO_SMALL:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -689,16 +666,12 @@ upload:
           - ' — ~{area} sq m'
 
     SLIVERS_OUTSIDE_REDLINE:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title: Your Geopackage (.gpkg) file contains an error
           body: >-
             This parcel is a sliver (a thin strip of land). Draw the parcel again
             and [upload a new file](upload).
-        # Hidden when AREA_PARCELS_OUTSIDE_REDLINE is shown, which reports the same
-        # problem parcel by parcel.
       problemsList:
         heading: >-
           Baseline file contains habitat parcel parts outside the redline
@@ -706,8 +679,6 @@ upload:
         item: '~{area} sq m near {location}'
 
     AREA_PARCELS_OUTSIDE_REDLINE:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -725,8 +696,6 @@ upload:
           - ' — ~{area} sq m near {location}'
 
     AREA_SUM_MISMATCH:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: 'Sum of area habitat polygons ({habitatsAreaSqM} sq m) does not equal redline boundary area ({redlineAreaSqM} sq m)'
@@ -752,23 +721,9 @@ upload:
       problemsList:
         heading: '{rowCount} retained or enhanced rows have no baseline habitat type, so the baseline cannot be derived from this file'
 
-    # BMD-1195. A post-intervention upload refused because a baseline area
-    # habitat, hedgerow or watercourse it saves is incomplete: the baseline
-    # cannot be edited once a post-intervention file is uploaded (BMD-1194).
-    # A baseline-only upload is not refused for it.
-    #
-    # Ref 72 in UCD's dropout error text. The page for one habitat is UCD's
-    # (Jack Arnott), under the subheading of its layer, as a fid repeats from
-    # layer to layer. {onlyRef} and {onlyLayer} are known only when one
-    # habitat is incomplete, so a file with several shows a later page rather
-    # than naming just the first: under their layer when they share one
-    # ({sharedLayer}), and with no subheading when they do not. Those pages
-    # and the list follow UCD's sentence but UCD has not reviewed them, hence
-    # interim.
     BASELINE_HABITATS_INCOMPLETE:
       wording: interim
       singleProblemPage:
-        # Named, when it has a ref or fid; else as several are.
         one:
           - title: There is a problem with your file
             subheading: '{onlyLayer}'
@@ -784,7 +739,6 @@ upload:
             body: >-
               Some baseline habitats cannot be processed by the service due to
               a missing or incompatible value.
-        # Under their layer when they share one.
         several:
           - title: There is a problem with your file
             subheading: '{sharedLayer}'
@@ -825,8 +779,6 @@ upload:
           Hedgerows contains feature(s) with non-linestring geometry
 
     HEDGEROWS_OUTSIDE_REDLINE:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -861,8 +813,6 @@ upload:
           Rivers contains feature(s) with non-linestring geometry
 
     WATERCOURSES_OUTSIDE_REDLINE:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -878,11 +828,7 @@ upload:
 
     # -------------------------------------------------- vertical area habitats
 
-    # "Area (ha)" in the heading mirrors AREA_COLUMN in the backend
-    # (validation/geopackage/vertical-area-check.js); change both together.
     VERTICAL_HABITAT_AREA_NOT_POSITIVE:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -899,8 +845,6 @@ upload:
         item: '{feature} (Area: {area})'
 
     VERTICAL_HABITATS_OUTSIDE_REDLINE:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -916,12 +860,7 @@ upload:
 
     # ------------------------------------------------------- trees and IGGIs
 
-    # "Count" and "(1 or more)" in the heading mirror COUNT_COLUMN and
-    # MIN_TREE_COUNT in the backend (validation/geopackage/tree-count-check.js);
-    # change both together.
     TREE_COUNT_NOT_WHOLE:
-      # Worded for one habitat: an error naming several is shown in the
-      # problems list, until it has wording for several.
       singleProblemPage:
         one:
           title:
@@ -938,8 +877,6 @@ upload:
           blank for one tree
 
     TREES_OUTSIDE_REDLINE:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: >-
@@ -956,15 +893,12 @@ upload:
           - '{tree}'
 
     IGGIS_OUTSIDE_REDLINE:
-      # Shown in the problems list even alone, until it has single-problem
-      # wording of its own.
       wording: interim
       problemsList:
         heading: >-
           One or more IGGIs are not entirely within the redline boundary
 
     # --------------------------------------------------------------- comments
-    # A comment that is too long is TEXT_TOO_LONG, under "text values" below.
 
     COMMENT_INVALID_CHARACTERS:
       singleProblemPage:
@@ -977,13 +911,6 @@ upload:
           One or more comments contain characters that are not valid UTF-8
 
     # ------------------------------------------------------------ text values
-    # BMD-1175. Each problem lists the values that fail, up to 50, by table,
-    # habitat and column. {feature} is the habitat's Habitat Ref, or its fid
-    # when it has no usable one. The limits are the backend's
-    # (validation/geopackage/text-limits.js): 99 characters for a reference,
-    # Location and every drop-down or filled-in column, 255 for Spatial risk
-    # category, and 999 for a comment and the other Red Line Boundary details,
-    # counted once spaces at the start and end are removed.
 
     TEXT_TOO_LONG:
       wording: interim
@@ -995,9 +922,6 @@ upload:
           {table}, {feature}: {column} has {length} characters. The maximum is
           {limit}
 
-    # A drop-down or filled-in column holds a value that none of its lists
-    # offers. {value} is cut to 99 characters, and is missing for a value that
-    # is not text.
     VALUE_NOT_ALLOWED:
       wording: interim
       problemsList:
@@ -1008,7 +932,6 @@ upload:
           - '{table}, {feature}: {column}'
           - ' has "{value}"'
 
-    # A BNG Service template feature's feature_uuid is not a UUID.
     FEATURE_UUID_INVALID:
       wording: interim
       problemsList:
@@ -1016,7 +939,6 @@ upload:
           One or more habitats have a feature_uuid that is not a valid UUID
         item: '{table}, {feature}'
 
-    # A post-intervention feature's parent_uuid is not a UUID.
     PARENT_UUID_INVALID:
       wording: interim
       problemsList:
@@ -1024,8 +946,6 @@ upload:
           One or more habitats have a parent_uuid that is not a valid UUID
         item: '{table}, {feature}'
 
-    # A post-intervention feature's parent_geom is not WKT of its table's
-    # shape. {shape} is the table's geometry type, such as "polygon".
     PARENT_GEOM_INVALID:
       wording: interim
       problemsList:
@@ -1041,8 +961,6 @@ upload:
         title: There is a problem with your project
         subheading: Habitat parcels
         body: Your file contains a habitat with no habitat reference.
-      # One heading for every habitat it applies to: a habitat with no reference
-      # has nothing to list it by.
       problemsList:
         heading: Your file contains a habitat with no habitat reference
         listsHabitats: false
@@ -1071,7 +989,6 @@ upload:
           One or more habitats have a distinctiveness that is out of scope for
           the BNG Beta service
         item: '{feature} — {habitatType} ({distinctiveness})'
-        # {bands} are the distinctiveness bands the service takes.
         note: 'Allowed distinctiveness: {bands}.'
 
     BASELINE_NOT_ENHANCEABLE:
@@ -1083,7 +1000,6 @@ upload:
           is not yet included in this service. Use the
           [metric tool (spreadsheet)](metric-tool) to calculate biodiversity
           value.
-        # The link opens in this tab, and says nothing about a new one.
         opensInNewTab: false
       problemsList:
         heading: >-
@@ -1094,20 +1010,6 @@ upload:
           - ' ({condition})'
 
     # ----------------------------------- BNG Service template lineage (BMD-1083)
-    #
-    # Each is always shown as its list of habitats, even alone: the list is what
-    # the user has to put right. Each bullet names a post-intervention row or a
-    # baseline parent by its template layer, Habitat Ref and habitat type, then
-    # the parent it was copied from, or the rows copied from it.
-    #
-    # Every heading in this group is interim wording.
-    #
-    # Each heading was copied word for word from the backend's message
-    # (bng-metric-backend, src/validation/geopackage/service-template/lineage/
-    # lineage-rules.js and parent-links.js). The page shows the heading here,
-    # not the backend's message, so when the backend changes what a lineage
-    # rule asks for, change its heading here in the same change. The nightly
-    # check compares only the codes, not the wording.
 
     STAGED_PARENT_LINK_MISSING:
       wording: interim
@@ -1137,7 +1039,6 @@ upload:
         heading: >-
           One or more post-intervention habitats have a parent that matches more
           than one baseline habitat
-        # {name} is every baseline habitat that shares the identity.
         item:
           - '{table} '
           - '{name}'
@@ -1279,8 +1180,6 @@ upload:
     VALIDATION_BUSY:
       singleProblemPage: service-problem
       problemsList:
-        # &serviceBusy: the upload page shows these same words when it gives up
-        # waiting (forms.file.serviceBusy), so a change here changes both.
         heading: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
 
     VALIDATION_UNAVAILABLE:
@@ -1297,34 +1196,21 @@ upload:
 #
 # A refusal that no one field on the page can put right has "summaryOnly"
 # instead of "summary" and "inline": it is shown in the error summary only,
-# linked to no field. {braces} in it are filled in by the page, as each
-# entry's comment says.
+# linked to no field. {braces} in it are filled in by the page; the error
+# message export says what each is filled in with.
 
 edit:
   HABITAT_REF_IN_USE:
-    # A rename onto a reference another baseline habitat in the same layer
-    # already carries.
     wording: interim
     summary: You have entered a habitat reference that is already in use.
     inline: Enter a habitat reference that is not already in use.
 
-  # An edit that would leave an enhanced habitat that is not a valid
-  # enhancement of its baseline. Not shown by the pages yet.
   ENHANCEMENT_NOT_VALID:
     wording: none
 
-  # A habitat type chosen on screen whose distinctiveness is out of the
-  # service's scope. Not shown by the pages yet.
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
     wording: none
 
-  # An edit to a habitat saved before the service checked text lengths and
-  # lists (BMD-1175): it holds a value over its limit or outside its list,
-  # which the backend names. Uploading the file again, corrected, updates it.
-  # Any save of such a habitat is refused, even one that leaves the value as
-  # it is, so no field on the page is to blame.
-  # {fields} is the fields the backend names, in plain words, as in
-  # "habitat reference and proposed condition".
   STORED_VALUE_NOT_ALLOWED:
     wording: interim
     summaryOnly: >-
