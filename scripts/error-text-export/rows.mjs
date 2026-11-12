@@ -38,7 +38,11 @@ const STATUS_OF = Object.freeze({
 
 // Least finished first: a row made of two entries is as far on as the less
 // finished of them.
-const STATUS_ORDER = [STATUS.NEEDS_CONTENT, STATUS.AWAITING_UCD, STATUS.FINAL]
+export const STATUS_ORDER = Object.freeze([
+  STATUS.NEEDS_CONTENT,
+  STATUS.AWAITING_UCD,
+  STATUS.FINAL
+])
 
 /** Every column, in order, with its width in characters for the .xlsx. */
 export const COLUMNS = Object.freeze([

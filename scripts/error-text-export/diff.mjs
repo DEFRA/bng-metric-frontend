@@ -1,4 +1,11 @@
-import { COLUMNS, DEFAULT_GROUPS, WORDING_KEYS, buildRows } from './rows.mjs'
+import {
+  COLUMNS,
+  DEFAULT_GROUPS,
+  STATUS,
+  STATUS_ORDER,
+  WORDING_KEYS,
+  buildRows
+} from './rows.mjs'
 
 // What a change to error-text.yaml does to the export, for a pull request's
 // run or a push to main's: the error IDs it adds and removes, with their words, the parts of each
@@ -75,6 +82,29 @@ function groupChanges(kept, was) {
     }
   }
   return [...groups.values()]
+}
+
+/**
+ * The changes that leave wording unfinished: an error added that is not
+ * Final, and one whose status moves back, as from Final to Awaiting UCD. A
+ * pull request or a merge is warned of these, and of nothing that was
+ * unfinished before it.
+ *
+ * @param {ReturnType<typeof diffRows>} diff
+ * @param {Array<Record<string, string>>} after - rows from buildRows, after
+ * @returns {Array<{ row: Record<string, string>, before?: string }>}
+ */
+export function unfinishedChanges({ added, statuses }, after) {
+  const rowOf = new Map(after.map((row) => [row.id, row]))
+  const rank = (status) => STATUS_ORDER.indexOf(status)
+  return [
+    ...added
+      .filter((row) => row.status !== STATUS.FINAL)
+      .map((row) => ({ row })),
+    ...statuses
+      .filter(({ before, after: now }) => rank(now) < rank(before))
+      .map(({ id, before }) => ({ row: rowOf.get(id), before }))
+  ]
 }
 
 /** True when the diff holds no change at all. */
@@ -301,7 +331,7 @@ export function notCompared(base, reason, groups = DEFAULT_GROUPS) {
  *   its plain name
  * @param {readonly string[]} [groups] - the groups of rows `rows` holds, so
  *   the base is read alike
- * @returns {{ markdown: string, text: string }}
+ * @returns {{ markdown: string, text: string, unfinished: ReturnType<typeof unfinishedChanges> }}
  */
 export function compareWithBase(
   rows,
@@ -310,23 +340,29 @@ export function compareWithBase(
   groups = DEFAULT_GROUPS
 ) {
   if (baseSource === null) {
-    return notCompared(
-      base,
-      'error-text.yaml is not on the base commit.',
-      groups
-    )
+    return {
+      ...notCompared(
+        base,
+        'error-text.yaml is not on the base commit.',
+        groups
+      ),
+      unfinished: []
+    }
   }
   try {
-    return describeDiff(
-      diffRows(buildRows(baseSource, { groups }), rows),
-      base,
-      groups
-    )
+    const diff = diffRows(buildRows(baseSource, { groups }), rows)
+    return {
+      ...describeDiff(diff, base, groups),
+      unfinished: unfinishedChanges(diff, rows)
+    }
   } catch (error) {
-    return notCompared(
-      base,
-      `the base commit's error-text.yaml could not be compared: ${error.message}`,
-      groups
-    )
+    return {
+      ...notCompared(
+        base,
+        `the base commit's error-text.yaml could not be compared: ${error.message}`,
+        groups
+      ),
+      unfinished: []
+    }
   }
 }

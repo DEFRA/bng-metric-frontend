@@ -2,7 +2,8 @@ import {
   compareWithBase,
   describeDiff,
   diffRows,
-  isEmptyDiff
+  isEmptyDiff,
+  unfinishedChanges
 } from './diff.mjs'
 import {
   ALL_GROUPS,
@@ -290,7 +291,10 @@ describe('compareWithBase', () => {
   const rows = all(after)
 
   test('compares with the base file', () => {
-    expect(compareWithBase(rows, before, base, ALL_GROUPS)).toEqual(described)
+    expect(compareWithBase(rows, before, base, ALL_GROUPS)).toEqual({
+      ...described,
+      unfinished: []
+    })
   })
 
   test('reads the base as the default groups unless told otherwise', () => {
@@ -319,5 +323,46 @@ describe('compareWithBase', () => {
       'heading: Parcels are too small\n        note: [one, two]'
     )
     expect(() => compareWithBase(rows, listNote, base)).not.toThrow()
+  })
+})
+
+describe('unfinishedChanges', () => {
+  const row = (id, status) => ({ id, status })
+  const rows = [
+    row('NEW_FINAL', STATUS.FINAL),
+    row('NEW_INTERIM', STATUS.AWAITING_UCD),
+    row('NEW_NONE', STATUS.NEEDS_CONTENT),
+    row('WORSE', STATUS.AWAITING_UCD),
+    row('BETTER', STATUS.FINAL)
+  ]
+  const changes = unfinishedChanges(
+    {
+      added: rows.slice(0, 3),
+      removed: [],
+      changed: [],
+      statuses: [
+        { id: 'WORSE', before: STATUS.FINAL, after: STATUS.AWAITING_UCD },
+        { id: 'BETTER', before: STATUS.AWAITING_UCD, after: STATUS.FINAL }
+      ]
+    },
+    rows
+  )
+
+  test('gives each added error that is not final', () => {
+    expect(changes.filter((c) => !c.before).map((c) => c.row.id)).toEqual([
+      'NEW_INTERIM',
+      'NEW_NONE'
+    ])
+  })
+
+  test('gives each error whose status moves back, and not one that moves on', () => {
+    expect(changes.filter((c) => c.before)).toEqual([
+      { row: rows[3], before: STATUS.FINAL }
+    ])
+  })
+
+  test('gives nothing for a change that adds only final wording and finishes some', () => {
+    // The small files: ADDED is final, and forms.applicant.tooLong moves on.
+    expect(unfinishedChanges(diff, all(after))).toEqual([])
   })
 })

@@ -9,6 +9,7 @@ import {
 } from '../../src/server/common/error-text/error-text.js'
 import { checkDropoutCopy } from '../../src/server/error-file/dropout-copy.js'
 import { toCsv } from './csv.mjs'
+import { warningAnnotations } from './annotations.mjs'
 import { compareWithBase, notCompared } from './diff.mjs'
 import { toHtml } from './html.mjs'
 import {
@@ -314,6 +315,16 @@ async function main() {
     const changes = compareWithRef(rows, values.base, meta)
     console.log(`\n${changes.text}`)
     summary.push(changes.markdown)
+    // In GitHub Actions, a warning beside each entry the change leaves
+    // unfinished. Elsewhere they would only be noise in the output.
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      for (const annotation of warningAnnotations(
+        changes.unfinished ?? [],
+        ERROR_TEXT_PATH
+      )) {
+        console.log(annotation)
+      }
+    }
   }
   if (values.summary) {
     appendFileSync(values.summary, summary.join('\n'))

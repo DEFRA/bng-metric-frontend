@@ -4,7 +4,9 @@ name: Error Messages Export
 # include, as .xlsx, .csv and .html for product, BAs and UCD to review
 # (npm run export:error-text), keeps them as
 # one artifact, and counts each status in the run's summary. A pull request's
-# summary, and a push to main's, also say what it changes in the wording.
+# summary, and a push to main's, also say what it changes in the wording,
+# and warn, beside the line, of any error it adds that is not Final or moves
+# back from Final.
 #
 # It reports and never gates: it is not a required check, and is kept apart
 # from check-pull-request.yml, so an artifact outage cannot hold up a merge.
