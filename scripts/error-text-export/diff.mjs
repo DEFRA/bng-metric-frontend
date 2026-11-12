@@ -1,6 +1,7 @@
 import {
   COLUMNS,
   DEFAULT_GROUPS,
+  SHARED_KEYS,
   STATUS,
   STATUS_ORDER,
   WORDING_KEYS,
@@ -15,10 +16,10 @@ import {
 // buildRows, matched by error ID.
 
 /** The columns compared: where an error is shown, and every part of it. */
-const COMPARED_KEYS = Object.freeze(['shown', ...WORDING_KEYS, 'fallback'])
+const COMPARED_KEYS = Object.freeze(['shown', ...WORDING_KEYS, ...SHARED_KEYS])
 
 /** The parts of a message an added or removed error is shown with. */
-const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, 'fallback'])
+const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, ...SHARED_KEYS])
 
 const HEADERS = Object.fromEntries(
   COLUMNS.map(({ key, header }) => [key, header])

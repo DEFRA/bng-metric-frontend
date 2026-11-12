@@ -61,8 +61,9 @@ export const COLUMNS = Object.freeze([
   { key: 'item', header: 'Item', width: 40 },
   { key: 'detail', header: 'Detail', width: 40 },
   { key: 'listNote', header: 'List note', width: 30 },
-  { key: 'text', header: 'Text', width: 50 },
-  { key: 'fallback', header: 'Shared fallback', width: 40 },
+  { key: 'sharedPage', header: 'Shared page', width: 40 },
+  { key: 'sharedHeading', header: 'Shared list heading', width: 40 },
+  { key: 'shownInstead', header: 'Shown instead', width: 50 },
   { key: 'values', header: 'Values it fills in', width: 60 },
   { key: 'links', header: 'Links', width: 40 },
   { key: 'source', header: 'Source', width: 50 }
@@ -81,8 +82,18 @@ export const WORDING_KEYS = Object.freeze([
   'listHeading',
   'item',
   'detail',
-  'listNote',
-  'text'
+  'listNote'
+])
+
+/**
+ * The columns that say where an error's words come from, when not its own:
+ * a shared page, a shared title heading its problems list entry, or what is
+ * shown in place of words it has yet to have.
+ */
+export const SHARED_KEYS = Object.freeze([
+  'sharedPage',
+  'sharedHeading',
+  'shownInstead'
 ])
 
 /** Where a customer meets an entry, as the Where it is shown column says. */
@@ -119,11 +130,14 @@ export const ROW_GROUPS = Object.freeze({
 export const ALL_GROUPS = Object.freeze(Object.values(ROW_GROUPS))
 
 /**
- * What the export gives unless told otherwise: the error codes alone. The
- * rest made the export too long to review; a code that shows a shared
- * fallback still names it and repeats its words.
+ * What the export gives unless told otherwise: the error codes, and the
+ * shared pages they show, each a row of its own words and the codes that use
+ * it. The rest made the export too long to review.
  */
-export const DEFAULT_GROUPS = Object.freeze([ROW_GROUPS.CODES])
+export const DEFAULT_GROUPS = Object.freeze([
+  ROW_GROUPS.CODES,
+  ROW_GROUPS.FALLBACKS
+])
 
 /** Said of a {name} or link target that placeholders.mjs does not explain. */
 export const NOT_EXPLAINED = 'not explained yet'
@@ -309,14 +323,14 @@ function newRow(id, shown, entry, path) {
     statuses: [statusOf(entry)],
     cells: {},
     paths: [path],
-    fallbacks: []
+    shared: { sharedPage: [], sharedHeading: [], shownInstead: [] }
   }
 }
 
 function commonRows({ common }) {
   return Object.entries(common).map(([key, entry]) => {
     const row = newRow(`common.${key}`, SHOWN.COMMON, entry, ['common', key])
-    row.cells.text = wordsOf(entry)
+    row.cells.body = wordsOf(entry)
     return row
   })
 }
@@ -331,7 +345,7 @@ function uploadTextRows({ upload }) {
           group,
           key
         ])
-        row.cells.text = optionsText(text)
+        row.cells.body = optionsText(text)
         return row
       })
   )
@@ -358,62 +372,6 @@ function fallbackCells(upload, fallback) {
     subheading: cell('subheading'),
     body: cell('body')
   }
-}
-
-const INDENT = '  '
-
-/** Each line of a text indented by `depth` steps. */
-function indented(text, depth) {
-  return text
-    .split('\n')
-    .map((line) => `${INDENT.repeat(depth)}${line}`)
-    .join('\n')
-}
-
-// A page's parts as a reviewer reads them: the part, then its words.
-const PAGE_PARTS = Object.freeze([
-  ['title', 'Heading'],
-  ['subheading', 'Subheading'],
-  ['body', 'Body']
-])
-
-/** A page's words, a labelled line a part: "Heading: …", "Body: …". */
-function pageLines(copy) {
-  return PAGE_PARTS.filter(([key]) => copy[key] !== undefined)
-    .map(([key, part]) => `${part}: ${optionsText(copy[key])}`)
-    .join('\n')
-}
-
-/**
- * Lines for each of a fallback's copies, under "For a … template file:"
- * where its copies differ, as the catch-all's do.
- */
-function copiesLines(upload, fallback, render) {
-  const copies = fallbackCopies(upload, fallback).map(({ label, copy }) => [
-    label,
-    render(copy)
-  ])
-  return new Set(copies.map(([, text]) => text)).size === 1
-    ? copies[0][1]
-    : copies
-        .map(([label, text]) => `${label}:\n${indented(text, 1)}`)
-        .join('\n')
-}
-
-/**
- * A shared fallback a code shows, said plainly, with the words the user sees:
- * its page when the code is the file's only problem, or its title heading
- * the code in the problems list.
- */
-function fallbackEntry(upload, fallback, inList) {
-  if (inList) {
-    const title = copiesLines(upload, fallback, (copy) =>
-      optionsText(copy.title)
-    )
-    return `If the file has other problems too, listed under the ${fallback.label} heading:\n${indented(title, 1)}`
-  }
-  const page = copiesLines(upload, fallback, pageLines)
-  return `If this is the file's only problem, the shared ${fallback.label} page (upload.${fallback.key}):\n${indented(page, 1)}`
 }
 
 /** The status of each copy of a fallback, as words a row repeats. */
@@ -459,7 +417,9 @@ function uploadErrorRow(upload, code, entry, usage) {
     const fallback = FALLBACKS[singleProblemPage]
     Object.assign(row.cells, fallbackCells(upload, fallback))
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(fallbackEntry(upload, fallback, false))
+    row.shared.sharedPage.push(
+      `${fallback.label} (upload.${fallback.key}): words in Page heading and Body`
+    )
     usage[singleProblemPage].alone.push(code)
   } else {
     Object.assign(row.cells, singleProblemCells(singleProblemPage))
@@ -469,7 +429,9 @@ function uploadErrorRow(upload, code, entry, usage) {
     const fallback = FALLBACKS[SHARED_PAGE.CATCH_ALL]
     row.cells.listHeading = fallbackCells(upload, fallback).pageHeading
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(fallbackEntry(upload, fallback, true))
+    row.shared.sharedHeading.push(
+      `${fallback.label} title (upload.${fallback.key}): words in List heading`
+    )
     usage[SHARED_PAGE.CATCH_ALL].listed.push(code)
   } else {
     Object.assign(row.cells, {
@@ -500,10 +462,12 @@ function fallbackRows(upload, usage) {
       statuses: fallbackStatuses(upload, fallback),
       cells: fallbackCells(upload, fallback),
       paths: [['upload', fallback.key]],
-      fallbacks: [
-        ...usedBy(usage[name].alone, 'Shown alone'),
-        ...usedBy(usage[name].listed, 'Its title heads a list')
-      ]
+      // A shared page's own row says which errors use it.
+      shared: {
+        sharedPage: usedBy(usage[name].alone, 'Shown alone'),
+        sharedHeading: usedBy(usage[name].listed, 'Its title heads a list'),
+        shownInstead: []
+      }
     }
     return row
   })
@@ -520,10 +484,8 @@ function unwordedEditText(pages) {
     ...(page?.title ? [`Heading: ${page.title}`] : []),
     ...(page?.body ?? []).map((line) => `Body: ${line}`)
   ]
-  const intro = `If a change made on screen is refused, it has no words of its own yet: the error page pages.${REFUSED_EDIT_PAGE}, in place of the form`
-  return lines.length > 0
-    ? `${intro}:\n${indented(lines.join('\n'), 1)}`
-    : intro
+  const intro = `If a change made on screen is refused: the error page pages.${REFUSED_EDIT_PAGE}, in place of the form`
+  return [intro, ...lines].join('\n')
 }
 
 function editRow(code, entry, pages) {
@@ -532,7 +494,7 @@ function editRow(code, entry, pages) {
   row.cells.summary = entry.summary ?? entry.summaryOnly
   row.cells.inline = entry.inline
   if (row.cells.summary === undefined) {
-    row.fallbacks.push(unwordedEditText(pages))
+    row.shared.shownInstead.push(unwordedEditText(pages))
     // No further on than the page shown in its place.
     if (pages?.[REFUSED_EDIT_PAGE]) {
       row.statuses.push(statusOf(pages[REFUSED_EDIT_PAGE]))
@@ -553,11 +515,12 @@ function merge(upload, edit) {
       inline: edit.cells.inline
     },
     paths: [...upload.paths, ...edit.paths],
-    fallbacks: [
-      ...upload.fallbacks,
-      // Each says it is of a change made on screen.
-      ...edit.fallbacks
-    ]
+    shared: Object.fromEntries(
+      SHARED_KEYS.map((key) => [
+        key,
+        [...upload.shared[key], ...edit.shared[key]]
+      ])
+    )
   }
 }
 
@@ -601,7 +564,9 @@ function formRows({ forms, common }) {
       } else {
         row.cells.summary = wordsOf(common.unworded)
         row.cells.inline = wordsOf(common.unworded)
-        row.fallbacks.push('common.unworded')
+        row.shared.shownInstead.push(
+          'common.unworded: words in Error summary and Inline message'
+        )
       }
       return row
     })
@@ -661,17 +626,21 @@ function finish(row, file, sourceUrl) {
   const cells = Object.fromEntries(
     WORDING_KEYS.map((key) => [key, asShown(row.cells[key] ?? '')])
   )
-  const fallback = row.fallbacks.join('\n')
+  const shared = Object.fromEntries(
+    SHARED_KEYS.map((key) => [key, row.shared[key].join('\n')])
+  )
   return {
     id: row.id,
     shown: unique(row.shown).join('; '),
     status,
     ...cells,
-    fallback: asShown(fallback),
+    ...Object.fromEntries(
+      SHARED_KEYS.map((key) => [key, asShown(shared[key])])
+    ),
     values: valuesText(row, words),
     // From the words as written, before their links are shown as text, and
-    // the fallbacks' too, as their words now hold links.
-    links: linksText([...words, fallback], file.value),
+    // those of a page shown instead, as they can hold links.
+    links: linksText([...words, shared.shownInstead], file.value),
     source: row.paths.map((path) => sourceUrl(file.lineOf(path))).join('\n')
   }
 }

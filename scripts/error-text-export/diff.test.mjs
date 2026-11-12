@@ -127,28 +127,12 @@ describe('diffRows', () => {
     })
   })
 
-  test('makes one entry of the IDs a shared fallback rewords alike', () => {
-    const shown = diff.changed.find(({ ids }) => ids.includes('ALONE_A'))
-    expect(shown.ids).toEqual(['ALONE_A', 'ALONE_B'])
-    // Its words, and the quote of them in the Shared fallback column.
-    expect(shown.parts.map(({ part }) => part)).toEqual([
-      'Body',
-      'Shared fallback'
-    ])
-    expect(shown.parts[0]).toEqual({
-      part: 'Body',
-      before: 'Check the habitats.',
-      after: 'Check every habitat.'
-    })
-    expect(shown.parts[1].after).toContain('  Body: Check every habitat.')
-  })
-
-  test("gives the shared fallback's own row its reworded body", () => {
-    const own = diff.changed.find(({ ids }) =>
-      ids.includes('upload.fileProblem')
-    )
-    expect(own).toEqual({
-      ids: ['upload.fileProblem'],
+  test('makes one entry of a shared fallback and the IDs it rewords alike', () => {
+    // The words are in Body alone, so the page's own row and each error
+    // showing it change alike.
+    const fallback = diff.changed.find(({ ids }) => ids.includes('ALONE_A'))
+    expect(fallback).toEqual({
+      ids: ['ALONE_A', 'ALONE_B', 'upload.fileProblem'],
       parts: [
         {
           part: 'Body',
@@ -217,7 +201,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).markdown).toBe(
-      '### Wording changes in codes from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
+      '### Wording changes in codes, fallbacks from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
     )
   })
 })
@@ -251,6 +235,7 @@ describe('describeDiff, as plain text for the run log', () => {
       [
         '  ALONE_A',
         '  ALONE_B',
+        '  upload.fileProblem',
         '    Body, before:',
         '        Check the habitats.',
         '    Body, after:',
@@ -282,7 +267,7 @@ describe('describeDiff, as plain text for the run log', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).text).toBe(
-      'Wording changes in codes from abc1234: none.\n'
+      'Wording changes in codes, fallbacks from abc1234: none.\n'
     )
   })
 
@@ -315,13 +300,13 @@ describe('compareWithBase', () => {
     expect(unfinished).toEqual([])
     expect(markdown).toContain('error-text.yaml is not on the base commit')
     expect(text).toBe(
-      'Wording changes in codes from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
+      'Wording changes in codes, fallbacks from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
     )
   })
 
   test('says so, rather than failing, when the base file cannot be read', () => {
     expect(compareWithBase(rows, 'upload: [', base).markdown).toMatch(
-      /^### Wording changes in codes from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
+      /^### Wording changes in codes, fallbacks from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
     )
   })
 

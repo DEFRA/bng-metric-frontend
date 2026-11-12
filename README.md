@@ -130,30 +130,38 @@ npm run export:error-text
 This writes `export/error-messages-<date>-<HHmmss>-<branch>-<commit>` as
 `.xlsx`, `.csv` and `.html`: the time is UTC, and a run in GitHub Actions adds
 `-run<run ID>`, as in
-`error-messages-2026-11-11-143005-main-ab640af-run43044358011.xlsx`. Each file
-has one row for each of the backend's error codes, such as
-`VALIDATION_UNAVAILABLE`: the `upload.errors` and `edit` entries, a code met in
-both as one row. The file's other entries are left out by default, to keep the
-export short enough to review. `-- --include GROUPS` adds them back, by group,
-separated by commas: `fallbacks` (the shared fallbacks, such as
-`upload.catchAll`), `upload-text` (the drop-out page's other words, such as
-`upload.page.title`), `common`, `forms` and `pages`, or `all` for every one.
-A code that shows a shared fallback names it and repeats its words either way.
+`error-messages-2026-11-11-143005-main-ab640af-run43044358011.xlsx`.
 
-The rows give each part of the
-message, its status (Final, Awaiting UCD or Needs content, from the entry's
-`wording` field), its
-single-problem page's wording for several in the "(several)" columns (a
-wording given as options says when each after the first is used, as "If {ref}
-is not known:", and a page given in versions gives each a line, after when it is shown), any
-shared fallback it shows, said plainly with the words the user sees (for an
-edit with no words of its own, the error page a refused change shows in its
-place), what its `{values}` are filled
-in with, where each link goes (a link shows as its text, as the user sees it),
-and a link to its line in the file. A row that shows a shared
-fallback's words is no further on than that fallback, so an error with no
-`wording` field of its own is Awaiting UCD when its fallback is interim. Each
-CSV row ends with the date, branch and commit it was read from, and the
+Each file has a row for each of the backend's error codes, such as
+`VALIDATION_UNAVAILABLE`: the `upload.errors` and `edit` entries, a code met in
+both as one row. It also has a row for each shared page those codes show, such
+as `upload.catchAll`, with its words and the codes that use it. The file's
+other entries are left out by default, to keep the export short enough to
+review. `-- --include GROUPS` adds them back, by group, separated by commas:
+`upload-text` (the drop-out page's other words, such as `upload.page.title`),
+`common`, `forms` and `pages`, or `all` for every one.
+
+A row gives:
+
+- each part of the message, in its own column, as the user sees it: a link by
+  its text, with where it goes in Links. A wording given as options says when
+  each after the first is used, as "If {ref} is not known:"; a page given in
+  versions gives each a line, after when it is shown; and the catch-all's
+  words say which template file they are for. A single-problem page's wording
+  for several habitats is in the "(several)" columns;
+- its status: Final, Awaiting UCD or Needs content, from the entry's `wording`
+  field. A row that shows a shared page's words is no further on than that
+  page, so an error with no `wording` field of its own is Awaiting UCD when
+  its shared page is interim;
+- Shared page and Shared list heading: the shared page it shows when it is the
+  file's only problem, and the shared title heading its entry when there are
+  others. Their words are in the row's Page heading, Body and List heading;
+- Shown instead: what the user sees in place of words an entry has yet to
+  have, as the error page a refused change made on screen shows, with its
+  words;
+- what its `{values}` are filled in with, and a link to its line in the file.
+
+Each CSV row ends with the date, branch and commit it was read from, and the
 groups of rows exported. The file is
 checked as the server checks it at start-up, so the export refuses a file the
 server would. `-- --out DIR` writes elsewhere, and `-- --help` lists the
