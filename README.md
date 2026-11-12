@@ -142,9 +142,7 @@ A code that shows a shared fallback names it and repeats its words either way.
 
 The rows give each part of the
 message, its status (Final, Awaiting UCD or Needs content, from the entry's
-`wording` field), what a drop-out page error shows when it is the file's only
-problem (its own page, worded for any number of habitats, for one and for
-several, or for one only; a shared page; or the problems list), its
+`wording` field), its
 single-problem page's wording for several in the "(several)" columns, any
 shared fallback it shows, named and with its words quoted (for an edit with no
 words of its own, the error page a refused change shows in its place), what its `{values}` are filled

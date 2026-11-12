@@ -48,7 +48,6 @@ export const STATUS_ORDER = Object.freeze([
 export const COLUMNS = Object.freeze([
   { key: 'id', header: 'Error ID', width: 36 },
   { key: 'shown', header: 'Where it is shown', width: 20 },
-  { key: 'alone', header: 'When it is the only problem', width: 36 },
   { key: 'status', header: 'Status', width: 14 },
   { key: 'summary', header: 'Error summary', width: 40 },
   { key: 'inline', header: 'Inline message', width: 40 },
@@ -94,19 +93,6 @@ export const SHOWN = Object.freeze({
   EDIT: 'Edit made on screen',
   FORM: 'Form',
   PAGE: 'Whole page'
-})
-
-/**
- * What a drop-out page error shows when it is the file's only problem, as
- * the When it is the only problem column says: from its singleProblemPage.
- */
-export const ALONE = Object.freeze({
-  OWN: 'Its own page, worded for any number of habitats',
-  OWN_ONE_AND_SEVERAL: 'Its own page, worded for one habitat and for several',
-  OWN_ONE_ONLY:
-    'Its own page for one habitat; the problems list for several, until it has wording for several',
-  SHARED: 'A shared page, named in Shared fallback',
-  PROBLEMS_LIST: 'The problems list'
 })
 
 /**
@@ -342,22 +328,19 @@ function severalCells(copies) {
 }
 
 /**
- * An upload error's single-problem page: its words, and what the When it is
- * the only problem column says of it.
+ * An upload error's single-problem page's words: worded for any number, or
+ * for one and for several, the last in its own columns.
  */
 function singleProblemCells(page) {
   if (page === undefined) {
-    return { alone: ALONE.PROBLEMS_LIST, cells: {} }
+    return {}
   }
   if (!Object.hasOwn(page, 'one')) {
-    return { alone: ALONE.OWN, cells: pageCopyCells(page) }
+    return pageCopyCells(page)
   }
   return page.several === undefined
-    ? { alone: ALONE.OWN_ONE_ONLY, cells: pageCopyCells(page.one) }
-    : {
-        alone: ALONE.OWN_ONE_AND_SEVERAL,
-        cells: { ...pageCopyCells(page.one), ...severalCells(page.several) }
-      }
+    ? pageCopyCells(page.one)
+    : { ...pageCopyCells(page.one), ...severalCells(page.several) }
 }
 
 /**
@@ -370,7 +353,6 @@ function uploadErrorRow(upload, code, entry, usage) {
 
   if (typeof singleProblemPage === 'string') {
     const fallback = FALLBACKS[singleProblemPage]
-    row.alone = ALONE.SHARED
     Object.assign(row.cells, fallbackCells(upload, fallback))
     row.statuses.push(...fallbackStatuses(upload, fallback))
     row.fallbacks.push(
@@ -378,9 +360,7 @@ function uploadErrorRow(upload, code, entry, usage) {
     )
     usage[singleProblemPage].alone.push(code)
   } else {
-    const { alone, cells } = singleProblemCells(singleProblemPage)
-    row.alone = alone
-    Object.assign(row.cells, cells)
+    Object.assign(row.cells, singleProblemCells(singleProblemPage))
   }
 
   if (problemsList === PROBLEMS_LIST_CATCH_ALL) {
@@ -577,7 +557,6 @@ function finish(row, file, sourceUrl) {
   return {
     id: row.id,
     shown: unique(row.shown).join('; '),
-    alone: row.alone ?? '',
     status,
     ...cells,
     fallback: row.fallbacks.join('\n'),

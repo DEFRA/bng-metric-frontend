@@ -5,14 +5,7 @@ import {
   isEmptyDiff,
   unfinishedChanges
 } from './diff.mjs'
-import {
-  ALL_GROUPS,
-  ALONE,
-  ROW_GROUPS,
-  SHOWN,
-  STATUS,
-  buildRows
-} from './rows.mjs'
+import { ALL_GROUPS, ROW_GROUPS, SHOWN, STATUS, buildRows } from './rows.mjs'
 
 // Two small error-text.yaml files: the second adds, removes, rewords and
 // finishes entries, and moves a code from the drop-out page to an edit.
@@ -125,17 +118,12 @@ describe('diffRows', () => {
     const moved = diff.changed.find(({ ids }) => ids.includes('MOVED'))
     expect(moved.parts.map(({ part }) => part)).toEqual([
       'Where it is shown',
-      'When it is the only problem',
       'Error summary',
       'List heading'
     ])
     expect(moved.parts[0]).toMatchObject({
       before: SHOWN.UPLOAD,
       after: SHOWN.EDIT
-    })
-    expect(moved.parts[1]).toMatchObject({
-      before: ALONE.PROBLEMS_LIST,
-      after: ''
     })
   })
 

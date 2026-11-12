@@ -9,7 +9,6 @@ import { PLACEHOLDERS } from './placeholders.mjs'
 import { readErrorTextSource } from './read.mjs'
 import {
   ALL_GROUPS,
-  ALONE,
   COLUMNS,
   DEFAULT_GROUPS,
   FALLBACKS,
@@ -208,19 +207,14 @@ describe('buildRows, an edit with no words of its own', () => {
   })
 })
 
-describe('buildRows, what an error shows when it is the only problem', () => {
-  test.each([
-    ['HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', ALONE.OWN],
-    ['PARCEL_OVERLAPS', ALONE.OWN_ONE_AND_SEVERAL],
-    ['AREA_PARCELS_TOO_SMALL', ALONE.OWN_ONE_ONLY],
-    ['TEMPLATE_VERSION_DUPLICATED', ALONE.PROBLEMS_LIST],
-    ['STAGED_UNKNOWN_PARENT_REF', ALONE.PROBLEMS_LIST]
-  ])('says %s shows %s', (id, alone) => {
-    expect(rowOf(id).alone).toBe(alone)
+describe('buildRows, a single-problem page', () => {
+  test('has no When it is the only problem column', () => {
+    expect(COLUMNS.map(({ key }) => key)).not.toContain('alone')
+    expect(rowOf('PARCEL_OVERLAPS')).not.toHaveProperty('alone')
   })
 
   test('says a code on a shared page shows it, and names it', () => {
-    const shared = rows.find(({ alone }) => alone === ALONE.SHARED)
+    const shared = rowOf('FILENAME_TOO_LONG')
     // Named, then its words quoted: on the same line, or a line a template.
     expect(shared.fallback).toMatch(/, when alone:[ \n](.+: )?".+" then ".+"/)
   })
