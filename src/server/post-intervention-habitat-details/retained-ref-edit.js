@@ -1,6 +1,6 @@
 // Editing the reference of a Retained post-intervention habitat (BMD-1180).
 //
-// A Retained area habitat, hedgerow or watercourse is its baseline parcel
+// A Retained area habitat, tree, hedgerow or watercourse is its baseline parcel
 // carried forward, so its reference is the one thing on the page the user can
 // change. The page stays the read-only details page with a reference input at
 // the top of the first section and Save / Cancel below; the rules and the
@@ -44,16 +44,17 @@ export const retainedRefPayloadSchema = Joi.object({
 })
 
 // The page heading names the habitat by its saved reference, as the baseline
-// details pages do (BMD-1061).
+// details pages do (BMD-1061). An individual tree is an area habitat there.
 const HEADING_PREFIX_BY_TYPE = new Map([
   ['habitat', 'Habitat'],
+  ['tree', 'Habitat'],
   ['hedgerow', 'Hedgerow'],
   ['watercourse', 'Watercourse']
 ])
 
 /**
  * Whether the page for this feature carries the reference input: Retained area
- * habitats, hedgerows and watercourses only.
+ * habitats, trees (BMD-1172), hedgerows and watercourses only.
  *
  * @param {string} type feature type from the PI feature endpoint
  * @param {string|null} retentionCategory normalised retention category

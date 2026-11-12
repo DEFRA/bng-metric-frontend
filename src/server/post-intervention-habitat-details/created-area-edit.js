@@ -1,11 +1,13 @@
 import {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
+  loadCreatedTreeReference,
   loadCreatedWatercourseReference
 } from './created-edit-reference.js'
 export {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
+  loadCreatedTreeReference,
   loadCreatedWatercourseReference,
   _resetCreatedAreaReferenceCache
 } from './created-edit-reference.js'
@@ -18,6 +20,8 @@ import {
 import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
+import { buildTreeSectionsViewOnlyViewModel } from './tree-view-only-view-model.js'
+import { INDIVIDUAL_TREES_BROAD_HABITAT } from '../baseline-habitat-details/strategies/tree.js'
 
 import {
   UNCHANGED_VALUE,
@@ -104,6 +108,26 @@ export const CREATED_EDIT_KINDS = {
     savePath: 'hedgerows',
     hasBroadHabitat: false,
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
+  },
+  // A Created individual tree is edited as a Created area habitat is, but
+  // stays a tree (BMD-1172): its broad habitat is always Individual trees,
+  // shown and sent but not editable, and its habitat type must be Urban tree
+  // or Rural tree. Its size class and number of trees are shown, not edited.
+  // Until the backend serves the tree reference, it keeps its read-only page.
+  tree: {
+    loadReference: loadCreatedTreeReference,
+    label: 'Tree',
+    optionalReference: true,
+    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
+    buildBase: buildTreeSectionsViewOnlyViewModel,
+    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
+    sizeLabel: 'Size (hectares)',
+    backType: 'tree',
+    savePath: 'trees',
+    hasBroadHabitat: true,
+    fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
+    habitatTypeRequired: true,
+    habitatTypeError: formError('habitatType', 'invalidTree')
   }
 }
 
@@ -276,6 +300,9 @@ export function validateCreatedArea(values, reference) {
         )
       : {})
   }
+  if (kind.habitatTypeRequired && !values.habitatType) {
+    errors.habitatType = kind.habitatTypeError
+  }
   for (const [field, options] of Object.entries(choices)) {
     if (invalidChoice(values[field], options, reference, field)) {
       const messages = {
@@ -413,6 +440,7 @@ export function buildCreatedAreaEditViewModel(
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
         : null,
     errorList: createdErrorList(errors, ctx.refusal),
+    fixedBroadHabitat: kind.fixedBroadHabitat ?? null,
     fields: buildCreatedEditFields(reference, values, storedValues, kind),
     referenceJson: createdReferenceJson(
       reference,

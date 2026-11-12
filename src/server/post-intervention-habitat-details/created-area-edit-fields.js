@@ -128,7 +128,11 @@ function createdAreaFields(reference, values, type, initialLoad, kind) {
     riparianEncroachment: 'riparian encroachment'
   }
   return fields
-    .filter(([id]) => id !== 'broadHabitat' || kind.hasBroadHabitat)
+    .filter(
+      ([id]) =>
+        id !== 'broadHabitat' ||
+        (kind.hasBroadHabitat && !kind.fixedBroadHabitat)
+    )
     .map(([id, label, items]) => {
       const imported =
         id === 'condition' && keepImportedCondition(reference, values)
@@ -147,13 +151,30 @@ function createdAreaFields(reference, values, type, initialLoad, kind) {
           imported !== undefined
             ? `The imported value is ${imported}. Keep it unchanged, choose a new value, or choose the default option to clear it.`
             : choiceHint(id, items, values[id], initialLoad),
-        items: selectItems(
-          items,
-          values[id],
-          placeholders[id] ?? label.toLowerCase()
+        items: withoutRequiredBlank(
+          selectItems(
+            items,
+            values[id],
+            placeholders[id] ?? label.toLowerCase()
+          ),
+          { id, items, value: values[id], kind }
         )
       }
     })
+}
+
+// A tree with a habitat type has no blank choice for it, as on the baseline
+// page: a tree is always an Urban tree or a Rural tree (BMD-1172). One saved
+// without a valid type keeps the blank, so the user is asked to choose.
+function withoutRequiredBlank(selectItemList, { id, items, value, kind }) {
+  if (
+    id !== 'habitatType' ||
+    !kind.habitatTypeRequired ||
+    !items.some((item) => item.value === value)
+  ) {
+    return selectItemList
+  }
+  return selectItemList.filter((item) => item.value !== '')
 }
 
 export function buildCreatedEditFields(

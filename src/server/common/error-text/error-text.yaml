@@ -1354,6 +1354,7 @@ forms:
     notInBroadHabitat: Choose a habitat type for the selected broad habitat
     invalidHedgerow: Choose a valid hedgerow habitat type
     invalidWatercourse: Choose a valid watercourse habitat type
+    invalidTree: Choose Urban tree or Rural tree
   condition:
     notForHabitatType: Choose a target condition for the selected habitat type
   strategicSignificance:

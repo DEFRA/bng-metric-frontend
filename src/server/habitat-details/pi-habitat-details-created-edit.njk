@@ -66,7 +66,18 @@
         {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
         {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
+        {% if showTreeRows %}
+          {{ derived("Tree size", "treeSizeDisplay", treeSizeDisplay) }}
+          {{ derived("Number of trees", "treeCountDisplay", treeCountDisplay) }}
+        {% endif %}
         {% if fields.broadHabitat %}{{ select(fields.broadHabitat) }}{% endif %}
+        {# An individual tree is always Individual trees: shown, and sent with
+           the form under the broad habitat's id and name, but not editable
+           (BMD-1172). #}
+        {% if fixedBroadHabitat %}
+          {{ derived("Broad habitat", "broadHabitatDisplay", fixedBroadHabitat) }}
+          <input type="hidden" id="broadHabitat" name="broadHabitat" value="{{ fixedBroadHabitat }}">
+        {% endif %}
         {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
         {{ select(fields.strategicSignificance) }}
