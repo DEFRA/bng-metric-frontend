@@ -2,6 +2,7 @@ import { createServer } from '../server.js'
 import { load } from 'cheerio'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import { _resetCreatedAreaReferenceCache } from '../post-intervention-habitat-details/created-edit-reference.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -162,12 +163,14 @@ describe('watercourses post intervention', () => {
     await server.initialize()
   })
   afterAll(async () => server.stop({ timeout: 0 }))
-  beforeEach(() =>
+  // Braced, so it returns nothing: a function a hook returns is run as its
+  // cleanup, which would call wreck.get with no URL.
+  beforeEach(() => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
       payload: project
     })
-  )
+  })
   afterEach(() => vi.clearAllMocks())
 
   test('renders the requested page content, summary tiles and upload return URL', async () => {
@@ -508,6 +511,125 @@ describe('watercourses post intervention', () => {
     expect(watercoursesSummary.text()).not.toContain(
       'Upload on-site post intervention file'
     )
+  })
+
+  describe('BMD-1050 AC11 Scenario B: a Created watercourse saved Incomplete', () => {
+    const incompleteDitch = {
+      featureId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      ref: 'W-INC',
+      retentionCategory: 'Created',
+      units: null,
+      status: 'Incomplete',
+      sizeMetres: 120,
+      proposed: {
+        type: 'Ditches',
+        condition: null,
+        watercourseEncroachment: 'Minor',
+        riparianEncroachment: 'Minor/Minor',
+        strategicSignificance: 'High',
+        strategicSignificanceCategory: null,
+        strategicSignificanceScore: null,
+        distinctiveness: null,
+        distinctivenessScore: null,
+        difficulty: null,
+        difficultyMultiplier: null
+      }
+    }
+    const watercourseReference = {
+      habitatTypes: [
+        {
+          name: 'Ditches',
+          distinctiveness: 'Medium',
+          distinctivenessScore: 4,
+          difficulty: 'Medium',
+          difficultyMultiplier: 0.67,
+          conditions: []
+        }
+      ],
+      strategicSignificance: [
+        { value: 'High', score: 1.15 },
+        { value: 'Low', score: 1 }
+      ],
+      watercourseEncroachment: ['Minor'],
+      riparianEncroachment: ['Minor/Minor'],
+      timeMultipliers: {}
+    }
+    const withIncompleteDitch = () => {
+      const result = structuredClone(project)
+      result.project.postIntervention.watercourses = [incompleteDitch]
+      return result
+    }
+    async function createdRow(payloadFor) {
+      vi.mocked(wreck.get).mockImplementation(async (url) => payloadFor(url))
+      const response = await server.inject({
+        method: 'GET',
+        url: pagePath,
+        auth
+      })
+      expect(response.statusCode).toBe(statusCodes.ok)
+      const $ = load(response.result)
+      const row = $('#created tbody tr').filter(
+        (_, r) => $(r).find('a').first().text() === 'W-INC'
+      )
+      const columns = $('#created thead th')
+        .map((_, el) => $(el).text().trim())
+        .get()
+      return (label) => row.find('td').eq(columns.indexOf(label))
+    }
+
+    beforeEach(() => _resetCreatedAreaReferenceCache())
+
+    test('shows zero units, its type distinctiveness and difficulty, and its saved significance', async () => {
+      const stored = withIncompleteDitch()
+      const snapshot = structuredClone(stored)
+      const cell = await createdRow((url) => ({
+        res: { statusCode: statusCodes.ok },
+        payload: url.endsWith('/reference/watercourse-creation')
+          ? watercourseReference
+          : stored
+      }))
+      expect(cell('Units').text().trim()).toBe('0.00')
+      expect(cell('Units').attr('data-sort-value')).toBe('0')
+      expect(cell('Distinctiveness').text().trim()).toBe('Medium (4)')
+      expect(cell('Strategic significance').text().trim()).toBe('High (1.15)')
+      expect(cell('Standard difficulty').text().trim()).toBe('Medium (0.67)')
+      expect(cell('Target condition').text().trim()).toBe('')
+      expect(stored).toEqual(snapshot)
+    })
+
+    test('still shows zero units when the creation reference is unavailable', async () => {
+      const stored = withIncompleteDitch()
+      const cell = await createdRow((url) =>
+        url.endsWith('/reference/watercourse-creation')
+          ? {
+              res: { statusCode: statusCodes.internalServerError },
+              payload: {}
+            }
+          : { res: { statusCode: statusCodes.ok }, payload: stored }
+      )
+      expect(cell('Units').text().trim()).toBe('0.00')
+      expect(cell('Distinctiveness').text().trim()).toBe('')
+    })
+
+    test('a saved zero shows 0.00 and keeps the saved values the row has', async () => {
+      const stored = withIncompleteDitch()
+      Object.assign(stored.project.postIntervention.watercourses[0], {
+        units: 0
+      })
+      Object.assign(stored.project.postIntervention.watercourses[0].proposed, {
+        distinctiveness: 'High',
+        distinctivenessScore: 6
+      })
+      const cell = await createdRow((url) => ({
+        res: { statusCode: statusCodes.ok },
+        payload: url.endsWith('/reference/watercourse-creation')
+          ? watercourseReference
+          : stored
+      }))
+      expect(cell('Units').text().trim()).toBe('0.00')
+      expect(cell('Distinctiveness').text().trim()).toBe('High (6)')
+      expect(cell('Standard difficulty').text().trim()).toBe('Medium (0.67)')
+    })
   })
 
   test('redirects a project without baseline data to project summary', async () => {
