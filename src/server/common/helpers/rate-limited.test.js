@@ -78,6 +78,11 @@ describe('#retryAfterSeconds', () => {
     expect(retryAfterSeconds({ 'retry-after': value })).toBe(expected)
   })
 
+  test('gives null over the maximum a caller allows', () => {
+    expect(retryAfterSeconds({ 'retry-after': '31' }, { max: 30 })).toBeNull()
+    expect(retryAfterSeconds({ 'retry-after': '30' }, { max: 30 })).toBe(30)
+  })
+
   test.each([
     ['no header', {}],
     ['no headers at all', undefined],
@@ -219,14 +224,23 @@ describe('the "too many requests" page', () => {
       expect(result).toContain('Wait 1 second, then try again.')
     })
 
-    test('asks for a minute when the backend gives no wait', async () => {
+    test('asks for a few minutes when the backend gives no wait', async () => {
       vi.mocked(wreck.get).mockRejectedValue(backendTooManyRequests())
 
       const response = await getReport()
 
       expect(response.statusCode).toBe(statusCodes.tooManyRequests)
       expect(response.headers['retry-after']).toBeUndefined()
-      expect(response.result).toContain('Wait a minute, then try again.')
+      expect(response.result).toContain('Wait a few minutes, then try again.')
+    })
+
+    test('states no wait over five minutes, rather than an hour in seconds', async () => {
+      vi.mocked(wreck.get).mockRejectedValue(backendTooManyRequests('3600'))
+
+      const { result } = await getReport()
+
+      expect(result).toContain('Wait a few minutes, then try again.')
+      expect(result).not.toContain('3600')
     })
   })
 })

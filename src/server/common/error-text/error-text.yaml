@@ -1460,7 +1460,8 @@ pages:
 
   # The backend refused a request because this user, or all users together,
   # sent too many in a short time (HTTP 429). One page for each form of the
-  # wait the backend gives: some seconds, 1 second, or none.
+  # wait the backend gives: some seconds, 1 second, or none (or one over five
+  # minutes, which is not stated).
   # TODO(open point 1): UCD may want different words. Until they say so, the
   # page follows the GOV.UK error page pattern.
   tooManyRequests:
@@ -1480,7 +1481,7 @@ pages:
     title: *tooManyRequestsTitle
     body:
       - *tooManyRequestsCause
-      - Wait a minute, then try again.
+      - Wait a few minutes, then try again.
 
   # Signed in, but without the role the service needs.
   accessDenied:

@@ -6,20 +6,33 @@ const RETRY_AFTER_HEADER = 'retry-after'
 const DECIMAL = 10
 
 /**
- * Seconds from a `Retry-After` header that gives whole seconds, as the
- * backend's rate limit does. Null when there is none, or it is a date or not a
- * positive whole number: the page then gives no figure.
+ * The longest wait the "too many requests" page states. The backend's windows
+ * are a minute by default; a longer figure is more likely a misconfigured
+ * header than a wait worth printing, so the page gives no figure instead.
+ */
+const MAX_SHOWN_WAIT_SECONDS = 300
+
+/**
+ * Seconds from a `Retry-After` header, or null if it does not carry a usable
+ * one. The one parser for every `Retry-After` the frontend honours.
  *
- * @param {Record<string, string | string[]> | undefined} headers
+ * Only whole delta-seconds are understood: the backend always sends them, and
+ * guessing at an HTTP-date would be more code than the fallback it saves. A
+ * value of 0, or over `max`, is null too: the header comes from another
+ * service, so it is a hint, and each caller has its own fallback.
+ *
+ * @param {Record<string, string | string[]> | undefined} headers response
+ *   headers, lower-cased as Node delivers them
+ * @param {{ max?: number }} [bounds]
  * @returns {number | null}
  */
-export function retryAfterSeconds(headers) {
+export function retryAfterSeconds(headers, { max = Infinity } = {}) {
   const value = headers?.[RETRY_AFTER_HEADER]
   if (typeof value !== 'string' || !/^\d+$/.test(value.trim())) {
     return null
   }
   const seconds = Number.parseInt(value, DECIMAL)
-  return seconds > 0 ? seconds : null
+  return seconds > 0 && seconds <= max ? seconds : null
 }
 
 /**
@@ -35,7 +48,9 @@ export function retryAfterSeconds(headers) {
 export function rateLimitedError(headers) {
   return Boom.tooManyRequests('The backend refused the request: rate limit', {
     rateLimited: true,
-    retryAfterSeconds: retryAfterSeconds(headers)
+    retryAfterSeconds: retryAfterSeconds(headers, {
+      max: MAX_SHOWN_WAIT_SECONDS
+    })
   })
 }
 

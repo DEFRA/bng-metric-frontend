@@ -6,7 +6,7 @@ import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
 import { HABITAT_UPLOAD_TYPES } from '../helpers/habitat-upload-types.js'
 import { describeBackendFailure } from '../helpers/backend-failure.js'
-import { isRateLimited } from '../helpers/rate-limited.js'
+import { isRateLimited, retryAfterSeconds } from '../helpers/rate-limited.js'
 
 const logger = createLogger()
 
@@ -18,38 +18,13 @@ const backendUrl = config.get('backend').url
  * The header comes from another service, so it is treated as a hint rather than
  * an instruction: too small and a saturated backend gets hammered by every
  * waiting browser, too large and the user stares at a spinner long past the
- * point the service recovered. Anything outside the range, or unparseable, falls
- * back to the caller's own default.
+ * point the service recovered. Anything over it, or unparseable, falls back to
+ * the caller's own default (retryAfterSeconds in rate-limited.js).
  */
-const MIN_RETRY_AFTER_SECONDS = 1
 const MAX_RETRY_AFTER_SECONDS = 30
 
 /** The backend's code for "the pool was full, your file was never looked at". */
 const VALIDATION_BUSY_CODE = 'VALIDATION_BUSY'
-
-/**
- * Seconds from a `Retry-After` header, or null if it does not carry a usable
- * one.
- *
- * Only the delta-seconds form is understood. The spec also allows an HTTP-date,
- * but the only producer we honour this from is our own backend, which always
- * sends seconds — and guessing at a date would be more code than the fallback it
- * would save.
- *
- * @param {object} [headers] response headers, lower-cased as Node delivers them
- * @returns {number|null}
- */
-function retryAfterSeconds(headers) {
-  const raw = headers?.['retry-after']
-  const seconds = Number.parseInt(raw, 10)
-  if (!Number.isFinite(seconds)) {
-    return null
-  }
-  if (seconds < MIN_RETRY_AFTER_SECONDS || seconds > MAX_RETRY_AFTER_SECONDS) {
-    return null
-  }
-  return seconds
-}
 
 /**
  * Is this the backend telling us every validation worker was busy?
@@ -105,12 +80,25 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
     return { valid: true }
   } catch (error) {
     // A rate limit refused the call: not a backend failure and not a problem
-    // with the file. The "too many requests" page shows it (catchAll).
+    // with the file. It is answered as busy, so the "Checking your file" page
+    // waits and asks again, as it does for a busy validator and for a refused
+    // status check, inside the same two-minute bound. The likeliest cause is
+    // the all-users limit filling while the service is under load, which is
+    // exactly when the user should be kept waiting rather than sent away.
     if (isRateLimited(error)) {
+      const retryAfter =
+        error.data.retryAfterSeconds === null
+          ? null
+          : Math.min(error.data.retryAfterSeconds, MAX_RETRY_AFTER_SECONDS)
       logger.info(
-        `${uploadType.label} habitat validation refused by the backend's rate limit - uploadId: ${uploadId}, retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+        `${uploadType.label} habitat validation refused by the backend's rate limit, waiting as busy - uploadId: ${uploadId}, retryAfter: ${retryAfter ?? 'unset'}`
       )
-      throw error
+      return {
+        valid: false,
+        busy: true,
+        retryAfterSeconds: retryAfter,
+        errors: []
+      }
     }
 
     const statusCode = error?.output?.statusCode
@@ -135,7 +123,9 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
     if (isValidationBusy(statusCode, responsePayload)) {
       // The backend decides the pace, because it is the side that knows how
       // loaded it is. Null here just means "use your own default".
-      const retryAfter = retryAfterSeconds(error?.data?.res?.headers)
+      const retryAfter = retryAfterSeconds(error?.data?.res?.headers, {
+        max: MAX_RETRY_AFTER_SECONDS
+      })
       logger.warn(
         `${uploadType.label} habitat validation refused as busy - uploadId: ${uploadId}, retryAfter: ${retryAfter ?? 'unset'}`
       )
