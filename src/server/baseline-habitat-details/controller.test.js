@@ -2224,6 +2224,22 @@ describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
     )
   })
 
+  // The backend accepts a save that keeps a stored type as it is, so a value
+  // the reference data does not hold stays selected and is sent back
+  // unchanged, with no blank choice to clear it.
+  test('keeps a stored tree type the reference data does not hold, with no blank choice', async () => {
+    const $ = await renderTree({ ...mockTree, type: 'urban tree' })
+
+    expect(optionValues($, 'habitatType')).toEqual([
+      'Rural tree',
+      'Urban tree',
+      'urban tree'
+    ])
+    expect($('select[name="habitatType"] option[selected]').val()).toBe(
+      'urban tree'
+    )
+  })
+
   test('offers a blank habitat type to a tree imported without one', async () => {
     const $ = await renderTree({
       ...mockTree,
