@@ -146,7 +146,8 @@ message, its status (Final, Awaiting UCD or Needs content, from the entry's
 problem (its own page, worded for any number of habitats, for one and for
 several, or for one only; a shared page; or the problems list), its
 single-problem page's wording for several in the "(several)" columns, any
-shared fallback it shows, what its `{values}` are filled
+shared fallback it shows (for an edit with no words of its own, the error page
+a refused change shows in its place, quoted), what its `{values}` are filled
 in with, and a link to its line in the file. A row that shows a shared
 fallback's words is no further on than that fallback, so an error with no
 `wording` field of its own is Awaiting UCD when its fallback is interim. Each
@@ -183,6 +184,13 @@ commit your branch left `main` at:
 `npm run export:error-text -- --base "$(git merge-base origin/main HEAD)"`.
 Naming `origin/main` itself would show a change merged to `main` since as your
 branch undoing it.
+
+When the comparison finds a change that leaves wording unfinished, an error
+added that is not Final, or one whose status moves back, as from Final to
+Awaiting UCD, the run warns of it with a GitHub annotation on that entry's line
+of `error-text.yaml`. It shows beside the line in a pull request's Files
+changed, and on the run. It warns of nothing that was unfinished before the
+change, and never fails the run.
 
 ### Update dependencies
 

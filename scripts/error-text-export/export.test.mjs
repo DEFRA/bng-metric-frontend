@@ -207,7 +207,10 @@ describe('summaryMarkdown', () => {
       `| ${STATUS.AWAITING_UCD} | 1 |`,
       `| ${STATUS.FINAL} | 2 |`,
       '',
-      'Files: `a.xlsx`, `a.csv`',
+      'Files:',
+      '',
+      '- `a.xlsx`',
+      '- `a.csv`',
       ''
     ])
   })
