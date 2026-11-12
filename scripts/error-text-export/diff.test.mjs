@@ -304,7 +304,8 @@ describe('compareWithBase', () => {
   })
 
   test('says so when the base has no error-text.yaml', () => {
-    const { markdown, text } = compareWithBase(rows, null, base)
+    const { markdown, text, unfinished } = compareWithBase(rows, null, base)
+    expect(unfinished).toEqual([])
     expect(markdown).toContain('error-text.yaml is not on the base commit')
     expect(text).toBe(
       'Wording changes in codes from abc1234 are not shown: error-text.yaml is not on the base commit.\n'

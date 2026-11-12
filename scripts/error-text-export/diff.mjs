@@ -304,18 +304,19 @@ export function describeDiff(diff, base, groups = DEFAULT_GROUPS) {
 
 /**
  * Said in place of the changes when they cannot be worked out, so the run
- * still keeps the export.
+ * still keeps the export. Nothing is unfinished by a change not worked out.
  *
  * @param {{ markdown: string, text: string }} base
  * @param {string} reason
  * @param {readonly string[]} [groups] - the groups of rows to compare
- * @returns {{ markdown: string, text: string }}
+ * @returns {{ markdown: string, text: string, unfinished: [] }}
  */
 export function notCompared(base, reason, groups = DEFAULT_GROUPS) {
   const heading = headings(base, groups)
   return {
     markdown: `${heading.markdown}\n\nThe changes are not shown: ${cell(reason)}\n`,
-    text: `${heading.text} are not shown: ${reason}\n`
+    text: `${heading.text} are not shown: ${reason}\n`,
+    unfinished: []
   }
 }
 
@@ -340,14 +341,11 @@ export function compareWithBase(
   groups = DEFAULT_GROUPS
 ) {
   if (baseSource === null) {
-    return {
-      ...notCompared(
-        base,
-        'error-text.yaml is not on the base commit.',
-        groups
-      ),
-      unfinished: []
-    }
+    return notCompared(
+      base,
+      'error-text.yaml is not on the base commit.',
+      groups
+    )
   }
   try {
     const diff = diffRows(buildRows(baseSource, { groups }), rows)
@@ -356,13 +354,10 @@ export function compareWithBase(
       unfinished: unfinishedChanges(diff, rows)
     }
   } catch (error) {
-    return {
-      ...notCompared(
-        base,
-        `the base commit's error-text.yaml could not be compared: ${error.message}`,
-        groups
-      ),
-      unfinished: []
-    }
+    return notCompared(
+      base,
+      `the base commit's error-text.yaml could not be compared: ${error.message}`,
+      groups
+    )
   }
 }

@@ -319,7 +319,7 @@ async function main() {
     // unfinished. Elsewhere they would only be noise in the output.
     if (process.env.GITHUB_ACTIONS === 'true') {
       for (const annotation of warningAnnotations(
-        changes.unfinished ?? [],
+        changes.unfinished,
         ERROR_TEXT_PATH
       )) {
         console.log(annotation)

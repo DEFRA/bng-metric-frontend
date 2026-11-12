@@ -53,4 +53,25 @@ describe('warningAnnotations', () => {
   test('gives nothing for no changes', () => {
     expect(warningAnnotations([], FILE)).toEqual([])
   })
+
+  test('gives one for each of 10 changes', () => {
+    const changes = Array.from({ length: 10 }, (_, i) => ({
+      row: row(`CODE_${i}`, STATUS.AWAITING_UCD, i + 1)
+    }))
+    const annotations = warningAnnotations(changes, FILE)
+    expect(annotations).toHaveLength(10)
+    expect(annotations.at(-1)).toContain('New error CODE_9 is')
+  })
+
+  test('past 10, gives 9 and says how many more, as GitHub keeps only 10', () => {
+    const changes = Array.from({ length: 11 }, (_, i) => ({
+      row: row(`CODE_${i}`, STATUS.AWAITING_UCD, i + 1)
+    }))
+    const annotations = warningAnnotations(changes, FILE)
+    expect(annotations).toHaveLength(10)
+    expect(annotations[8]).toContain('New error CODE_8 is')
+    expect(annotations[9]).toBe(
+      "::warning title=More error wording left unfinished::2 more entries are left unfinished. The run's summary and log list every change."
+    )
+  })
 })
