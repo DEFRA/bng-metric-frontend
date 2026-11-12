@@ -185,12 +185,27 @@ describe('getUploadStatus', () => {
     const result = await getUploadStatus(makeRequest(), 'abc-123')
 
     // The same answer as any failed check, so the checking page refreshes
-    // and asks again rather than ending on the "too many requests" page.
+    // and asks again rather than ending on the "too many requests" page —
+    // at the backend's pace.
     expect(result).toEqual({
       uploadStatus: 'error',
-      error: 'Unable to check upload status'
+      error: 'Unable to check upload status',
+      retryAfterSeconds: 5
     })
     expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+
+  it('holds a rate-limited status check to the polling maximum of 30 seconds', async () => {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': '60' } }
+    }
+    vi.mocked(wreck.get).mockRejectedValue(error)
+
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
+
+    expect(result.retryAfterSeconds).toBe(30)
   })
 
   it('should return uploadStatus from backend', async () => {

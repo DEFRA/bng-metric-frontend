@@ -4,7 +4,7 @@ import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
 import { describeBackendFailure } from '../helpers/backend-failure.js'
-import { isRateLimited } from '../helpers/rate-limited.js'
+import { isRateLimited, pollWaitSeconds } from '../helpers/rate-limited.js'
 
 const logger = createLogger()
 
@@ -99,7 +99,7 @@ export async function initiateUpload(
  * Get the upload status from the backend
  * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {string} uploadId - The upload ID to check status for
- * @returns {Promise<{uploadStatus: string, error?: string}>}
+ * @returns {Promise<{uploadStatus: string, error?: string, retryAfterSeconds?: number | null}>}
  */
 export async function getUploadStatus(request, uploadId) {
   const url = `${backendUrl}/upload/${uploadId}/status`
@@ -126,14 +126,17 @@ export async function getUploadStatus(request, uploadId) {
   } catch (error) {
     // A rate limit refused the status check: not a backend failure, and not a
     // reason to end the poll. It answers as any failed check does, below, so
-    // the page refreshes and checks again.
+    // the page refreshes and checks again — at the backend's pace, so it does
+    // not send more checks into the same limit.
     if (isRateLimited(error)) {
+      const retryAfterSeconds = pollWaitSeconds(error)
       logger.info(
-        `Upload status check refused by the backend's rate limit - uploadId: ${uploadId}, retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+        `Upload status check refused by the backend's rate limit - uploadId: ${uploadId}, retryAfterSeconds: ${retryAfterSeconds ?? 'unset'}`
       )
       return {
         uploadStatus: 'error',
-        error: 'Unable to check upload status'
+        error: 'Unable to check upload status',
+        retryAfterSeconds
       }
     }
 

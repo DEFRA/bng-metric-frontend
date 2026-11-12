@@ -6,22 +6,16 @@ import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
 import { HABITAT_UPLOAD_TYPES } from '../helpers/habitat-upload-types.js'
 import { describeBackendFailure } from '../helpers/backend-failure.js'
-import { isRateLimited, retryAfterSeconds } from '../helpers/rate-limited.js'
+import {
+  MAX_RETRY_AFTER_SECONDS,
+  isRateLimited,
+  pollWaitSeconds,
+  retryAfterSeconds
+} from '../helpers/rate-limited.js'
 
 const logger = createLogger()
 
 const backendUrl = config.get('backend').url
-
-/**
- * Bounds applied to a `Retry-After` we are told to honour.
- *
- * The header comes from another service, so it is treated as a hint rather than
- * an instruction: too small and a saturated backend gets hammered by every
- * waiting browser, too large and the user stares at a spinner long past the
- * point the service recovered. Anything over it, or unparseable, falls back to
- * the caller's own default (retryAfterSeconds in rate-limited.js).
- */
-const MAX_RETRY_AFTER_SECONDS = 30
 
 /** The backend's code for "the pool was full, your file was never looked at". */
 const VALIDATION_BUSY_CODE = 'VALIDATION_BUSY'
@@ -86,10 +80,7 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
     // the all-users limit filling while the service is under load, which is
     // exactly when the user should be kept waiting rather than sent away.
     if (isRateLimited(error)) {
-      const retryAfter =
-        error.data.retryAfterSeconds === null
-          ? null
-          : Math.min(error.data.retryAfterSeconds, MAX_RETRY_AFTER_SECONDS)
+      const retryAfter = pollWaitSeconds(error)
       logger.info(
         `${uploadType.label} habitat validation refused by the backend's rate limit, waiting as busy - uploadId: ${uploadId}, retryAfter: ${retryAfter ?? 'unset'}`
       )

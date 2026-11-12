@@ -6,6 +6,18 @@ const RETRY_AFTER_HEADER = 'retry-after'
 const DECIMAL = 10
 
 /**
+ * The longest `Retry-After` the "Checking your file" page honours as the pace
+ * of its polling.
+ *
+ * The header comes from another service, so it is treated as a hint rather than
+ * an instruction: too small and a saturated backend gets hammered by every
+ * waiting browser, too large and the user stares at a spinner long past the
+ * point the service recovered. Anything over it, or unparseable, falls back to
+ * the caller's own default.
+ */
+export const MAX_RETRY_AFTER_SECONDS = 30
+
+/**
  * The longest wait the "too many requests" page states. The backend's windows
  * are a minute by default; a longer figure is more likely a misconfigured
  * header than a wait worth printing, so the page gives no figure instead.
@@ -52,6 +64,20 @@ export function rateLimitedError(headers) {
       max: MAX_SHOWN_WAIT_SECONDS
     })
   })
+}
+
+/**
+ * The pace for the "Checking your file" page after a rate limit refused one of
+ * its calls: the backend's wait, held to {@link MAX_RETRY_AFTER_SECONDS}, or
+ * null for the page's own default when the backend gave none.
+ *
+ * @param {{ data: { retryAfterSeconds: number | null } }} error a
+ *   {@link rateLimitedError}
+ * @returns {number | null}
+ */
+export function pollWaitSeconds(error) {
+  const seconds = error.data.retryAfterSeconds
+  return seconds === null ? null : Math.min(seconds, MAX_RETRY_AFTER_SECONDS)
 }
 
 /**
