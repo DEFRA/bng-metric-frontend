@@ -901,8 +901,10 @@ upload:
       wording: interim
       problemsList:
         heading: >-
-          One or more trees are marked as irreplaceable habitat. The service
-          does not accept irreplaceable trees, such as ancient and veteran trees
+          Irreplaceable Habitat must be "No" for every tree, because the
+          service does not accept irreplaceable trees, such as ancient and
+          veteran trees. These trees have Irreplaceable Habitat "Yes", blank or
+          another value
         item:
           - '{table} '
           - '{tree}'
