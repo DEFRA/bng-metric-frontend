@@ -22,6 +22,10 @@ import {
   isRefUnchanged
 } from './habitat-ref.js'
 import {
+  featureNotEditableRefusal,
+  isFeatureNotEditableError
+} from './feature-not-editable-refusal.js'
+import {
   isStoredValueRefusal,
   storedValueRefusal
 } from './stored-value-refusal.js'
@@ -432,9 +436,15 @@ export async function saveHabitat(request, path, body, featureId) {
     }
     return payload
   } catch (err) {
-    // A reference another habitat already carries, or an older stored value,
-    // is for the form to show.
-    if (isRefInUseError(err) || isStoredValueRefusal(err)) {
+    // A reference another habitat already carries, an older stored value, or
+    // an edit this feature does not take, is for the form to show. Each is
+    // thrown as it is: backendSaveError would rebuild it and drop the code the
+    // form tells them apart by.
+    if (
+      isRefInUseError(err) ||
+      isStoredValueRefusal(err) ||
+      isFeatureNotEditableError(err)
+    ) {
       throw err
     }
     throw backendSaveError(err, featureId)
@@ -472,6 +482,14 @@ function saveErrorRefusal(err, refToSave) {
   // refuses any save of the habitat, whatever was changed.
   if (isStoredValueRefusal(err)) {
     return storedValueRefusal(err, { refTooLong: HABITAT_REF_TOO_LONG_ERROR })
+  }
+  // An edit the backend cannot carry out on this feature, such as a change to
+  // a tree's broad habitat or habitat type. It shares the 400 a refused
+  // reference gets, so it is recognised by its code first: no field on the
+  // page is to blame, and blaming the reference for it would put an error on
+  // a reference that is valid.
+  if (isFeatureNotEditableError(err)) {
+    return featureNotEditableRefusal()
   }
   if (
     refToSave !== undefined &&

@@ -2648,4 +2648,64 @@ describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)'
     )
     expect(result).toContain(`>${overLimit}</textarea>`)
   })
+
+  // A tree pins its broad habitat and habitat type: the backend refuses a save
+  // that changes either with FEATURE_NOT_EDITABLE (400). That 400 is the one a
+  // refused reference gets, so without the code the page blamed the reference
+  // when one was submitted, and threw the user onto an error page when one was
+  // not, losing the comment they had typed.
+  // The dropdowns no longer offer a change that would stop a tree being a
+  // tree (BMD-1172), so this is what a stale page or a crafted post meets:
+  // the backend refuses with FEATURE_NOT_EDITABLE, which shares the 400 a
+  // refused reference gets. Told apart by its code, it must not be pinned to
+  // the reference, and must not cost the user the comment they typed.
+  describe('when the backend refuses the edit as one this habitat cannot take', () => {
+    const notEditable = {
+      isBoom: true,
+      output: { statusCode: statusCodes.badRequest },
+      data: {
+        res: { statusCode: statusCodes.badRequest },
+        payload: { code: 'FEATURE_NOT_EDITABLE' }
+      }
+    }
+    const refusedWording =
+      'This habitat cannot be changed in that way, so nothing has been saved.'
+
+    beforeEach(() => {
+      vi.mocked(wreck.put).mockRejectedValue(notEditable)
+    })
+
+    test('Shows it in the error summary only, keeping the comment, with a changed reference', async () => {
+      const { statusCode, result } = await postTree({
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        habitatRef: 'T-9',
+        comment: 'Worth keeping'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain('govuk-error-summary')
+      expect(result).toContain(refusedWording)
+      // The reference is valid: the refusal must not be pinned to it.
+      expect(result).not.toContain('#habitatRef')
+      expect(result).not.toContain('invalid habitat reference')
+      // Nothing the user typed is lost.
+      expect(result).toContain('>Worth keeping</textarea>')
+      expect(result).toMatch(
+        /id="habitatRef" name="habitatRef"[^>]*value="T-9"/
+      )
+    })
+
+    test('Keeps the comment when the reference was not changed, instead of an error page', async () => {
+      const { statusCode, result } = await postTree({
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        comment: 'Worth keeping'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(refusedWording)
+      expect(result).toContain('>Worth keeping</textarea>')
+    })
+  })
 })

@@ -1233,6 +1233,21 @@ edit:
       lengths and lists, in its {fields}. Upload the file again, with the
       value corrected, to update this habitat.
 
+  # An edit the backend cannot carry out on this habitat, as against a value it
+  # will not accept: the change would make the habitat something its kind
+  # cannot become, such as a tree that is no longer a tree. The dropdowns do
+  # not offer such a change, so a page in step with the backend cannot raise
+  # it; a stale page or a crafted post can. No field the page can edit is to
+  # blame, so this is shown in the error summary only, keeping what was typed,
+  # rather than blaming the habitat reference or dropping the user on an error
+  # page (BMD-1112).
+  FEATURE_NOT_EDITABLE:
+    wording: interim
+    summaryOnly: >-
+      This habitat cannot be changed in that way, so nothing has been saved.
+      Check what you have changed, or upload the file again with the habitat
+      corrected.
+
 # ------------------------------------------------------------------- forms
 #
 # A form field's own validation, by field, then rule. "summary" and "inline"
