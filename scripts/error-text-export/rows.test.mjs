@@ -165,6 +165,21 @@ const fixture = buildRows(FIXTURE, {
 })
 const fixtureRow = (id) => fixture.find((row) => row.id === id)
 
+describe('buildRows, an edit with no words of its own', () => {
+  test('quotes the error page a refused change shows in its place', () => {
+    const { title } = value.pages.badRequest
+    expect(rowOf('ENHANCEMENT_NOT_VALID').fallback).toBe(
+      `None yet: a refused change shows the error page pages.badRequest, in place of the form: "${title}"`
+    )
+  })
+
+  test('says so of the edit, in a row with drop-out page wording too', () => {
+    expect(rowOf('HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE').fallback).toContain(
+      `${SHOWN.EDIT}: None yet: a refused change shows the error page pages.badRequest`
+    )
+  })
+})
+
 describe('buildRows, what an error shows when it is the only problem', () => {
   test.each([
     ['HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE', ALONE.OWN],

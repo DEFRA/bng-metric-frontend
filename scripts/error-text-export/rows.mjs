@@ -156,8 +156,10 @@ export const FALLBACKS = Object.freeze({
   }
 })
 
-const UNWORDED_EDIT =
-  'None yet: the page shows its generic error for a refused change'
+// The pages entry an edit page shows for a refusal it has no words for: it
+// passes the backend's 422 on, and a 400 or 422 shows this page
+// (src/server/common/helpers/errors.js).
+const REFUSED_EDIT_PAGE = 'badRequest'
 
 const OTHERWISE = '\nOtherwise: '
 const PLACEHOLDER = /\{(\w+)\}/g
@@ -386,13 +388,31 @@ function fallbackRows(upload, usage) {
   })
 }
 
-function editRow(code, entry) {
+/**
+ * What an edit with no words of its own shows: the error page a refused save
+ * takes the user to, quoted, so whoever reviews the wording sees what the
+ * user sees today.
+ */
+function unwordedEditText(pages) {
+  const page = pages?.[REFUSED_EDIT_PAGE]
+  const words = [page?.title, ...(page?.body ?? [])]
+    .filter(Boolean)
+    .map((text) => `"${text}"`)
+    .join(' then ')
+  return `None yet: a refused change shows the error page pages.${REFUSED_EDIT_PAGE}, in place of the form${words ? `: ${words}` : ''}`
+}
+
+function editRow(code, entry, pages) {
   const row = newRow(code, SHOWN.EDIT, entry, ['edit', code])
   // A refusal no one field can put right is shown in the error summary only.
   row.cells.summary = entry.summary ?? entry.summaryOnly
   row.cells.inline = entry.inline
   if (row.cells.summary === undefined) {
-    row.fallbacks.push(UNWORDED_EDIT)
+    row.fallbacks.push(unwordedEditText(pages))
+    // No further on than the page shown in its place.
+    if (pages?.[REFUSED_EDIT_PAGE]) {
+      row.statuses.push(statusOf(pages[REFUSED_EDIT_PAGE]))
+    }
   }
   return row
 }
@@ -422,7 +442,10 @@ function uploadAndEditRows(value) {
     Object.keys(FALLBACKS).map((name) => [name, { alone: [], listed: [] }])
   )
   const edits = new Map(
-    Object.entries(edit).map(([code, entry]) => [code, editRow(code, entry)])
+    Object.entries(edit).map(([code, entry]) => [
+      code,
+      editRow(code, entry, value.pages)
+    ])
   )
   const errors = Object.entries(upload.errors).map(([code, entry]) => {
     const row = uploadErrorRow(upload, code, entry, usage)
