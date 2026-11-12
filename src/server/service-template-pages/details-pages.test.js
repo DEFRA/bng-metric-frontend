@@ -343,7 +343,7 @@ describe('details pages of a BNG Service template project', () => {
     })
 
     // A Retained tree takes the reference form, a Created one the edit form,
-    // and an Enhanced one is read-only (BMD-1172).
+    // and an Enhanced one is read-only.
     test.each([
       ['Retained', ['habitatRef']],
       ['Enhanced', []],

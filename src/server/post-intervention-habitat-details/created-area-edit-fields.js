@@ -164,7 +164,7 @@ function createdAreaFields(reference, values, type, initialLoad, kind) {
 }
 
 // A tree with a habitat type has no blank choice for it, as on the baseline
-// page: a tree is always an Urban tree or a Rural tree (BMD-1172). One saved
+// page: a tree is always an Urban tree or a Rural tree. One saved
 // without a valid type keeps the blank, so the user is asked to choose.
 function withoutRequiredBlank(selectItemList, { id, items, value, kind }) {
   if (

@@ -103,7 +103,7 @@ const VERTICAL_RETENTION_PAGES = new Map([
 // An individual tree uses the area layout with its size class and number of
 // trees. As for an area habitat, a Created one gets the edit page, and a
 // Retained one the reference form; an Enhanced one is view-only, with its
-// timing and difficulty (BMD-1172).
+// timing and difficulty.
 const TREE_RETENTION_PAGES = new Map([
   [
     RETENTION_ENHANCED,
@@ -377,7 +377,7 @@ async function renderCreatedFeature(
 
 /**
  * Render the details page for one post-intervention feature. A Created area
- * habitat, tree, hedgerow or watercourse gets its edit page (BMD-1048, BMD-1049, BMD-1050, BMD-1172); a Retained area habitat, tree,
+ * habitat, tree, hedgerow or watercourse gets its edit page (BMD-1048, BMD-1049, BMD-1050); a Retained area habitat, tree,
  * hedgerow or watercourse gets the reference form (BMD-1180), with `submittedRef` and
  * `refusal` set when a save of it was refused.
  *
@@ -479,7 +479,7 @@ function validatedPayload(schema, payload) {
   return value
 }
 
-/** Save Created area, tree, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050/BMD-1172). */
+/** Save Created area, tree, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050). */
 async function saveCreatedDetails(request, h, { type, feature, payload }) {
   const kind = CREATED_EDIT_KINDS[type]
   if (kind.hasBroadHabitat && !Object.hasOwn(payload, 'broadHabitat')) {
@@ -530,7 +530,7 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
       return response.code(statusCodes.badRequest)
     }
     // A stale page or a crafted post asking for a tree that is no longer a
-    // tree (BMD-1172): shown in the error summary, keeping what was chosen.
+    // tree: shown in the error summary, keeping what was chosen.
     if (isFeatureNotEditableError(err)) {
       const response = await showRefused({
         refusal: featureNotEditableRefusal()

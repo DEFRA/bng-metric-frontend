@@ -26,7 +26,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 }))
 
 // A Created individual tree is edited as a Created area habitat is, but stays
-// a tree (BMD-1172).
+// a tree.
 
 // A Medium urban tree newly planted, standing for 2 trees.
 const createdTree = {

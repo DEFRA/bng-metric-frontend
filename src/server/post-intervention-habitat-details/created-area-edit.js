@@ -110,7 +110,7 @@ export const CREATED_EDIT_KINDS = {
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
   },
   // A Created individual tree is edited as a Created area habitat is, but
-  // stays a tree (BMD-1172): its broad habitat is always Individual trees,
+  // stays a tree: its broad habitat is always Individual trees,
   // shown and sent but not editable, and its habitat type must be Urban tree
   // or Rural tree. Its size class and number of trees are shown, not edited.
   // Until the backend serves the tree reference, it keeps its read-only page.

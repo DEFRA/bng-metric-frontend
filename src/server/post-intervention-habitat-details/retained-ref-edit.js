@@ -54,7 +54,7 @@ const HEADING_PREFIX_BY_TYPE = new Map([
 
 /**
  * Whether the page for this feature carries the reference input: Retained area
- * habitats, trees (BMD-1172), hedgerows and watercourses only.
+ * habitats, trees, hedgerows and watercourses only.
  *
  * @param {string} type feature type from the PI feature endpoint
  * @param {string|null} retentionCategory normalised retention category
