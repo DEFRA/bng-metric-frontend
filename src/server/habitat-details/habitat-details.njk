@@ -92,6 +92,14 @@
             }) }}
           {% endif %}
 
+          {# An individual tree is always Individual trees: shown, and sent
+             with the form under the broad habitat's id and name, so the client
+             JS reads it as it reads the dropdown, but not editable (BMD-1172). #}
+          {% if fixedBroadHabitat %}
+            {{ stackedField("Broad habitat", fixedBroadHabitat) }}
+            <input type="hidden" id="broadHabitat" name="broadHabitat" value="{{ fixedBroadHabitat }}">
+          {% endif %}
+
           {{ govukSelect({
             id: "habitatType",
             name: "habitatType",
