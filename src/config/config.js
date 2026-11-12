@@ -247,6 +247,18 @@ export const config = convict({
       format: Boolean,
       default: isProduction,
       env: 'REDIS_TLS'
+    },
+    commandTimeoutMs: {
+      doc: 'Longest one Redis command may wait for its reply before it fails. Without it, a Redis that accepts connections but never answers holds every signed-in page open forever, because the session read never returns (BMD-1200). A failed session read shows the error page, as it does when Redis is down. Applies to single-node and Cluster modes.',
+      format: Number,
+      default: 2000,
+      env: 'REDIS_COMMAND_TIMEOUT_MS'
+    },
+    socketTimeoutMs: {
+      doc: 'Longest the Redis connection may go without data while a command waits for its reply. The connection is then closed and the client reconnects. Without it, a connection that lost replies could hand later commands the replies meant for earlier ones, and never recover. Keep it above REDIS_COMMAND_TIMEOUT_MS. Applies to single-node and Cluster modes.',
+      format: Number,
+      default: 3000,
+      env: 'REDIS_SOCKET_TIMEOUT_MS'
     }
   },
   nunjucks: {

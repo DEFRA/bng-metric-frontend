@@ -135,12 +135,22 @@ async function validateHabitatUpload(request, uploadType, projectId, uploadId) {
 /**
  * Answer a failed validation call that was neither rate limited nor busy.
  *
+ * @throws {Boom} conflict when another edit held the project, badGateway on a
+ *   server or network error
+ *
  * @param {Error} error the error the backend call threw
  * @param {number} [statusCode]
  * @param {object} [responsePayload] parsed response body, when the body was JSON
  * @returns {{valid: false, errors: object[]}}
  */
 function validationFailedResult(error, statusCode, responsePayload) {
+  // Another edit held the project's row lock while the file was saved. Nothing
+  // is wrong with the file, so this shows the conflict page a save shows, not
+  // the file error page (BMD-1200).
+  if (statusCode === statusCodes.conflict) {
+    throw Boom.conflict('Another user is editing this project', error)
+  }
+
   // Client errors from the backend indicate a validation problem —
   // surface the structured errors if present.
   if (

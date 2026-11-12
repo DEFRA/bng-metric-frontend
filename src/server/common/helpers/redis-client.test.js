@@ -34,7 +34,9 @@ describe('#buildRedisClient', () => {
         db: 0,
         host: '127.0.0.1',
         keyPrefix: 'bng-metric-frontend:',
-        port: 6379
+        port: 6379,
+        commandTimeout: 2000,
+        socketTimeout: 3000
       })
     })
 
@@ -66,10 +68,33 @@ describe('#buildRedisClient', () => {
         {
           dnsLookup: expect.any(Function),
           keyPrefix: 'bng-metric-frontend:',
-          redisOptions: { db: 0, password: 'pass', tls: {}, username: 'user' },
+          redisOptions: {
+            db: 0,
+            commandTimeout: 2000,
+            socketTimeout: 3000,
+            password: 'pass',
+            tls: {},
+            username: 'user'
+          },
           slotsRefreshTimeout: 10000
         }
       )
+    })
+
+    test('Should give every Cluster node the configured timeouts', () => {
+      Cluster.mockClear()
+      buildRedisClient({
+        ...config.get('redis'),
+        useSingleInstanceCache: false,
+        commandTimeoutMs: 1500,
+        socketTimeoutMs: 4500
+      })
+
+      const { redisOptions } = Cluster.mock.calls[0][1]
+      expect(redisOptions).toMatchObject({
+        commandTimeout: 1500,
+        socketTimeout: 4500
+      })
     })
 
     test('Should resolve dnsLookup with the address', () => {

@@ -1,3 +1,5 @@
+import Boom from '@hapi/boom'
+
 import { initiateUpload } from '../common/services/uploader.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 
@@ -16,7 +18,10 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 const { getController } = await import('./controller.js')
 
 const createMockH = () => {
-  const response = { header: vi.fn().mockReturnThis() }
+  const response = {
+    header: vi.fn().mockReturnThis(),
+    code: vi.fn().mockReturnThis()
+  }
   return {
     view: vi.fn().mockReturnValue(response),
     redirect: vi.fn().mockReturnThis()
@@ -249,5 +254,71 @@ describe('upload-baseline-file controller', () => {
     await getController.handler(request, h)
 
     expect(response.header).toHaveBeenCalledWith('Cache-Control', 'no-store')
+  })
+
+  describe('when the upload cannot start', () => {
+    const unavailable = () =>
+      Boom.badGateway('Unable to initiate upload', new Error('ECONNREFUSED'))
+
+    const requestWithError = (stored) => {
+      const request = createMockRequest()
+      request.yar.get = vi.fn((key) => (key === 'uploadError' ? stored : null))
+      return request
+    }
+
+    test('keeps the timeout message on the upload page, in place of the form', async () => {
+      vi.mocked(initiateUpload).mockRejectedValue(unavailable())
+      const h = createMockH()
+      const request = requestWithError('timedOut')
+
+      await getController.handler(request, h)
+
+      expect(h.view).toHaveBeenCalledWith(
+        'common/templates/upload-geopackage-file',
+        expect.objectContaining({
+          pageTitle: 'Error: Upload Baseline File',
+          uploadUrl: undefined,
+          uploadUnavailableText:
+            'Unable to start file upload. Please try again later.',
+          error: { text: 'The file check timed out. Please try again.' }
+        })
+      )
+      expect(h.view.mock.results[0].value.code).toHaveBeenCalledWith(502)
+      expect(request.yar.clear).toHaveBeenCalledWith('uploadError')
+      expect(request.yar.set).not.toHaveBeenCalledWith(
+        'pendingUploadId',
+        expect.anything()
+      )
+      expect(request.yar.clear).not.toHaveBeenCalledWith('uploadStartedAt')
+    })
+
+    test('still shows the error page when there is no message to keep', async () => {
+      vi.mocked(initiateUpload).mockRejectedValue(unavailable())
+
+      await expect(
+        getController.handler(createMockRequest(), createMockH())
+      ).rejects.toMatchObject({ output: { statusCode: 502 } })
+    })
+
+    test('still shows the "too many requests" page for a rate limit', async () => {
+      const rateLimited = Boom.tooManyRequests('Too many requests', {
+        rateLimited: true
+      })
+      vi.mocked(initiateUpload).mockRejectedValue(rateLimited)
+
+      await expect(
+        getController.handler(requestWithError('timedOut'), createMockH())
+      ).rejects.toBe(rateLimited)
+    })
+
+    test('still sends an expired sign-in to sign in again', async () => {
+      const expired = Boom.unauthorized('Session expired')
+      expired.data = { sessionExpired: true }
+      vi.mocked(initiateUpload).mockRejectedValue(expired)
+
+      await expect(
+        getController.handler(requestWithError('timedOut'), createMockH())
+      ).rejects.toBe(expired)
+    })
   })
 })

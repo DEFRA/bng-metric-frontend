@@ -24,6 +24,15 @@ export function buildRedisClient(redisConfig) {
           password: redisConfig.password
         }
   const tls = redisConfig.useTLS ? { tls: {} } : {}
+  // A Redis that accepts connections but never answers must fail a command,
+  // not hold the page forever (BMD-1200). commandTimeout fails the one
+  // command; socketTimeout then drops the connection, so the client
+  // reconnects instead of matching late replies to the wrong commands. In
+  // Cluster mode each node is a client built from redisOptions.
+  const timeouts = {
+    commandTimeout: redisConfig.commandTimeoutMs,
+    socketTimeout: redisConfig.socketTimeoutMs
+  }
 
   if (redisConfig.useSingleInstanceCache) {
     redisClient = new Redis({
@@ -31,6 +40,7 @@ export function buildRedisClient(redisConfig) {
       host,
       db,
       keyPrefix,
+      ...timeouts,
       ...credentials,
       ...tls
     })
@@ -48,6 +58,7 @@ export function buildRedisClient(redisConfig) {
         dnsLookup: (address, callback) => callback(null, address),
         redisOptions: {
           db,
+          ...timeouts,
           ...credentials,
           ...tls
         }
