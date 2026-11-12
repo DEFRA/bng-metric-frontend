@@ -1,4 +1,5 @@
 import Boom from '@hapi/boom'
+import { load } from 'cheerio'
 
 import {
   REQUIRED_ELEMENT_IDS_AREA,
@@ -2115,5 +2116,160 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     })
 
     expect(result).toContain('<span id="distinctivenessDisplay"></span>')
+  })
+})
+
+describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
+  const treeId = 'aa0e8400-e29b-41d4-a716-446655440003'
+  const treeUrl = `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`
+  const mockTree = {
+    featureId: treeId,
+    ref: 'T1',
+    type: 'Urban tree',
+    broadType: 'Individual trees',
+    treeSize: 'Medium',
+    count: 2,
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    sizeSquareMetres: 326,
+    units: 0.3912
+  }
+  const typesWithTrees = {
+    ...mockHabitatTypesByBroad,
+    'Individual trees': [
+      {
+        name: 'Rural tree',
+        distinctiveness: 'Medium',
+        distinctivenessScore: 4
+      },
+      { name: 'Urban tree', distinctiveness: 'Medium', distinctivenessScore: 4 }
+    ]
+  }
+
+  let server
+  let crumb
+
+  function serveTree(tree) {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/features/${treeId}`)) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: { type: 'tree', feature: tree }
+        })
+      }
+      if (u.endsWith('/reference/habitat-types-by-broad')) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: typesWithTrees
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+  }
+
+  async function renderTree(tree = mockTree) {
+    serveTree(tree)
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: treeUrl,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    return load(result)
+  }
+
+  const optionValues = ($, name) =>
+    $(`select[name="${name}"] option`)
+      .map((_, option) => $(option).attr('value'))
+      .get()
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    _resetReferenceCache()
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('shows the broad habitat as Individual trees, not as a choice, and sends it with the form', async () => {
+    const $ = await renderTree()
+
+    expect($('select[name="broadHabitat"]')).toHaveLength(0)
+    expect($('#broadHabitat').attr('type')).toBe('hidden')
+    expect($('#broadHabitat').attr('name')).toBe('broadHabitat')
+    expect($('#broadHabitat').val()).toBe('Individual trees')
+    const broadField = $('.app-stacked-fields__item').filter(
+      (_, el) => $(el).children('h3').text().trim() === 'Broad habitat'
+    )
+    expect(broadField.children('p').text().trim()).toBe('Individual trees')
+  })
+
+  test('offers only Urban tree and Rural tree as the habitat type, with the saved one selected', async () => {
+    const $ = await renderTree()
+
+    expect(optionValues($, 'habitatType')).toEqual(['Rural tree', 'Urban tree'])
+    expect($('select[name="habitatType"] option[selected]').val()).toBe(
+      'Urban tree'
+    )
+  })
+
+  test('offers a blank habitat type to a tree imported without one', async () => {
+    const $ = await renderTree({
+      ...mockTree,
+      type: null,
+      units: null,
+      status: 'Incomplete'
+    })
+
+    expect(optionValues($, 'habitatType')).toEqual([
+      '',
+      'Rural tree',
+      'Urban tree'
+    ])
+    expect($('select[name="habitatType"] option[selected]').val()).toBe('')
+  })
+
+  test('saves a change from Urban tree to Rural tree as an Individual trees habitat type', async () => {
+    serveTree(mockTree)
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'tree', feature: { ...mockTree, type: 'Rural tree' } }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: treeId,
+        broadHabitat: 'Individual trees',
+        habitatType: 'Rural tree',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
+    const [putUrl, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+    expect(putUrl).toContain(`/projects/${projectId}/features/${treeId}`)
+    expect(JSON.parse(payload)).toEqual({
+      broadType: 'Individual trees',
+      habitatType: 'Rural tree',
+      condition: 'Good'
+    })
   })
 })
