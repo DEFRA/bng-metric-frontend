@@ -5,14 +5,7 @@ import {
   isEmptyDiff,
   unfinishedChanges
 } from './diff.mjs'
-import {
-  ALL_GROUPS,
-  ALONE,
-  ROW_GROUPS,
-  SHOWN,
-  STATUS,
-  buildRows
-} from './rows.mjs'
+import { ALL_GROUPS, ROW_GROUPS, SHOWN, STATUS, buildRows } from './rows.mjs'
 
 // Two small error-text.yaml files: the second adds, removes, rewords and
 // finishes entries, and moves a code from the drop-out page to an edit.
@@ -123,32 +116,33 @@ describe('diffRows', () => {
 
   test('says where a code moved between sections is now shown', () => {
     const moved = diff.changed.find(({ ids }) => ids.includes('MOVED'))
+    // On the drop-out page it had no single-problem page; on an edit, words.
     expect(moved.parts.map(({ part }) => part)).toEqual([
       'Where it is shown',
-      'When it is the only problem',
       'Error summary',
-      'List heading'
+      'List heading',
+      'Shown instead'
     ])
     expect(moved.parts[0]).toMatchObject({
       before: SHOWN.UPLOAD,
       after: SHOWN.EDIT
     })
-    expect(moved.parts[1]).toMatchObject({
-      before: ALONE.PROBLEMS_LIST,
-      after: ''
-    })
   })
 
   test('makes one entry of a shared fallback and the IDs it rewords alike', () => {
+    // The words are in Body alone, so the page's own row and each error
+    // showing it change alike.
     const fallback = diff.changed.find(({ ids }) => ids.includes('ALONE_A'))
-    expect(fallback.ids).toEqual(['ALONE_A', 'ALONE_B', 'upload.fileProblem'])
-    expect(fallback.parts).toEqual([
-      {
-        part: 'Body',
-        before: 'Check the habitats.',
-        after: 'Check every habitat.'
-      }
-    ])
+    expect(fallback).toEqual({
+      ids: ['ALONE_A', 'ALONE_B', 'upload.fileProblem'],
+      parts: [
+        {
+          part: 'Body',
+          before: 'Check the habitats.',
+          after: 'Check every habitat.'
+        }
+      ]
+    })
   })
 
   test('lists each status that moved', () => {
@@ -209,7 +203,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).markdown).toBe(
-      '### Wording changes in codes from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
+      '### Wording changes in codes, fallbacks from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
     )
   })
 })
@@ -275,7 +269,7 @@ describe('describeDiff, as plain text for the run log', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).text).toBe(
-      'Wording changes in codes from abc1234: none.\n'
+      'Wording changes in codes, fallbacks from abc1234: none.\n'
     )
   })
 
@@ -308,13 +302,13 @@ describe('compareWithBase', () => {
     expect(unfinished).toEqual([])
     expect(markdown).toContain('error-text.yaml is not on the base commit')
     expect(text).toBe(
-      'Wording changes in codes from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
+      'Wording changes in codes, fallbacks from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
     )
   })
 
   test('says so, rather than failing, when the base file cannot be read', () => {
     expect(compareWithBase(rows, 'upload: [', base).markdown).toMatch(
-      /^### Wording changes in codes from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
+      /^### Wording changes in codes, fallbacks from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
     )
   })
 
@@ -365,5 +359,79 @@ describe('unfinishedChanges', () => {
   test('gives nothing for a change that adds only final wording and finishes some', () => {
     // The small files: ADDED is final, and forms.applicant.tooLong moves on.
     expect(unfinishedChanges(diff, all(after))).toEqual([])
+  })
+})
+
+describe('diffRows, a code joining a shared page', () => {
+  test("does not list the shared page's own row, whose wording is unchanged", () => {
+    const joined = before.replace(
+      '    ALONE_B:\n',
+      [
+        '    ALONE_C:',
+        '      singleProblemPage: file-problem',
+        '      problemsList:',
+        '        heading: Third',
+        '    ALONE_B:',
+        ''
+      ].join('\n')
+    )
+    const joinedDiff = diffRows(all(before), all(joined))
+    expect(joinedDiff.added.map(({ id }) => id)).toEqual(['ALONE_C'])
+    expect(joinedDiff.changed).toEqual([])
+  })
+})
+
+describe('diffRows, a link that goes elsewhere', () => {
+  test('lists the change, though the words the link is shown as are the same', () => {
+    const page = `
+common:
+  summaryTitle: There is a problem
+  unworded: There is a problem with this answer
+upload:
+  page:
+    title: There is a problem with your file
+  links:
+    metric-tool: https://example.com/metric
+  catchAll:
+    legacyTemplate:
+      title: Your file contains an error
+      body: Check your file.
+    serviceTemplate:
+      title: Your file contains an error
+      body: Check your file.
+  fileProblem:
+    title: Your file contains an error
+    body: Check the habitats.
+  serviceProblem:
+    title: Sorry, there is a problem with the service
+    body: Try again later.
+  names: {}
+  unknown: {}
+  distinctiveness: {}
+  errors:
+    LINKED:
+      singleProblemPage:
+        title: A title
+        body: Fix it and [see the guide](TARGET).
+      problemsList:
+        heading: A heading
+edit: {}
+forms: {}
+pages: {}
+`
+    const linkDiff = diffRows(
+      all(page.replace('TARGET', 'upload')),
+      all(page.replace('TARGET', 'metric-tool'))
+    )
+    const [change] = linkDiff.changed
+    expect(change.ids).toEqual(['LINKED'])
+    expect(change.parts).toEqual([
+      {
+        part: 'Links',
+        before: '"see the guide": the upload page',
+        after:
+          '"see the guide": the statutory biodiversity metric tools and guides, on GOV.UK, https://example.com/metric'
+      }
+    ])
   })
 })

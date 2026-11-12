@@ -1,6 +1,8 @@
 import {
   COLUMNS,
   DEFAULT_GROUPS,
+  SHARED_KEYS,
+  SHOWN,
   STATUS,
   STATUS_ORDER,
   WORDING_KEYS,
@@ -15,18 +17,18 @@ import {
 // buildRows, matched by error ID.
 
 /**
- * The columns compared: where an error is shown, what it shows when it is the
- * only problem, and every part of it.
+ * The columns compared: where an error is shown, every part of it, and where
+ * its links go, as the cells show a link by its words alone.
  */
 const COMPARED_KEYS = Object.freeze([
   'shown',
-  'alone',
   ...WORDING_KEYS,
-  'fallback'
+  ...SHARED_KEYS,
+  'links'
 ])
 
 /** The parts of a message an added or removed error is shown with. */
-const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, 'fallback'])
+const MESSAGE_KEYS = Object.freeze([...WORDING_KEYS, ...SHARED_KEYS, 'links'])
 
 const HEADERS = Object.fromEntries(
   COLUMNS.map(({ key, header }) => [key, header])
@@ -64,6 +66,18 @@ export function diffRows(before, after) {
 }
 
 /**
+ * The columns compared for a row. A shared page's own row lists the codes
+ * that use it in Shared page and Shared list heading, which change whenever
+ * a code joins or leaves it, with no change to its wording, so those are
+ * not compared for it: the code's own row says what changed.
+ */
+function comparedKeys(row) {
+  return row.shown === SHOWN.FALLBACK
+    ? COMPARED_KEYS.filter((key) => !SHARED_KEYS.includes(key))
+    : COMPARED_KEYS
+}
+
+/**
  * Each kept row's changed parts. Rows with the same changes share one entry:
  * rewording a shared fallback changes every error that shows it alike.
  */
@@ -71,9 +85,9 @@ function groupChanges(kept, was) {
   const groups = new Map()
   for (const row of kept) {
     const old = was.get(row.id)
-    const parts = COMPARED_KEYS.filter((key) => old[key] !== row[key]).map(
-      (key) => ({ part: HEADERS[key], before: old[key], after: row[key] })
-    )
+    const parts = comparedKeys(row)
+      .filter((key) => old[key] !== row[key])
+      .map((key) => ({ part: HEADERS[key], before: old[key], after: row[key] }))
     if (parts.length > 0) {
       const key = JSON.stringify(parts)
       const group = groups.get(key) ?? { ids: [], parts }

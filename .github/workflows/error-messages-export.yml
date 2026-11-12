@@ -1,6 +1,6 @@
 name: Error Messages Export
 
-# Writes error-text.yaml's error codes, or more with a run on demand's
+# Writes error-text.yaml's error codes and shared pages, or more with a run on demand's
 # include, as .xlsx, .csv and .html for product, BAs and UCD to review
 # (npm run export:error-text), keeps them as
 # one artifact, and counts each status in the run's summary. A pull request's
@@ -30,7 +30,7 @@ on:
       include:
         description: >-
           Groups of rows to add to the error codes, separated by commas
-          (fallbacks, upload-text, common, forms, pages), or "all"
+          (upload-text, common, forms, pages), or "all"
         required: false
         default: ''
 

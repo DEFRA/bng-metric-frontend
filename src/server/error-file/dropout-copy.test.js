@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs'
+
 import { dump } from 'js-yaml'
 import { describe, test, expect } from 'vitest'
 
 import { config } from '../../config/config.js'
-import { errorText } from '../common/error-text/error-text.js'
+import { ERROR_TEXT_FILE, errorText } from '../common/error-text/error-text.js'
 
 import {
   LINK_TARGETS,
@@ -73,6 +75,19 @@ const allPages = [
 ]
 
 describe("error-text.yaml's upload section", () => {
+  // The header lists the wording that repeats what the backend defines. A code
+  // renamed or removed would leave it pointing at nothing.
+  test('names only codes it has, in its list of wording the backend defines', () => {
+    const named = [
+      ...readFileSync(ERROR_TEXT_FILE, 'utf8').matchAll(
+        // A code, not a group such as STAGED_*.
+        /^# {5}([A-Z][A-Z0-9_]*[A-Z0-9]) /gm
+      )
+    ].map(([, code]) => code)
+    expect(named.length).toBeGreaterThan(0)
+    expect(named.filter((code) => !errorCopy(code))).toEqual([])
+  })
+
   // {ref} and the like name the first habitat an error names, so a page
   // that uses one is worded for one, and must say so with `one:`.
   test('words no page for any number of habitats with a value naming one', () => {

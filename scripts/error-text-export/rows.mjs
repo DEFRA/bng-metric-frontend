@@ -48,7 +48,6 @@ export const STATUS_ORDER = Object.freeze([
 export const COLUMNS = Object.freeze([
   { key: 'id', header: 'Error ID', width: 36 },
   { key: 'shown', header: 'Where it is shown', width: 20 },
-  { key: 'alone', header: 'When it is the only problem', width: 36 },
   { key: 'status', header: 'Status', width: 14 },
   { key: 'summary', header: 'Error summary', width: 40 },
   { key: 'inline', header: 'Inline message', width: 40 },
@@ -62,8 +61,9 @@ export const COLUMNS = Object.freeze([
   { key: 'item', header: 'Item', width: 40 },
   { key: 'detail', header: 'Detail', width: 40 },
   { key: 'listNote', header: 'List note', width: 30 },
-  { key: 'text', header: 'Text', width: 50 },
-  { key: 'fallback', header: 'Shared fallback', width: 40 },
+  { key: 'sharedPage', header: 'Shared page', width: 40 },
+  { key: 'sharedHeading', header: 'Shared list heading', width: 40 },
+  { key: 'shownInstead', header: 'Shown instead', width: 50 },
   { key: 'values', header: 'Values it fills in', width: 60 },
   { key: 'links', header: 'Links', width: 40 },
   { key: 'source', header: 'Source', width: 50 }
@@ -82,8 +82,18 @@ export const WORDING_KEYS = Object.freeze([
   'listHeading',
   'item',
   'detail',
-  'listNote',
-  'text'
+  'listNote'
+])
+
+/**
+ * The columns that say where an error's words come from, when not its own:
+ * a shared page, a shared title heading its problems list entry, or what is
+ * shown in place of words it has yet to have.
+ */
+export const SHARED_KEYS = Object.freeze([
+  'sharedPage',
+  'sharedHeading',
+  'shownInstead'
 ])
 
 /** Where a customer meets an entry, as the Where it is shown column says. */
@@ -94,19 +104,6 @@ export const SHOWN = Object.freeze({
   EDIT: 'Edit made on screen',
   FORM: 'Form',
   PAGE: 'Whole page'
-})
-
-/**
- * What a drop-out page error shows when it is the file's only problem, as
- * the When it is the only problem column says: from its singleProblemPage.
- */
-export const ALONE = Object.freeze({
-  OWN: 'Its own page, worded for any number of habitats',
-  OWN_ONE_AND_SEVERAL: 'Its own page, worded for one habitat and for several',
-  OWN_ONE_ONLY:
-    'Its own page for one habitat; the problems list for several, until it has wording for several',
-  SHARED: 'A shared page, named in Shared fallback',
-  PROBLEMS_LIST: 'The problems list'
 })
 
 /**
@@ -133,11 +130,14 @@ export const ROW_GROUPS = Object.freeze({
 export const ALL_GROUPS = Object.freeze(Object.values(ROW_GROUPS))
 
 /**
- * What the export gives unless told otherwise: the error codes alone. The
- * rest made the export too long to review; a code that shows a shared
- * fallback still names it and repeats its words.
+ * What the export gives unless told otherwise: the error codes, and the
+ * shared pages they show, each a row of its own words and the codes that use
+ * it. The rest made the export too long to review.
  */
-export const DEFAULT_GROUPS = Object.freeze([ROW_GROUPS.CODES])
+export const DEFAULT_GROUPS = Object.freeze([
+  ROW_GROUPS.CODES,
+  ROW_GROUPS.FALLBACKS
+])
 
 /** Said of a {name} or link target that placeholders.mjs does not explain. */
 export const NOT_EXPLAINED = 'not explained yet'
@@ -149,8 +149,8 @@ export const FALLBACKS = Object.freeze({
     label: 'Catch-all',
     // The service-template flag decides which the page shows.
     templates: [
-      ['legacyTemplate', 'Legacy template'],
-      ['serviceTemplate', 'BNG Service template']
+      ['legacyTemplate', 'For a legacy template file'],
+      ['serviceTemplate', 'For a BNG Service template file']
     ]
   },
   [SHARED_PAGE.FILE_PROBLEM]: { key: 'fileProblem', label: 'File problem' },
@@ -165,13 +165,101 @@ export const FALLBACKS = Object.freeze({
 // (src/server/common/helpers/errors.js).
 const REFUSED_EDIT_PAGE = 'badRequest'
 
-const OTHERWISE = '\nOtherwise: '
 const PLACEHOLDER = /\{(\w+)\}/g
-const LINK = /\[[^\]]+\]\(([^)]+)\)/g
+const LINK = /\[([^\]]+)\]\(([^)]+)\)/g
+// A link as the user sees it: its text alone. The Links column says where
+// each goes.
+const LINK_TEXT = /\[([^\]]+)\]\([^)]+\)/g
 
-/** A list of options, the first whose values are known, as one text. */
+function asShown(text) {
+  return text.replaceAll(LINK_TEXT, '$1')
+}
+
+/** The {names} texts use, each once, in order. */
+function placeholdersIn(texts) {
+  return unique(
+    texts
+      .flat()
+      .filter(Boolean)
+      .flatMap((text) => [...String(text).matchAll(PLACEHOLDER)])
+      .map(([, name]) => name)
+  )
+}
+
+/** Names as a reader lists them: "{a}", "{a} and {b}", "{a}, {b} and {c}". */
+function listed(names, last) {
+  const braced = names.map((name) => `{${name}}`)
+  return braced.length < 2
+    ? braced.join('')
+    : `${braced.slice(0, -1).join(', ')} ${last} ${braced.at(-1)}`
+}
+
+/**
+ * A list of options as one text, each after the first saying when it is
+ * used: the page shows the first whose {values} it can fill, so a later one
+ * stands in when a value the one before it names is not known.
+ * "This parcel {ref} …", then "If {ref} is not known: Your … file …".
+ */
 function optionsText(options) {
-  return [options].flat().join(OTHERWISE)
+  const list = [options].flat()
+  return list
+    .map((text, index) => {
+      if (index === 0) {
+        return text
+      }
+      const own = placeholdersIn([text])
+      const missing = placeholdersIn([list[index - 1]]).filter(
+        (name) => !own.includes(name)
+      )
+      return missing.length > 0
+        ? `If ${listed(missing, 'or')} is not known: ${text}`
+        : `Otherwise: ${text}`
+    })
+    .join('\n')
+}
+
+// A whole page given in versions: the page shows the first whose title,
+// subheading and body it can fill.
+const NO_TEXT = '(none)'
+
+/**
+ * When each version of a page is shown, as a line of a cell begins: the
+ * values it needs are known, and the last otherwise.
+ */
+function versionConditions(pages) {
+  return pages.map((page, index) => {
+    // A part given as options can always be filled by its last, so only that
+    // one's values decide whether the version is shown.
+    const names = placeholdersIn(
+      [page.title, page.subheading, page.body]
+        .filter((part) => part !== undefined)
+        .map((part) => [part].flat().at(-1))
+    )
+    return index === pages.length - 1 || names.length === 0
+      ? 'Otherwise'
+      : `If ${listed(names, 'and')} ${names.length === 1 ? 'is' : 'are'} known`
+  })
+}
+
+/**
+ * One part of a page given in versions: shown once when every version says
+ * the same, and otherwise a line a version, after when it is shown, so each
+ * column of the row reads alike. A version's own options follow it indented,
+ * so none is read as another version.
+ */
+function versionsText(texts, conditions) {
+  if (texts.every((text) => text === undefined)) {
+    return undefined
+  }
+  if (new Set(texts).size === 1) {
+    return texts[0]
+  }
+  return texts
+    .map(
+      (text, index) =>
+        `${conditions[index]}: ${(text ?? NO_TEXT).replaceAll('\n', '\n  ')}`
+    )
+    .join('\n')
 }
 
 /** A bullet given as parts, each shown when its values are known. */
@@ -214,20 +302,26 @@ function withVariants(problemsList, key, render) {
     : undefined
 }
 
-/** A single-problem page's words: one page copy, or options of them. */
+/**
+ * A single-problem page's words, one cell a part. A page given in versions
+ * gives each its line in every cell, after when it is shown.
+ *
+ * @param {object | object[]} copies - a page, or its versions
+ */
 function pageCopyCells(copies) {
   const list = [copies].flat()
-  const join = (key) => {
-    const texts = list
-      .map((copy) => copy[key])
-      .filter((text) => text !== undefined)
-      .map(optionsText)
-    return texts.length > 0 ? texts.join(OTHERWISE) : undefined
-  }
+  const conditions = versionConditions(list)
+  const cell = (key) =>
+    versionsText(
+      list.map((copy) =>
+        copy[key] === undefined ? undefined : optionsText(copy[key])
+      ),
+      conditions
+    )
   return {
-    pageHeading: join('title'),
-    subheading: join('subheading'),
-    body: join('body')
+    pageHeading: cell('title'),
+    subheading: cell('subheading'),
+    body: cell('body')
   }
 }
 
@@ -238,14 +332,14 @@ function newRow(id, shown, entry, path) {
     statuses: [statusOf(entry)],
     cells: {},
     paths: [path],
-    fallbacks: []
+    shared: { sharedPage: [], sharedHeading: [], shownInstead: [] }
   }
 }
 
 function commonRows({ common }) {
   return Object.entries(common).map(([key, entry]) => {
     const row = newRow(`common.${key}`, SHOWN.COMMON, entry, ['common', key])
-    row.cells.text = wordsOf(entry)
+    row.cells.body = wordsOf(entry)
     return row
   })
 }
@@ -260,7 +354,7 @@ function uploadTextRows({ upload }) {
           group,
           key
         ])
-        row.cells.text = optionsText(text)
+        row.cells.body = optionsText(text)
         return row
       })
   )
@@ -289,10 +383,6 @@ function fallbackCells(upload, fallback) {
   }
 }
 
-function fallbackName(fallback) {
-  return `${fallback.label} (upload.${fallback.key})`
-}
-
 /** The status of each copy of a fallback, as words a row repeats. */
 function fallbackStatuses(upload, fallback) {
   return fallbackCopies(upload, fallback).map(({ copy }) => statusOf(copy))
@@ -309,22 +399,37 @@ function severalCells(copies) {
 }
 
 /**
- * An upload error's single-problem page: its words, and what the When it is
- * the only problem column says of it.
+ * An upload error's single-problem page's words: worded for any number, or
+ * for one and for several, the last in its own columns.
  */
 function singleProblemCells(page) {
   if (page === undefined) {
-    return { alone: ALONE.PROBLEMS_LIST, cells: {} }
+    return {}
   }
   if (!Object.hasOwn(page, 'one')) {
-    return { alone: ALONE.OWN, cells: pageCopyCells(page) }
+    return pageCopyCells(page)
   }
   return page.several === undefined
-    ? { alone: ALONE.OWN_ONE_ONLY, cells: pageCopyCells(page.one) }
-    : {
-        alone: ALONE.OWN_ONE_AND_SEVERAL,
-        cells: { ...pageCopyCells(page.one), ...severalCells(page.several) }
-      }
+    ? pageCopyCells(page.one)
+    : { ...pageCopyCells(page.one), ...severalCells(page.several) }
+}
+
+// What a user sees in place of a single-problem page an error has no
+// wording for: its entry in the problems list.
+const LIST_INSTEAD =
+  "the problems list, under this error's heading (in List heading)"
+
+/**
+ * When an error is shown in the problems list for want of a single-problem
+ * page: it has none, or one worded for one habitat when it names several.
+ */
+function listShownInstead(page) {
+  if (page === undefined) {
+    return [`If this is the file's only problem: ${LIST_INSTEAD}`]
+  }
+  return Object.hasOwn(page, 'one') && page.several === undefined
+    ? [`With several habitats: ${LIST_INSTEAD}`]
+    : []
 }
 
 /**
@@ -337,22 +442,24 @@ function uploadErrorRow(upload, code, entry, usage) {
 
   if (typeof singleProblemPage === 'string') {
     const fallback = FALLBACKS[singleProblemPage]
-    row.alone = ALONE.SHARED
     Object.assign(row.cells, fallbackCells(upload, fallback))
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(`${fallbackName(fallback)}, when alone`)
+    row.shared.sharedPage.push(
+      `${fallback.label} (upload.${fallback.key}): words in Page heading and Body`
+    )
     usage[singleProblemPage].alone.push(code)
   } else {
-    const { alone, cells } = singleProblemCells(singleProblemPage)
-    row.alone = alone
-    Object.assign(row.cells, cells)
+    Object.assign(row.cells, singleProblemCells(singleProblemPage))
+    row.shared.shownInstead.push(...listShownInstead(singleProblemPage))
   }
 
   if (problemsList === PROBLEMS_LIST_CATCH_ALL) {
     const fallback = FALLBACKS[SHARED_PAGE.CATCH_ALL]
     row.cells.listHeading = fallbackCells(upload, fallback).pageHeading
     row.statuses.push(...fallbackStatuses(upload, fallback))
-    row.fallbacks.push(`${fallbackName(fallback)} title, in a list`)
+    row.shared.sharedHeading.push(
+      `${fallback.label} title (upload.${fallback.key}): words in List heading`
+    )
     usage[SHARED_PAGE.CATCH_ALL].listed.push(code)
   } else {
     Object.assign(row.cells, {
@@ -383,10 +490,12 @@ function fallbackRows(upload, usage) {
       statuses: fallbackStatuses(upload, fallback),
       cells: fallbackCells(upload, fallback),
       paths: [['upload', fallback.key]],
-      fallbacks: [
-        ...usedBy(usage[name].alone, 'Shown alone'),
-        ...usedBy(usage[name].listed, 'Its title heads a list')
-      ]
+      // A shared page's own row says which errors use it.
+      shared: {
+        sharedPage: usedBy(usage[name].alone, 'Shown alone'),
+        sharedHeading: usedBy(usage[name].listed, 'Its title heads a list'),
+        shownInstead: []
+      }
     }
     return row
   })
@@ -399,11 +508,12 @@ function fallbackRows(upload, usage) {
  */
 function unwordedEditText(pages) {
   const page = pages?.[REFUSED_EDIT_PAGE]
-  const words = [page?.title, ...(page?.body ?? [])]
-    .filter(Boolean)
-    .map((text) => `"${text}"`)
-    .join(' then ')
-  return `None yet: a refused change shows the error page pages.${REFUSED_EDIT_PAGE}, in place of the form${words ? `: ${words}` : ''}`
+  const lines = [
+    ...(page?.title ? [`Heading: ${page.title}`] : []),
+    ...(page?.body ?? []).map((line) => `Body: ${line}`)
+  ]
+  const intro = `If a change made on screen is refused: the error page pages.${REFUSED_EDIT_PAGE}, in place of the form`
+  return [intro, ...lines].join('\n')
 }
 
 function editRow(code, entry, pages) {
@@ -412,7 +522,7 @@ function editRow(code, entry, pages) {
   row.cells.summary = entry.summary ?? entry.summaryOnly
   row.cells.inline = entry.inline
   if (row.cells.summary === undefined) {
-    row.fallbacks.push(unwordedEditText(pages))
+    row.shared.shownInstead.push(unwordedEditText(pages))
     // No further on than the page shown in its place.
     if (pages?.[REFUSED_EDIT_PAGE]) {
       row.statuses.push(statusOf(pages[REFUSED_EDIT_PAGE]))
@@ -433,10 +543,12 @@ function merge(upload, edit) {
       inline: edit.cells.inline
     },
     paths: [...upload.paths, ...edit.paths],
-    fallbacks: [
-      ...upload.fallbacks,
-      ...edit.fallbacks.map((fallback) => `${SHOWN.EDIT}: ${fallback}`)
-    ]
+    shared: Object.fromEntries(
+      SHARED_KEYS.map((key) => [
+        key,
+        [...upload.shared[key], ...edit.shared[key]]
+      ])
+    )
   }
 }
 
@@ -480,7 +592,9 @@ function formRows({ forms, common }) {
       } else {
         row.cells.summary = wordsOf(common.unworded)
         row.cells.inline = wordsOf(common.unworded)
-        row.fallbacks.push('common.unworded')
+        row.shared.shownInstead.push(
+          'common.unworded: words in Error summary and Inline message'
+        )
       }
       return row
     })
@@ -519,17 +633,23 @@ function valuesText(row, words) {
   return lines.join('\n')
 }
 
+/**
+ * Each link, by the words it is shown as, and where it goes: "upload a new
+ * file": the upload page. The cells show a link by its words alone.
+ */
 function linksText(words, value) {
-  const targets = unique(
-    words.flatMap((text) =>
-      [...text.matchAll(LINK)].map(([, target]) => target)
-    )
-  )
-  return targets
-    .map((target) => {
+  // Each link once, by its words and where it goes.
+  const links = new Map()
+  for (const text of words) {
+    for (const [, linkText, target] of text.matchAll(LINK)) {
+      links.set(JSON.stringify([linkText, target]), { linkText, target })
+    }
+  }
+  return [...links.values()]
+    .map(({ linkText, target }) => {
       const name = LINK_TARGET_NAMES[target] ?? NOT_EXPLAINED
       const url = value.upload.links[target]
-      return url ? `${target}: ${name}, ${url}` : `${target}: ${name}`
+      return `"${linkText}": ${url ? `${name}, ${url}` : name}`
     })
     .join('\n')
 }
@@ -538,17 +658,23 @@ function finish(row, file, sourceUrl) {
   const words = WORDING_KEYS.map((key) => row.cells[key]).filter(Boolean)
   const status = STATUS_ORDER.find((s) => row.statuses.includes(s))
   const cells = Object.fromEntries(
-    WORDING_KEYS.map((key) => [key, row.cells[key] ?? ''])
+    WORDING_KEYS.map((key) => [key, asShown(row.cells[key] ?? '')])
+  )
+  const shared = Object.fromEntries(
+    SHARED_KEYS.map((key) => [key, row.shared[key].join('\n')])
   )
   return {
     id: row.id,
     shown: unique(row.shown).join('; '),
-    alone: row.alone ?? '',
     status,
     ...cells,
-    fallback: row.fallbacks.join('\n'),
+    ...Object.fromEntries(
+      SHARED_KEYS.map((key) => [key, asShown(shared[key])])
+    ),
     values: valuesText(row, words),
-    links: linksText(words, file.value),
+    // From the words as written, before their links are shown as text, and
+    // those of a page shown instead, as they can hold links.
+    links: linksText([...words, shared.shownInstead], file.value),
     source: row.paths.map((path) => sourceUrl(file.lineOf(path))).join('\n')
   }
 }
