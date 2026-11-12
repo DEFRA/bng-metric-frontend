@@ -579,7 +579,7 @@ describe('watercourses post intervention', () => {
 
     beforeEach(() => _resetCreatedAreaReferenceCache())
 
-    test('shows zero units, its type distinctiveness and difficulty, and its saved significance', async () => {
+    test('shows zero units, its type distinctiveness and its saved significance, as a Created area does', async () => {
       const stored = withIncompleteDitch()
       const snapshot = structuredClone(stored)
       const cell = await createdRow((url) => ({
@@ -592,7 +592,6 @@ describe('watercourses post intervention', () => {
       expect(cell('Units').attr('data-sort-value')).toBe('0')
       expect(cell('Distinctiveness').text().trim()).toBe('Medium (4)')
       expect(cell('Strategic significance').text().trim()).toBe('High (1.15)')
-      expect(cell('Standard difficulty').text().trim()).toBe('Medium (0.67)')
       expect(cell('Target condition').text().trim()).toBe('')
       expect(stored).toEqual(snapshot)
     })
@@ -628,7 +627,6 @@ describe('watercourses post intervention', () => {
       }))
       expect(cell('Units').text().trim()).toBe('0.00')
       expect(cell('Distinctiveness').text().trim()).toBe('High (6)')
-      expect(cell('Standard difficulty').text().trim()).toBe('Medium (0.67)')
     })
   })
 

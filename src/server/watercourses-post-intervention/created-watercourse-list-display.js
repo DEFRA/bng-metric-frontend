@@ -3,9 +3,8 @@ import { createdListDisplay } from '../common/helpers/created-list-display.js'
 import { loadCreatedWatercourseReference } from '../post-intervention-habitat-details/created-edit-reference.js'
 
 // BMD-1050 AC11 Scenario B: a Created watercourse saved Incomplete shows zero
-// units, its type's distinctiveness and standard difficulty, and its saved
-// strategic significance, as a Created area does (BMD-1048). The watercourse
-// creation reference gives each type the difficulty the engine prices it with.
+// units, its type's distinctiveness and its saved strategic significance,
+// exactly as a Created area does (BMD-1048, the PO ruling of 2026-11-06).
 // Display only: the stored project is left unchanged.
 export const prepareCreatedWatercourseListDisplay = createdListDisplay({
   layer: 'watercourses',
@@ -16,10 +15,5 @@ export const prepareCreatedWatercourseListDisplay = createdListDisplay({
     types.find(
       (t) => t.name === sourceValue(feature, feature.proposed, 'type')
     ),
-  typeFields: [
-    'distinctiveness',
-    'distinctivenessScore',
-    'difficulty',
-    'difficultyMultiplier'
-  ]
+  typeFields: ['distinctiveness', 'distinctivenessScore']
 })
