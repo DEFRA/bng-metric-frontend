@@ -166,7 +166,7 @@ export const FALLBACKS = Object.freeze({
 const REFUSED_EDIT_PAGE = 'badRequest'
 
 const PLACEHOLDER = /\{(\w+)\}/g
-const LINK = /\[[^\]]+\]\(([^)]+)\)/g
+const LINK = /\[([^\]]+)\]\(([^)]+)\)/g
 // A link as the user sees it: its text alone. The Links column says where
 // each goes.
 const LINK_TEXT = /\[([^\]]+)\]\([^)]+\)/g
@@ -228,7 +228,13 @@ const NO_TEXT = '(none)'
  */
 function versionConditions(pages) {
   return pages.map((page, index) => {
-    const names = placeholdersIn([page.title, page.subheading, page.body])
+    // A part given as options can always be filled by its last, so only that
+    // one's values decide whether the version is shown.
+    const names = placeholdersIn(
+      [page.title, page.subheading, page.body]
+        .filter((part) => part !== undefined)
+        .map((part) => [part].flat().at(-1))
+    )
     return index === pages.length - 1 || names.length === 0
       ? 'Otherwise'
       : `If ${listed(names, 'and')} ${names.length === 1 ? 'is' : 'are'} known`
@@ -292,7 +298,6 @@ function withVariants(problemsList, key, render) {
     : undefined
 }
 
-/** A single-problem page's words: one page copy, or options of them. */
 /**
  * A single-problem page's words, one cell a part. A page given in versions
  * gives each its line in every cell, after when it is shown.
@@ -605,17 +610,23 @@ function valuesText(row, words) {
   return lines.join('\n')
 }
 
+/**
+ * Each link, by the words it is shown as, and where it goes: "upload a new
+ * file": the upload page. The cells show a link by its words alone.
+ */
 function linksText(words, value) {
-  const targets = unique(
-    words.flatMap((text) =>
-      [...text.matchAll(LINK)].map(([, target]) => target)
-    )
-  )
-  return targets
-    .map((target) => {
+  // Each link once, by its words and where it goes.
+  const links = new Map()
+  for (const text of words) {
+    for (const [, linkText, target] of text.matchAll(LINK)) {
+      links.set(JSON.stringify([linkText, target]), { linkText, target })
+    }
+  }
+  return [...links.values()]
+    .map(({ linkText, target }) => {
       const name = LINK_TARGET_NAMES[target] ?? NOT_EXPLAINED
       const url = value.upload.links[target]
-      return url ? `${target}: ${name}, ${url}` : `${target}: ${name}`
+      return `"${linkText}": ${url ? `${name}, ${url}` : name}`
     })
     .join('\n')
 }

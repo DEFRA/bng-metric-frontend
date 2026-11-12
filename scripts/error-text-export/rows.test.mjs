@@ -251,6 +251,32 @@ describe('buildRows, a page given in versions', () => {
     )
   })
 
+  test("says a version's condition by the values its parts always need", () => {
+    // Version 1's heading has a backup, so it can always be filled: only its
+    // body's {area} decides whether version 1 is shown.
+    const source = FIXTURE.replace(
+      '  errors:\n',
+      [
+        '  errors:',
+        '    VERSIONED:',
+        '      singleProblemPage:',
+        '        - title:',
+        '            - This parcel {ref} is too small',
+        '            - A parcel is too small',
+        '          body: It is {area} sq m.',
+        '        - title: A parcel is too small',
+        '          body: Draw it again.',
+        '      problemsList:',
+        '        heading: Parcels are too small',
+        ''
+      ].join('\n')
+    )
+    const row = buildRows(source).find(({ id }) => id === 'VERSIONED')
+    expect(row.body).toBe(
+      'If {area} is known: It is {area} sq m.\nOtherwise: Draw it again.'
+    )
+  })
+
   test('numbers no versions, as each line says when it is shown', () => {
     const cells = rows.flatMap((row) => Object.values(row))
     expect(cells.filter((cell) => /\bVersions? \d/.test(String(cell)))).toEqual(
@@ -332,7 +358,8 @@ describe('buildRows, from error-text.yaml', () => {
     const row = rowOf('AREA_PARCELS_TOO_SMALL')
     expect(row.body).toContain('Draw the parcel again and upload a new file.')
     expect(row.body).not.toContain('](upload)')
-    expect(row.links).toBe('upload: the upload page')
+    // The words it is shown as, and where it goes.
+    expect(row.links).toBe('"upload a new file": the upload page')
   })
 
   test('has one row per error ID', () => {
@@ -611,9 +638,9 @@ describe('buildRows, from a small file', () => {
       `{area}: ${PLACEHOLDERS.area}`,
       'A part of a bullet is left out when any of its values is not known.'
     ])
-    expect(row.links).toBe('upload: the upload page')
+    expect(row.links).toBe('"upload a new file": the upload page')
     expect(fixtureRow('pages.accessDenied').links).toBe(
-      "home: the service's home page"
+      '"Return to the home page": the service\'s home page'
     )
   })
 
