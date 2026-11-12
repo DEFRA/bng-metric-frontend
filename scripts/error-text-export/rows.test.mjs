@@ -272,6 +272,14 @@ describe('buildRows, a page given in versions', () => {
       ].join('\n')
     )
     const row = buildRows(source).find(({ id }) => id === 'VERSIONED')
+    // Version 1's backup heading indented under it, not read as a version.
+    expect(row.pageHeading).toBe(
+      [
+        'If {area} is known: This parcel {ref} is too small',
+        '  If {ref} is not known: A parcel is too small',
+        'Otherwise: A parcel is too small'
+      ].join('\n')
+    )
     expect(row.body).toBe(
       'If {area} is known: It is {area} sq m.\nOtherwise: Draw it again.'
     )

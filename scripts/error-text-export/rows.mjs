@@ -244,7 +244,8 @@ function versionConditions(pages) {
 /**
  * One part of a page given in versions: shown once when every version says
  * the same, and otherwise a line a version, after when it is shown, so each
- * column of the row reads alike.
+ * column of the row reads alike. A version's own options follow it indented,
+ * so none is read as another version.
  */
 function versionsText(texts, conditions) {
   if (texts.every((text) => text === undefined)) {
@@ -254,7 +255,10 @@ function versionsText(texts, conditions) {
     return texts[0]
   }
   return texts
-    .map((text, index) => `${conditions[index]}: ${text ?? NO_TEXT}`)
+    .map(
+      (text, index) =>
+        `${conditions[index]}: ${(text ?? NO_TEXT).replaceAll('\n', '\n  ')}`
+    )
     .join('\n')
 }
 
