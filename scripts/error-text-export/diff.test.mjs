@@ -361,3 +361,22 @@ describe('unfinishedChanges', () => {
     expect(unfinishedChanges(diff, all(after))).toEqual([])
   })
 })
+
+describe('diffRows, a code joining a shared page', () => {
+  test("does not list the shared page's own row, whose wording is unchanged", () => {
+    const joined = before.replace(
+      '    ALONE_B:\n',
+      [
+        '    ALONE_C:',
+        '      singleProblemPage: file-problem',
+        '      problemsList:',
+        '        heading: Third',
+        '    ALONE_B:',
+        ''
+      ].join('\n')
+    )
+    const joinedDiff = diffRows(all(before), all(joined))
+    expect(joinedDiff.added.map(({ id }) => id)).toEqual(['ALONE_C'])
+    expect(joinedDiff.changed).toEqual([])
+  })
+})

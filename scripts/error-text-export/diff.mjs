@@ -2,6 +2,7 @@ import {
   COLUMNS,
   DEFAULT_GROUPS,
   SHARED_KEYS,
+  SHOWN,
   STATUS,
   STATUS_ORDER,
   WORDING_KEYS,
@@ -60,13 +61,25 @@ export function diffRows(before, after) {
  * Each kept row's changed parts. Rows with the same changes share one entry:
  * rewording a shared fallback changes every error that shows it alike.
  */
+/**
+ * The columns compared for a row. A shared page's own row lists the codes
+ * that use it in Shared page and Shared list heading, which change whenever
+ * a code joins or leaves it, with no change to its wording, so those are
+ * not compared for it: the code's own row says what changed.
+ */
+function comparedKeys(row) {
+  return row.shown === SHOWN.FALLBACK
+    ? COMPARED_KEYS.filter((key) => !SHARED_KEYS.includes(key))
+    : COMPARED_KEYS
+}
+
 function groupChanges(kept, was) {
   const groups = new Map()
   for (const row of kept) {
     const old = was.get(row.id)
-    const parts = COMPARED_KEYS.filter((key) => old[key] !== row[key]).map(
-      (key) => ({ part: HEADERS[key], before: old[key], after: row[key] })
-    )
+    const parts = comparedKeys(row)
+      .filter((key) => old[key] !== row[key])
+      .map((key) => ({ part: HEADERS[key], before: old[key], after: row[key] }))
     if (parts.length > 0) {
       const key = JSON.stringify(parts)
       const group = groups.get(key) ?? { ids: [], parts }
