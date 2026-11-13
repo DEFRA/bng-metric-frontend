@@ -1,10 +1,12 @@
+const MODIFIED_GRASSLAND = 'Modified grassland'
+
 export const creationReference = {
   featureType: 'habitat',
   hasBroadHabitat: true,
   habitatTypes: [
     {
       broad: 'Grassland',
-      name: 'Modified grassland',
+      name: MODIFIED_GRASSLAND,
       distinctiveness: 'Low',
       distinctivenessScore: 2,
       difficulty: 'Low',
@@ -46,7 +48,7 @@ export const createdAreaFeature = {
   units: 11.68,
   proposed: {
     broadType: 'Grassland',
-    type: 'Modified grassland',
+    type: MODIFIED_GRASSLAND,
     condition: 'Good',
     strategicSignificanceCategory: 'Low',
     advanceYears: 0,
@@ -63,7 +65,7 @@ export const enhancementReference = {
   habitatTypes: [
     {
       broad: 'Grassland',
-      name: 'Modified grassland',
+      name: MODIFIED_GRASSLAND,
       distinctiveness: 'Low',
       distinctivenessScore: 2,
       difficulty: 'Low',
@@ -110,12 +112,12 @@ export const enhancedAreaFeature = {
   status: 'Complete',
   baseline: {
     broadType: 'Grassland',
-    type: 'Modified grassland',
+    type: MODIFIED_GRASSLAND,
     condition: 'Poor'
   },
   proposed: {
     broadType: 'Grassland',
-    type: 'Modified grassland',
+    type: MODIFIED_GRASSLAND,
     condition: 'Moderate',
     strategicSignificanceCategory: 'High',
     strategicSignificance: 'High',
