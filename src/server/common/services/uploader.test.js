@@ -17,6 +17,12 @@ vi.mock('../helpers/wreck-client.js', () => ({
   }
 }))
 
+// A refresh that fails, so a 401 from the backend ends the session.
+vi.mock('../helpers/auth/refresh-session.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  refreshSession: vi.fn().mockResolvedValue(false)
+}))
+
 const { initiateUpload, getUploadStatus } = await import('./uploader.js')
 
 // backendRequest reads the id_token from the yar session and forwards it as a
@@ -169,6 +175,28 @@ describe('initiateUpload refused by a rate limit', () => {
     }).catch(() => {})
 
     expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+})
+
+describe('initiateUpload when the sign-in has expired', () => {
+  it('passes the expired sign-in on unwrapped, so catchAll sends the user to sign in again', async () => {
+    vi.mocked(wreck.post).mockResolvedValue({
+      res: { statusCode: 401 },
+      payload: {}
+    })
+    const request = makeRequest()
+    request.yar.reset = vi.fn()
+    request.yar.set = vi.fn()
+
+    await expect(
+      initiateUpload(request, {
+        redirect: '/projects/1/upload-received',
+        s3Bucket: 'baseline-files'
+      })
+    ).rejects.toMatchObject({
+      output: { statusCode: 401 },
+      data: { sessionExpired: true }
+    })
   })
 })
 

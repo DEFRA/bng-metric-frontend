@@ -72,4 +72,21 @@ describe('upload geopackage file template', () => {
     expect($('form')).toHaveLength(0)
     expect($('.govuk-body').text()).toContain('Unable to start file upload.')
   })
+
+  test('keeps the error message, with no link to a missing field, when there is no form', () => {
+    const $ = render({
+      pageTitle: `Error: ${VIEW_MODEL.pageTitle}`,
+      uploadUrl: undefined,
+      uploadUnavailableText: 'Unable to start file upload.',
+      error: { text: 'The file check timed out. Please try again.' }
+    })
+
+    const summary = $('.govuk-error-summary')
+    expect(summary).toHaveLength(1)
+    expect(summary.text()).toContain(
+      'The file check timed out. Please try again.'
+    )
+    expect(summary.find('a')).toHaveLength(0)
+    expect($('.govuk-body').text()).toContain('Unable to start file upload.')
+  })
 })
