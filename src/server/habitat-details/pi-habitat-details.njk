@@ -5,7 +5,9 @@
    label-over-value layout. The parcel ref is the H1;
    "Post-intervention habitat details" is the single section heading. The
    sections layout renders the "View baseline details" link after the first
-   section and the "Habitat units delivered" summary row below it. #}
+   section and the "Habitat units delivered" summary row below it.
+   "Supporting information" is the baseline habitat's comment, read-only
+   (BMD-1187). #}
 {% set sections = [
   {
     heading: habitatDetailsSectionHeading,
@@ -18,7 +20,8 @@
       { label: "Habitat type", value: habitatTypeDisplay },
       { label: "Distinctiveness", value: distinctivenessDisplay },
       { label: "Condition", value: conditionDisplay },
-      { label: "Strategic significance", value: strategicSignificanceDisplay }
+      { label: "Strategic significance", value: strategicSignificanceDisplay },
+      { label: "Supporting information", value: supportingInformationDisplay, multiline: true, when: supportingInformationDisplay }
     ]
   }
 ] %}

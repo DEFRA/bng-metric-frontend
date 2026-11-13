@@ -7,6 +7,7 @@ import {
 import {
   buildViewOnlyViewModel,
   EMPTY_PLACEHOLDER,
+  supportingInformationFields,
   withMultiplier
 } from './view-only-shared.js'
 
@@ -40,10 +41,11 @@ const watercourseSpec = {
  * habitat. All values are display strings;
  * habitat-details/pi-watercourse-details.njk renders them as a single stacked
  * label-over-value section via layouts/pi-view-only-sections-page.njk, with
- * the parcel ref as the page heading and no form controls.
+ * the parcel ref as the page heading and no form controls. Its supporting
+ * information is its baseline watercourse's comment (BMD-1187).
  *
  * @param {object} feature the raw feature from the PI feature endpoint
- * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx
+ * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null, baselineComment?: string|null }} ctx
  * @returns {object}
  */
 export function buildWatercourseViewOnlyViewModel(feature, ctx) {
@@ -52,6 +54,7 @@ export function buildWatercourseViewOnlyViewModel(feature, ctx) {
     heading: feature.ref ?? EMPTY_PLACEHOLDER,
     pageTitle: feature.ref ?? PI_DETAILS_HEADING,
     habitatDetailsSectionHeading: PI_DETAILS_HEADING,
-    habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL
+    habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
+    ...supportingInformationFields(ctx.baselineComment)
   }
 }

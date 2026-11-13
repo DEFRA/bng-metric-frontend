@@ -314,7 +314,10 @@ async function renderDetailsPage(
   h,
   { projectId, featureId, returnUrl, submittedRef, refusal }
 ) {
-  const [{ type, feature }, project] = await Promise.all([
+  // The backend sends `baselineComment` with a Retained habitat only: the
+  // comment saved on the baseline habitat it is joined to (BMD-1187). It
+  // comes with the habitat, so it shows even when the project cannot be had.
+  const [{ type, feature, baselineComment }, project] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
     fetchProject(request, projectId)
   ])
@@ -351,7 +354,8 @@ async function renderDetailsPage(
     {
       projectId,
       projectName,
-      baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature)
+      baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature),
+      baselineComment
     }
   )
   const backHref = postInterventionBackHref(projectId, type, returnUrl)

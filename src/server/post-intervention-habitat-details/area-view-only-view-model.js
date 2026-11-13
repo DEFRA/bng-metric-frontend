@@ -6,7 +6,8 @@ import {
 } from './constants.js'
 import {
   buildSharedPiViewOnlyFields,
-  EMPTY_PLACEHOLDER
+  EMPTY_PLACEHOLDER,
+  supportingInformationFields
 } from './view-only-shared.js'
 
 /**
@@ -14,15 +15,17 @@ import {
  * All values are display strings; habitat-details/pi-habitat-details.njk
  * renders them as a single stacked label-over-value section via
  * layouts/pi-view-only-sections-page.njk, with the parcel ref as the page
- * heading and no form controls.
+ * heading and no form controls. Its supporting information is its baseline
+ * habitat's comment (BMD-1187), shared by an individual tree and a vertical
+ * area habitat, which build on this view model.
  *
  * @param {object} feature the raw feature from the PI feature endpoint
- * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx
+ * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null, baselineComment?: string|null }} ctx
  * @returns {object}
  */
 export function buildAreaViewOnlyViewModel(
   feature,
-  { projectId, projectName, baselineFeatureId }
+  { projectId, projectName, baselineFeatureId, baselineComment }
 ) {
   const proposed = feature.proposed ?? {}
   return {
@@ -39,6 +42,7 @@ export function buildAreaViewOnlyViewModel(
     sizeLabel: 'Size (hectares)',
     sizeDisplay: formatAreaHectaresValue(feature.sizeSquareMetres),
     broadHabitatDisplay: proposed.broadType ?? EMPTY_PLACEHOLDER,
-    habitatTypeDisplay: proposed.type ?? EMPTY_PLACEHOLDER
+    habitatTypeDisplay: proposed.type ?? EMPTY_PLACEHOLDER,
+    ...supportingInformationFields(baselineComment)
   }
 }

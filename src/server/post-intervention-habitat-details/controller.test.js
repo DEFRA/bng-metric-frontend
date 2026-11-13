@@ -153,6 +153,11 @@ describe('#postInterventionHabitatDetailsController', () => {
       'habitat-details/pi-habitat-details',
       expect.objectContaining({ caption: 'Project', viewBaselineHref: null })
     )
+    // The backend sent no baseline comment with this habitat (it has no
+    // retention category), so the section is left off (BMD-1187).
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty(
+      'supportingInformationDisplay'
+    )
   })
 
   test('GET omits the baseline link when the area feature has no ref', async () => {
