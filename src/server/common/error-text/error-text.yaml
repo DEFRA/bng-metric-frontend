@@ -1026,6 +1026,18 @@ upload:
           - '{feature} — {habitatType}'
           - ' ({condition})'
 
+    TREE_NOT_ENHANCEABLE:
+      wording: interim
+      problemsList:
+        heading: >-
+          One or more trees are enhanced, but their baseline tree is in Good
+          condition, and a tree in Good condition cannot be enhanced. Record
+          each as Retained or, if its condition will get worse, as lost and
+          Created in a lower condition 30+ years in advance
+        item:
+          - '{tree}'
+          - ' — {habitatType}'
+
     # ----------------------------------- BNG Service template lineage (BMD-1083)
 
     STAGED_PARENT_LINK_MISSING:
