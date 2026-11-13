@@ -1,11 +1,14 @@
 import {
   LINK_TARGETS,
-  WHEN_ALONE,
+  SHARED_PAGE,
   canFill,
-  catchAllPage,
   dropoutCopy,
-  errorCopy,
+  sharedPage,
+  singleProblemPages,
+  fill,
   firstKnown,
+  firstKnownTemplate,
+  layerName,
   splitLink
 } from './dropout-copy.js'
 
@@ -30,13 +33,54 @@ function describeCount(error, key) {
   return Number.isFinite(value) ? value.toLocaleString('en-GB') : null
 }
 
+// The habitat an error names, by its ref or else its fid, and null when the
+// error names several, so a page about one habitat is not shown for the first
+// of many.
+function describeOnlyRef(error, sample) {
+  const ref = sample?.feature_ref
+  const fid = sample?.fid
+  if (error?.details?.count !== 1 || !(isGiven(ref) || isGiven(fid))) {
+    return null
+  }
+  return firstKnown(dropoutCopy.names.habitat, {
+    ref: isGiven(ref) ? ref : null,
+    fid: isGiven(fid) ? fid : null
+  })
+}
+
+function isGiven(value) {
+  return value != null && value !== ''
+}
+
+// The layer of the one habitat an error names.
+function describeOnlyLayer(error, sample) {
+  return error?.details?.count === 1 ? layerName(sample?.layer) : null
+}
+
+// The layer every habitat an error names is in, when they share one. Null
+// when the sample leaves some out, as those could be in another.
+function describeSharedLayer(error) {
+  const sample = error?.details?.sample ?? []
+  const layers = new Set(sample.map((s) => s?.layer))
+  return sample.length > 0 &&
+    sample.length === error?.details?.count &&
+    layers.size === 1
+    ? layerName(sample[0]?.layer)
+    : null
+}
+
 // The {values} a single error's copy can name.
 function valuesFor(error) {
   const sample = error?.details?.sample?.[0] ?? null
   return {
     ref: describeRef(sample),
+    onlyRef: describeOnlyRef(error, sample),
+    onlyLayer: describeOnlyLayer(error, sample),
+    sharedLayer: describeSharedLayer(error),
     refA: describeRef(sample, '_a'),
     refB: describeRef(sample, '_b'),
+    // How many habitats the error names: for wording for several.
+    count: describeCount(error, 'count'),
     featureCount: describeCount(error, 'featureCount'),
     maxFeatureCount: describeCount(error, 'maxFeatureCount')
   }
@@ -47,13 +91,16 @@ export function pageValueNames() {
   return Object.keys(valuesFor({}))
 }
 
-// whenAlone may give several pages, the first whose title and body the error
-// can fill.
+// singleProblemPage may give several pages, the first whose title,
+// subheading and body the error can fill.
 function choosePage(pages, values) {
   const list = [pages].flat()
   return (
     list.find(
-      (page) => canFill(page.title, values) && canFill(page.body, values)
+      (page) =>
+        canFill(page.title, values) &&
+        canFill(page.subheading ?? '', values) &&
+        canFill(page.body, values)
     ) ?? list.at(-1)
   )
 }
@@ -62,10 +109,17 @@ function choosePage(pages, values) {
 // upload page, to the metric tool, or nowhere.
 function buildPage(page, values) {
   const h1 = firstKnown(page.title, values)
-  const { before, linkText, target, after } = splitLink(
-    firstKnown(page.body, values)
-  )
-  const subheading = page.subheading ? { subheading: page.subheading } : {}
+  // Split at the link before filling in, so a value cannot move the link.
+  const parts = splitLink(firstKnownTemplate(page.body, values))
+  const { target } = parts
+  const [before, linkText, after] = [
+    parts.before,
+    parts.linkText,
+    parts.after
+  ].map((part) => (part === undefined ? undefined : fill(part, values)))
+  const subheading = page.subheading
+    ? { subheading: fill(page.subheading, values) }
+    : {}
 
   if (target === LINK_TARGETS.UPLOAD) {
     return {
@@ -89,19 +143,7 @@ function buildPage(page, values) {
       ...(page.opensInNewTab === false ? { opensInNewTab: false } : {})
     }
   }
-  return { variant: 'text', h1, subheading: page.subheading, helpText: before }
-}
-
-/** The {values} the placeholder copy can name, for a test to check. */
-export const PLACEHOLDER_VALUE_NAMES = Object.freeze(['message'])
-
-function placeholderPage(message) {
-  const values = message ? { message } : {}
-  return {
-    variant: 'placeholder',
-    h1: firstKnown(dropoutCopy.placeholder.title, values),
-    helpText: firstKnown(dropoutCopy.placeholder.body, values)
-  }
+  return { variant: 'text', h1, ...subheading, helpText: before }
 }
 
 /**
@@ -109,20 +151,15 @@ function placeholderPage(message) {
  *
  * @param {{code: string, message?: string, details?: object}} error
  * @param {string|null} uploadHref
- * @param {string} [placeholderMessage] what a placeholder page says of the
- *   error: its heading and bullets as the list shows them
  */
-export function resolveSingleErrorCopy(error, uploadHref, placeholderMessage) {
-  const whenAlone = errorCopy(error?.code)?.whenAlone
-
-  if (whenAlone === WHEN_ALONE.PLACEHOLDER) {
-    return placeholderPage(placeholderMessage)
-  }
-
-  // A code with no copy of its own, or one the page always lists, takes the
-  // catch-all, so an error code we haven't seen yet still degrades to a
-  // sensible message rather than a blank page.
-  const pages = typeof whenAlone === 'object' ? whenAlone : catchAllPage()
+export function resolveSingleErrorCopy(error, uploadHref) {
+  // A code with no copy of its own takes the shared page its
+  // singleProblemPage names, and one we haven't seen yet the file problem, so
+  // it still degrades to a sensible message rather than a blank page. The
+  // page shows the problems list for an error with no page for it, so the
+  // file problem here is only a guard.
+  const pages =
+    singleProblemPages(error) ?? sharedPage(SHARED_PAGE.FILE_PROBLEM)
   const values = valuesFor(error)
   const resolved = buildPage(choosePage(pages, values), values)
 

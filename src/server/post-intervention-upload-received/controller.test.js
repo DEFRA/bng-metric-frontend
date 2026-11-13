@@ -1,9 +1,6 @@
 import { getUploadStatus } from '../common/services/uploader.js'
 import { validatePostIntervention } from '../common/services/baseline.js'
-import {
-  ERROR_FILENAME_TOO_LONG,
-  ERROR_INVALID_FILENAME
-} from '../common/helpers/file-validation-messages.js'
+import { FILE_ERROR_TEXT } from '../common/helpers/file-validation-messages.js'
 
 vi.mock('../common/services/uploader.js')
 vi.mock('../common/services/baseline.js')
@@ -129,7 +126,7 @@ describe('post-intervention-upload-received controller', () => {
 
       expect(request.yar.set).toHaveBeenCalledWith(
         'postInterventionUploadError',
-        'The selected file must be a GeoPackage (.gpkg)'
+        FILE_ERROR_TEXT.notAGeoPackage
       )
       expect(request.yar.set).not.toHaveBeenCalledWith(
         'postInterventionValidationErrors',
@@ -154,7 +151,7 @@ describe('post-intervention-upload-received controller', () => {
 
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      ERROR_INVALID_FILENAME
+      FILE_ERROR_TEXT.invalidName
     )
     expect(request.yar.set).not.toHaveBeenCalledWith(
       'postInterventionValidationErrors',
@@ -178,7 +175,7 @@ describe('post-intervention-upload-received controller', () => {
 
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      ERROR_FILENAME_TOO_LONG
+      FILE_ERROR_TEXT.nameTooLong
     )
     expect(request.yar.set).not.toHaveBeenCalledWith(
       'postInterventionValidationErrors',
@@ -285,7 +282,7 @@ describe('post-intervention-upload-received controller', () => {
     )
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      'The file check timed out. Please try again.'
+      FILE_ERROR_TEXT.timedOut
     )
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-post-intervention-file'
@@ -342,7 +339,7 @@ describe('post-intervention-upload-received controller', () => {
 
     expect(request.yar.set).toHaveBeenCalledWith(
       'postInterventionUploadError',
-      'The service is busy checking other files. Please try again in a few moments.'
+      FILE_ERROR_TEXT.serviceBusy
     )
     expect(h.redirect).toHaveBeenCalledWith(
       '/projects/proj-123/upload-post-intervention-file'

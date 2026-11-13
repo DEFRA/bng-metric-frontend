@@ -1,4 +1,5 @@
 import Boom from '@hapi/boom'
+import { load } from 'cheerio'
 
 import {
   REQUIRED_ELEMENT_IDS_AREA,
@@ -6,6 +7,11 @@ import {
 } from '../../client/javascripts/baseline-habitat-details.js'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
+import {
+  COMMENT_INVALID_CHARACTERS_ERROR,
+  COMMENT_TOO_LONG_ERROR,
+  MAX_COMMENT_LENGTH
+} from '../common/helpers/habitat-comment.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
 import { _resetReferenceCache } from './controller.js'
@@ -1358,7 +1364,7 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
         /<label class="govuk-label govuk-label--s" for="habitatRef">\s*Habitat reference\s*<\/label>/
       )
       expect(result).toMatch(
-        /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="100">/
+        /<input class="govuk-input govuk-input--width-20" id="habitatRef" name="habitatRef" type="text" spellcheck="false" value="12" maxlength="99">/
       )
     })
 
@@ -1417,11 +1423,13 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       )
     })
 
-    test('Sends a reference over 100 characters for the backend to truncate, as on import', async () => {
-      await postRef({ habitatRef: 'x'.repeat(120) })
+    test('Saves a reference of 99 characters, counted as characters once trimmed', async () => {
+      const ref = '\u{1F33F}'.repeat(99)
+      const { statusCode } = await postRef({ habitatRef: ` ${ref} ` })
 
+      expect(statusCode).toBe(302)
       const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
-      expect(JSON.parse(payload).ref).toBe('x'.repeat(120))
+      expect(JSON.parse(payload).ref).toBe(ref)
     })
 
     test('Saves a reference another habitat may use: references need not be unique', async () => {
@@ -1430,6 +1438,65 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(statusCode).toBe(302)
       const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
       expect(JSON.parse(payload).ref).toBe('A2')
+    })
+  })
+
+  describe('on Save of a habitat holding a value saved before BMD-1175', () => {
+    const storedValueRefusal = (fields) => ({
+      isBoom: true,
+      output: { statusCode: 422 },
+      data: {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message: `This habitat holds a value saved before the service checked text lengths and lists (${fields}). Upload the file again, with the value corrected, to update it.`,
+          code: 'STORED_VALUE_NOT_ALLOWED'
+        }
+      }
+    })
+
+    test('Shows the page again with the refusal in the error summary, naming the fields, after a drop-down-only save', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(
+        storedValueRefusal('ref, condition')
+      )
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+      expect(result).toMatch(
+        /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its habitat reference and condition\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+      )
+      // No one field is to blame, so nothing is marked at a field.
+      expect(result).not.toContain('<a href="#habitatRef">')
+      expect(result).not.toContain('govuk-input--error')
+      expect(result).toMatch(/<option value="Poor" selected>/)
+    })
+
+    test('Asks the user to shorten the reference at its field when the reference alone is refused', async () => {
+      const refusal = storedValueRefusal('ref')
+      refusal.data.payload.fields = ['ref']
+      vi.mocked(wreck.put).mockRejectedValue(refusal)
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
+      )
+      expect(result).toContain('govuk-input--error')
+      expect(result).not.toContain('Upload the file again')
+    })
+
+    test('Escapes a field path it does not know, showing it as it is', async () => {
+      vi.mocked(wreck.put).mockRejectedValue(storedValueRefusal('<b>odd</b>'))
+
+      const { statusCode, result } = await postRef({ condition: 'Poor' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain('in its &lt;b&gt;odd&lt;/b&gt;.')
+      expect(result).not.toContain('<b>odd</b>')
     })
   })
 
@@ -1502,7 +1569,7 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
     test.each([
       ['characters that are not UTF-8', 'A\uFFFD1'],
       ['surrounding spaces', '  A1  '],
-      ['more than 100 characters', 'x'.repeat(120)]
+      ['more than 99 characters', 'x'.repeat(120)]
     ])(
       'Saves the dropdowns without checking or sending a reference holding %s that was left as it is',
       async (_label, storedRef) => {
@@ -1549,6 +1616,44 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
 
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    })
+
+    test('Shows an over-long stored reference whole, for the user to shorten', async () => {
+      withStoredRef('x'.repeat(120))
+
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+
+      expect(result).toMatch(
+        new RegExp(
+          `id="habitatRef"[^>]*value="${'x'.repeat(120)}"[^>]*maxlength="99"`
+        )
+      )
+    })
+
+    test('Refuses a changed reference that is still over 99 characters, asking the user to shorten it', async () => {
+      withStoredRef('x'.repeat(120))
+
+      const { statusCode, result } = await postRef({
+        habitatRef: 'y'.repeat(100)
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toContain(
+        '<a href="#habitatRef">Enter a habitat reference of 99 characters or fewer.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference of 99 characters or fewer.'
+      )
+      expect(result).toMatch(
+        new RegExp(
+          `id="habitatRef" name="habitatRef"[^>]*value="${'y'.repeat(100)}"`
+        )
+      )
     })
   })
 
@@ -1610,6 +1715,19 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(result).toMatch(
         /id="habitatRef" name="habitatRef"[^>]*value="B-A1"/
       )
+    })
+
+    test('Answers a habitat type the backend refuses with the error page, not as a refused reference', async () => {
+      const refused = Boom.badData('out of scope')
+      refused.output.payload.code = 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE'
+      vi.mocked(wreck.put).mockRejectedValue(refused)
+
+      const { statusCode, result } = await postRef({ habitatRef: 'B-A1' })
+
+      expect(statusCode).toBe(422)
+      expect(result).toContain('Bad Request')
+      expect(result).not.toContain('invalid habitat reference')
+      expect(result).not.toContain('govuk-error-summary')
     })
 
     test('Answers a 400 for a save that sent no reference with the error page', async () => {
@@ -1778,6 +1896,168 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(statusCode).toBe(statusCodes.forbidden)
     })
   })
+
+  describe('supporting information (BMD-1112)', () => {
+    const overLimit = 'a'.repeat(MAX_COMMENT_LENGTH + 1)
+
+    test('Shows an empty supporting information box when none is stored', async () => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toMatch(
+        /<label class="govuk-label govuk-label--m" for="comment">\s*Supporting information\s*<\/label>/
+      )
+      expect(result).toContain(
+        'Add information to help the Local Planning Authority understand the baseline metric.'
+      )
+      expect(result).toMatch(
+        /<textarea class="govuk-textarea govuk-!-margin-top-6" id="comment" name="comment" rows="5"[^>]*><\/textarea>/
+      )
+    })
+
+    test('Fills the box from the saved comment, keeping line breaks', async () => {
+      vi.mocked(wreck.get).mockImplementation((requestUrl) => {
+        if (requestUrl.endsWith(`/features/${habitatId}`)) {
+          return Promise.resolve({
+            res: { statusCode: 200 },
+            payload: {
+              type: 'habitat',
+              feature: { ...mockHabitat, comment: 'A note\nwith a break' }
+            }
+          })
+        }
+        return Promise.resolve(routeWreck(requestUrl))
+      })
+      const { result } = await server.inject({
+        method: 'GET',
+        url,
+        auth: authedAuth
+      })
+      expect(result).toContain('>A note\nwith a break</textarea>')
+    })
+
+    test('Saves a trimmed comment and sends null for a whitespace-only one', async () => {
+      const saved = await postRef({ comment: '  kept  note  ' })
+      expect(saved.statusCode).toBe(302)
+      const [, savedOptions] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(savedOptions.payload).comment).toBe('kept  note')
+
+      const cleared = await postRef({ comment: ' \n\t ' })
+      expect(cleared.statusCode).toBe(302)
+      const [, clearedOptions] = vi.mocked(wreck.put).mock.calls[1]
+      expect(JSON.parse(clearedOptions.payload).comment).toBeNull()
+    })
+
+    test('Re-renders a comment of 1000 characters without saving, keeping what was typed', async () => {
+      const { statusCode, result } = await postRef({
+        comment: overLimit,
+        habitatType: 'Bracken'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
+      expect(result).toContain(
+        `<a href="#comment">${COMMENT_TOO_LONG_ERROR.summary}</a>`
+      )
+      expect(result).toContain(COMMENT_TOO_LONG_ERROR.inline)
+      expect(result).toContain(`>${overLimit}</textarea>`)
+      expect(result).toMatch(/<option value="Bracken" selected>/)
+    })
+
+    test('Shows a bad reference and a bad comment as two summary entries, reference first', async () => {
+      const { statusCode, result } = await postRef({
+        habitatRef: ' ',
+        comment: `\uFFFD${overLimit}`
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      const referenceAt = result.indexOf('href="#habitatRef"')
+      const commentAt = result.indexOf('href="#comment"')
+      expect(referenceAt).toBeGreaterThan(-1)
+      expect(commentAt).toBeGreaterThan(referenceAt)
+      expect(result).toContain(COMMENT_INVALID_CHARACTERS_ERROR.summary)
+      expect(result).toContain(COMMENT_TOO_LONG_ERROR.summary)
+      expect(result).toContain(
+        `<span class="govuk-visually-hidden">Error:</span> ${COMMENT_INVALID_CHARACTERS_ERROR.inline}<br>${COMMENT_TOO_LONG_ERROR.inline}`
+      )
+    })
+
+    // The only route-level test of this rule elsewhere pairs it with a comment
+    // that is also too long, so this pins what one failed rule alone looks
+    // like: one summary entry, one inline message, and no length error.
+    test('Refuses a comment holding an invalid character, with one summary entry', async () => {
+      const { statusCode, result } = await postRef({ comment: 'note \uFFFD' })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+      expect(result).toContain(
+        `<a href="#comment">${COMMENT_INVALID_CHARACTERS_ERROR.summary}</a>`
+      )
+      expect(result).toContain(
+        `<span class="govuk-visually-hidden">Error:</span> ${COMMENT_INVALID_CHARACTERS_ERROR.inline}`
+      )
+      expect(result).not.toContain(COMMENT_TOO_LONG_ERROR.summary)
+      expect(result).not.toContain(COMMENT_TOO_LONG_ERROR.inline)
+      expect(result).not.toContain('href="#habitatRef"')
+      expect(result).toContain('>note \uFFFD</textarea>')
+    })
+
+    // AC4: the save overwrites whatever the habitat already held, whether that
+    // came from the upload or an earlier save, and a box left blank removes it.
+    test('Overwrites a previously saved comment, and removes it when left blank', async () => {
+      vi.mocked(wreck.get).mockImplementation((requestUrl) => {
+        if (requestUrl.endsWith(`/features/${habitatId}`)) {
+          return Promise.resolve({
+            res: { statusCode: 200 },
+            payload: {
+              type: 'habitat',
+              feature: { ...mockHabitat, comment: 'The imported note' }
+            }
+          })
+        }
+        return Promise.resolve(routeWreck(requestUrl))
+      })
+
+      const replaced = await postRef({ comment: 'A replacement note' })
+      expect(replaced.statusCode).toBe(302)
+      const [, replacedOptions] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(replacedOptions.payload).comment).toBe(
+        'A replacement note'
+      )
+      expect(replacedOptions.payload).not.toContain('The imported note')
+
+      const removed = await postRef({ comment: '   ' })
+      expect(removed.statusCode).toBe(302)
+      const [, removedOptions] = vi.mocked(wreck.put).mock.calls[1]
+      expect(JSON.parse(removedOptions.payload).comment).toBeNull()
+    })
+
+    // A browser newline-normalises a textarea's value to CRLF on submission,
+    // so a saved comment's line break must not grow a character each time.
+    test('Saves a submitted CRLF line break as LF', async () => {
+      const saved = await postRef({ comment: 'one\r\ntwo\r\n\r\nthree' })
+
+      expect(saved.statusCode).toBe(302)
+      const [, options] = vi.mocked(wreck.put).mock.calls[0]
+      expect(JSON.parse(options.payload).comment).toBe('one\ntwo\n\nthree')
+    })
+
+    test('Saves a comment of 999 characters whose line break was sent as CRLF', async () => {
+      const saved = await postRef({
+        comment: `${'a'.repeat(MAX_COMMENT_LENGTH - 2)}\r\na`
+      })
+
+      expect(saved.statusCode).toBe(302)
+      const [, options] = vi.mocked(wreck.put).mock.calls[0]
+      expect(Array.from(JSON.parse(options.payload).comment)).toHaveLength(
+        MAX_COMMENT_LENGTH
+      )
+    })
+  })
 })
 
 describe('#baselineHabitatDetails - refused reference on hedgerow and watercourse pages (BMD-1061)', () => {
@@ -1795,7 +2075,8 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     distinctivenessScore: 2,
     condition: 'Good',
     sizeMetres: 1000,
-    units: 4
+    units: 4,
+    comment: 'Hedge note'
   }
   const mockWatercourse = {
     featureId: watercourseId,
@@ -1807,7 +2088,8 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     watercourseEncroachment: 'No Encroachment',
     riparianEncroachment: 'No Encroachment',
     sizeMetres: 500,
-    units: 2
+    units: 2,
+    comment: 'River note'
   }
   const payloads = [
     [
@@ -1968,5 +2250,427 @@ describe('#baselineHabitatDetails - refused reference on hedgerow and watercours
     })
 
     expect(result).toContain('<span id="distinctivenessDisplay"></span>')
+  })
+
+  test('Shows the saved comment on a hedgerow and a watercourse', async () => {
+    const hedgerow = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${hedgerowId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+    const watercourse = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${watercourseId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(hedgerow.result).toContain('>Hedge note</textarea>')
+    expect(watercourse.result).toContain('>River note</textarea>')
+  })
+
+  test('Saves a trimmed hedgerow comment', async () => {
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'hedgerow', feature: mockHedgerow }
+    })
+    const { statusCode, headers } = await post(hedgerowId, {
+      habitatType: 'Native hedgerow',
+      condition: 'Good',
+      comment: '  hedge note  '
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(`/projects/${projectId}/hedgerows-baseline`)
+    const [, options] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(options.payload).comment).toBe('hedge note')
+  })
+
+  test('Shows a watercourse comment error beside a bad reference and keeps the typed text', async () => {
+    const typed = 'w'.repeat(MAX_COMMENT_LENGTH + 1)
+    const { statusCode, result } = await post(watercourseId, {
+      habitatRef: ' ',
+      habitatType: 'Canals',
+      condition: 'Poor',
+      watercourseEncroachment: 'Major',
+      riparianEncroachment: 'Minor/Minor',
+      comment: typed
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    expect(result.indexOf('href="#habitatRef"')).toBeGreaterThan(-1)
+    expect(result.indexOf('href="#habitatRef"')).toBeLessThan(
+      result.indexOf('href="#comment"')
+    )
+    expect(result).toContain(`>${typed}</textarea>`)
+    expect(result).toMatch(/<option value="Canals" selected>/)
+  })
+})
+
+describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
+  const treeId = 'aa0e8400-e29b-41d4-a716-446655440003'
+  const treeUrl = `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`
+  const mockTree = {
+    featureId: treeId,
+    ref: 'T1',
+    type: 'Urban tree',
+    broadType: 'Individual trees',
+    treeSize: 'Medium',
+    count: 2,
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    sizeSquareMetres: 326,
+    units: 0.3912
+  }
+  const typesWithTrees = {
+    ...mockHabitatTypesByBroad,
+    'Individual trees': [
+      {
+        name: 'Rural tree',
+        distinctiveness: 'Medium',
+        distinctivenessScore: 4
+      },
+      { name: 'Urban tree', distinctiveness: 'Medium', distinctivenessScore: 4 }
+    ]
+  }
+
+  let server
+  let crumb
+
+  function serveTree(tree) {
+    vi.mocked(wreck.get).mockImplementation((u) => {
+      if (u.endsWith(`/projects/${projectId}/features/${treeId}`)) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: { type: 'tree', feature: tree }
+        })
+      }
+      if (u.endsWith('/reference/habitat-types-by-broad')) {
+        return Promise.resolve({
+          res: { statusCode: 200 },
+          payload: typesWithTrees
+        })
+      }
+      return Promise.resolve(routeWreck(u))
+    })
+  }
+
+  async function renderTree(tree = mockTree) {
+    serveTree(tree)
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: treeUrl,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    return load(result)
+  }
+
+  const optionValues = ($, name) =>
+    $(`select[name="${name}"] option`)
+      .map((_, option) => $(option).attr('value'))
+      .get()
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    _resetReferenceCache()
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('shows the broad habitat as Individual trees, not as a choice, and sends it with the form', async () => {
+    const $ = await renderTree()
+
+    expect($('select[name="broadHabitat"]')).toHaveLength(0)
+    expect($('#broadHabitat').attr('type')).toBe('hidden')
+    expect($('#broadHabitat').attr('name')).toBe('broadHabitat')
+    expect($('#broadHabitat').val()).toBe('Individual trees')
+    const broadField = $('.app-stacked-fields__item').filter(
+      (_, el) => $(el).children('h3').text().trim() === 'Broad habitat'
+    )
+    expect(broadField.children('p').text().trim()).toBe('Individual trees')
+  })
+
+  test('offers only Urban tree and Rural tree as the habitat type, with the saved one selected', async () => {
+    const $ = await renderTree()
+
+    expect(optionValues($, 'habitatType')).toEqual(['Rural tree', 'Urban tree'])
+    expect($('select[name="habitatType"] option[selected]').val()).toBe(
+      'Urban tree'
+    )
+  })
+
+  // The backend accepts a save that keeps a stored type as it is, so a value
+  // the reference data does not hold stays selected and is sent back
+  // unchanged, with no blank choice to clear it.
+  test('keeps a stored tree type the reference data does not hold, with no blank choice', async () => {
+    const $ = await renderTree({ ...mockTree, type: 'urban tree' })
+
+    expect(optionValues($, 'habitatType')).toEqual([
+      'Rural tree',
+      'Urban tree',
+      'urban tree'
+    ])
+    expect($('select[name="habitatType"] option[selected]').val()).toBe(
+      'urban tree'
+    )
+  })
+
+  test('offers a blank habitat type to a tree imported without one', async () => {
+    const $ = await renderTree({
+      ...mockTree,
+      type: null,
+      units: null,
+      status: 'Incomplete'
+    })
+
+    expect(optionValues($, 'habitatType')).toEqual([
+      '',
+      'Rural tree',
+      'Urban tree'
+    ])
+    expect($('select[name="habitatType"] option[selected]').val()).toBe('')
+  })
+
+  test('saves a change from Urban tree to Rural tree as an Individual trees habitat type', async () => {
+    serveTree(mockTree)
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'tree', feature: { ...mockTree, type: 'Rural tree' } }
+    })
+
+    const { statusCode, headers } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: treeId,
+        broadHabitat: 'Individual trees',
+        habitatType: 'Rural tree',
+        condition: 'Good',
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
+    const [putUrl, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+    expect(putUrl).toContain(`/projects/${projectId}/features/${treeId}`)
+    expect(JSON.parse(payload)).toEqual({
+      broadType: 'Individual trees',
+      habitatType: 'Rural tree',
+      condition: 'Good'
+    })
+  })
+})
+
+// An individual tree is an area habitat on this page, and takes supporting
+// information like one (BMD-1112). Covered separately from the area habitat
+// tests above because a tree reaches the box through treeStrategy, and
+// because its size class and number of trees must survive a save untouched.
+describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)', () => {
+  let server
+  let crumb
+
+  const treeId = 'aa0e8400-e29b-41d4-a716-4466554400aa'
+  const mockTree = {
+    featureId: treeId,
+    ref: 'T1',
+    type: 'Urban tree',
+    broadType: 'Individual trees',
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    condition: 'Good',
+    treeSize: 'Small',
+    count: 3,
+    sizeSquareMetres: 100,
+    units: 1,
+    comment: 'Imported tree note'
+  }
+
+  function routeTreeWreck(suffix) {
+    if (suffix.endsWith(`/projects/${projectId}/features/${treeId}`)) {
+      return {
+        res: { statusCode: 200 },
+        payload: { type: 'tree', feature: mockTree }
+      }
+    }
+    if (suffix.endsWith('/reference/habitat-types-by-broad')) {
+      return {
+        res: { statusCode: 200 },
+        payload: {
+          'Individual trees': [
+            {
+              name: 'Urban tree',
+              distinctiveness: 'Medium',
+              distinctivenessScore: 4
+            }
+          ]
+        }
+      }
+    }
+    return routeWreck(suffix)
+  }
+
+  beforeAll(async () => {
+    server = await createServer()
+    await server.initialize()
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 0 })
+  })
+
+  beforeEach(async () => {
+    _resetReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(routeTreeWreck(u))
+    )
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'tree', feature: mockTree }
+    })
+    crumb = await primeCrumb(server)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test("Shows the box filled from the tree's stored comment", async () => {
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toMatch(
+      /<label class="govuk-label govuk-label--m" for="comment">\s*Supporting information\s*<\/label>/
+    )
+    expect(result).toContain('>Imported tree note</textarea>')
+    // The rest of the tree's page is unchanged by this story.
+    expect(result).toContain('Number of trees')
+  })
+
+  const postTree = (payload) =>
+    server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: treeId,
+        broadHabitat: 'Individual trees',
+        habitatType: 'Urban tree',
+        condition: 'Good',
+        crumb: crumb.token,
+        ...payload
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+  test('Saves a trimmed comment on a tree, overwriting the imported one', async () => {
+    const { statusCode } = await postTree({ comment: '  A tree  note  ' })
+
+    expect(statusCode).toBe(302)
+    const [, options] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(options.payload).comment).toBe('A tree  note')
+  })
+
+  test('Sends null for a tree comment cleared to whitespace', async () => {
+    const { statusCode } = await postTree({ comment: ' \n\t ' })
+
+    expect(statusCode).toBe(302)
+    const [, options] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(options.payload).comment).toBeNull()
+  })
+
+  // The rules are the comment's own, not the page's, so a tree is refused the
+  // same way an area habitat is.
+  test('Refuses a tree comment of 1000 characters, keeping what was typed', async () => {
+    const overLimit = 'a'.repeat(MAX_COMMENT_LENGTH + 1)
+    const { statusCode, result } = await postTree({ comment: overLimit })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(vi.mocked(wreck.put)).not.toHaveBeenCalled()
+    expect(result).toContain(
+      `<a href="#comment">${COMMENT_TOO_LONG_ERROR.summary}</a>`
+    )
+    expect(result).toContain(`>${overLimit}</textarea>`)
+  })
+
+  // A tree pins its broad habitat and habitat type: the backend refuses a save
+  // that changes either with FEATURE_NOT_EDITABLE (400). That 400 is the one a
+  // refused reference gets, so without the code the page blamed the reference
+  // when one was submitted, and threw the user onto an error page when one was
+  // not, losing the comment they had typed.
+  // The dropdowns no longer offer a change that would stop a tree being a
+  // tree (BMD-1172), so this is what a stale page or a crafted post meets:
+  // the backend refuses with FEATURE_NOT_EDITABLE, which shares the 400 a
+  // refused reference gets. Told apart by its code, it must not be pinned to
+  // the reference, and must not cost the user the comment they typed.
+  describe('when the backend refuses the edit as one this habitat cannot take', () => {
+    const notEditable = {
+      isBoom: true,
+      output: { statusCode: statusCodes.badRequest },
+      data: {
+        res: { statusCode: statusCodes.badRequest },
+        payload: { code: 'FEATURE_NOT_EDITABLE' }
+      }
+    }
+    const refusedWording =
+      'This habitat cannot be changed in that way, so nothing has been saved.'
+
+    beforeEach(() => {
+      vi.mocked(wreck.put).mockRejectedValue(notEditable)
+    })
+
+    test('Shows it in the error summary only, keeping the comment, with a changed reference', async () => {
+      const { statusCode, result } = await postTree({
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        habitatRef: 'T-9',
+        comment: 'Worth keeping'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain('govuk-error-summary')
+      expect(result).toContain(refusedWording)
+      // The reference is valid: the refusal must not be pinned to it.
+      expect(result).not.toContain('#habitatRef')
+      expect(result).not.toContain('invalid habitat reference')
+      // Nothing the user typed is lost.
+      expect(result).toContain('>Worth keeping</textarea>')
+      expect(result).toMatch(
+        /id="habitatRef" name="habitatRef"[^>]*value="T-9"/
+      )
+    })
+
+    test('Keeps the comment when the reference was not changed, instead of an error page', async () => {
+      const { statusCode, result } = await postTree({
+        broadHabitat: 'Grassland',
+        habitatType: 'Modified grassland',
+        comment: 'Worth keeping'
+      })
+
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toContain(refusedWording)
+      expect(result).toContain('>Worth keeping</textarea>')
+    })
   })
 })

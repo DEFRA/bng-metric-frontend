@@ -5,6 +5,7 @@ import { config } from '../../config/config.js'
 import { statusCodes } from '../common/constants.js'
 import { backendRequest } from '../common/helpers/auth/backend-request.js'
 import { projectNameSchema } from '../common/helpers/project-name.js'
+import { joiErrorText } from '../common/error-text/joi-error-text.js'
 
 const backendUrl = config.get('backend').url
 
@@ -60,7 +61,7 @@ export const changeProjectNamePostController = {
         const { id } = request.params
         const projectName = request.payload?.projectName
         const errors = err.details.map((d) => ({
-          text: d.message,
+          text: joiErrorText(d),
           href: '#project-name'
         }))
         return h

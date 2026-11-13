@@ -21,6 +21,8 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 }))
 
 const { getController, postController } = await import('./controller.js')
+const { _resetCreatedAreaReferenceCache } =
+  await import('./created-area-edit.js')
 
 describe('#postInterventionHabitatDetailsController', () => {
   afterEach(() => {
@@ -89,7 +91,7 @@ describe('#postInterventionHabitatDetailsController', () => {
           id: 'habitatRef',
           value: 'P-1',
           error: undefined,
-          maxLength: 100
+          maxLength: 99
         },
         refForm: {
           action: '/post-intervention-habitat-details',
@@ -241,61 +243,250 @@ describe('#postInterventionHabitatDetailsController', () => {
     }
   )
 
-  test.each([
-    ['Retained', 'habitat-details/pi-habitat-details'],
-    ['Enhanced', 'habitat-details/pi-habitat-details-enhanced'],
-    ['Created', 'habitat-details/pi-habitat-details-enhanced']
-  ])(
-    'GET renders a %s individual tree read-only in the area layout, with its size class and number of trees',
-    async (retentionCategory, template) => {
-      vi.mocked(wreck.get).mockImplementation((url) => {
-        if (url.includes(`/post-intervention/features/${featureId}`)) {
-          return Promise.resolve({
-            payload: {
-              type: 'tree',
-              feature: {
-                featureId,
-                ref: 'T-1',
-                retentionCategory,
-                sizeSquareMetres: 326,
-                count: 2,
-                units: 0.13,
-                proposed: {
-                  treeSize: 'Medium',
-                  type: 'Urban tree',
-                  broadType: 'Individual trees',
-                  condition: 'Moderate'
-                }
+  // A Medium urban tree point standing for 2 trees.
+  function mockTree(retentionCategory, treeCreation) {
+    _resetCreatedAreaReferenceCache()
+    vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes(`/post-intervention/features/${featureId}`)) {
+        return Promise.resolve({
+          payload: {
+            type: 'tree',
+            feature: {
+              featureId,
+              ref: 'T-1',
+              retentionCategory,
+              sizeSquareMetres: 326,
+              count: 2,
+              units: 0.13,
+              proposed: {
+                treeSize: 'Medium',
+                type: 'Urban tree',
+                broadType: 'Individual trees',
+                condition: 'Moderate',
+                strategicSignificance: 'Low',
+                advanceYears: 0,
+                delayYears: 0
               }
             }
-          })
-        }
-        if (isProjectUrl(url)) {
-          return Promise.resolve(projectPayload)
-        }
-        throw new Error(`Unexpected URL ${url}`)
+          }
+        })
+      }
+      if (url.endsWith('/reference/tree-creation') && treeCreation) {
+        return treeCreation()
+      }
+      if (isProjectUrl(url)) {
+        return Promise.resolve(projectPayload)
+      }
+      throw new Error(`Unexpected URL ${url}`)
+    })
+  }
+
+  const treeCreationReference = () =>
+    Promise.resolve({
+      res: { statusCode: 200 },
+      payload: {
+        habitatTypes: ['Rural tree', 'Urban tree'].map((name) => ({
+          name,
+          broad: 'Individual trees',
+          distinctiveness: 'Medium',
+          distinctivenessScore: 4,
+          difficulty: 'Low',
+          difficultyMultiplier: 1,
+          conditions: [
+            { condition: 'Moderate', score: 2, years: 27 },
+            { condition: 'Poor', score: 1, years: 10 }
+          ]
+        })),
+        strategicSignificance: [
+          { value: 'High', score: 1.15 },
+          { value: 'Low', score: 1 }
+        ],
+        timeMultipliers: { 0: 1, 10: 0.7, 27: 0.382 }
+      }
+    })
+
+  const treeRows = {
+    caption: 'Test Project',
+    interventionDisplay: expect.any(String),
+    treeSizeDisplay: 'Medium',
+    treeCountDisplay: '2',
+    showTreeRows: true,
+    backHref: `/projects/${projectId}/area-post-intervention`
+  }
+
+  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and number of trees', async () => {
+    mockTree('Enhanced')
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details-enhanced',
+      expect.objectContaining({
+        ...treeRows,
+        heading: 'T-1',
+        broadHabitatDisplay: 'Individual trees',
+        habitatTypeDisplay: 'Urban tree'
       })
+    )
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
+  })
+
+  test('GET renders a Retained individual tree with its reference form, in the area layout', async () => {
+    mockTree('Retained', treeCreationReference)
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details',
+      expect.objectContaining({
+        ...treeRows,
+        heading: 'Habitat T-1',
+        habitatTypeDisplay: 'Urban tree',
+        refForm: expect.objectContaining({ featureId })
+      })
+    )
+  })
+
+  test('GET renders a Retained individual tree read-only while the backend cannot rename trees', async () => {
+    mockTree('Retained', () =>
+      Promise.reject(
+        Object.assign(new Error('Not Found'), {
+          output: { statusCode: 404 }
+        })
+      )
+    )
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details',
+      expect.objectContaining({ ...treeRows, habitatTypeDisplay: 'Urban tree' })
+    )
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
+  })
+
+  test.each([
+    [
+      'answers 500',
+      () =>
+        Promise.reject(
+          Object.assign(new Error('Internal Server Error'), {
+            output: { statusCode: 500 }
+          })
+        )
+    ],
+    [
+      'sends a reference of the wrong shape',
+      () => Promise.resolve({ res: { statusCode: 200 }, payload: {} })
+    ]
+  ])(
+    'GET renders a Retained individual tree read-only, and logs it, when the tree reference %s',
+    async (_label, treeCreation) => {
+      mockTree('Retained', treeCreation)
+      const logger = { warn: vi.fn() }
 
       const h = createMockH()
-      await getController.handler({ query: { projectId, featureId } }, h)
+      await getController.handler(
+        { query: { projectId, featureId }, logger },
+        h
+      )
 
       expect(h.view).toHaveBeenCalledWith(
-        template,
+        'habitat-details/pi-habitat-details',
         expect.objectContaining({
-          caption: 'Test Project',
-          heading: 'T-1',
-          interventionDisplay: retentionCategory,
-          broadHabitatDisplay: 'Individual trees',
-          habitatTypeDisplay: 'Urban tree',
-          treeSizeDisplay: 'Medium',
-          treeCountDisplay: '2',
-          showTreeRows: true,
-          backHref: `/projects/${projectId}/area-post-intervention`
+          ...treeRows,
+          habitatTypeDisplay: 'Urban tree'
         })
       )
       expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Retained tree shown read-only')
+      )
     }
   )
+
+  test('POST fails, rather than guessing, when the tree reference answers 500', async () => {
+    mockTree('Retained', () =>
+      Promise.reject(
+        Object.assign(new Error('Internal Server Error'), {
+          output: { statusCode: 500 }
+        })
+      )
+    )
+
+    await expect(
+      postController.handler(
+        { payload: { projectId, featureId, habitatRef: 'T-2' } },
+        createMockH()
+      )
+    ).rejects.toThrow('Internal Server Error')
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
+  test('POST refuses to rename a Retained tree while the backend cannot rename trees', async () => {
+    mockTree('Retained', () =>
+      Promise.reject(
+        Object.assign(new Error('Not Found'), {
+          output: { statusCode: 404 }
+        })
+      )
+    )
+
+    await expect(
+      postController.handler(
+        { payload: { projectId, featureId, habitatRef: 'T-2' } },
+        createMockH()
+      )
+    ).rejects.toMatchObject({ output: { statusCode: 501 } })
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+
+  test('GET renders a Created individual tree on the edit page, its broad habitat fixed and offered only Urban tree or Rural tree', async () => {
+    mockTree('Created', treeCreationReference)
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details-created-edit',
+      expect.objectContaining({
+        ...treeRows,
+        fixedBroadHabitat: 'Individual trees',
+        values: expect.objectContaining({ habitatType: 'Urban tree' })
+      })
+    )
+    const { fields } = h.view.mock.calls[0][1]
+    expect(fields).not.toHaveProperty('broadHabitat')
+    expect(fields.habitatType.items.map((item) => item.value)).toEqual([
+      'Rural tree',
+      'Urban tree'
+    ])
+  })
+
+  test('GET renders a Created individual tree read-only while the backend serves no tree reference', async () => {
+    mockTree('Created', () =>
+      Promise.reject(
+        Object.assign(new Error('Not Found'), {
+          output: { statusCode: 404 }
+        })
+      )
+    )
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'habitat-details/pi-habitat-details-enhanced',
+      expect.objectContaining({
+        ...treeRows,
+        broadHabitatDisplay: 'Individual trees',
+        habitatTypeDisplay: 'Urban tree'
+      })
+    )
+  })
 
   test('GET sends an unsupported feature back to the return URL it was linked from', async () => {
     vi.mocked(wreck.get).mockImplementation((url) => {
@@ -659,7 +850,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-feature-unsupported',
       expect.objectContaining({
-        message: expect.stringContaining('not yet supported')
+        body: [{ before: expect.stringContaining('not yet supported') }]
       })
     )
   })

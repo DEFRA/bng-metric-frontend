@@ -1,6 +1,7 @@
 import Boom from '@hapi/boom'
 
 import { backendSaveError, backendStatusOf } from './backend-save-error.js'
+import { rateLimitedError } from './rate-limited.js'
 
 const featureId = 'aa0e8400-e29b-41d4-a716-446655440001'
 
@@ -26,10 +27,17 @@ describe('backendSaveError', () => {
     expect(backendSaveError(expired, featureId)).toBe(expired)
   })
 
+  test('passes a refusal by a rate limit through untouched', () => {
+    const refused = rateLimitedError({ 'retry-after': '10' })
+
+    expect(backendSaveError(refused, featureId)).toBe(refused)
+  })
+
   test.each([
     [Boom.conflict('locked'), 409, 'Another user is editing this project'],
     [Boom.notFound('gone'), 404, `Feature ${featureId} not found`],
     [Boom.badRequest('no'), 400, 'The habitat could not be saved'],
+    [Boom.badData('out of scope'), 422, 'The habitat could not be saved'],
     [Boom.internal('down'), 502, 'Failed to save habitat'],
     [new Error('socket hang up'), 502, 'Failed to save habitat']
   ])('maps %s to %i', (err, statusCode, message) => {

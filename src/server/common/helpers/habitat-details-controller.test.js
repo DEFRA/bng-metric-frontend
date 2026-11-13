@@ -316,6 +316,30 @@ describe('shared habitat save errors', () => {
     })
   })
 
+  it('throws a stored value refusal as it is, for the form to show', async () => {
+    const error = {
+      data: {
+        res: { statusCode: 422 },
+        payload: { code: 'STORED_VALUE_NOT_ALLOWED' }
+      }
+    }
+    vi.mocked(backendRequest).mockRejectedValue(error)
+    await expect(saveHabitat({}, 'projects/test', {})).rejects.toBe(error)
+  })
+
+  // backendSaveError would rebuild it as a plain 400 and drop the code, which
+  // is all that tells it from a refused reference.
+  it('throws a not-editable refusal as it is, for the form to show', async () => {
+    const error = {
+      data: {
+        res: { statusCode: 400 },
+        payload: { code: 'FEATURE_NOT_EDITABLE' }
+      }
+    }
+    vi.mocked(backendRequest).mockRejectedValue(error)
+    await expect(saveHabitat({}, 'projects/test', {})).rejects.toBe(error)
+  })
+
   it.each([
     [409, 409],
     [400, 400],

@@ -37,13 +37,19 @@ const LAYERS = [
 // read-only.
 const EDITABLE_CREATED_LAYERS = new Set([
   'habitats',
+  'trees',
   'hedgerows',
   'watercourses'
 ])
 
 // The layers whose Retained features can have their reference changed; a
 // Retained vertical area habitat renders read-only.
-const RETAINED_REF_LAYERS = new Set(['habitats', 'hedgerows', 'watercourses'])
+const RETAINED_REF_LAYERS = new Set([
+  'habitats',
+  'trees',
+  'hedgerows',
+  'watercourses'
+])
 
 const TIME_TO_TARGET_HEADING = 'Time to target / difficulty'
 const VIEW_BASELINE_LINK = 'View baseline details'
@@ -85,6 +91,15 @@ function fieldNames($) {
   return $('form [name]')
     .map((_, field) => $(field).attr('name'))
     .get()
+}
+
+// The fields a user edits: not the form's hidden inputs or its CSRF token.
+function editableFieldNames($) {
+  return $('form [name]')
+    .filter((_, field) => $(field).attr('type') !== 'hidden')
+    .map((_, field) => $(field).attr('name'))
+    .get()
+    .sort()
 }
 
 function headings($) {
@@ -336,9 +351,25 @@ describe('details pages of a BNG Service template project', () => {
       )
     })
 
-    test.each(['Retained', 'Enhanced', 'Created'])(
+    // A Retained tree takes the reference form, a Created one the edit form,
+    // and an Enhanced one is read-only.
+    test.each([
+      ['Retained', ['habitatRef']],
+      ['Enhanced', []],
+      [
+        'Created',
+        [
+          'ref',
+          'habitatType',
+          'strategicSignificance',
+          'condition',
+          'advanceYears',
+          'delayYears'
+        ]
+      ]
+    ])(
       'a %s individual tree renders in the area layout, sized in hectares',
-      async (retentionCategory) => {
+      async (retentionCategory, editableFields) => {
         const body = serviceTemplateProject('twoStages')
         const tree = body.project.postIntervention.trees.find(
           (f) => f.retentionCategory === retentionCategory
@@ -354,8 +385,11 @@ describe('details pages of a BNG Service template project', () => {
         expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
         expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
         expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
-        expect(fieldValue($, 'Habitat type')).toBe(tree.proposed.type)
-        expect(fieldNames($)).toEqual([])
+        expect(
+          fieldValue($, 'Habitat type') ??
+            $('[name="habitatType"] option[selected]').attr('value')
+        ).toBe(tree.proposed.type)
+        expect(editableFieldNames($)).toEqual([...editableFields].sort())
         expect(viewBaselineHref($)).toBe(
           tree.parentFeatureId
             ? baselineDetailsUrl(body, tree.parentFeatureId)

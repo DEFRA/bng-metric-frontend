@@ -2,11 +2,8 @@ import { randomInt } from 'node:crypto'
 
 import { getUploadStatus } from '../services/uploader.js'
 import { createLogger } from './logging/logger.js'
-import { formErrorText } from '../error-text/error-text.js'
-import {
-  ERROR_FILENAME_TOO_LONG,
-  ERROR_INVALID_FILENAME
-} from './file-validation-messages.js'
+import { FILE_CHECK_CODES } from '../../../shared/file-checks.js'
+import { FILE_ERROR_TEXT } from './file-validation-messages.js'
 import { storeValidationErrors } from './store-validation-errors.js'
 
 const logger = createLogger()
@@ -34,15 +31,16 @@ const GPKG_FORMAT_ERROR_CODES = new Set([
   'GPKG_INVALID_FILE',
   'GPKG_NOT_A_GEOPACKAGE'
 ])
-// The upload page shows these messages in its error summary and against the
-// file input alike, so only the inline text is needed.
-const fileMessage = (rule) => formErrorText('file', rule).inline
+// The forms.file rule of error-text.yaml each problem is worded by. The session
+// carries its words to the upload page for now: an instance from before the
+// upload page could word a rule would show the rule's name during a rolling
+// deploy. Once every instance reads rules (uploadErrorText), it can carry the
+// rule instead.
+const GPKG_FORMAT_ERROR_RULE = 'notAGeoPackage'
 
-const GPKG_FORMAT_ERROR_MESSAGE = fileMessage('notAGeoPackage')
-
-const FILENAME_ERROR_MESSAGES = Object.freeze({
-  INVALID_FILENAME: ERROR_INVALID_FILENAME,
-  FILENAME_TOO_LONG: ERROR_FILENAME_TOO_LONG
+const FILENAME_ERROR_RULES = Object.freeze({
+  [FILE_CHECK_CODES.INVALID_FILENAME]: 'invalidName',
+  [FILE_CHECK_CODES.FILENAME_TOO_LONG]: 'nameTooLong'
 })
 
 /**
@@ -51,8 +49,12 @@ const FILENAME_ERROR_MESSAGES = Object.freeze({
  * nothing for the user to change, so the message must not send them off to
  * re-draw perfectly good polygons.
  */
-const SERVICE_BUSY_MESSAGE = fileMessage('serviceBusy')
-const TIMED_OUT_MESSAGE = fileMessage('timedOut')
+const SERVICE_BUSY_RULE = 'serviceBusy'
+const TIMED_OUT_RULE = 'timedOut'
+
+function setUploadError(request, uploadType, rule) {
+  request.yar.set(uploadType.uploadErrorSessionKey, FILE_ERROR_TEXT[rule])
+}
 
 /**
  * A refresh interval that will not put every waiting browser in lockstep.
@@ -137,20 +139,18 @@ async function handleReadyUpload(
     const isFormatError = errors.some((e) =>
       GPKG_FORMAT_ERROR_CODES.has(e?.code)
     )
-    const filenameError = errors.find((e) => FILENAME_ERROR_MESSAGES[e?.code])
+    const filenameError = errors.find((e) => FILENAME_ERROR_RULES[e?.code])
 
     if (isFormatError) {
-      request.yar.set(
-        uploadType.uploadErrorSessionKey,
-        GPKG_FORMAT_ERROR_MESSAGE
-      )
+      setUploadError(request, uploadType, GPKG_FORMAT_ERROR_RULE)
       return h.redirect(uploadHref(uploadType, id))
     }
 
     if (filenameError) {
-      request.yar.set(
-        uploadType.uploadErrorSessionKey,
-        FILENAME_ERROR_MESSAGES[filenameError.code]
+      setUploadError(
+        request,
+        uploadType,
+        FILENAME_ERROR_RULES[filenameError.code]
       )
       return h.redirect(uploadHref(uploadType, id))
     }
@@ -179,7 +179,7 @@ function waitForCapacity(request, h, uploadType, id, retryAfterSeconds) {
 
   if (elapsed > MAX_WAIT_SECONDS) {
     clearUploadSession(request, uploadType)
-    request.yar.set(uploadType.uploadErrorSessionKey, SERVICE_BUSY_MESSAGE)
+    setUploadError(request, uploadType, SERVICE_BUSY_RULE)
     return h.redirect(uploadHref(uploadType, id))
   }
 
@@ -203,16 +203,20 @@ function uploadStartedAt(request, uploadType) {
   return startedAt
 }
 
-function handleWaitingUpload(request, h, uploadType, id) {
+/**
+ * @param {number | null} [retryAfterSeconds] the backend's pace, when a rate
+ *   limit refused the status check
+ */
+function handleWaitingUpload(request, h, uploadType, id, retryAfterSeconds) {
   const elapsed = (Date.now() - uploadStartedAt(request, uploadType)) / 1000
 
   if (elapsed > MAX_WAIT_SECONDS) {
     clearUploadSession(request, uploadType)
-    request.yar.set(uploadType.uploadErrorSessionKey, TIMED_OUT_MESSAGE)
+    setUploadError(request, uploadType, TIMED_OUT_RULE)
     return h.redirect(uploadHref(uploadType, id))
   }
 
-  return checkingFileView(h, uploadType, id)
+  return checkingFileView(h, uploadType, id, retryAfterSeconds ?? undefined)
 }
 
 function createUploadReceivedController(uploadType, validateUpload) {
@@ -251,7 +255,13 @@ function createUploadReceivedController(uploadType, validateUpload) {
         return handleRejectedUpload(request, h, uploadType, id)
       }
 
-      return handleWaitingUpload(request, h, uploadType, id)
+      return handleWaitingUpload(
+        request,
+        h,
+        uploadType,
+        id,
+        response.retryAfterSeconds
+      )
     }
   }
 }
