@@ -77,8 +77,10 @@ const CREATED_EDIT_TYPES = new Set([
   HEDGEROW_TYPE,
   WATERCOURSE_TYPE
 ])
-// The CREATED_EDIT_KINDS entry an Enhanced tree is edited as.
+// The CREATED_EDIT_KINDS entries an Enhanced tree and an Enhanced area
+// habitat (BMD-1045) are edited as.
 const ENHANCED_TREE_KIND = 'enhancedTree'
+const ENHANCED_HABITAT_KIND = 'enhancedHabitat'
 
 /**
  * The feature as its edit kind reads it: an Enhanced tree whose file left its
@@ -95,8 +97,8 @@ function editableFeature(kindKey, feature) {
 /**
  * The CREATED_EDIT_KINDS entry a post-intervention feature's details page
  * edits it as: a Created area habitat, tree, hedgerow or watercourse its own
- * type's, and an Enhanced tree the Enhanced tree's. Null for a feature whose
- * page is read-only or only renames it.
+ * type's, and an Enhanced tree or area habitat its Enhanced kind. Null for a
+ * feature whose page is read-only or only renames it.
  *
  * @param {string} type
  * @param {string|null} retentionCategory
@@ -109,6 +111,9 @@ function editKindOf(type, retentionCategory) {
   if (type === TREE_TYPE && retentionCategory === RETENTION_ENHANCED) {
     return ENHANCED_TREE_KIND
   }
+  if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_ENHANCED) {
+    return ENHANCED_HABITAT_KIND
+  }
   return null
 }
 
@@ -117,7 +122,9 @@ function editKindOf(type, retentionCategory) {
 // time to target and difficulty.
 const AREA_DETAILS_TEMPLATE = 'habitat-details/pi-habitat-details'
 
-// Enhanced areas use the view-only layout; Created areas use the edit page.
+// Enhanced vertical habitats use the view-only layout. Created and Enhanced
+// area habitats use the edit page (editKindOf); the area entry below is its
+// read-only layout.
 const ENHANCED_AREA_PAGE = {
   template: AREA_SECTIONS_TEMPLATE,
   buildViewModel: buildEnhancedAreaViewOnlyViewModel
@@ -247,10 +254,19 @@ function renderUnsupportedFeature(
   })
 }
 
+// The baseline an edit page's "View baseline details" opens: a Created
+// feature's parent, or an Enhanced area's baseline as its read-only page finds
+// it (BMD-725).
+function editBaselineFeatureId(project, type, feature, kindKey) {
+  return kindKey === ENHANCED_HABITAT_KIND
+    ? viewOnlyBaselineFeatureId(project, type, feature)
+    : createdBaselineFeatureId(project, type, feature)
+}
+
 async function loadCreationReferenceForFeature(kindKey, feature) {
   const kind = CREATED_EDIT_KINDS[kindKey]
   try {
-    const reference = await kind.loadReference()
+    const reference = await kind.loadReference(feature)
     return createdReferenceForFeature(reference, feature)
   } catch (error) {
     if (
@@ -265,14 +281,19 @@ async function loadCreationReferenceForFeature(kindKey, feature) {
 
 /**
  * Render a Created area habitat, tree, hedgerow or watercourse, or an
- * Enhanced tree: its edit page, or the read-only page for a tree or linear
+ * Enhanced tree or area habitat: its edit page, or the read-only page for a tree or linear
  * feature while the backend reference endpoint is not deployed.
  */
 async function renderCreatedFeature(
   h,
   { type, kindKey, feature, project, projectId, projectName, returnUrl }
 ) {
-  const baselineFeatureId = createdBaselineFeatureId(project, type, feature)
+  const baselineFeatureId = editBaselineFeatureId(
+    project,
+    type,
+    feature,
+    kindKey
+  )
   const kind = CREATED_EDIT_KINDS[kindKey]
   const reference = await loadCreationReferenceForFeature(kindKey, feature)
   if (!reference) {
@@ -393,6 +414,7 @@ const CREATED_PAYLOAD_SCHEMAS = {
   habitat: createdAreaPayloadSchema,
   tree: createdAreaPayloadSchema,
   [ENHANCED_TREE_KIND]: createdAreaPayloadSchema,
+  [ENHANCED_HABITAT_KIND]: createdAreaPayloadSchema,
   hedgerow: createdHedgerowPayloadSchema,
   watercourse: createdWatercoursePayloadSchema
 }
@@ -409,7 +431,11 @@ function validatedPayload(schema, payload) {
   return value
 }
 
-/** Save Created area, tree, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050), or an Enhanced tree's. */
+/**
+ * Save Created area, tree, hedgerow or watercourse details
+ * (BMD-1048/BMD-1049/BMD-1050), or an Enhanced tree's or area habitat's
+ * (BMD-1045).
+ */
 async function saveCreatedDetails(
   request,
   h,
@@ -442,7 +468,12 @@ async function saveCreatedDetails(
         {
           projectId,
           projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-          baselineFeatureId: createdBaselineFeatureId(project, type, feature),
+          baselineFeatureId: editBaselineFeatureId(
+            project,
+            type,
+            feature,
+            kindKey
+          ),
           returnUrl,
           refusal
         },
@@ -533,7 +564,8 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
 }
 
 // Both editable post-intervention forms post here: the Created details
-// (BMD-1048, BMD-1049, BMD-1050) and a Retained habitat's reference (BMD-1180). The habitat being
+// (BMD-1048, BMD-1049, BMD-1050), also used for an Enhanced area (BMD-1045),
+// and a Retained habitat's reference (BMD-1180). The habitat being
 // saved decides which, and each form's payload is checked against its own
 // schema. Every other details page is read-only.
 const postController = {

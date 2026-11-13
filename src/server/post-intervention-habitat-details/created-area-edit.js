@@ -1,7 +1,8 @@
 import {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
-  loadCreatedWatercourseReference
+  loadCreatedWatercourseReference,
+  loadEnhancedAreaReference
 } from './created-edit-reference.js'
 import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
 export { enhancedTreeReference } from './tree-edit-kinds.js'
@@ -69,20 +70,31 @@ const ERRORS = Object.freeze({
   riparianEncroachment: formError('riparianEncroachment', 'invalid')
 })
 
+const CREATED_AREA_KIND = {
+  loadReference: loadCreatedAreaReference,
+  label: 'Area habitat',
+  optionalReference: false,
+  readOnlyTemplate: AREA_SECTIONS_TEMPLATE,
+  buildBase: buildCreatedAreaViewOnlyViewModel,
+  formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
+  sizeLabel: AREA_SIZE_LABEL,
+  backType: 'habitat',
+  savePath: 'habitats',
+  hasBroadHabitat: true,
+  habitatTypeError: formError('habitatType', 'notInBroadHabitat')
+}
+
+// BMD-1045: an Enhanced area is edited on the Created area form, with the
+// choices limited to the valid enhancements of its baseline. Everything else
+// (fields, validation, derived values, save) is the Created area's.
+const ENHANCED_AREA_KIND = Object.freeze({
+  ...CREATED_AREA_KIND,
+  loadReference: (feature) => loadEnhancedAreaReference(feature?.baseline),
+  label: 'Enhanced area habitat'
+})
+
 export const CREATED_EDIT_KINDS = {
-  habitat: {
-    loadReference: loadCreatedAreaReference,
-    label: 'Area habitat',
-    optionalReference: false,
-    readOnlyTemplate: AREA_SECTIONS_TEMPLATE,
-    buildBase: buildCreatedAreaViewOnlyViewModel,
-    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: AREA_SIZE_LABEL,
-    backType: 'habitat',
-    savePath: 'habitats',
-    hasBroadHabitat: true,
-    habitatTypeError: formError('habitatType', 'notInBroadHabitat')
-  },
+  habitat: CREATED_AREA_KIND,
   watercourse: {
     loadReference: loadCreatedWatercourseReference,
     label: 'Watercourse',
@@ -114,7 +126,8 @@ export const CREATED_EDIT_KINDS = {
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
   },
   tree: CREATED_TREE_KIND,
-  enhancedTree: ENHANCED_TREE_KIND
+  enhancedTree: ENHANCED_TREE_KIND,
+  enhancedHabitat: ENHANCED_AREA_KIND
 }
 
 function createdKind(reference) {

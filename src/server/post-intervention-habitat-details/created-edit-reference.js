@@ -29,6 +29,25 @@ export function loadEnhancedTreeReference() {
   return loadCreationReference('enhancedTree', 'tree', true, 'enhancement')
 }
 
+// BMD-1045: an Enhanced area chooses only from the valid enhancements of its
+// baseline, which the backend lists per baseline habitat and condition.
+export function loadEnhancedAreaReference(baseline = {}) {
+  const query = new URLSearchParams(
+    Object.entries({
+      broadType: baseline.broadType,
+      type: baseline.type,
+      condition: baseline.condition
+    }).filter(([, value]) => typeof value === 'string' && value !== '')
+  )
+  return loadReference({
+    cacheKey: `enhanced-habitat?${query}`,
+    kind: 'habitat',
+    url: `${backendUrl}/reference/area-enhancement?${query}`,
+    referenceName: 'area enhancement',
+    hasBroadHabitat: true
+  })
+}
+
 function hasRequiredArrays(kind, payload) {
   const fields = ['habitatTypes', 'strategicSignificance']
   if (kind === 'watercourse') {
@@ -37,26 +56,47 @@ function hasRequiredArrays(kind, payload) {
   return fields.every((field) => Array.isArray(payload?.[field]))
 }
 
-async function loadCreationReference(
+function loadCreationReference(
   kind,
   referenceName,
   hasBroadHabitat,
   intervention = 'creation'
 ) {
-  if (!referencePromises.has(kind)) {
+  return loadReference({
+    cacheKey: kind,
+    kind,
+    url: `${backendUrl}/reference/${referenceName}-${intervention}`,
+    referenceName: `${referenceName} ${intervention}`,
+    hasBroadHabitat
+  })
+}
+
+// The reference data is static for a backend release, so each response is
+// fetched once per process; a failed fetch is retried on the next request.
+const CACHE_LIMIT = 500
+
+async function loadReference({
+  cacheKey,
+  kind,
+  url,
+  referenceName,
+  hasBroadHabitat
+}) {
+  if (!referencePromises.has(cacheKey)) {
+    if (referencePromises.size >= CACHE_LIMIT) {
+      referencePromises.clear()
+    }
     referencePromises.set(
-      kind,
+      cacheKey,
       wreck
-        .get(`${backendUrl}/reference/${referenceName}-${intervention}`)
+        .get(url)
         .then(({ res, payload }) => {
           if (
             res?.statusCode >= statusCodes.badRequest ||
             !hasRequiredArrays(kind, payload) ||
             !payload?.timeMultipliers
           ) {
-            throw new Error(
-              `Invalid ${referenceName} ${intervention} reference response`
-            )
+            throw new Error(`Invalid ${referenceName} reference response`)
           }
           return {
             ...structuredClone(payload),
@@ -65,12 +105,12 @@ async function loadCreationReference(
           }
         })
         .catch((error) => {
-          referencePromises.delete(kind)
+          referencePromises.delete(cacheKey)
           throw error
         })
     )
   }
-  return structuredClone(await referencePromises.get(kind))
+  return structuredClone(await referencePromises.get(cacheKey))
 }
 
 export function _resetCreatedAreaReferenceCache() {

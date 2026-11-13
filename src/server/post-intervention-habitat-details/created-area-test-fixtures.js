@@ -53,3 +53,73 @@ export const createdAreaFeature = {
     delayYears: 0
   }
 }
+
+// BMD-1045: /reference/area-enhancement for a Grassland - Modified grassland
+// baseline in Poor condition, cut down to two habitat types. Poor is not an
+// enhancement of that baseline, and Urban is not offered at all.
+export const enhancementReference = {
+  featureType: 'habitat',
+  hasBroadHabitat: true,
+  habitatTypes: [
+    {
+      broad: 'Grassland',
+      name: 'Modified grassland',
+      distinctiveness: 'Low',
+      distinctivenessScore: 2,
+      difficulty: 'Low',
+      difficultyMultiplier: 1,
+      conditions: [
+        { condition: 'Good', score: 3, years: 15 },
+        { condition: 'Moderate', score: 2, years: 10 }
+      ]
+    },
+    {
+      broad: 'Grassland',
+      name: 'Other neutral grassland',
+      distinctiveness: 'Medium',
+      distinctivenessScore: 4,
+      difficulty: 'Medium',
+      difficultyMultiplier: 0.67,
+      conditions: [{ condition: 'Moderate', score: 2, years: 9 }]
+    },
+    {
+      broad: 'Heathland and shrub',
+      name: 'Mixed scrub',
+      distinctiveness: 'Medium',
+      distinctivenessScore: 4,
+      difficulty: 'Low',
+      difficultyMultiplier: 1,
+      conditions: [{ condition: 'Good', score: 3, years: '30+' }]
+    }
+  ],
+  strategicSignificance: creationReference.strategicSignificance,
+  timeMultipliers: {
+    ...creationReference.timeMultipliers,
+    10: 0.7006,
+    12: 0.6534,
+    15: 0.5862
+  }
+}
+
+export const enhancedAreaFeature = {
+  featureId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  ref: 'E-1',
+  retentionCategory: 'Enhanced',
+  sizeSquareMetres: 25000,
+  units: 9.5,
+  status: 'Complete',
+  baseline: {
+    broadType: 'Grassland',
+    type: 'Modified grassland',
+    condition: 'Poor'
+  },
+  proposed: {
+    broadType: 'Grassland',
+    type: 'Modified grassland',
+    condition: 'Moderate',
+    strategicSignificanceCategory: 'High',
+    strategicSignificance: 'High',
+    advanceYears: 0,
+    delayYears: 2
+  }
+}

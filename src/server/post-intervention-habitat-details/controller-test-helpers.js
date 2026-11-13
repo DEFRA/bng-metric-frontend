@@ -3,7 +3,10 @@ import { vi } from 'vitest'
 
 import { wreck } from '../common/helpers/wreck-client.js'
 import { hedgerowCreationReference } from './created-hedgerow-test-fixtures.js'
-import { creationReference } from './created-area-test-fixtures.js'
+import {
+  creationReference,
+  enhancementReference
+} from './created-area-test-fixtures.js'
 
 export const projectId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 export const featureId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
@@ -54,6 +57,9 @@ export function mockFeature(featurePayload, projectResponse = projectPayload) {
     }
     if (url.endsWith('/reference/area-creation')) {
       return Promise.resolve({ payload: creationReference })
+    }
+    if (url.includes('/reference/area-enhancement?')) {
+      return Promise.resolve({ payload: enhancementReference })
     }
     if (url.includes(`/post-intervention/features/${featureId}`)) {
       return Promise.resolve({ payload: featurePayload })
