@@ -173,10 +173,13 @@ export const CREATED_EDIT_KINDS = {
  */
 export function enhancedTreeReference(reference, feature) {
   const baselineCondition = stripConditionPrefix(feature.baseline?.condition)
+  // A file can leave the proposed setting blank; the service then reads it
+  // as the baseline one, as the backend does.
+  const setting = feature.proposed?.type ?? feature.baseline?.type
   return {
     ...reference,
     habitatTypes: reference.habitatTypes
-      .filter((type) => type.name === feature.proposed?.type)
+      .filter((type) => type.name === setting)
       .map((type) => ({
         ...type,
         conditions: type.enhancements?.[baselineCondition] ?? []

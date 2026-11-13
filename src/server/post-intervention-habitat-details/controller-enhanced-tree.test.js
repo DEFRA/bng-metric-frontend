@@ -151,6 +151,15 @@ describe('enhancedTreeReference', () => {
     expect(reference.habitatTypes[0].conditions).toEqual(enhancements.Moderate)
   })
 
+  test('offers the baseline setting for a tree whose file left its proposed one blank', () => {
+    const reference = enhancedTreeReference(treeEnhancementReference, {
+      ...enhancedTree,
+      proposed: { ...enhancedTree.proposed, type: null }
+    })
+
+    expect(reference.habitatTypes.map((t) => t.name)).toEqual(['Urban tree'])
+  })
+
   test('offers no target condition for a tree already in Good condition', () => {
     const reference = enhancedTreeReference(treeEnhancementReference, {
       ...enhancedTree,
