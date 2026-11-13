@@ -1800,11 +1800,11 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each tree whose kept trees together count more than it, with both counts', async () => {
+  test('lists each tree with more than one kept tree linked to it, and the trees linked, without the counts the backend sends', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_TREE_CHILDREN_TOO_MANY',
-        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together',
+        'One or more baseline trees have fewer trees than the post-intervention trees that are still them, linked to them together: Retained, Enhanced, or Existing and Created in its setting',
         [
           {
             layer: 'trees',
@@ -1813,8 +1813,8 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
             ref: 'T004',
             habitatType: 'Rural tree',
             childRefs: ['T004a', 'T004b'],
-            count: 3,
-            childCount: 4
+            count: 1,
+            childCount: 2
           }
         ]
       )
@@ -1824,10 +1824,8 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together. A tree that is kept cannot be more trees than it was',
-        [
-          'Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b; Count 3, linked 4'
-        ]
+        'One or more baseline trees have more than one kept tree linked to them. A post-intervention tree is kept if it is Retained or Enhanced, or Created with Category Existing in the same Urban or Rural setting. A baseline tree is one tree, so only one kept tree can be linked to it',
+        ['Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b']
       ]
     ])
   })

@@ -1105,15 +1105,15 @@ upload:
       wording: interim
       problemsList:
         heading: >-
-          One or more baseline trees have fewer trees than the Retained and
-          Enhanced post-intervention trees linked to them together. A tree that
-          is kept cannot be more trees than it was
+          One or more baseline trees have more than one kept tree linked to
+          them. A post-intervention tree is kept if it is Retained or Enhanced,
+          or Created with Category Existing in the same Urban or Rural setting.
+          A baseline tree is one tree, so only one kept tree can be linked to it
         item:
           - '{table} '
           - '{name}'
           - ' — {habitatType}'
           - ', copied to {childRefs}'
-          - '; Count {count}, linked {childCount}'
 
     STAGED_WATERCOURSE_RETAINED_AND_CREATED:
       wording: interim
