@@ -39,7 +39,7 @@ import {
   isFeatureNotEditableError
 } from '../common/helpers/feature-not-editable-refusal.js'
 import { isInvalidEnhancementError } from '../common/helpers/invalid-enhancement-refusal.js'
-import { PI_DETAILS_HEADING } from './constants.js'
+import { AREA_SECTIONS_TEMPLATE, PI_DETAILS_HEADING } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
@@ -81,6 +81,18 @@ const CREATED_EDIT_TYPES = new Set([
 const ENHANCED_TREE_KIND = 'enhancedTree'
 
 /**
+ * The feature as its edit kind reads it: an Enhanced tree whose file left its
+ * setting blank takes its baseline one, as the backend reads it.
+ *
+ * @param {string} kindKey
+ * @param {object} feature
+ * @returns {object}
+ */
+function editableFeature(kindKey, feature) {
+  return CREATED_EDIT_KINDS[kindKey].normaliseFeature?.(feature) ?? feature
+}
+
+/**
  * The CREATED_EDIT_KINDS entry a post-intervention feature's details page
  * edits it as: a Created area habitat, tree, hedgerow or watercourse its own
  * type's, and an Enhanced tree the Enhanced tree's. Null for a feature whose
@@ -104,7 +116,6 @@ function editKindOf(type, retentionCategory) {
 // individual trees: the single-section page, and the two-section page with
 // time to target and difficulty.
 const AREA_DETAILS_TEMPLATE = 'habitat-details/pi-habitat-details'
-const AREA_SECTIONS_TEMPLATE = 'habitat-details/pi-habitat-details-enhanced'
 
 // Enhanced areas use the view-only layout; Created areas use the edit page.
 const ENHANCED_AREA_PAGE = {
@@ -318,7 +329,7 @@ async function renderDetailsPage(
     return renderCreatedFeature(h, {
       type,
       kindKey,
-      feature,
+      feature: editableFeature(kindKey, feature),
       project,
       projectId,
       projectName,
@@ -548,7 +559,7 @@ const postController = {
       return saveCreatedDetails(request, h, {
         type,
         kindKey,
-        feature,
+        feature: editableFeature(kindKey, feature),
         payload: request.payload
       })
     }

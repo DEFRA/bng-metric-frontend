@@ -160,6 +160,24 @@ describe('enhancedTreeReference', () => {
     expect(reference.habitatTypes.map((t) => t.name)).toEqual(['Urban tree'])
   })
 
+  test.each([
+    ['a blank', undefined],
+    ['an "N/A"', 'N/A - Other']
+  ])(
+    'keeps the stored target condition as the only choice for a tree with %s baseline condition',
+    (_label, condition) => {
+      const reference = enhancedTreeReference(treeEnhancementReference, {
+        ...enhancedTree,
+        baseline: { ...enhancedTree.baseline, condition },
+        proposed: { ...enhancedTree.proposed, conditionScore: 3 }
+      })
+
+      expect(reference.habitatTypes[0].conditions).toEqual([
+        { condition: 'Good', score: 3 }
+      ])
+    }
+  )
+
   test('offers no target condition for a tree already in Good condition', () => {
     const reference = enhancedTreeReference(treeEnhancementReference, {
       ...enhancedTree,
@@ -253,6 +271,72 @@ describe('Enhanced tree controller', () => {
       )
     }
   )
+
+  test('selects the baseline setting, and offers its target conditions, for a tree whose file left its proposed setting blank', async () => {
+    const blankSetting = {
+      ...enhancedTree,
+      proposed: { ...enhancedTree.proposed, type: null }
+    }
+    mockTree(blankSetting)
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.values.habitatType).toBe('Urban tree')
+    expect(vm.fields.habitatType.items).toEqual([
+      expect.objectContaining({ value: 'Urban tree', selected: true })
+    ])
+    expect(itemValues(vm.fields.condition)).toEqual(['Good', 'Fairly Good'])
+    expect(vm.fields.condition.hint).toBeNull()
+  })
+
+  test('saves a tree whose file left its proposed setting blank in its baseline setting, keeping its target condition', async () => {
+    const blankSetting = {
+      ...enhancedTree,
+      proposed: { ...enhancedTree.proposed, type: null }
+    }
+    mockTree(blankSetting)
+    const h = createMockH()
+    await postController.handler(
+      {
+        payload: {
+          projectId,
+          featureId,
+          ...createdAreaValues(blankSetting),
+          habitatType: 'Urban tree'
+        }
+      },
+      h
+    )
+
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+      habitatType: 'Urban tree',
+      condition: 'Good'
+    })
+    expect(h.redirect).toHaveBeenCalled()
+  })
+
+  test('saves a new reference for a tree whose baseline condition the Metric does not score, keeping its target condition', async () => {
+    const unscored = {
+      ...enhancedTree,
+      baseline: { ...enhancedTree.baseline, condition: null },
+      proposed: { ...enhancedTree.proposed, conditionScore: 3 }
+    }
+    mockTree(unscored)
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    const vm = h.view.mock.calls[0][1]
+    expect(itemValues(vm.fields.condition)).toEqual(['Good'])
+    expect(vm.standardTimeToTargetDisplay).toBe('')
+
+    await postController.handler(request({ ref: 'T006-renamed' }), h)
+
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+      ref: 'T006-renamed',
+      condition: 'Good'
+    })
+    expect(h.redirect).toHaveBeenCalled()
+  })
 
   test('refuses the other setting without saving', async () => {
     const h = createMockH()

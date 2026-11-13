@@ -1,10 +1,10 @@
 import {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
-  loadCreatedTreeReference,
-  loadCreatedWatercourseReference,
-  loadEnhancedTreeReference
+  loadCreatedWatercourseReference
 } from './created-edit-reference.js'
+import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
+export { enhancedTreeReference } from './tree-edit-kinds.js'
 export {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
@@ -22,8 +22,6 @@ import {
 import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
-import { buildTreeSectionsViewOnlyViewModel } from './tree-view-only-view-model.js'
-import { INDIVIDUAL_TREES_BROAD_HABITAT } from '../baseline-habitat-details/strategies/tree.js'
 
 import {
   UNCHANGED_VALUE,
@@ -39,7 +37,11 @@ import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.j
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
 import { buildCreatedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
-import { MAX_REF_LENGTH } from './constants.js'
+import {
+  AREA_SECTIONS_TEMPLATE,
+  AREA_SIZE_LABEL,
+  MAX_REF_LENGTH
+} from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import {
@@ -62,7 +64,6 @@ const ERRORS = Object.freeze({
   timingBoth: formError('advanceOrDelay', 'both'),
   broadHabitat: formError('broadHabitat', 'invalid'),
   condition: formError('condition', 'notForHabitatType'),
-  conditionNotBetter: formError('condition', 'notBetterThanBaseline'),
   strategicSignificance: formError('strategicSignificance', 'invalid'),
   watercourseEncroachment: formError('watercourseEncroachment', 'invalid'),
   riparianEncroachment: formError('riparianEncroachment', 'invalid')
@@ -73,10 +74,10 @@ export const CREATED_EDIT_KINDS = {
     loadReference: loadCreatedAreaReference,
     label: 'Area habitat',
     optionalReference: false,
-    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
+    readOnlyTemplate: AREA_SECTIONS_TEMPLATE,
     buildBase: buildCreatedAreaViewOnlyViewModel,
     formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: 'Size (hectares)',
+    sizeLabel: AREA_SIZE_LABEL,
     backType: 'habitat',
     savePath: 'habitats',
     hasBroadHabitat: true,
@@ -112,79 +113,8 @@ export const CREATED_EDIT_KINDS = {
     hasBroadHabitat: false,
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
   },
-  // A Created individual tree is edited as a Created area habitat is, but
-  // stays a tree: its broad habitat is always Individual trees,
-  // shown and sent but not editable, and its habitat type must be Urban tree
-  // or Rural tree. Its size class and number of trees are shown, not edited.
-  // Until the backend serves the tree reference, it keeps its read-only page.
-  tree: {
-    loadReference: loadCreatedTreeReference,
-    label: 'Tree',
-    optionalReference: true,
-    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
-    buildBase: buildTreeSectionsViewOnlyViewModel,
-    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: 'Size (hectares)',
-    backType: 'tree',
-    savePath: 'trees',
-    hasBroadHabitat: true,
-    fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
-    habitatTypeRequired: true,
-    habitatTypeError: formError('habitatType', 'invalidTree')
-  },
-  // An Enhanced individual tree is edited on the same page, but it enhances
-  // its condition only: its size, type and setting are its baseline tree's.
-  // So its habitat type is offered only as stored, and its target condition
-  // only as one better than its baseline condition, with the Metric's
-  // enhancement time to target (enhancedTreeReference).
-  enhancedTree: {
-    loadReference: loadEnhancedTreeReference,
-    label: 'Tree',
-    optionalReference: true,
-    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
-    buildBase: buildTreeSectionsViewOnlyViewModel,
-    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: 'Size (hectares)',
-    backType: 'tree',
-    savePath: 'trees',
-    hasBroadHabitat: true,
-    fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
-    habitatTypeRequired: true,
-    habitatTypeError: formError('habitatType', 'invalidTree'),
-    conditionError: ERRORS.conditionNotBetter,
-    timingLabels: {
-      advanceYears: 'Habitat enhanced in advance (years)',
-      delayYears: 'Delay in starting habitat enhancement (years)'
-    },
-    forFeature: enhancedTreeReference
-  }
-}
-
-/**
- * The tree enhancement reference narrowed to one Enhanced tree: only its own
- * habitat type, as its setting is its baseline tree's, offering only the
- * target conditions its baseline condition can be enhanced to. Each type
- * keeps its `enhancements`, so narrowing an already narrowed reference gives
- * the same choices.
- *
- * @param {object} reference from loadEnhancedTreeReference
- * @param {object} feature the post-intervention tree
- * @returns {object}
- */
-export function enhancedTreeReference(reference, feature) {
-  const baselineCondition = stripConditionPrefix(feature.baseline?.condition)
-  // A file can leave the proposed setting blank; the service then reads it
-  // as the baseline one, as the backend does.
-  const setting = feature.proposed?.type ?? feature.baseline?.type
-  return {
-    ...reference,
-    habitatTypes: reference.habitatTypes
-      .filter((type) => type.name === setting)
-      .map((type) => ({
-        ...type,
-        conditions: type.enhancements?.[baselineCondition] ?? []
-      }))
-  }
+  tree: CREATED_TREE_KIND,
+  enhancedTree: ENHANCED_TREE_KIND
 }
 
 function createdKind(reference) {
