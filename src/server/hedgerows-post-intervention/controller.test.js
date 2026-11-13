@@ -387,6 +387,7 @@ describe('hedgerows post intervention', () => {
     expect(panel.find('h3').text()).toBe('Retained hedgerow habitats')
     expect(headers).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
