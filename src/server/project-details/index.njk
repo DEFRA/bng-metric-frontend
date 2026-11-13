@@ -1,112 +1,113 @@
 {% extends 'layouts/page.njk' %}
 
-{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/date-input/macro.njk" import govukDateInput %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 {% from "govuk/components/input/macro.njk" import govukInput %}
-{% from "govuk/components/radios/macro.njk" import govukRadios %}
 {% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "project-navigation/macro.njk" import appProjectNavigation %}
 
-{% block beforeContent %}
-  {{ super() }}
-  {{ govukBackLink({
-    text: "Back",
-    href: "/projects/" + projectId + "/project-summary"
+{% set containerClasses = "app-width-container--wide" %}
+
+{% macro textInput(name, label, maxlength) %}
+  {{ govukInput({
+    id: name,
+    name: name,
+    classes: "govuk-input--width-20",
+    label: { text: label, classes: "govuk-label--s" },
+    value: values[name],
+    attributes: { maxlength: maxlength },
+    errorMessage: { text: fieldErrors[name] } if fieldErrors[name] else undefined
   }) }}
-{% endblock %}
+{% endmacro %}
 
 {% block content %}
-  <div class="govuk-grid-row">
-    <div class="govuk-grid-column-two-thirds">
-      {% if projectName %}
-        <span class="govuk-caption-l">{{ projectName }}</span>
-      {% endif %}
-      <h1 class="govuk-heading-xl">Project details</h1>
+  <div class="govuk-grid-row app-project-summary-layout">
+    <div class="app-grid-column-one-sixth">
+      {{ appProjectNavigation({
+        label: heading,
+        items: navigationItems
+      }) }}
+    </div>
 
-      {% if errors | length %}
-        {{ govukErrorSummary({
-          titleText: errorSummaryTitle,
-          errorList: errors
-        }) }}
-      {% endif %}
+    <div class="app-grid-column-five-sixths">
+      <div class="govuk-grid-row">
+        <div class="govuk-grid-column-two-thirds">
+          {% if errors | length %}
+            {{ govukErrorSummary({
+              titleText: errorSummaryTitle,
+              errorList: errors
+            }) }}
+          {% endif %}
 
-      {% call appForm({ action: "/project-details/" + projectId }) %}
-        {% if details.localPlanningAuthority and not details.localPlanningAuthorityReference %}
-          <p class="govuk-body">Previously saved Local Planning Authority: {{ details.localPlanningAuthority }}. Select an authority from the list to update it.</p>
-        {% endif %}
-        {{ govukSelect({
-          id: "localPlanningAuthorityReference",
-          name: "localPlanningAuthorityReference",
-          label: { text: "Local Planning Authority" },
-          items: localPlanningAuthorityItems,
-          errorMessage: { text: fieldErrors.localPlanningAuthorityReference } if fieldErrors.localPlanningAuthorityReference else undefined
-        }) }}
+          <h1 class="govuk-heading-xl">{{ heading }}</h1>
 
-        {{ govukInput({
-          id: "surveyCompleters",
-          name: "surveyCompleters",
-          label: { text: "Survey completer(s)" },
-          value: details.surveyCompleters,
-          errorMessage: { text: fieldErrors.surveyCompleters } if fieldErrors.surveyCompleters else undefined
-        }) }}
+          <p class="govuk-body">
+            Enter the details for the project. You do not need to add them all
+            straight away, but you will need to complete all of these details
+            before you can export your metric.
+          </p>
 
-        {{ govukDateInput({
-          id: "surveyCompletionDate",
-          namePrefix: "surveyCompletionDate",
-          fieldset: {
-            legend: { text: "Survey completion date" }
-          },
-          hint: { text: "For example, 27 3 2026" },
-          errorMessage: { text: fieldErrors.surveyCompletionDate } if fieldErrors.surveyCompletionDate else undefined,
-          items: [
-            {
-              name: "day",
-              classes: "govuk-input--width-2" + (" govuk-input--error" if "day" in surveyCompletionDateErrorParts else ""),
-              value: surveyCompletionDate.day
-            },
-            {
-              name: "month",
-              classes: "govuk-input--width-2" + (" govuk-input--error" if "month" in surveyCompletionDateErrorParts else ""),
-              value: surveyCompletionDate.month
-            },
-            {
-              name: "year",
-              classes: "govuk-input--width-4" + (" govuk-input--error" if "year" in surveyCompletionDateErrorParts else ""),
-              value: surveyCompletionDate.year
-            }
-          ]
-        }) }}
+          {% call appForm({ action: formAction }) %}
+            <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
 
-        {{ govukRadios({
-          idPrefix: "developmentType",
-          name: "developmentType",
-          fieldset: { legend: { text: "Development type" } },
-          items: developmentTypeItems,
-          errorMessage: { text: fieldErrors.developmentType } if fieldErrors.developmentType else undefined
-        }) }}
+            {{ textInput("projectName", "Project name", maxLengths.projectName) }}
 
-        {{ govukRadios({
-          idPrefix: "nsips",
-          name: "nsips",
-          fieldset: { legend: { text: "NSIPs" } },
-          hint: { text: "National Significant Infrastructure Project" },
-          items: nsipsItems,
-          errorMessage: { text: fieldErrors.nsips } if fieldErrors.nsips else undefined
-        }) }}
+            {{ textInput("surveyCompleters", "Survey completed by", maxLengths.personName) }}
 
-        {{ govukInput({
-          id: "applicant",
-          name: "applicant",
-          label: { text: "Applicant" },
-          value: details.applicant,
-          errorMessage: { text: fieldErrors.applicant } if fieldErrors.applicant else undefined
-        }) }}
+            {{ govukDateInput({
+              id: "surveyCompletionDate",
+              namePrefix: "surveyCompletionDate",
+              fieldset: {
+                legend: { text: "Survey date", classes: "govuk-fieldset__legend--s" }
+              },
+              errorMessage: { text: fieldErrors.surveyCompletionDate } if fieldErrors.surveyCompletionDate else undefined,
+              items: [
+                {
+                  name: "day",
+                  classes: "govuk-input--width-2" + (" govuk-input--error" if "day" in surveyCompletionDateErrorParts else ""),
+                  value: surveyCompletionDate.day,
+                  attributes: { maxlength: 2 }
+                },
+                {
+                  name: "month",
+                  classes: "govuk-input--width-2" + (" govuk-input--error" if "month" in surveyCompletionDateErrorParts else ""),
+                  value: surveyCompletionDate.month,
+                  attributes: { maxlength: 2 }
+                },
+                {
+                  name: "year",
+                  classes: "govuk-input--width-4" + (" govuk-input--error" if "year" in surveyCompletionDateErrorParts else ""),
+                  value: surveyCompletionDate.year,
+                  attributes: { maxlength: 4 }
+                }
+              ]
+            }) }}
 
-        {{ govukButton({
-          text: "Save and continue"
-        }) }}
-      {% endcall %}
+            {{ textInput("applicant", "Planning permission applicant name", maxLengths.personName) }}
+
+            {% if values.localPlanningAuthority and not values.localPlanningAuthorityReference %}
+              <p class="govuk-body">Previously saved local planning authority: {{ values.localPlanningAuthority }}. Choose an authority from the list to update it.</p>
+            {% endif %}
+            {{ govukSelect({
+              id: "localPlanningAuthorityReference",
+              name: "localPlanningAuthorityReference",
+              label: { text: "Local planning authority", classes: "govuk-label--s" },
+              items: localPlanningAuthorityItems,
+              errorMessage: { text: fieldErrors.localPlanningAuthorityReference } if fieldErrors.localPlanningAuthorityReference else undefined
+            }) }}
+
+            {{ textInput("planningApplicationReference", "Planning application reference (optional)", maxLengths.planningApplicationReference) }}
+
+            {{ textInput("planningApplicationType", "Planning application type (optional)", maxLengths.planningApplicationType) }}
+
+            <div class="govuk-button-group">
+              {{ govukButton({ text: "Save" }) }}
+              <a class="govuk-link" href="{{ returnUrl }}">Cancel</a>
+            </div>
+          {% endcall %}
+        </div>
+      </div>
     </div>
   </div>
 {% endblock %}

@@ -1349,27 +1349,71 @@ forms:
     # A control character or half of a UTF-16 pair.
     invalidCharacters: Project name must only contain valid characters
 
+  # The project details page's fields (BMD-849). The ticket leaves the words
+  # for invalid characters and each survey date problem "tbc", so those are
+  # interim.
   localPlanningAuthorityReference:
     # Not one of the list's options, or one the backend does not know.
-    notInList: Select a Local Planning Authority from the list
+    notInList: Select a local planning authority from the list
 
+  # "Survey completed by"
   surveyCompleters:
     tooLong:
       wording: interim
-      text: Survey completer(s) must be {max} characters or fewer
+      text: Survey completed by must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Survey completed by must only contain valid characters
 
+  # "Planning permission applicant name"
   applicant:
     tooLong:
       wording: interim
-      text: Applicant must be {max} characters or fewer
+      text: Planning permission applicant name must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Planning permission applicant name must only contain valid characters
 
+  planningApplicationReference:
+    tooLong:
+      wording: interim
+      text: Planning application reference must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Planning application reference must only contain valid characters
+
+  planningApplicationType:
+    tooLong:
+      wording: interim
+      text: Planning application type must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Planning application type must only contain valid characters
+
+  # "Survey date"
   surveyCompletionDate:
     # Some of the day, month and year are blank, but not all three. {part} is
     # the one that is blank: day, month or year. {parts} are the two that
     # are, as "day and month".
-    missingOne: Survey completion date must include a {part}
-    missingSeveral: Survey completion date must include {parts}
-    notReal: Survey completion date must be a real date
+    missingOne:
+      wording: interim
+      text: Survey date must include a {part}
+    missingSeveral:
+      wording: interim
+      text: Survey date must include {parts}
+    # Any of the day, month and year holds something other than digits.
+    notNumeric:
+      wording: interim
+      text: Survey date must only include numbers
+    # Not a date in the calendar, such as 31 2 2026, or a year that is not
+    # four digits.
+    notReal:
+      wording: interim
+      text: Survey date must be a real date
+    # Later than today, in the UK.
+    inFuture:
+      wording: interim
+      text: Survey date must be today or in the past
 
   uploadType:
     # The "What would you like to upload?" page, with no choice made.

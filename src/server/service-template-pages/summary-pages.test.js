@@ -246,7 +246,7 @@ describe('summary pages of a BNG Service template project', () => {
 
       expect(statusCode).toBe(statusCodes.ok)
       expect($('h1').text().trim()).toBe('Project details')
-      expect($('main').text()).toContain(body.project.name)
+      expect($('#projectName').val()).toBe(body.project.name)
     })
   })
 
