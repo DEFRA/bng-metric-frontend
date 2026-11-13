@@ -26,7 +26,6 @@ import {
 } from './baseline-feature-link.js'
 import {
   HABITAT_REF_ERROR,
-  HABITAT_REF_IN_USE_ERROR,
   habitatRefRefusal,
   isRefUnchanged
 } from '../common/helpers/habitat-ref.js'
@@ -323,7 +322,6 @@ async function renderDetailsPage(
   })
   const refEditFields = canRename
     ? retainedRefEditFields({
-        type,
         feature,
         projectId,
         featureId,
@@ -469,9 +467,6 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
     featureId,
     ref: habitatRef
   })
-  if (saved.refInUse) {
-    return showRefused(HABITAT_REF_IN_USE_ERROR)
-  }
   if (saved.refInvalid) {
     return showRefused(HABITAT_REF_ERROR)
   }

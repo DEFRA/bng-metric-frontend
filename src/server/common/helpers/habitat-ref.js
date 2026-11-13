@@ -11,8 +11,7 @@
  * before BMD-1175 may already hold a longer one, which the input shows whole.
  */
 
-import { editErrorText, formErrorText } from '../error-text/error-text.js'
-import { backendStatusOf } from './backend-save-error.js'
+import { formErrorText } from '../error-text/error-text.js'
 import { hasInvalidUtf8Text } from './utf8-text.js'
 
 // In characters (Unicode code points), as the backend counts them. The
@@ -21,8 +20,6 @@ export const MAX_HABITAT_REF_LENGTH = 99
 
 // The input's id and name on both forms, which the error summary links to.
 export const HABITAT_REF_FIELD_ID = 'habitatRef'
-
-const HABITAT_REF_IN_USE_CODE = 'HABITAT_REF_IN_USE'
 
 // One message pair for every invalid reference (blank, whitespace only or not
 // UTF-8), from error-text.yaml's forms section.
@@ -36,18 +33,6 @@ export const HABITAT_REF_TOO_LONG_ERROR = Object.freeze(
     max: MAX_HABITAT_REF_LENGTH
   })
 )
-
-// A rename onto a reference another baseline habitat in the same layer already
-// carries, which the backend refuses with HABITAT_REF_IN_USE: error-text.yaml's
-// edit section.
-const refInUse = editErrorText(HABITAT_REF_IN_USE_CODE)
-if (!refInUse?.inline) {
-  throw new Error(
-    `error-text.yaml's edit section has no summary and inline wording for ${HABITAT_REF_IN_USE_CODE}`
-  )
-}
-export const HABITAT_REF_IN_USE_ERROR = Object.freeze(refInUse)
-const UNPROCESSABLE = 422
 
 /**
  * @param {unknown} value the submitted habitat reference
@@ -86,20 +71,6 @@ export function habitatRefRefusal(value) {
 }
 
 /**
- * Whether a failed save is the backend refusing the new reference because
- * another habitat already carries it.
- *
- * @param {unknown} err what backendRequest threw
- * @returns {boolean}
- */
-export function isRefInUseError(err) {
-  return (
-    backendStatusOf(err) === UNPROCESSABLE &&
-    err?.data?.payload?.code === HABITAT_REF_IN_USE_CODE
-  )
-}
-
-/**
  * The error summary's list for a refusal: one linked to the reference input,
  * or, for a refusal no one field can put right (`summaryOnly`, as
  * stored-value-refusal.js gives), one linked to nothing.
@@ -119,11 +90,10 @@ function refusalErrors(refusal) {
 
 /**
  * The page title, error summary and reference input for a form holding the
- * habitat reference. `refusal` (HABITAT_REF_ERROR, HABITAT_REF_TOO_LONG_ERROR,
- * HABITAT_REF_IN_USE_ERROR or a stored value refusal)
- * is set when a save was refused: the input then shows what was typed, and the
- * page carries the error. The heading names the habitat by its saved
- * reference either way.
+ * habitat reference. `refusal` (HABITAT_REF_ERROR, HABITAT_REF_TOO_LONG_ERROR
+ * or a stored value refusal) is set when a save was refused: the input then
+ * shows what was typed, and the page carries the error. The heading names the
+ * habitat by its saved reference either way.
  *
  * @param {{ heading: string, savedRef?: string | number | null, submittedRef?: string, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
  * @returns {{ pageTitle: string, errors: Array<{ text: string, href?: string }>, habitatRefInput: { id: string, value: string, error?: { text: string }, maxLength: number } }}

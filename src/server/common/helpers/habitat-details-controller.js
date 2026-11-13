@@ -14,11 +14,9 @@ import {
 } from './habitat-comment.js'
 import {
   HABITAT_REF_ERROR,
-  HABITAT_REF_IN_USE_ERROR,
   HABITAT_REF_TOO_LONG_ERROR,
   habitatRefFormFields,
   habitatRefRefusal,
-  isRefInUseError,
   isRefUnchanged
 } from './habitat-ref.js'
 import {
@@ -436,15 +434,10 @@ export async function saveHabitat(request, path, body, featureId) {
     }
     return payload
   } catch (err) {
-    // A reference another habitat already carries, an older stored value, or
-    // an edit this feature does not take, is for the form to show. Each is
-    // thrown as it is: backendSaveError would rebuild it and drop the code the
-    // form tells them apart by.
-    if (
-      isRefInUseError(err) ||
-      isStoredValueRefusal(err) ||
-      isFeatureNotEditableError(err)
-    ) {
+    // An older stored value, or an edit this feature does not take, is for
+    // the form to show. Each is thrown as it is: backendSaveError would
+    // rebuild it and drop the code the form tells them apart by.
+    if (isStoredValueRefusal(err) || isFeatureNotEditableError(err)) {
       throw err
     }
     throw backendSaveError(err, featureId)
@@ -473,11 +466,7 @@ const habitatDetailsPayload = Joi.object({
  */
 function saveErrorRefusal(err, refToSave) {
   // The backend checks a reference again; if it refuses one this side
-  // passed, or one another habitat already carries, say so at the field
-  // rather than on an error page.
-  if (isRefInUseError(err)) {
-    return HABITAT_REF_IN_USE_ERROR
-  }
+  // passed, say so at the field rather than on an error page.
   // A value saved before the service checked text lengths and lists
   // refuses any save of the habitat, whatever was changed.
   if (isStoredValueRefusal(err)) {

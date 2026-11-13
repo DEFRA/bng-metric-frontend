@@ -1432,47 +1432,12 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(JSON.parse(payload).ref).toBe(ref)
     })
 
-    test('Leaves a reference another habitat may use for the backend to judge', async () => {
-      // The frontend cannot see the other habitats; the backend refuses a
-      // reference in use (HABITAT_REF_IN_USE), shown below.
+    test('Saves a reference another habitat may use: references need not be unique', async () => {
       const { statusCode } = await postRef({ habitatRef: 'A2' })
 
       expect(statusCode).toBe(302)
       const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
       expect(JSON.parse(payload).ref).toBe('A2')
-    })
-  })
-
-  describe('on Save with a reference another habitat already uses', () => {
-    beforeEach(() => {
-      vi.mocked(wreck.put).mockRejectedValue({
-        isBoom: true,
-        output: { statusCode: 422 },
-        data: {
-          res: { statusCode: 422 },
-          payload: { code: 'HABITAT_REF_IN_USE' }
-        }
-      })
-    })
-
-    test('Shows the page again with the in-use error, keeping what was typed and chosen', async () => {
-      const { statusCode, result } = await postRef({
-        habitatRef: 'A2',
-        habitatType: 'Bracken',
-        condition: 'Poor'
-      })
-
-      expect(statusCode).toBe(statusCodes.badRequest)
-      expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
-      expect(result).toContain(
-        '<a href="#habitatRef">You have entered a habitat reference that is already in use.</a>'
-      )
-      expect(result).toContain(
-        'Enter a habitat reference that is not already in use.'
-      )
-      expect(result).toMatch(/id="habitatRef" name="habitatRef"[^>]*value="A2"/)
-      expect(result).toMatch(/<option value="Bracken" selected>/)
-      expect(result).toMatch(/<option value="Poor" selected>/)
     })
   })
 

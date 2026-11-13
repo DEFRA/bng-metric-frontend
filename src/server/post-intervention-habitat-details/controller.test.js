@@ -592,8 +592,8 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-hedgerow-details',
       expect.objectContaining({
-        // "Hedgerow" and the saved ref as the H1 (BMD-1180).
-        heading: 'Hedgerow HG-2',
+        // "Habitat" and the saved ref as the H1, for a hedgerow too (BMD-1180).
+        heading: 'Habitat HG-2',
         habitatDetailsSectionHeading: 'Post-intervention habitat details',
         habitatUnitsLabel: 'Habitat units delivered',
         habitatRef: 'HG-2',
@@ -813,9 +813,9 @@ describe('#postInterventionHabitatDetailsController', () => {
     expect(h.view).toHaveBeenCalledWith(
       'habitat-details/pi-watercourse-details',
       expect.objectContaining({
-        // "Watercourse" and the saved ref as the H1 (BMD-1180); the page
+        // "Habitat" and the saved ref as the H1 (BMD-1180); the page
         // name becomes the section heading.
-        heading: 'Watercourse W-1',
+        heading: 'Habitat W-1',
         habitatDetailsSectionHeading: 'Post-intervention habitat details',
         habitatUnitsLabel: 'Habitat units delivered',
         habitatRef: 'W-1',
