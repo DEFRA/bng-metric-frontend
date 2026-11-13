@@ -2,13 +2,15 @@ import {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
   loadCreatedTreeReference,
-  loadCreatedWatercourseReference
+  loadCreatedWatercourseReference,
+  loadEnhancedTreeReference
 } from './created-edit-reference.js'
 export {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
   loadCreatedTreeReference,
   loadCreatedWatercourseReference,
+  loadEnhancedTreeReference,
   _resetCreatedAreaReferenceCache
 } from './created-edit-reference.js'
 import {
@@ -60,6 +62,7 @@ const ERRORS = Object.freeze({
   timingBoth: formError('advanceOrDelay', 'both'),
   broadHabitat: formError('broadHabitat', 'invalid'),
   condition: formError('condition', 'notForHabitatType'),
+  conditionNotBetter: formError('condition', 'notBetterThanBaseline'),
   strategicSignificance: formError('strategicSignificance', 'invalid'),
   watercourseEncroachment: formError('watercourseEncroachment', 'invalid'),
   riparianEncroachment: formError('riparianEncroachment', 'invalid')
@@ -128,6 +131,56 @@ export const CREATED_EDIT_KINDS = {
     fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
     habitatTypeRequired: true,
     habitatTypeError: formError('habitatType', 'invalidTree')
+  },
+  // An Enhanced individual tree is edited on the same page, but it enhances
+  // its condition only: its size, type and setting are its baseline tree's.
+  // So its habitat type is offered only as stored, and its target condition
+  // only as one better than its baseline condition, with the Metric's
+  // enhancement time to target (enhancedTreeReference).
+  enhancedTree: {
+    loadReference: loadEnhancedTreeReference,
+    label: 'Tree',
+    optionalReference: true,
+    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
+    buildBase: buildTreeSectionsViewOnlyViewModel,
+    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
+    sizeLabel: 'Size (hectares)',
+    backType: 'tree',
+    savePath: 'trees',
+    hasBroadHabitat: true,
+    fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
+    habitatTypeRequired: true,
+    habitatTypeError: formError('habitatType', 'invalidTree'),
+    conditionError: ERRORS.conditionNotBetter,
+    timingLabels: {
+      advanceYears: 'Habitat enhanced in advance (years)',
+      delayYears: 'Delay in starting habitat enhancement (years)'
+    },
+    forFeature: enhancedTreeReference
+  }
+}
+
+/**
+ * The tree enhancement reference narrowed to one Enhanced tree: only its own
+ * habitat type, as its setting is its baseline tree's, offering only the
+ * target conditions its baseline condition can be enhanced to. Each type
+ * keeps its `enhancements`, so narrowing an already narrowed reference gives
+ * the same choices.
+ *
+ * @param {object} reference from loadEnhancedTreeReference
+ * @param {object} feature the post-intervention tree
+ * @returns {object}
+ */
+export function enhancedTreeReference(reference, feature) {
+  const baselineCondition = stripConditionPrefix(feature.baseline?.condition)
+  return {
+    ...reference,
+    habitatTypes: reference.habitatTypes
+      .filter((type) => type.name === feature.proposed?.type)
+      .map((type) => ({
+        ...type,
+        conditions: type.enhancements?.[baselineCondition] ?? []
+      }))
   }
 }
 
@@ -175,7 +228,10 @@ export const createdWatercoursePayloadSchema =
 
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
-  reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
+  reference = {
+    ...(kind.forFeature ? kind.forFeature(reference, feature) : reference),
+    hasBroadHabitat: kind.hasBroadHabitat
+  }
   const saved = createdAreaValues(feature)
   const importedYears = Object.fromEntries(
     ['advanceYears', 'delayYears']
@@ -323,7 +379,7 @@ export function validateCreatedArea(values, reference) {
       const messages = {
         broadHabitat: ERRORS.broadHabitat,
         habitatType: kind.habitatTypeError,
-        condition: ERRORS.condition,
+        condition: kind.conditionError ?? ERRORS.condition,
         strategicSignificance: ERRORS.strategicSignificance,
         watercourseEncroachment: ERRORS.watercourseEncroachment,
         riparianEncroachment: ERRORS.riparianEncroachment

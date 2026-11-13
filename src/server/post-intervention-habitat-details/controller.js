@@ -38,6 +38,7 @@ import {
   featureNotEditableRefusal,
   isFeatureNotEditableError
 } from '../common/helpers/feature-not-editable-refusal.js'
+import { isInvalidEnhancementError } from '../common/helpers/invalid-enhancement-refusal.js'
 import { PI_DETAILS_HEADING } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
@@ -76,6 +77,28 @@ const CREATED_EDIT_TYPES = new Set([
   HEDGEROW_TYPE,
   WATERCOURSE_TYPE
 ])
+// The CREATED_EDIT_KINDS entry an Enhanced tree is edited as.
+const ENHANCED_TREE_KIND = 'enhancedTree'
+
+/**
+ * The CREATED_EDIT_KINDS entry a post-intervention feature's details page
+ * edits it as: a Created area habitat, tree, hedgerow or watercourse its own
+ * type's, and an Enhanced tree the Enhanced tree's. Null for a feature whose
+ * page is read-only or only renames it.
+ *
+ * @param {string} type
+ * @param {string|null} retentionCategory
+ * @returns {string|null}
+ */
+function editKindOf(type, retentionCategory) {
+  if (CREATED_EDIT_TYPES.has(type) && retentionCategory === RETENTION_CREATED) {
+    return type
+  }
+  if (type === TREE_TYPE && retentionCategory === RETENTION_ENHANCED) {
+    return ENHANCED_TREE_KIND
+  }
+  return null
+}
 
 // The area habitat details templates, shared by vertical area habitats and
 // individual trees: the single-section page, and the two-section page with
@@ -105,9 +128,10 @@ const VERTICAL_RETENTION_PAGES = new Map([
 ])
 
 // An individual tree uses the area layout with its size class and number of
-// trees. As for an area habitat, a Created one gets the edit page, and a
-// Retained one the reference form; an Enhanced one is view-only, with its
-// timing and difficulty.
+// trees. A Created or an Enhanced one gets the edit page (editKindOf), and a
+// Retained one the reference form. An Enhanced one falls back to this
+// view-only page, with its timing and difficulty, while the backend does not
+// serve the tree enhancement reference.
 const TREE_RETENTION_PAGES = new Map([
   [
     RETENTION_ENHANCED,
@@ -212,8 +236,8 @@ function renderUnsupportedFeature(
   })
 }
 
-async function loadCreationReferenceForFeature(type, feature) {
-  const kind = CREATED_EDIT_KINDS[type]
+async function loadCreationReferenceForFeature(kindKey, feature) {
+  const kind = CREATED_EDIT_KINDS[kindKey]
   try {
     const reference = await kind.loadReference()
     return createdReferenceForFeature(reference, feature)
@@ -229,21 +253,21 @@ async function loadCreationReferenceForFeature(type, feature) {
 }
 
 /**
- * Render a Created area habitat, tree, hedgerow or watercourse: its edit page,
- * or the read-only page for a tree or linear feature while the backend
- * reference endpoint is not deployed.
+ * Render a Created area habitat, tree, hedgerow or watercourse, or an
+ * Enhanced tree: its edit page, or the read-only page for a tree or linear
+ * feature while the backend reference endpoint is not deployed.
  */
 async function renderCreatedFeature(
   h,
-  { type, feature, project, projectId, projectName, returnUrl }
+  { type, kindKey, feature, project, projectId, projectName, returnUrl }
 ) {
   const baselineFeatureId = createdBaselineFeatureId(project, type, feature)
-  const kind = CREATED_EDIT_KINDS[type]
-  const reference = await loadCreationReferenceForFeature(type, feature)
+  const kind = CREATED_EDIT_KINDS[kindKey]
+  const reference = await loadCreationReferenceForFeature(kindKey, feature)
   if (!reference) {
     return h.view(kind.readOnlyTemplate, {
       ...kind.buildBase(
-        { ...feature, retentionCategory: RETENTION_CREATED },
+        { ...feature, retentionCategory: featureRetentionCategory(feature) },
         {
           projectId,
           projectName,
@@ -289,9 +313,11 @@ async function renderDetailsPage(
   // category stored under `baseline`, or a missing value resolves consistently
   // for every page.
   const retentionCategory = featureRetentionCategory(feature)
-  if (CREATED_EDIT_TYPES.has(type) && retentionCategory === RETENTION_CREATED) {
+  const kindKey = editKindOf(type, retentionCategory)
+  if (kindKey) {
     return renderCreatedFeature(h, {
       type,
+      kindKey,
       feature,
       project,
       projectId,
@@ -355,6 +381,7 @@ const getController = {
 const CREATED_PAYLOAD_SCHEMAS = {
   habitat: createdAreaPayloadSchema,
   tree: createdAreaPayloadSchema,
+  [ENHANCED_TREE_KIND]: createdAreaPayloadSchema,
   hedgerow: createdHedgerowPayloadSchema,
   watercourse: createdWatercoursePayloadSchema
 }
@@ -371,19 +398,23 @@ function validatedPayload(schema, payload) {
   return value
 }
 
-/** Save Created area, tree, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050). */
-async function saveCreatedDetails(request, h, { type, feature, payload }) {
-  const kind = CREATED_EDIT_KINDS[type]
+/** Save Created area, tree, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050), or an Enhanced tree's. */
+async function saveCreatedDetails(
+  request,
+  h,
+  { type, kindKey, feature, payload }
+) {
+  const kind = CREATED_EDIT_KINDS[kindKey]
   if (kind.hasBroadHabitat && !Object.hasOwn(payload, 'broadHabitat')) {
     throw Boom.badRequest('Broad habitat field is required for area edits')
   }
   const { projectId, returnUrl, ...posted } = validatedPayload(
-    CREATED_PAYLOAD_SCHEMAS[type],
+    CREATED_PAYLOAD_SCHEMAS[kindKey],
     payload
   )
   const values = withFixedBroadHabitat(posted, kind)
   delete values.featureId
-  const reference = await loadCreationReferenceForFeature(type, feature)
+  const reference = await loadCreationReferenceForFeature(kindKey, feature)
   if (!reference) {
     throw Boom.serverUnavailable(
       `${kind.label} editing is temporarily unavailable`
@@ -429,6 +460,15 @@ async function saveCreatedDetails(request, h, { type, feature, payload }) {
         refusal: featureNotEditableRefusal()
       })
       return response.code(statusCodes.badRequest)
+    }
+    // A page that offered an Enhanced tree a target condition its baseline
+    // tree no longer allows, such as after an edit to the baseline tree in
+    // another tab: the condition is to blame.
+    if (isInvalidEnhancementError(err) && kind.conditionError) {
+      const response = await showRefused({
+        errors: { condition: kind.conditionError }
+      })
+      return response.code(statusCodes.unprocessableEntity)
     }
     throw err
   }
@@ -503,12 +543,11 @@ const postController = {
       featureId
     )
     const retentionCategory = featureRetentionCategory(feature)
-    if (
-      CREATED_EDIT_TYPES.has(type) &&
-      retentionCategory === RETENTION_CREATED
-    ) {
+    const kindKey = editKindOf(type, retentionCategory)
+    if (kindKey) {
       return saveCreatedDetails(request, h, {
         type,
+        kindKey,
         feature,
         payload: request.payload
       })

@@ -22,6 +22,13 @@ export function loadCreatedTreeReference() {
   return loadCreationReference('tree', 'tree', true)
 }
 
+// An Enhanced individual tree's choices: for each of Urban tree and Rural
+// tree, the target conditions each baseline condition can be enhanced to,
+// with the Metric's enhancement times to target and difficulty.
+export function loadEnhancedTreeReference() {
+  return loadCreationReference('enhancedTree', 'tree', true, 'enhancement')
+}
+
 function hasRequiredArrays(kind, payload) {
   const fields = ['habitatTypes', 'strategicSignificance']
   if (kind === 'watercourse') {
@@ -30,12 +37,17 @@ function hasRequiredArrays(kind, payload) {
   return fields.every((field) => Array.isArray(payload?.[field]))
 }
 
-async function loadCreationReference(kind, referenceName, hasBroadHabitat) {
+async function loadCreationReference(
+  kind,
+  referenceName,
+  hasBroadHabitat,
+  intervention = 'creation'
+) {
   if (!referencePromises.has(kind)) {
     referencePromises.set(
       kind,
       wreck
-        .get(`${backendUrl}/reference/${referenceName}-creation`)
+        .get(`${backendUrl}/reference/${referenceName}-${intervention}`)
         .then(({ res, payload }) => {
           if (
             res?.statusCode >= statusCodes.badRequest ||
@@ -43,7 +55,7 @@ async function loadCreationReference(kind, referenceName, hasBroadHabitat) {
             !payload?.timeMultipliers
           ) {
             throw new Error(
-              `Invalid ${referenceName} creation reference response`
+              `Invalid ${referenceName} ${intervention} reference response`
             )
           }
           return {

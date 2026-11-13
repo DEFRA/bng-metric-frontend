@@ -5,6 +5,7 @@ import { config } from '../../../config/config.js'
 import { statusCodes } from '../constants.js'
 import { backendRequest } from './auth/backend-request.js'
 import { backendSaveError } from './backend-save-error.js'
+import { isInvalidEnhancementError } from './invalid-enhancement-refusal.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
 import {
@@ -436,14 +437,16 @@ export async function saveHabitat(request, path, body, featureId) {
     }
     return payload
   } catch (err) {
-    // A reference another habitat already carries, an older stored value, or
-    // an edit this feature does not take, is for the form to show. Each is
-    // thrown as it is: backendSaveError would rebuild it and drop the code the
-    // form tells them apart by.
+    // A reference another habitat already carries, an older stored value, an
+    // edit this feature does not take, or an enhancement its baseline does not
+    // allow, is for the form to show. Each is thrown as it is:
+    // backendSaveError would rebuild it and drop the code the form tells them
+    // apart by.
     if (
       isRefInUseError(err) ||
       isStoredValueRefusal(err) ||
-      isFeatureNotEditableError(err)
+      isFeatureNotEditableError(err) ||
+      isInvalidEnhancementError(err)
     ) {
       throw err
     }
