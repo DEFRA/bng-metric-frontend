@@ -1,6 +1,11 @@
 // Shared by the controller and the view-model builder so the page heading and
 // the habitat-type destination stays in step across every render path.
 export const PI_DETAILS_HEADING = 'Post-intervention habitat details'
+// The area habitat details page with its time to target / difficulty section,
+// which area habitats and individual trees share.
+export const AREA_SECTIONS_TEMPLATE =
+  'habitat-details/pi-habitat-details-enhanced'
+export const AREA_SIZE_LABEL = 'Size (hectares)'
 export const TIME_DIFFICULTY_SECTION_HEADING = 'Time to target / difficulty'
 export const HABITAT_UNITS_DELIVERED_LABEL = 'Habitat units delivered'
 export const STANDARD_TIME_TO_TARGET_SUFFIX = ' years'

@@ -244,7 +244,7 @@ describe('#postInterventionHabitatDetailsController', () => {
   )
 
   // A Medium urban tree point standing for 2 trees.
-  function mockTree(retentionCategory, treeCreation) {
+  function mockTree(retentionCategory, treeCreation, treeEnhancement) {
     _resetCreatedAreaReferenceCache()
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {
@@ -273,6 +273,9 @@ describe('#postInterventionHabitatDetailsController', () => {
       }
       if (url.endsWith('/reference/tree-creation') && treeCreation) {
         return treeCreation()
+      }
+      if (url.endsWith('/reference/tree-enhancement') && treeEnhancement) {
+        return treeEnhancement()
       }
       if (isProjectUrl(url)) {
         return Promise.resolve(projectPayload)
@@ -314,8 +317,14 @@ describe('#postInterventionHabitatDetailsController', () => {
     backHref: `/projects/${projectId}/area-post-intervention`
   }
 
-  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and number of trees', async () => {
-    mockTree('Enhanced')
+  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and number of trees, while the backend does not serve the tree enhancement reference', async () => {
+    mockTree('Enhanced', undefined, () =>
+      Promise.reject(
+        Object.assign(new Error('Not Found'), {
+          output: { statusCode: 404 }
+        })
+      )
+    )
 
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)

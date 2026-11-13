@@ -1359,6 +1359,9 @@ forms:
     invalidTree: Choose Urban tree or Rural tree
   condition:
     notForHabitatType: Choose a target condition for the selected habitat type
+    # An Enhanced tree's target condition no better than its baseline one,
+    # on the page or refused by the service (ENHANCEMENT_NOT_VALID).
+    notBetterThanBaseline: Choose a target condition better than the tree's baseline condition
   strategicSignificance:
     invalid: Choose a valid strategic significance
   watercourseEncroachment:
