@@ -19,6 +19,12 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *         schema:
  *           type: string
  *           format: uuid
+ *       - in: query
+ *         name: returnUrl
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: The page Save and Cancel return to. Defaults to the project summary.
  *     responses:
  *       200:
  *         description: Renders the project details form
@@ -46,7 +52,7 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *           schema:
  *             type: object
  *             properties:
- *               localPlanningAuthorityReference:
+ *               projectName:
  *                 type: string
  *               surveyCompleters:
  *                 type: string
@@ -56,17 +62,19 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *                 type: string
  *               surveyCompletionDate-year:
  *                 type: string
- *               developmentType:
- *                 type: string
- *                 enum: [Small site, Large site]
- *               nsips:
- *                 type: string
- *                 enum: [Yes, No]
  *               applicant:
+ *                 type: string
+ *               localPlanningAuthorityReference:
+ *                 type: string
+ *               planningApplicationReference:
+ *                 type: string
+ *               planningApplicationType:
+ *                 type: string
+ *               returnUrl:
  *                 type: string
  *     responses:
  *       302:
- *         description: Redirects to the project summary on success
+ *         description: Redirects to returnUrl (or the project summary) on success
  *       200:
  *         description: Validation failure, re-renders the form with errors
  *       502:

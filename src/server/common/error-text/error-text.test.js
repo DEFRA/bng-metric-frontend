@@ -238,8 +238,10 @@ describe("error-text.yaml's wording field", () => {
     })
     withEntries(errorText.forms.applicant, parsed.forms.applicant, () => {
       expect(formErrorText('applicant', 'tooLong', { max: 5 })).toEqual({
-        summary: 'Applicant must be 5 characters or fewer',
-        inline: 'Applicant must be 5 characters or fewer'
+        summary:
+          'Planning permission applicant name must be 5 characters or fewer',
+        inline:
+          'Planning permission applicant name must be 5 characters or fewer'
       })
     })
     withEntries(errorText.pages, parsed.pages, () => {
@@ -371,8 +373,9 @@ describe('formErrorText', () => {
 
   test('gives a rule worded as text beside its wording field as both messages', () => {
     expect(formErrorText('applicant', 'tooLong', { max: 5 })).toEqual({
-      summary: 'Applicant must be 5 characters or fewer',
-      inline: 'Applicant must be 5 characters or fewer'
+      summary:
+        'Planning permission applicant name must be 5 characters or fewer',
+      inline: 'Planning permission applicant name must be 5 characters or fewer'
     })
   })
 

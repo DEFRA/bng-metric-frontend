@@ -38,40 +38,43 @@ const authedAuth = {
 
 const projectId = 'aa0e8400-e29b-41d4-a716-446655440000'
 const url = `/project-details/${projectId}`
-const mockProject = { project: { name: 'Greenfield Meadow Restoration' } }
+const summaryUrl = `/projects/${projectId}/project-summary`
+const areaSummaryUrl = `/projects/${projectId}/area-summary`
+const projectName = 'Greenfield Meadow Restoration'
+const mockProject = { project: { name: projectName } }
 const savedDetails = {
   localPlanningAuthority: 'Anytown Borough Council',
   localPlanningAuthorityReference: 'E60000001',
   surveyCompleters: 'Jane Smith',
   surveyCompletionDate: '01/06/2025',
-  developmentType: 'Small site',
-  nsips: 'No',
-  applicant: 'Acme Developments Ltd'
+  applicant: 'Acme Developments Ltd',
+  planningApplicationReference: '24/01234/FUL',
+  planningApplicationType: 'Outline planning permission'
 }
 const mockProjectWithDetails = {
-  project: {
-    name: 'Greenfield Meadow Restoration',
-    details: savedDetails
-  }
+  project: { name: projectName, details: savedDetails }
 }
 
-const {
-  surveyCompletionDate: _savedDate,
-  localPlanningAuthority: _savedName,
-  ...savedDetailsWithoutDate
-} = savedDetails
-const savedDateFormFields = {
+const formPayload = {
+  projectName,
+  surveyCompleters: 'Jane Smith',
   'surveyCompletionDate-day': '01',
   'surveyCompletionDate-month': '06',
-  'surveyCompletionDate-year': '2025'
+  'surveyCompletionDate-year': '2025',
+  applicant: 'Acme Developments Ltd',
+  localPlanningAuthorityReference: 'E60000001',
+  planningApplicationReference: '24/01234/FUL',
+  planningApplicationType: 'Outline planning permission',
+  returnUrl: areaSummaryUrl
 }
-const savedDetailsFormPayload = {
-  ...savedDetailsWithoutDate,
-  ...savedDateFormFields
-}
-const savedDetailsForPatch = {
-  ...savedDetailsWithoutDate,
-  surveyCompletionDate: savedDetails.surveyCompletionDate
+const expectedPatch = {
+  name: projectName,
+  surveyCompleters: 'Jane Smith',
+  applicant: 'Acme Developments Ltd',
+  localPlanningAuthorityReference: 'E60000001',
+  planningApplicationReference: '24/01234/FUL',
+  planningApplicationType: 'Outline planning permission',
+  surveyCompletionDate: '01/06/2025'
 }
 
 // Mirrors what @hapi/wreck's get/post/patch/... shortcuts actually throw for
@@ -81,6 +84,11 @@ function responseError(statusCode, payload = null) {
   const error = new Error(`Response Error: ${statusCode}`)
   error.data = { isResponseError: true, res: { statusCode }, payload }
   return error
+}
+
+function inputValue(html, id) {
+  const match = new RegExp(`<input[^>]*id="${id}"[^>]*>`).exec(html)
+  return /value="([^"]*)"/.exec(match?.[0] ?? '')?.[1] ?? ''
 }
 
 describe('#projectDetailsController', () => {
@@ -115,14 +123,142 @@ describe('#projectDetailsController', () => {
     expect(statusCode).toBe(statusCodes.ok)
   })
 
-  test('renders the page heading', async () => {
+  test('AC2 renders the heading, help text, fields in order and CTAs', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url,
       auth: authedAuth
     })
-    expect(result).toContain('govuk-heading-xl')
+    expect(result).toContain(
+      '<h1 class="govuk-heading-xl">Project details</h1>'
+    )
+    expect(result).toContain(
+      'Enter the details for the project. You do not need to add them all'
+    )
+    const labels = [
+      'Project name',
+      'Survey completed by',
+      'Survey date',
+      'Planning permission applicant name',
+      'Local planning authority',
+      'Planning application reference (optional)',
+      'Planning application type (optional)'
+    ]
+    const positions = labels.map((label) => result.indexOf(`${label}\n`))
+    expect(positions.every((position) => position > 0)).toBe(true)
+    expect(positions).toEqual([...positions].sort((a, b) => a - b))
+    expect(result).toContain('Choose local planning authority')
+    expect(result).toMatch(/<button[^>]*>\s*Save\s*<\/button>/)
+    expect(result).toContain(
+      `<a class="govuk-link" href="${summaryUrl}">Cancel</a>`
+    )
+    expect(result).not.toContain('govuk-error-summary')
   })
+
+  test('AC2 pre-fills only the project name when nothing else is saved', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(inputValue(result, 'projectName')).toBe(projectName)
+    for (const id of [
+      'surveyCompleters',
+      'surveyCompletionDate-day',
+      'surveyCompletionDate-month',
+      'surveyCompletionDate-year',
+      'applicant',
+      'planningApplicationReference',
+      'planningApplicationType'
+    ]) {
+      expect(inputValue(result, id)).toBe('')
+    }
+    expect(result).toMatch(/<option value="" selected>/)
+  })
+
+  test('AC3 pre-fills every saved detail', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjectWithDetails
+    })
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(inputValue(result, 'surveyCompleters')).toBe('Jane Smith')
+    expect(inputValue(result, 'surveyCompletionDate-day')).toBe('01')
+    expect(inputValue(result, 'surveyCompletionDate-month')).toBe('06')
+    expect(inputValue(result, 'surveyCompletionDate-year')).toBe('2025')
+    expect(inputValue(result, 'applicant')).toBe('Acme Developments Ltd')
+    expect(inputValue(result, 'planningApplicationReference')).toBe(
+      '24/01234/FUL'
+    )
+    expect(inputValue(result, 'planningApplicationType')).toBe(
+      'Outline planning permission'
+    )
+    expect(result).toMatch(/<option value="E60000001" selected>/)
+  })
+
+  test('AC4/AC5 limits each input to its maximum length', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    const maxlength = (id) =>
+      /maxlength="(\d+)"/.exec(
+        new RegExp(`<input[^>]*id="${id}"[^>]*>`).exec(result)[0]
+      )[1]
+    expect(maxlength('projectName')).toBe('1000')
+    expect(maxlength('surveyCompleters')).toBe('255')
+    expect(maxlength('applicant')).toBe('255')
+    expect(maxlength('planningApplicationReference')).toBe('50')
+    expect(maxlength('planningApplicationType')).toBe('100')
+    expect(maxlength('surveyCompletionDate-day')).toBe('2')
+    expect(maxlength('surveyCompletionDate-month')).toBe('2')
+    expect(maxlength('surveyCompletionDate-year')).toBe('4')
+  })
+
+  test('AC1 shows the left navigation with Project details as the current item', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      '<strong class="app-project-navigation__current" aria-current="page">Project details</strong>'
+    )
+    expect(result).toContain(`href="${summaryUrl}">Summary</a>`)
+  })
+
+  test('returns to the page named in returnUrl on Cancel', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `${url}?returnUrl=${encodeURIComponent(areaSummaryUrl)}`,
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      `<a class="govuk-link" href="${areaSummaryUrl}">Cancel</a>`
+    )
+    expect(result).toContain(
+      `<input type="hidden" name="returnUrl" value="${areaSummaryUrl}">`
+    )
+  })
+
+  test.each(['https://evil.example', '//evil.example', 'javascript:alert(1)'])(
+    'falls back to the project summary for an off-site returnUrl %s',
+    async (returnUrl) => {
+      const { result } = await server.inject({
+        method: 'GET',
+        url: `${url}?returnUrl=${encodeURIComponent(returnUrl)}`,
+        auth: authedAuth
+      })
+      expect(result).toContain(
+        `<a class="govuk-link" href="${summaryUrl}">Cancel</a>`
+      )
+    }
+  )
 
   test('returns 502 rather than an empty dropdown when the lookup fails', async () => {
     vi.mocked(fetchLocalPlanningAuthorities).mockRejectedValueOnce(
@@ -139,77 +275,15 @@ describe('#projectDetailsController', () => {
         project: { details: { localPlanningAuthority: 'Historic council' } }
       }
     })
-    const res = await server.inject({ method: 'GET', url, auth: authedAuth })
-    expect(res.result).toContain(
-      'Previously saved Local Planning Authority: Historic council'
+    const { result } = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(result).toContain(
+      'Previously saved local planning authority: Historic council'
     )
-    expect(res.result).toMatch(/value="" selected/)
-  })
-
-  test('renders the back link', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url,
-      auth: authedAuth
-    })
-    expect(result).toContain('govuk-back-link')
-    expect(result).toContain(`/projects/${projectId}/project-summary`)
-  })
-
-  test('renders the project name caption', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url,
-      auth: authedAuth
-    })
-    expect(result).toContain('Greenfield Meadow Restoration')
-  })
-
-  test('renders without caption when project name is missing', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: { project: {} }
-    })
-    const { statusCode, result } = await server.inject({
-      method: 'GET',
-      url,
-      auth: authedAuth
-    })
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).not.toContain('govuk-caption-l')
-  })
-
-  test('renders a blank form when no details are persisted', async () => {
-    const { result } = await server.inject({
-      method: 'GET',
-      url,
-      auth: authedAuth
-    })
-    expect(result).toContain('<select')
-    expect(result).toMatch(/value="" selected/)
-    expect(result).not.toMatch(/value="E60000001" selected/)
-  })
-
-  test('pre-fills the form with previously saved details', async () => {
-    vi.mocked(wreck.get).mockResolvedValue({
-      res: { statusCode: 200 },
-      payload: mockProjectWithDetails
-    })
-    const { result } = await server.inject({
-      method: 'GET',
-      url,
-      auth: authedAuth
-    })
-    expect(result).toMatch(/value="E60000001" selected/)
-    expect(result).toContain('value="Jane Smith"')
-    expect(result).toContain('value="Acme Developments Ltd"')
-    // Date input: day/month/year pre-filled from the saved DD/MM/YYYY string
-    expect(result).toMatch(/id="surveyCompletionDate-day"[^>]*value="01"/)
-    expect(result).toMatch(/id="surveyCompletionDate-month"[^>]*value="06"/)
-    expect(result).toMatch(/id="surveyCompletionDate-year"[^>]*value="2025"/)
-    // Radios: checked attribute on the matching option
-    expect(result).toMatch(/value="Small site"[^>]*checked/)
-    expect(result).toMatch(/value="No"[^>]*checked/)
+    expect(result).toMatch(/<option value="" selected>/)
   })
 
   test('returns 404 when backend returns 404', async () => {
@@ -223,9 +297,7 @@ describe('#projectDetailsController', () => {
   })
 
   test('returns 502 when backend returns a non-2xx response', async () => {
-    vi.mocked(wreck.get).mockRejectedValue(
-      responseError(503, { error: 'Service Unavailable' })
-    )
+    vi.mocked(wreck.get).mockRejectedValue(responseError(500))
     const { statusCode } = await server.inject({
       method: 'GET',
       url,
@@ -244,29 +316,6 @@ describe('#projectDetailsController', () => {
     expect(statusCode).toBe(statusCodes.badGateway)
   })
 
-  test('returns 502 when backend throws a boom error', async () => {
-    vi.mocked(wreck.get).mockRejectedValue(Boom.gatewayTimeout('timeout'))
-    const { statusCode } = await server.inject({
-      method: 'GET',
-      url,
-      auth: authedAuth
-    })
-    expect(statusCode).toBe(statusCodes.badGateway)
-  })
-})
-
-describe('#projectDetailsController - validation', () => {
-  let server
-
-  beforeAll(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-  })
-
   test('returns 400 when projectId is not a UUID', async () => {
     const { statusCode } = await server.inject({
       method: 'GET',
@@ -275,25 +324,9 @@ describe('#projectDetailsController - validation', () => {
     })
     expect(statusCode).toBe(statusCodes.badRequest)
   })
-})
-
-describe('#projectDetailsController - authentication', () => {
-  let server
-
-  beforeAll(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 0 })
-  })
 
   test('redirects unauthenticated users', async () => {
-    const { statusCode } = await server.inject({
-      method: 'GET',
-      url
-    })
+    const { statusCode } = await server.inject({ method: 'GET', url })
     expect(statusCode).toBe(statusCodes.redirect)
   })
 
@@ -329,6 +362,10 @@ describe('#projectDetailsPostController', () => {
   })
 
   beforeEach(async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProject
+    })
     vi.mocked(wreck.patch).mockResolvedValue({
       res: { statusCode: 200 },
       payload: savedDetails
@@ -341,325 +378,250 @@ describe('#projectDetailsPostController', () => {
     vi.restoreAllMocks()
   })
 
-  test('PATCHes the backend with the submitted fields', async () => {
-    await server.inject({
+  function post(payload) {
+    return server.inject({
       method: 'POST',
       url,
-      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
+      payload: { ...payload, crumb: crumb.token },
       headers: { cookie: crumb.cookie },
       auth: authedAuth
+    })
+  }
+
+  test('AC8 PATCHes the name and details together, trimmed', async () => {
+    await post({
+      ...formPayload,
+      projectName: `  ${projectName}  `,
+      surveyCompleters: '  Jane Smith '
     })
 
     expect(wreck.patch).toHaveBeenCalledOnce()
     const [patchUrl, options] = vi.mocked(wreck.patch).mock.calls[0]
-    const body = JSON.parse(options.payload)
-
     expect(patchUrl).toContain(`/projects/${projectId}/details`)
     expect(options.headers['Content-Type']).toBe('application/json')
-    expect(body).toEqual(savedDetailsForPatch)
+    expect(JSON.parse(options.payload)).toEqual(expectedPatch)
   })
+
+  test('AC8 returns to the page the user came from, with no success message', async () => {
+    const { statusCode, headers } = await post(formPayload)
+    expect(statusCode).toBe(statusCodes.redirect)
+    expect(headers.location).toBe(areaSummaryUrl)
+  })
+
+  test('AC8 returns to the project summary when no page was named', async () => {
+    const { headers } = await post({ ...formPayload, returnUrl: '' })
+    expect(headers.location).toBe(summaryUrl)
+  })
+
+  test('returns to the project summary rather than an off-site returnUrl', async () => {
+    const { headers } = await post({
+      ...formPayload,
+      returnUrl: 'https://evil.example/'
+    })
+    expect(headers.location).toBe(summaryUrl)
+  })
+
+  test('AC8 sends explicit null for fields left blank, so the backend clears them', async () => {
+    await post({ projectName })
+    const body = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
+    expect(body).toEqual({
+      name: projectName,
+      surveyCompleters: null,
+      surveyCompletionDate: null,
+      applicant: null,
+      localPlanningAuthorityReference: null,
+      planningApplicationReference: null,
+      planningApplicationType: null
+    })
+  })
+
+  test('saves without fetching the project or the LPA lookup', async () => {
+    vi.mocked(fetchLocalPlanningAuthorities).mockClear()
+    const res = await post(formPayload)
+    expect(res.statusCode).toBe(statusCodes.redirect)
+    expect(wreck.get).not.toHaveBeenCalled()
+    expect(fetchLocalPlanningAuthorities).not.toHaveBeenCalled()
+  })
+
+  test('AC10 shows every problem at once, in field order, without saving', async () => {
+    const res = await post({
+      ...formPayload,
+      projectName: '   ',
+      surveyCompleters: 'a'.repeat(256),
+      'surveyCompletionDate-day': '',
+      applicant: 'Bad\u0007name',
+      planningApplicationReference: 'a'.repeat(51),
+      planningApplicationType: 'a'.repeat(101)
+    })
+    expect(res.statusCode).toBe(statusCodes.ok)
+    expect(wreck.patch).not.toHaveBeenCalled()
+
+    const messages = [
+      'Enter a project name',
+      'Survey completed by must be 255 characters or fewer',
+      'Survey date must include a day',
+      'Planning permission applicant name must only contain valid characters',
+      'Planning application reference must be 50 characters or fewer',
+      'Planning application type must be 100 characters or fewer'
+    ]
+    const summary = res.result.slice(
+      res.result.indexOf('govuk-error-summary'),
+      res.result.indexOf('<h1')
+    )
+    const positions = messages.map((message) => summary.indexOf(message))
+    expect(positions.every((position) => position > 0)).toBe(true)
+    expect(positions).toEqual([...positions].sort((a, b) => a - b))
+    expect(summary).toContain('href="#projectName"')
+    expect(summary).toContain('href="#surveyCompletionDate-day"')
+    expect(res.result).toMatch(/<title>\s*Error: Project details/)
+  })
+
+  test('AC10 keeps every value as entered', async () => {
+    const res = await post({
+      ...formPayload,
+      projectName: '',
+      'surveyCompletionDate-day': 'ab'
+    })
+    expect(inputValue(res.result, 'surveyCompleters')).toBe('Jane Smith')
+    expect(inputValue(res.result, 'surveyCompletionDate-day')).toBe('ab')
+    expect(inputValue(res.result, 'planningApplicationType')).toBe(
+      'Outline planning permission'
+    )
+    expect(res.result).toMatch(/<option value="E60000001" selected>/)
+    expect(res.result).toContain(
+      `<input type="hidden" name="returnUrl" value="${areaSummaryUrl}">`
+    )
+    expect(res.result).toContain(
+      '<strong class="app-project-navigation__current" aria-current="page">Project details</strong>'
+    )
+  })
+
+  test.each([
+    [
+      { 'surveyCompletionDate-month': '' },
+      'Survey date must include a month',
+      ['month']
+    ],
+    [
+      { 'surveyCompletionDate-day': '', 'surveyCompletionDate-year': '' },
+      'Survey date must include day and year',
+      ['day', 'year']
+    ],
+    [
+      { 'surveyCompletionDate-month': 'Ju' },
+      'Survey date must only include numbers',
+      ['month']
+    ],
+    [
+      { 'surveyCompletionDate-day': '31', 'surveyCompletionDate-month': '02' },
+      'Survey date must be a real date',
+      ['day', 'month', 'year']
+    ],
+    [
+      { 'surveyCompletionDate-year': '2999' },
+      'Survey date must be today or in the past',
+      ['day', 'month', 'year']
+    ]
+  ])(
+    'AC10 survey date %j is refused with "%s"',
+    async (dateFields, message, parts) => {
+      const res = await post({ ...formPayload, ...dateFields })
+      expect(wreck.patch).not.toHaveBeenCalled()
+      expect(res.result).toContain(message)
+      for (const part of ['day', 'month', 'year']) {
+        const input = new RegExp(
+          `<input[^>]*id="surveyCompletionDate-${part}"[^>]*>`
+        ).exec(res.result)[0]
+        expect(input.includes('govuk-input--error')).toBe(parts.includes(part))
+      }
+    }
+  )
 
   test.each(['E60099999', 'not-a-reference'])(
     'rejects unknown or malformed reference %s and retains the rest of the form',
     async (reference) => {
       if (reference === 'E60099999') {
-        vi.mocked(wreck.patch).mockRejectedValueOnce(responseError(400))
+        vi.mocked(wreck.patch).mockRejectedValueOnce(
+          responseError(400, {
+            message: 'Select a Local Planning Authority from the list'
+          })
+        )
       }
-      const res = await server.inject({
-        method: 'POST',
-        url,
-        auth: authedAuth,
-        headers: { cookie: crumb.cookie },
-        payload: {
-          ...savedDetailsFormPayload,
-          localPlanningAuthorityReference: reference,
-          crumb: crumb.token
-        }
+      const res = await post({
+        ...formPayload,
+        localPlanningAuthorityReference: reference
       })
       expect(res.statusCode).toBe(statusCodes.ok)
       expect(res.result).toContain(
-        'Select a Local Planning Authority from the list'
+        'Select a local planning authority from the list'
       )
       expect(res.result).toContain('href="#localPlanningAuthorityReference"')
-      expect(res.result).toContain('value="Jane Smith"')
+      expect(inputValue(res.result, 'surveyCompleters')).toBe('Jane Smith')
       expect(wreck.patch).toHaveBeenCalledTimes(
         reference === 'E60099999' ? 1 : 0
       )
     }
   )
 
-  test('clears the LPA when the blank option is selected', async () => {
-    await server.inject({
-      method: 'POST',
-      url,
-      auth: authedAuth,
-      headers: { cookie: crumb.cookie },
-      payload: {
-        ...savedDetailsFormPayload,
-        localPlanningAuthorityReference: '',
-        crumb: crumb.token
-      }
+  test('returns 502, not an LPA error, when the backend refuses the payload for another reason', async () => {
+    vi.mocked(wreck.patch).mockRejectedValueOnce(
+      responseError(400, {
+        message: '"planningApplicationType" is not allowed'
+      })
+    )
+    const { statusCode, result } = await post({
+      ...formPayload,
+      localPlanningAuthorityReference: 'E60000001'
     })
-    const body = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
-    expect(body).toMatchObject({
-      localPlanningAuthorityReference: null
-    })
+    expect(statusCode).toBe(statusCodes.badGateway)
+    expect(result).not.toContain(
+      'Select a local planning authority from the list'
+    )
   })
 
-  test('saves without fetching the LPA lookup', async () => {
-    vi.mocked(fetchLocalPlanningAuthorities).mockClear()
-    vi.mocked(fetchLocalPlanningAuthorities).mockRejectedValue(
-      Boom.badGateway('Lookup unavailable')
-    )
+  test('drops a field the page no longer shows, from a form loaded before BMD-849', async () => {
+    const res = await post({
+      ...formPayload,
+      developmentType: 'Residential',
+      nsips: 'no'
+    })
+    expect(res.statusCode).toBe(statusCodes.redirect)
+    const sent = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
+    expect(sent).not.toHaveProperty('developmentType')
+    expect(sent).not.toHaveProperty('nsips')
+  })
+
+  test('returns 400, not 500, when a field is posted twice', async () => {
     const res = await server.inject({
       method: 'POST',
       url,
-      auth: authedAuth,
-      headers: { cookie: crumb.cookie },
-      payload: { ...savedDetailsFormPayload, crumb: crumb.token }
-    })
-    expect(res.statusCode).toBe(statusCodes.redirect)
-    expect(wreck.patch).toHaveBeenCalledOnce()
-    expect(fetchLocalPlanningAuthorities).not.toHaveBeenCalled()
-  })
-
-  test('sends explicit null for fields left blank, so the backend clears them', async () => {
-    await server.inject({
-      method: 'POST',
-      url,
-      payload: {
-        localPlanningAuthorityReference: 'E60000001',
-        crumb: crumb.token
+      payload: `projectName=A&surveyCompletionDate-day=1&surveyCompletionDate-day=2&crumb=${crumb.token}`,
+      headers: {
+        cookie: crumb.cookie,
+        'content-type': 'application/x-www-form-urlencoded'
       },
-      headers: { cookie: crumb.cookie },
       auth: authedAuth
     })
-
-    const [, options] = vi.mocked(wreck.patch).mock.calls[0]
-    const body = JSON.parse(options.payload)
-
-    expect(body).toEqual({
-      localPlanningAuthorityReference: 'E60000001',
-      surveyCompleters: null,
-      surveyCompletionDate: null,
-      developmentType: null,
-      nsips: null,
-      applicant: null
-    })
-  })
-
-  test('redirects to the project summary on success', async () => {
-    const { statusCode, headers } = await server.inject({
-      method: 'POST',
-      url,
-      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.redirect)
-    expect(headers.location).toBe(`/projects/${projectId}/project-summary`)
+    expect(res.statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.patch).not.toHaveBeenCalled()
   })
 
   test('returns 404 when backend returns 404', async () => {
     vi.mocked(wreck.patch).mockRejectedValue(responseError(404))
-    const { statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
+    const { statusCode } = await post(formPayload)
     expect(statusCode).toBe(statusCodes.notFound)
   })
 
   test('returns 502 when backend returns a non-2xx response', async () => {
     vi.mocked(wreck.patch).mockRejectedValue(responseError(500))
-    const { statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
+    const { statusCode } = await post(formPayload)
     expect(statusCode).toBe(statusCodes.badGateway)
   })
 
   test('returns 502 when wreck throws', async () => {
     vi.mocked(wreck.patch).mockRejectedValue(new Error('Network failure'))
-    const { statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: { ...savedDetailsFormPayload, crumb: crumb.token },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
+    const { statusCode } = await post(formPayload)
     expect(statusCode).toBe(statusCodes.badGateway)
-  })
-
-  test('shows an error summary when the survey completion date is missing a day, without calling the backend', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: {
-        'surveyCompletionDate-month': '6',
-        'surveyCompletionDate-year': '2025',
-        crumb: crumb.token
-      },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toContain('There is a problem')
-    expect(result).toContain('Survey completion date must include a day')
-    expect(result).toContain('href="#surveyCompletionDate-day"')
-    expect(wreck.patch).not.toHaveBeenCalled()
-  })
-
-  test.each([
-    [
-      'surveyCompleters',
-      'x'.repeat(501),
-      'Survey completer(s) must be 500 characters or fewer'
-    ],
-    ['applicant', 'x'.repeat(501), 'Applicant must be 500 characters or fewer'],
-    // Only a form posted from elsewhere sends these, so they have no
-    // wording of their own.
-    ['developmentType', 'Huge site', 'There is a problem with this answer'],
-    ['nsips', 'Maybe', 'There is a problem with this answer']
-  ])(
-    "words a refused %s from error-text.yaml, not the validator's own text",
-    async (field, value, message) => {
-      const { result, statusCode } = await server.inject({
-        method: 'POST',
-        url,
-        payload: { [field]: value, crumb: crumb.token },
-        headers: { cookie: crumb.cookie },
-        auth: authedAuth
-      })
-
-      expect(statusCode).toBe(statusCodes.ok)
-      expect(result).toContain(message)
-      expect(result).toContain(`href="#${field}"`)
-      expect(result).not.toContain(`&quot;${field}&quot;`)
-      expect(wreck.patch).not.toHaveBeenCalled()
-    }
-  )
-
-  test('shows an error summary when the survey completion date is missing day and month', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: {
-        'surveyCompletionDate-year': '2025',
-        crumb: crumb.token
-      },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toContain(
-      'Survey completion date must include day and month'
-    )
-  })
-
-  test('shows an error summary when the survey completion date is not a real date, without calling the backend', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: {
-        'surveyCompletionDate-day': '31',
-        'surveyCompletionDate-month': '2',
-        'surveyCompletionDate-year': '2025',
-        crumb: crumb.token
-      },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toContain('Survey completion date must be a real date')
-    expect(wreck.patch).not.toHaveBeenCalled()
-  })
-
-  test('shows an error summary when the survey completion date is non-numeric', async () => {
-    const { result, statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: {
-        'surveyCompletionDate-day': 'aa',
-        'surveyCompletionDate-month': '6',
-        'surveyCompletionDate-year': '2025',
-        crumb: crumb.token
-      },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(result).toContain('Survey completion date must be a real date')
-  })
-
-  test('repopulates the form with submitted values on validation failure', async () => {
-    const { result } = await server.inject({
-      method: 'POST',
-      url,
-      payload: {
-        localPlanningAuthorityReference: 'E60000001',
-        'surveyCompletionDate-day': '31',
-        'surveyCompletionDate-month': '2',
-        'surveyCompletionDate-year': '2025',
-        crumb: crumb.token
-      },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(result).toMatch(/value="E60000001" selected/)
-    expect(result).toMatch(/id="surveyCompletionDate-day"[^>]*value="31"/)
-    expect(result).toMatch(/id="surveyCompletionDate-month"[^>]*value="2"/)
-    expect(result).toMatch(/id="surveyCompletionDate-year"[^>]*value="2025"/)
-    // Every part is highlighted for a "not a real date" error
-    const dayInput = result.match(
-      /<input[^>]*id="surveyCompletionDate-day"[^>]*>/
-    )?.[0]
-    expect(dayInput).toContain('govuk-input--error')
-  })
-
-  test('rejects an out-of-range development type value', async () => {
-    const { statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: { developmentType: 'Medium site', crumb: crumb.token },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.ok)
-    expect(wreck.patch).not.toHaveBeenCalled()
-  })
-
-  test('succeeds with an entirely empty submission, sending null for every field', async () => {
-    const { statusCode } = await server.inject({
-      method: 'POST',
-      url,
-      payload: { crumb: crumb.token },
-      headers: { cookie: crumb.cookie },
-      auth: authedAuth
-    })
-
-    expect(statusCode).toBe(statusCodes.redirect)
-    const [, options] = vi.mocked(wreck.patch).mock.calls[0]
-    expect(JSON.parse(options.payload)).toEqual({
-      localPlanningAuthorityReference: null,
-      surveyCompleters: null,
-      surveyCompletionDate: null,
-      developmentType: null,
-      nsips: null,
-      applicant: null
-    })
   })
 
   test('returns 400 when project id is not a UUID', async () => {
@@ -677,7 +639,7 @@ describe('#projectDetailsPostController', () => {
     const { statusCode } = await server.inject({
       method: 'POST',
       url,
-      payload: savedDetails,
+      payload: formPayload,
       auth: authedAuth
     })
     expect(statusCode).toBe(statusCodes.forbidden)

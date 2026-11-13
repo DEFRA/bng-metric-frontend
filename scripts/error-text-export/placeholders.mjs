@@ -1,7 +1,11 @@
 import { MAX_COMMENT_LENGTH } from '../../src/server/common/helpers/habitat-comment.js'
 import { MAX_PROJECT_NAME_LENGTH } from '../../src/server/common/helpers/project-name.js'
 import { MAX_REF_LENGTH } from '../../src/server/post-intervention-habitat-details/constants.js'
-import { MAX_TEXT_FIELD_LENGTH } from '../../src/server/project-details/constants.js'
+import {
+  MAX_PERSON_NAME_LENGTH,
+  MAX_PLANNING_APPLICATION_REFERENCE_LENGTH,
+  MAX_PLANNING_APPLICATION_TYPE_LENGTH
+} from '../../src/server/project-details/constants.js'
 import {
   MAX_FILENAME_LENGTH,
   MAX_FILE_SIZE_LABEL
@@ -132,10 +136,16 @@ export const ENTRY_PLACEHOLDERS = Object.freeze({
     max: `the most characters a project name can have: ${MAX_PROJECT_NAME_LENGTH}`
   },
   'forms.surveyCompleters.tooLong': {
-    max: `the most characters the answer can have: ${MAX_TEXT_FIELD_LENGTH}`
+    max: `the most characters the answer can have: ${MAX_PERSON_NAME_LENGTH}`
   },
   'forms.applicant.tooLong': {
-    max: `the most characters the answer can have: ${MAX_TEXT_FIELD_LENGTH}`
+    max: `the most characters the answer can have: ${MAX_PERSON_NAME_LENGTH}`
+  },
+  'forms.planningApplicationReference.tooLong': {
+    max: `the most characters the answer can have: ${MAX_PLANNING_APPLICATION_REFERENCE_LENGTH}`
+  },
+  'forms.planningApplicationType.tooLong': {
+    max: `the most characters the answer can have: ${MAX_PLANNING_APPLICATION_TYPE_LENGTH}`
   },
   'forms.habitatRef.tooLong': {
     max: `the most characters a habitat reference can have: ${MAX_REF_LENGTH}`

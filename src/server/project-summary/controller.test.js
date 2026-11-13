@@ -251,7 +251,7 @@ describe('project summary', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation).toHaveLength(1)
-    expect(navigation.find('li')).toHaveLength(5)
+    expect(navigation.find('li')).toHaveLength(6)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
     expect(
       navigation
@@ -267,6 +267,10 @@ describe('project summary', () => {
       {
         text: 'Watercourses',
         href: `/projects/${PROJECT_ID}/watercourses-summary`
+      },
+      {
+        text: 'Project details',
+        href: `/project-details/${PROJECT_ID}?returnUrl=${encodeURIComponent(`/projects/${PROJECT_ID}/project-summary`)}`
       },
       {
         text: 'Reports',
@@ -583,7 +587,7 @@ describe('project summary', () => {
       const navigation = $('nav[aria-label="Project summary"]')
 
       expect(statusCode).toBe(statusCodes.ok)
-      expect(navigation.find('li')).toHaveLength(3)
+      expect(navigation.find('li')).toHaveLength(4)
       expect(navigation.text()).toContain('Area habitats')
       expect(navigation.text()).not.toContain('Hedgerows')
       expect(navigation.text()).not.toContain('Watercourses')

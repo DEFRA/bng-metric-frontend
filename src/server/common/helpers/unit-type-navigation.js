@@ -1,4 +1,5 @@
 import { hasHabitatData, projectHasHabitatData } from './project-state.js'
+import { isSafeRelativePath } from './upload-file-navigation.js'
 
 const SUMMARY_TEXT = 'Summary'
 const AREA_HABITATS_TEXT = 'Area habitats'
@@ -8,6 +9,7 @@ const TRADING_RULES_TEXT = 'Trading rules'
 const HEDGEROWS_TEXT = 'Hedgerows'
 const WATERCOURSES_TEXT = 'Watercourses'
 const REPORTS_TEXT = 'Reports'
+const PROJECT_DETAILS_TEXT = 'Project details'
 const HEDGEROWS_HABITAT_KEY = 'hedgerows'
 const WATERCOURSES_HABITAT_KEY = 'watercourses'
 
@@ -48,6 +50,24 @@ const OPTIONAL_UNIT_TYPES = [
 
 function projectPageHref(projectId, path) {
   return `/projects/${projectId}/${path}`
+}
+
+// The project details page is outside /projects/{id}/, as it was before
+// the navigation linked to it.
+function projectDetailsPath(projectId) {
+  return `/project-details/${projectId}`
+}
+
+/**
+ * The project details page, which returns to `returnUrl` on save or cancel
+ * (BMD-849): the page its link was followed from.
+ */
+function projectDetailsHref(projectId, returnUrl) {
+  if (!isSafeRelativePath(returnUrl)) {
+    return projectDetailsPath(projectId)
+  }
+  const params = new URLSearchParams({ returnUrl })
+  return `${projectDetailsPath(projectId)}?${params.toString()}`
 }
 
 function markCurrent(item, currentHref) {
@@ -164,16 +184,26 @@ function buildUnitTypeNavigation(project, projectId, currentHref) {
     }
   }
 
-  // Always last, and not conditional on any habitat type: the site report
-  // draws whatever the project holds, so the page it lives on is reachable
-  // whenever the project is.
-  items.push({
+  const projectDetailsItem = {
+    text: PROJECT_DETAILS_TEXT,
+    href: projectDetailsPath(projectId)
+  }
+
+  // Not conditional on any habitat type: the details belong to the project,
+  // and the site report draws whatever the project holds. Reports stays last.
+  items.push(projectDetailsItem, {
     text: REPORTS_TEXT,
     href: projectPageHref(projectId, REPORTS_PATH)
   })
 
   for (const item of items) {
     markCurrent(item, currentHref)
+  }
+
+  // Marked current by its path alone; once it is not the current page, its
+  // link carries the page to come back to.
+  if (projectDetailsItem.href) {
+    projectDetailsItem.href = projectDetailsHref(projectId, currentHref)
   }
 
   return items
@@ -193,6 +223,7 @@ export {
   HEDGEROWS_TRADING_SUMMARY_PATH,
   HEDGEROWS_TEXT,
   POST_INTERVENTION_TEXT,
+  PROJECT_DETAILS_TEXT,
   PROJECT_SUMMARY_PATH,
   REPORTS_PATH,
   REPORTS_TEXT,
@@ -204,5 +235,7 @@ export {
   WATERCOURSES_TEXT,
   WATERCOURSES_TRADING_SUMMARY_PATH,
   buildUnitTypeNavigation,
+  projectDetailsHref,
+  projectDetailsPath,
   projectPageHref
 }

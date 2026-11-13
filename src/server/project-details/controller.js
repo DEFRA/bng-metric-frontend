@@ -1,181 +1,63 @@
 import Joi from 'joi'
 import Boom from '@hapi/boom'
 
-import {
-  fetchProject,
-  patchProjectDetails
-} from '../common/services/projects.js'
+import { patchProjectDetails } from '../common/services/projects.js'
+import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import { statusCodes, HTTP_SUCCESS_MAX } from '../common/constants.js'
 import { fetchLocalPlanningAuthorities } from '../common/services/local-planning-authorities.js'
 import { formErrorText } from '../common/error-text/error-text.js'
-import { MAX_TEXT_FIELD_LENGTH } from './constants.js'
+import { MAX_PROJECT_NAME_LENGTH } from '../common/helpers/project-name.js'
+import { isSafeRelativePath } from '../common/helpers/upload-file-navigation.js'
 import {
-  UNWORDED,
-  joiErrorText,
-  joiMessages
-} from '../common/error-text/joi-error-text.js'
+  PROJECT_DETAILS_TEXT,
+  PROJECT_SUMMARY_PATH,
+  buildUnitTypeNavigation,
+  projectDetailsPath,
+  projectPageHref
+} from '../common/helpers/unit-type-navigation.js'
+import {
+  MAX_PERSON_NAME_LENGTH,
+  MAX_PLANNING_APPLICATION_REFERENCE_LENGTH,
+  MAX_PLANNING_APPLICATION_TYPE_LENGTH
+} from './constants.js'
+import {
+  DATE_FIELD,
+  datePartsOf,
+  validateProjectDetailsForm
+} from './validation.js'
 
-const DEVELOPMENT_TYPE_OPTIONS = ['Small site', 'Large site']
-const NSIPS_OPTIONS = ['Yes', 'No']
-
-const DATE_FIELD = 'surveyCompletionDate'
-const DAY_KEY = `${DATE_FIELD}-day`
-const MONTH_KEY = `${DATE_FIELD}-month`
-const YEAR_KEY = `${DATE_FIELD}-year`
-const DATE_PART_NAMES = ['day', 'month', 'year']
-const YEAR_DIGIT_LENGTH = 4
-const DIGITS_PATTERN = /^\d+$/
-const DATE_ERROR_TYPE = 'surveyCompletionDate.invalid'
-
-// These messages show the same words in the error summary and against the
-// field, so only the inline text is needed.
+// The words shown in the error summary and against the field are the same,
+// so only the inline text is needed.
 const LPA_NOT_IN_LIST = formErrorText(
   'localPlanningAuthorityReference',
   'notInList'
 ).inline
-const DATE_NOT_REAL = formErrorText(DATE_FIELD, 'notReal').inline
 
-function datePartsOf(value) {
-  return {
-    day: (value[DAY_KEY] ?? '').trim(),
-    month: (value[MONTH_KEY] ?? '').trim(),
-    year: (value[YEAR_KEY] ?? '').trim()
-  }
-}
+// The backend's words when it refuses an authority it does not hold
+// (local-planning-authorities.js). Any other 400 is a contract mismatch,
+// not something the user can fix.
+const BACKEND_LPA_REFUSAL = /local planning authority/i
 
-function missingPartsMessage(missing) {
-  return missing.length === 1
-    ? formErrorText(DATE_FIELD, 'missingOne', { part: missing[0] }).inline
-    : formErrorText(DATE_FIELD, 'missingSeveral', {
-        parts: missing.join(' and ')
-      }).inline
-}
+// Every posted value is text: a field posted twice arrives as an array and is
+// refused here with a 400. The fields themselves are checked by
+// validateProjectDetailsForm, so each problem can be shown on the page.
+const formPayload = Joi.object()
+  .pattern(Joi.string(), Joi.string().allow(''))
+  .allow(null)
 
-function isRealDate(day, month, year) {
-  const date = new Date(year, month - 1, day)
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  )
-}
-
-// Cross-field validation for the GOV.UK date-input pattern: day/month/year
-// are posted as three separate fields and combined into a single
-// `DD/MM/YYYY` string matching the backend's projectDetailsSchema. Errors
-// are raised with an object-level Joi code (rather than on the individual
-// day/month/year keys) so a single message can be shown against the whole
-// fieldset, per https://design-system.service.gov.uk/components/date-input/
-function validateSurveyCompletionDate(value, helpers) {
-  const { day, month, year } = datePartsOf(value)
-  const result = { ...value }
-  delete result[DAY_KEY]
-  delete result[MONTH_KEY]
-  delete result[YEAR_KEY]
-
-  const present = { day: day !== '', month: month !== '', year: year !== '' }
-  if (!present.day && !present.month && !present.year) {
-    result[DATE_FIELD] = null
-    return result
-  }
-
-  const missing = DATE_PART_NAMES.filter((part) => !present[part])
-  if (missing.length) {
-    return helpers.error(DATE_ERROR_TYPE, {
-      message: missingPartsMessage(missing),
-      parts: missing
-    })
-  }
-
-  const invalidFormat =
-    !DIGITS_PATTERN.test(day) ||
-    !DIGITS_PATTERN.test(month) ||
-    !DIGITS_PATTERN.test(year) ||
-    year.length !== YEAR_DIGIT_LENGTH
-
-  const dayNum = Number(day)
-  const monthNum = Number(month)
-  const yearNum = Number(year)
-
-  if (invalidFormat || !isRealDate(dayNum, monthNum, yearNum)) {
-    return helpers.error(DATE_ERROR_TYPE, {
-      message: DATE_NOT_REAL,
-      parts: DATE_PART_NAMES
-    })
-  }
-
-  result[DATE_FIELD] =
-    `${String(dayNum).padStart(2, '0')}/${String(monthNum).padStart(2, '0')}/${yearNum}`
-  return result
-}
-
-// Mirrors backend projectDetailsSchema (GET/PATCH /projects/{id}/details),
-// which allows `null` on every field. Empty fields normalise to explicit
-// `null` (via `.empty('').default(null)`) rather than being dropped, so a
-// field the user clears is actually cleared server-side — the backend
-// merges the PATCH payload into the stored details with a jsonb `||`, which
-// leaves omitted keys untouched but overwrites keys sent as `null`.
-export const projectDetailsFormSchema = Joi.object({
-  localPlanningAuthorityReference: Joi.string()
-    .trim()
-    .empty('')
-    .allow(null)
-    .default(null)
-    .pattern(/^E600\d{5}$/)
-    .messages(
-      joiMessages('localPlanningAuthorityReference', {
-        'string.pattern.base': 'notInList'
-      })
-    ),
-  surveyCompleters: Joi.string()
-    .trim()
-    .empty('')
-    .allow(null)
-    .default(null)
-    .max(MAX_TEXT_FIELD_LENGTH)
-    .messages(
-      joiMessages('surveyCompleters', {
-        'string.max': ['tooLong', { max: MAX_TEXT_FIELD_LENGTH }]
-      })
-    ),
-  [DAY_KEY]: Joi.string().trim().allow(''),
-  [MONTH_KEY]: Joi.string().trim().allow(''),
-  [YEAR_KEY]: Joi.string().trim().allow(''),
-  developmentType: Joi.string()
-    .empty('')
-    .allow(null)
-    .default(null)
-    .valid(...DEVELOPMENT_TYPE_OPTIONS)
-    // The radios send only valid values, so only a form posted from
-    // elsewhere fails these.
-    .messages(joiMessages('developmentType', { 'any.only': UNWORDED })),
-  nsips: Joi.string()
-    .empty('')
-    .allow(null)
-    .default(null)
-    .valid(...NSIPS_OPTIONS)
-    .messages(joiMessages('nsips', { 'any.only': UNWORDED })),
-  applicant: Joi.string()
-    .trim()
-    .empty('')
-    .allow(null)
-    .default(null)
-    .max(MAX_TEXT_FIELD_LENGTH)
-    .messages(
-      joiMessages('applicant', {
-        'string.max': ['tooLong', { max: MAX_TEXT_FIELD_LENGTH }]
-      })
-    )
+const projectIdParams = Joi.object({
+  projectId: Joi.string().guid({ version: 'uuidv4' }).required()
 })
-  .custom(validateSurveyCompletionDate)
-  .messages({ [DATE_ERROR_TYPE]: '{{#message}}' })
 
-const PAYLOAD_FIELD_NAMES = new Set(
-  Object.keys(projectDetailsFormSchema.describe().keys)
-)
-
-function isDateError(detail) {
-  return detail.type === DATE_ERROR_TYPE
+/**
+ * Where Save and Cancel go back to (BMD-849): the page the user followed the
+ * "Project details" link from, which the link names in `returnUrl`. A missing
+ * or off-site one falls back to the project summary.
+ */
+function safeReturnUrl(returnUrl, projectId) {
+  return isSafeRelativePath(returnUrl)
+    ? returnUrl
+    : projectPageHref(projectId, PROJECT_SUMMARY_PATH)
 }
 
 function splitDate(dateString) {
@@ -187,112 +69,91 @@ function splitDate(dateString) {
   return { day, month, year }
 }
 
-function radioItems(options, selected) {
-  return options.map((value) => ({
-    value,
-    text: value,
-    checked: value === selected
-  }))
-}
-
+/**
+ * @param {object} options
+ * @param {object} options.project - the project, for the navigation
+ * @param {object} options.values - the fields' values, keyed as the form
+ *   posts them, but with the survey date as `dateParts`
+ */
 function renderForm(
   h,
-  { projectId, projectName, details = {}, errors = [], dateParts, authorities }
+  { projectId, project, values, dateParts, returnUrl, authorities, errors = [] }
 ) {
   const fieldErrors = Object.fromEntries(
     errors.map((error) => [error.name, error.text])
   )
   const dateError = errors.find((error) => error.name === DATE_FIELD)
   return h.view('project-details/index', {
-    pageTitle: errors.length ? 'Error: Project details' : 'Project details',
+    pageTitle: errors.length
+      ? `Error: ${PROJECT_DETAILS_TEXT}`
+      : PROJECT_DETAILS_TEXT,
+    heading: PROJECT_DETAILS_TEXT,
     projectId,
-    projectName,
+    formAction: projectDetailsPath(projectId),
+    returnUrl,
+    navigationItems: buildUnitTypeNavigation(
+      project,
+      projectId,
+      projectDetailsPath(projectId)
+    ),
     errors,
     fieldErrors,
-    details,
+    values,
+    surveyCompletionDate: dateParts,
+    surveyCompletionDateErrorParts: dateError?.parts ?? [],
+    maxLengths: {
+      projectName: MAX_PROJECT_NAME_LENGTH,
+      personName: MAX_PERSON_NAME_LENGTH,
+      planningApplicationReference: MAX_PLANNING_APPLICATION_REFERENCE_LENGTH,
+      planningApplicationType: MAX_PLANNING_APPLICATION_TYPE_LENGTH
+    },
     localPlanningAuthorityItems: [
       {
         value: '',
-        text: 'Select a Local Planning Authority',
-        selected: !details.localPlanningAuthorityReference
+        text: 'Choose local planning authority',
+        selected: !values.localPlanningAuthorityReference
       },
       ...authorities.map(({ name, reference }) => ({
         value: reference,
         text: name,
-        selected: reference === details.localPlanningAuthorityReference
+        selected: reference === values.localPlanningAuthorityReference
       }))
-    ],
-    surveyCompletionDate: dateParts ?? splitDate(details.surveyCompletionDate),
-    surveyCompletionDateErrorParts: dateError?.parts ?? [],
-    developmentTypeItems: radioItems(
-      DEVELOPMENT_TYPE_OPTIONS,
-      details.developmentType
-    ),
-    nsipsItems: radioItems(NSIPS_OPTIONS, details.nsips)
+    ]
   })
 }
 
-async function handleValidationFailure(request, h, err) {
-  const isPayloadError = err.details.some(
-    (detail) => PAYLOAD_FIELD_NAMES.has(detail.path[0]) || isDateError(detail)
-  )
-  if (!isPayloadError) {
-    throw err
-  }
-
+// The page shown again after a refusal: every value as the user entered it.
+async function renderRefusal(request, h, errors) {
   const { projectId } = request.params
-  const result = await fetchProject(request, projectId)
-  const errors = err.details.map((detail) =>
-    isDateError(detail)
-      ? {
-          name: DATE_FIELD,
-          text: detail.context.message,
-          href: `#${DATE_FIELD}-${detail.context.parts[0]}`,
-          parts: detail.context.parts
-        }
-      : {
-          name: detail.path[0],
-          text: joiErrorText(detail),
-          href: `#${detail.path[0]}`
-        }
-  )
+  const payload = request.payload ?? {}
   return renderForm(h, {
     projectId,
-    projectName: result?.payload?.project?.name,
-    details: request.payload,
+    project: await fetchProjectOrThrow(request, projectId),
+    values: payload,
+    dateParts: datePartsOf(payload),
+    returnUrl: safeReturnUrl(payload.returnUrl, projectId),
     authorities: await fetchLocalPlanningAuthorities(),
-    dateParts: datePartsOf(request.payload),
     errors
-  }).takeover()
+  })
 }
 
 export const projectDetailsController = {
   options: {
     validate: {
-      params: Joi.object({
-        projectId: Joi.string().guid({ version: 'uuidv4' }).required()
-      })
+      params: projectIdParams,
+      query: Joi.object({ returnUrl: Joi.string().allow('') })
     }
   },
   async handler(request, h) {
     const { projectId } = request.params
-    const result = await fetchProject(request, projectId)
-    if (!result) {
-      throw Boom.badGateway('Failed to fetch project')
-    }
-    if (result.statusCode === statusCodes.notFound) {
-      throw Boom.notFound('Project not found')
-    }
-    if (
-      result.statusCode < statusCodes.ok ||
-      result.statusCode >= HTTP_SUCCESS_MAX
-    ) {
-      throw Boom.badGateway('Failed to fetch project')
-    }
+    const project = await fetchProjectOrThrow(request, projectId)
+    const details = project?.details ?? {}
     return renderForm(h, {
       projectId,
-      projectName: result.payload?.project?.name,
-      details: result.payload?.project?.details ?? {},
+      project,
+      values: { ...details, projectName: project?.name },
+      dateParts: splitDate(details.surveyCompletionDate),
+      returnUrl: safeReturnUrl(request.query.returnUrl, projectId),
       authorities: await fetchLocalPlanningAuthorities()
     })
   }
@@ -301,44 +162,45 @@ export const projectDetailsController = {
 export const projectDetailsPostController = {
   options: {
     validate: {
-      params: Joi.object({
-        projectId: Joi.string().guid({ version: 'uuidv4' }).required()
-      }),
-      payload: projectDetailsFormSchema,
-      failAction: handleValidationFailure
+      params: projectIdParams,
+      payload: formPayload
     }
   },
   async handler(request, h) {
     const { projectId } = request.params
-    const result = await patchProjectDetails(
-      request,
-      projectId,
+    // Every field is checked before anything is saved, and a problem with
+    // any of them saves none of them (BMD-849 AC10).
+    const { errors, name, details } = validateProjectDetailsForm(
       request.payload
     )
+    if (errors.length) {
+      return renderRefusal(request, h, errors)
+    }
+
+    const result = await patchProjectDetails(request, projectId, {
+      name,
+      ...details
+    })
     if (!result) {
       throw Boom.badGateway('Failed to save project details')
     }
     if (result.statusCode === statusCodes.notFound) {
       throw Boom.notFound('Project not found')
     }
+    // The list's options are the backend's, so only an authority it has
+    // since dropped is refused here.
     if (
       result.statusCode === statusCodes.badRequest &&
-      request.payload.localPlanningAuthorityReference
+      details.localPlanningAuthorityReference &&
+      BACKEND_LPA_REFUSAL.test(result.payload?.message ?? '')
     ) {
-      const project = await fetchProject(request, projectId)
-      return renderForm(h, {
-        projectId,
-        projectName: project?.payload?.project?.name,
-        details: request.payload,
-        authorities: await fetchLocalPlanningAuthorities(),
-        errors: [
-          {
-            name: 'localPlanningAuthorityReference',
-            href: '#localPlanningAuthorityReference',
-            text: LPA_NOT_IN_LIST
-          }
-        ]
-      })
+      return renderRefusal(request, h, [
+        {
+          name: 'localPlanningAuthorityReference',
+          href: '#localPlanningAuthorityReference',
+          text: LPA_NOT_IN_LIST
+        }
+      ])
     }
     if (
       result.statusCode < statusCodes.ok ||
@@ -346,6 +208,6 @@ export const projectDetailsPostController = {
     ) {
       throw Boom.badGateway('Failed to save project details')
     }
-    return h.redirect(`/projects/${projectId}/project-summary`)
+    return h.redirect(safeReturnUrl(request.payload.returnUrl, projectId))
   }
 }
