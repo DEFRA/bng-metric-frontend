@@ -436,6 +436,47 @@ describe('invalidFileController.handler — populated session', () => {
     ])
   })
 
+  test('errorBlocks: TREE_NOT_ENHANCEABLE lists each Enhanced tree in Good condition by its Habitat Ref, and says what to record instead, even alone', async () => {
+    const errors = [
+      {
+        code: 'TREE_NOT_ENHANCEABLE',
+        message:
+          'One or more trees are enhanced, but their baseline tree is in Good condition and cannot be enhanced: Feature Ref T006',
+        details: {
+          count: 1,
+          sample: [
+            {
+              layer: 'trees',
+              feature_ref: 'T006',
+              habitat_type: 'Individual trees - Rural tree',
+              condition: 'Good',
+              distinctiveness: 'Medium',
+              rule: 'medium-area-good',
+              mvsOnly: true
+            }
+          ]
+        }
+      }
+    ]
+    const request = makeRequest({
+      postInterventionValidationErrors: errors,
+      validationUploadType: 'postIntervention'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more trees are enhanced, but their baseline tree is in Good condition, and a tree in Good condition cannot be enhanced. Record each as Retained or, if its condition will get worse, as lost and Created in a lower condition 30+ years in advance',
+        items: ['Habitat Ref T006 — Individual trees - Rural tree'],
+        more: 0
+      }
+    ])
+  })
+
   test('errorBlocks: BMD-1182 BASELINE_NOT_ENHANCEABLE lists each enhanced habitat with its baseline type and condition', async () => {
     const errors = [
       {
