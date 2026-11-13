@@ -1800,7 +1800,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each tree with more than one kept tree linked to it, and the trees linked', async () => {
+  test('lists each tree with more than one kept tree linked to it, and the trees linked, without the counts the backend sends', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_TREE_CHILDREN_TOO_MANY',
