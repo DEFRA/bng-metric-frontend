@@ -17,4 +17,4 @@ export const HEDGEROWS_TAB_ANCHOR = '#hedgerows'
 export const WATERCOURSES_TAB_ANCHOR = '#watercourses'
 
 // Match the backend habitat-reference limit, measured in Unicode characters.
-export const MAX_REF_LENGTH = 100
+export { MAX_HABITAT_REF_LENGTH as MAX_REF_LENGTH } from '../common/helpers/habitat-ref.js'

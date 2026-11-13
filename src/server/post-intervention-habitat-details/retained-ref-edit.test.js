@@ -15,7 +15,7 @@ const projectId = 'aa0e8400-e29b-41d4-a716-446655440000'
 const featureId = 'aa0e8400-e29b-41d4-a716-446655440001'
 
 describe('isRefEditable', () => {
-  test.each(['habitat', 'hedgerow', 'watercourse'])(
+  test.each(['habitat', 'tree', 'hedgerow', 'watercourse'])(
     'is true for a Retained %s',
     (type) => {
       expect(isRefEditable(type, 'Retained')).toBe(true)
@@ -26,7 +26,8 @@ describe('isRefEditable', () => {
     ['habitat', 'Created'],
     ['habitat', 'Enhanced'],
     ['habitat', null],
-    ['tree', 'Retained']
+    ['tree', 'Enhanced'],
+    ['verticalHabitat', 'Retained']
   ])('is false for a %s that is %s', (type, retentionCategory) => {
     expect(isRefEditable(type, retentionCategory)).toBe(false)
   })
@@ -50,7 +51,7 @@ describe('retainedRefEditFields', () => {
         id: 'habitatRef',
         value: 'H1',
         error: undefined,
-        maxLength: 100
+        maxLength: 99
       },
       refForm: {
         action: '/post-intervention-habitat-details',
@@ -102,6 +103,27 @@ describe('saveRetainedRef', () => {
     await expect(
       saveRetainedRef({}, { projectId, featureId, ref: 'A2' })
     ).resolves.toEqual({ refInUse: true })
+  })
+
+  test('gives the page-level refusal when the habitat holds a value saved before BMD-1175', async () => {
+    vi.mocked(backendRequest).mockRejectedValue({
+      data: {
+        res: { statusCode: 422 },
+        payload: {
+          code: 'STORED_VALUE_NOT_ALLOWED',
+          message:
+            'This habitat holds a value saved before the service checked text lengths and lists (proposed.condition). Upload the file again, with the value corrected, to update it.'
+        }
+      }
+    })
+
+    await expect(
+      saveRetainedRef({}, { projectId, featureId, ref: 'A2' })
+    ).resolves.toEqual({
+      storedValueRefusal: {
+        summaryOnly: expect.stringContaining('in its proposed condition.')
+      }
+    })
   })
 
   test('passes an expired session through untouched', async () => {

@@ -17,7 +17,9 @@
 // and watercourse entries. Only the area variant uses the broad-habitat
 // dropdown — the watercourse page renders a placeholder broad row per its
 // spec, so we can't infer the variant from the DOM; `featureType` is the
-// source of truth.
+// source of truth. An individual tree is an area variant whose broad habitat,
+// always Individual trees, is a hidden input under the dropdown's id, so the
+// type handler reads it the same way (BMD-1172).
 //
 // All changes are display-only; persistence happens on form submit (POST
 // handler in baseline-habitat-details/controller.js).

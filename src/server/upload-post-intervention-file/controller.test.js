@@ -44,6 +44,44 @@ describe('upload-post-intervention-file controller', () => {
     vi.restoreAllMocks()
   })
 
+  test.each([
+    [
+      'invalidName',
+      'The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets'
+    ],
+    ['timedOut', 'The file check timed out. Please try again.'],
+    [
+      'The file check timed out. Please try again.',
+      'The file check timed out. Please try again.'
+    ]
+  ])(
+    'shows the session upload error %s as its words',
+    async (stored, words) => {
+      vi.mocked(initiateUpload).mockResolvedValue({
+        uploadId: 'abc-123',
+        uploadUrl: '/upload-and-scan/abc-123'
+      })
+      const h = createMockH()
+      const request = {
+        ...createMockRequest(),
+        yar: {
+          set: vi.fn(),
+          get: vi.fn((key) =>
+            key === 'postInterventionUploadError' ? stored : null
+          ),
+          clear: vi.fn()
+        }
+      }
+
+      await getController.handler(request, h)
+
+      expect(h.view).toHaveBeenCalledWith(
+        'common/templates/upload-geopackage-file',
+        expect.objectContaining({ error: { text: words } })
+      )
+    }
+  )
+
   test('renders form and initiates upload with post-intervention metadata', async () => {
     vi.mocked(initiateUpload).mockResolvedValue({
       uploadId: 'abc-123',

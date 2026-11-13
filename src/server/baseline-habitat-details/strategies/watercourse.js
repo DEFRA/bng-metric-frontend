@@ -84,6 +84,7 @@ function buildViewModel(watercourse, reference, { projectId, projectName }) {
     // Watercourses have no broad habitat dimension.
     showBroadHabitatRow: false,
     showWatercourseEncroachmentRows: true,
+    showCommentRow: true,
     distinctivenessDisplay:
       watercourse.distinctiveness &&
       typeof watercourse.distinctivenessScore === 'number'

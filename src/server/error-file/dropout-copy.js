@@ -2,6 +2,12 @@ import Joi from 'joi'
 import { load } from 'js-yaml'
 
 import { errorText } from '../common/error-text/error-text.js'
+import {
+  WORDING,
+  logErrorTextWarnings,
+  shownWordingField,
+  wordingField
+} from '../common/error-text/wording.js'
 import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 
 // The drop-out page's copy is the upload section of error-text.yaml, where
@@ -10,15 +16,21 @@ import { isServiceTemplateEnabled } from '../common/helpers/service-template.js'
 // the server's start rather than a user's page, and fills in the {values} it
 // names.
 
-/** What whenAlone can say in place of copy of its own. */
-export const WHEN_ALONE = Object.freeze({
+// The page has two designs, and an upload error is worded for each:
+// - singleProblemPage: the page for a file whose only problem it is. Left
+//   out, the error is shown in the problems list even alone.
+// - problemsList: its heading, and its bullets, on the page that lists a
+//   file's problems.
+
+/** The shared pages a singleProblemPage can name in place of its own wording. */
+export const SHARED_PAGE = Object.freeze({
   CATCH_ALL: 'catch-all',
-  PLACEHOLDER: 'placeholder',
-  LIST: 'list'
+  FILE_PROBLEM: 'file-problem',
+  SERVICE_PROBLEM: 'service-problem'
 })
 
-/** The inList value that heads the list with the catch-all title. */
-const CATCH_ALL = 'catch-all'
+/** The problemsList value that heads the entry with the catch-all title. */
+export const PROBLEMS_LIST_CATCH_ALL = 'catch-all'
 
 /** The link targets a sentence can name, as [link text](target). */
 export const LINK_TARGETS = Object.freeze({
@@ -37,27 +49,46 @@ const pageCopy = Joi.object({
   opensInNewTab: Joi.boolean()
 })
 
+// A page, or options of pages: the first the error can fill is shown.
+const pages = Joi.alternatives(pageCopy, Joi.array().items(pageCopy).min(1))
+
 /**
  * A problem lists habitats or it does not, however the backend words it: so
  * its bullets, and its variants', are all items or all details. The page
  * reads only the one kind, and would drop a bullet of the other unseen.
  */
-function oneKindOfBullet(inList, helpers) {
-  const wording = [inList, ...Object.values(inList.variants ?? {})]
+function oneKindOfBullet(problemsList, helpers) {
+  const wording = [problemsList, ...Object.values(problemsList.variants ?? {})]
   const kinds = ['item', 'detail'].filter((key) =>
     wording.some((copy) => copy[key] !== undefined)
   )
-  return kinds.length > 1 ? helpers.error('any.invalid') : inList
+  return kinds.length > 1 ? helpers.error('any.invalid') : problemsList
 }
 
+// A shared fallback page, which can say its wording is interim.
+const fallbackCopy = pageCopy.keys({ wording: shownWordingField })
+
 const errorEntry = Joi.object({
-  whenAlone: Joi.alternatives(
-    Joi.string().valid(...Object.values(WHEN_ALONE)),
-    pageCopy,
-    Joi.array().items(pageCopy).min(1)
-  ).required(),
-  inList: Joi.alternatives(
-    Joi.string().valid(CATCH_ALL),
+  // "none" says the error has no words of its own yet for when it is alone,
+  // so it can only be on one whose singleProblemPage names the shared page
+  // the page shows instead. Its problemsList heading is still shown.
+  wording: wordingField.when('singleProblemPage', {
+    // Required: an entry with no singleProblemPage is shown in the problems
+    // list even alone, so its words are always shown.
+    is: Joi.valid(...Object.values(SHARED_PAGE)).required(),
+    otherwise: Joi.invalid(WORDING.NONE)
+  }),
+  singleProblemPage: Joi.alternatives(
+    Joi.string().valid(...Object.values(SHARED_PAGE)),
+    // Worded to fit an error naming any number of habitats.
+    pages,
+    // Worded for an error naming one habitat, or none, and for one naming
+    // several. Without `several`, an error naming several is shown in the
+    // problems list, as words for one would misdescribe it.
+    Joi.object({ one: pages.required(), several: pages })
+  ),
+  problemsList: Joi.alternatives(
+    Joi.string().valid(PROBLEMS_LIST_CATCH_ALL),
     Joi.object({
       heading: text.required(),
       listsHabitats: Joi.boolean(),
@@ -110,10 +141,11 @@ const copySchema = Joi.object({
     [LINK_TARGETS.METRIC_TOOL]: Joi.string().uri().required()
   }).required(),
   catchAll: Joi.object({
-    legacyTemplate: pageCopy.required(),
-    serviceTemplate: pageCopy.required()
+    legacyTemplate: fallbackCopy.required(),
+    serviceTemplate: fallbackCopy.required()
   }).required(),
-  placeholder: pageCopy.keys({ more: text.required() }).required(),
+  fileProblem: fallbackCopy.required(),
+  serviceProblem: fallbackCopy.required(),
   names: Joi.object({
     feature: options.required(),
     tree: options.required(),
@@ -121,18 +153,28 @@ const copySchema = Joi.object({
   }).required(),
   unknown: unknownSchema.required(),
   distinctiveness: Joi.object().pattern(Joi.string(), text).required(),
+  layers: Joi.object().pattern(Joi.string(), text).required(),
   errors: Joi.object()
     .pattern(Joi.string().pattern(/^[A-Z][A-Z0-9_]*$/), errorEntry)
     .required()
 })
 
-function checkDropoutCopy(section) {
-  const { value, error } = copySchema.validate(section, { abortEarly: false })
+/**
+ * Check the drop-out page's copy: the upload section, as read from the file.
+ * Exported so the error message export refuses a file the server would.
+ *
+ * @param {Record<string, any>} section
+ */
+export function checkDropoutCopy(section) {
+  const { value, error, warning } = copySchema.validate(section, {
+    abortEarly: false
+  })
   if (error) {
     throw new Error(
       `error-text.yaml's upload section is not valid: ${error.message}`
     )
   }
+  logErrorTextWarnings(warning, 'upload')
   return value
 }
 
@@ -176,11 +218,27 @@ export function canFill(templates, values = {}) {
   return [templates].flat().some((t) => hasValues(t, values))
 }
 
+/**
+ * A layer as the page names it (the copy's layers), or null for a layer the
+ * copy does not name.
+ *
+ * @param {string | undefined} layer the backend's layer, such as "hedgerows"
+ */
+export function layerName(layer) {
+  return Object.hasOwn(dropoutCopy.layers, layer ?? '')
+    ? dropoutCopy.layers[layer]
+    : null
+}
+
+/** The first of `templates` whose values are all known, not filled in. */
+export function firstKnownTemplate(templates, values = {}) {
+  const list = [templates].flat()
+  return list.find((t) => hasValues(t, values)) ?? list.at(-1)
+}
+
 /** The first of `templates` whose values are all known, filled in. */
 export function firstKnown(templates, values = {}) {
-  const list = [templates].flat()
-  const chosen = list.find((t) => hasValues(t, values)) ?? list.at(-1)
-  return fill(chosen, values)
+  return fill(firstKnownTemplate(templates, values), values)
 }
 
 /** Each of `parts` whose values are all known, filled in and joined. */
@@ -192,31 +250,7 @@ export function joinKnownParts(parts, values = {}) {
     .join('')
 }
 
-const LINK_OPEN = '['
-const LINK_MIDDLE = ']('
-const LINK_CLOSE = ')'
-
-/**
- * Split a sentence at its [link text](target), or return it whole as
- * `before` when it has none.
- *
- * @param {string} sentence
- * @returns {{ before: string, linkText?: string, target?: string, after?: string }}
- */
-export function splitLink(sentence) {
-  const open = sentence.indexOf(LINK_OPEN)
-  const middle = open === -1 ? -1 : sentence.indexOf(LINK_MIDDLE, open)
-  const close = middle === -1 ? -1 : sentence.indexOf(LINK_CLOSE, middle)
-  if (close === -1) {
-    return { before: sentence }
-  }
-  return {
-    before: sentence.slice(0, open),
-    linkText: sentence.slice(open + LINK_OPEN.length, middle),
-    target: sentence.slice(middle + LINK_MIDDLE.length, close),
-    after: sentence.slice(close + LINK_CLOSE.length)
-  }
-}
+export { splitLink } from '../common/error-text/links.js'
 
 /**
  * The {values} each page string can name: pageText fills these and no
@@ -260,4 +294,58 @@ export function catchAllPage() {
   return isServiceTemplateEnabled()
     ? dropoutCopy.catchAll.serviceTemplate
     : dropoutCopy.catchAll.legacyTemplate
+}
+
+/**
+ * The page a singleProblemPage that names a shared page stands for: the
+ * catch-all, about layer and column names; the file problem, which says only
+ * that the file has an error; or the service problem, which says the fault is
+ * the service's. A code with no entry takes the file problem, which cannot
+ * mislead about what is wrong.
+ *
+ * @param {string | undefined} name
+ */
+export function sharedPage(name) {
+  switch (name) {
+    case SHARED_PAGE.CATCH_ALL:
+      return catchAllPage()
+    case SHARED_PAGE.SERVICE_PROBLEM:
+      return dropoutCopy.serviceProblem
+    default:
+      return dropoutCopy.fileProblem
+  }
+}
+
+/** True when an error names more than one habitat: its details' count. */
+export function namesSeveral(error) {
+  return Number(error?.details?.count) > 1
+}
+
+/**
+ * The page, or options of pages, an error is shown on when it is the file's
+ * only problem, or null when it is shown in the problems list instead: its
+ * entry has no singleProblemPage, or its page is worded for one habitat
+ * alone (`one` with no `several`) and the error names several. A plain page,
+ * or a shared one, is worded for any number. A code with no entry takes the
+ * file problem.
+ *
+ * @param {{ code?: string, details?: { count?: number } }} error
+ * @returns {object | object[] | null}
+ */
+export function singleProblemPages(error) {
+  const copy = errorCopy(error?.code)
+  if (!copy) {
+    return sharedPage(SHARED_PAGE.FILE_PROBLEM)
+  }
+  const page = copy.singleProblemPage
+  if (page === undefined) {
+    return null
+  }
+  if (typeof page === 'string') {
+    return sharedPage(page)
+  }
+  if (Object.hasOwn(page, 'one')) {
+    return namesSeveral(error) ? (page.several ?? null) : page.one
+  }
+  return page
 }

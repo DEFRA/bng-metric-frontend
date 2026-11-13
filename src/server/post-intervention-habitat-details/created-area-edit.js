@@ -1,11 +1,13 @@
 import {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
+  loadCreatedTreeReference,
   loadCreatedWatercourseReference
 } from './created-edit-reference.js'
 export {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
+  loadCreatedTreeReference,
   loadCreatedWatercourseReference,
   _resetCreatedAreaReferenceCache
 } from './created-edit-reference.js'
@@ -18,6 +20,8 @@ import {
 import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
+import { buildTreeSectionsViewOnlyViewModel } from './tree-view-only-view-model.js'
+import { INDIVIDUAL_TREES_BROAD_HABITAT } from '../baseline-habitat-details/strategies/tree.js'
 
 import {
   UNCHANGED_VALUE,
@@ -104,6 +108,26 @@ export const CREATED_EDIT_KINDS = {
     savePath: 'hedgerows',
     hasBroadHabitat: false,
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
+  },
+  // A Created individual tree is edited as a Created area habitat is, but
+  // stays a tree: its broad habitat is always Individual trees,
+  // shown and sent but not editable, and its habitat type must be Urban tree
+  // or Rural tree. Its size class and number of trees are shown, not edited.
+  // Until the backend serves the tree reference, it keeps its read-only page.
+  tree: {
+    loadReference: loadCreatedTreeReference,
+    label: 'Tree',
+    optionalReference: true,
+    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
+    buildBase: buildTreeSectionsViewOnlyViewModel,
+    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
+    sizeLabel: 'Size (hectares)',
+    backType: 'tree',
+    savePath: 'trees',
+    hasBroadHabitat: true,
+    fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
+    habitatTypeRequired: true,
+    habitatTypeError: formError('habitatType', 'invalidTree')
   }
 }
 
@@ -198,7 +222,22 @@ function createdEditValues(feature, reference) {
   if (reference.importedCondition) {
     saved.condition = UNCHANGED_VALUE
   }
-  return saved
+  return withFixedBroadHabitat(saved, createdKind(reference))
+}
+
+/**
+ * The values with a kind's fixed broad habitat in place of whatever was
+ * stored or posted: a tree is always Individual trees, so its habitat types,
+ * conditions and checks are read against that, however the tree was saved.
+ *
+ * @param {object} values
+ * @param {{ fixedBroadHabitat?: string }} kind
+ * @returns {object}
+ */
+export function withFixedBroadHabitat(values, kind) {
+  return kind.fixedBroadHabitat
+    ? { ...values, broadHabitat: kind.fixedBroadHabitat }
+    : values
 }
 
 function importedLinearCondition(reference, values) {
@@ -276,6 +315,9 @@ export function validateCreatedArea(values, reference) {
         )
       : {})
   }
+  if (kind.habitatTypeRequired && !values.habitatType) {
+    errors.habitatType = kind.habitatTypeError
+  }
   for (const [field, options] of Object.entries(choices)) {
     if (invalidChoice(values[field], options, reference, field)) {
       const messages = {
@@ -339,6 +381,27 @@ function createdUploadHref(ctx, feature, returnUrl) {
   )
 }
 
+// A backend refusal comes first, unlinked; then each field's error in page
+// order, leaving out the delay error when the advance one is shown.
+function createdErrorList(errors, refusal) {
+  return [
+    ...(refusal ? [{ text: refusal.summaryOnly }] : []),
+    ...FIELD_ORDER.filter(
+      (field) =>
+        errors[field] && (field !== 'delayYears' || !errors.advanceYears)
+    ).map((field) => ({
+      text: errors[field].summary,
+      href: `#${field}`
+    }))
+  ]
+}
+
+/**
+ * The Created edit page's view model. `values` and `errors` are set when the
+ * form's own checks refused a save, and `ctx.refusal` when the backend refused
+ * one for a reason no one field can put right (`summaryOnly`, as
+ * stored-value-refusal.js gives), which the error summary shows unlinked.
+ */
 export function buildCreatedAreaEditViewModel(
   feature,
   reference,
@@ -381,7 +444,7 @@ export function buildCreatedAreaEditViewModel(
     habitatUnitsDisplay: createdUnitsDisplay(feature),
     sizeDisplay: kind.formatSize(feature),
     sizeLabel: kind.sizeLabel,
-    pageTitle: `${Object.keys(errors).length ? 'Error: ' : ''}${base.pageTitle}`,
+    pageTitle: `${Object.keys(errors).length || ctx.refusal ? 'Error: ' : ''}${base.pageTitle}`,
     projectId: ctx.projectId,
     featureId: feature.featureId,
     values,
@@ -391,13 +454,8 @@ export function buildCreatedAreaEditViewModel(
       initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
         : null,
-    errorList: FIELD_ORDER.filter(
-      (field) =>
-        errors[field] && (field !== 'delayYears' || !errors.advanceYears)
-    ).map((field) => ({
-      text: errors[field].summary,
-      href: `#${field}`
-    })),
+    errorList: createdErrorList(errors, ctx.refusal),
+    fixedBroadHabitat: kind.fixedBroadHabitat ?? null,
     fields: buildCreatedEditFields(reference, values, storedValues, kind),
     referenceJson: createdReferenceJson(
       reference,

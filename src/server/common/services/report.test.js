@@ -1,9 +1,16 @@
 import { statusCodes } from '../constants.js'
 import { fetchSiteReport } from './report.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
+import { rateLimitedError } from '../helpers/rate-limited.js'
+
+const mockLoggerError = vi.hoisted(() => vi.fn())
 
 vi.mock('../helpers/auth/backend-request.js', () => ({
   backendRequest: vi.fn()
+}))
+
+vi.mock('../helpers/logging/logger.js', () => ({
+  createLogger: () => ({ info: vi.fn(), error: mockLoggerError })
 }))
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111'
@@ -73,5 +80,13 @@ describe('#fetchSiteReport', () => {
     await expect(fetchSiteReport(request, PROJECT_ID)).rejects.toThrow(
       'session expired'
     )
+  })
+
+  test('passes a refusal by a rate limit on, and does not log it as a failure', async () => {
+    const refused = rateLimitedError({ 'retry-after': '30' })
+    vi.mocked(backendRequest).mockRejectedValue(refused)
+
+    await expect(fetchSiteReport(request, PROJECT_ID)).rejects.toBe(refused)
+    expect(mockLoggerError).not.toHaveBeenCalled()
   })
 })

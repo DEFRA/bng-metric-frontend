@@ -1,8 +1,11 @@
 // @vitest-environment happy-dom
 import { vi } from 'vitest'
-import { ERROR_INVALID_FILENAME } from '../../server/common/helpers/file-validation-messages.js'
+import {
+  CLIENT_FILE_ERROR_TEXT,
+  ERROR_INVALID_FILENAME,
+  FILE_ERROR_TEXT
+} from '../../server/common/helpers/file-validation-messages.js'
 import { renderTemplateIntoDocument } from '../../server/test-helpers/render-template.js'
-import { ERROR_WRONG_EXTENSION } from './file-validation-rules.js'
 import { initFileUploadValidation } from './file-upload-validation.js'
 
 // Render the real upload-geopackage-file template via the same Nunjucks
@@ -17,6 +20,7 @@ function createUploadForm(viewModel = {}) {
     projectId: 'test-project',
     uploadUrl: '/upload',
     instructionText: 'Choose a GeoPackage file to upload.',
+    fileErrorText: CLIENT_FILE_ERROR_TEXT,
     ...viewModel
   })
 }
@@ -49,6 +53,8 @@ function submitForm() {
   return event
 }
 
+const ERROR_WRONG_EXTENSION = FILE_ERROR_TEXT.notAGeoPackage
+
 describe('initFileUploadValidation', () => {
   beforeEach(() => {
     createUploadForm()
@@ -66,6 +72,31 @@ describe('initFileUploadValidation', () => {
     expect(() => initFileUploadValidation()).not.toThrow()
   })
 
+  test.each([
+    ['carries no messages', undefined],
+    ['carries messages it cannot read', '{not json'],
+    ['carries an empty object', '{}'],
+    ['carries a list', JSON.stringify(Object.values(CLIENT_FILE_ERROR_TEXT))],
+    [
+      'carries no words for one of its checks',
+      JSON.stringify({ ...CLIENT_FILE_ERROR_TEXT, NO_FILE: undefined })
+    ],
+    [
+      'carries blank words for one of its checks',
+      JSON.stringify({ ...CLIENT_FILE_ERROR_TEXT, TOO_LARGE: ' ' })
+    ]
+  ])('Should leave the check to the server when the form %s', (_, text) => {
+    createUploadForm()
+    const form = document.querySelector('form')
+    if (text === undefined) {
+      delete form.dataset.fileErrorText
+    } else {
+      form.dataset.fileErrorText = text
+    }
+    initFileUploadValidation()
+    expect(submitForm().defaultPrevented).toBe(false)
+  })
+
   // Validation message text and the no-error case are covered by
   // file-validation-rules.test.js; the DOM-shell tests below assert the
   // wiring (handler side effects, GDS-specific DOM artifacts).
@@ -81,7 +112,7 @@ describe('initFileUploadValidation', () => {
       const input = selectFile(createFile("survey'.gpkg", 100))
 
       expect(input.files[0].name).toBe("survey'.gpkg")
-      expect(document.body.innerHTML).not.toContain(
+      expect(document.body.textContent).not.toContain(
         'The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets'
       )
     })
@@ -92,7 +123,7 @@ describe('initFileUploadValidation', () => {
       const event = submitForm()
 
       expect(event.defaultPrevented).toBe(true)
-      expect(document.body.innerHTML).toContain(
+      expect(document.body.textContent).toContain(
         'Select a GeoPackage (.gpkg) file'
       )
     })
@@ -109,7 +140,7 @@ describe('initFileUploadValidation', () => {
       const event = submitForm()
 
       expect(event.defaultPrevented).toBe(true)
-      expect(document.body.innerHTML).toContain(
+      expect(document.body.textContent).toContain(
         'The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets'
       )
     })

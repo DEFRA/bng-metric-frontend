@@ -126,7 +126,7 @@ function namedTypes(project, layer) {
 function creationReference(project, layer, featureType) {
   return {
     featureType,
-    hasBroadHabitat: layer === 'habitats',
+    hasBroadHabitat: layer === 'habitats' || layer === 'trees',
     habitatTypes: typesIn(project, layer).map((habitat) => ({
       ...habitat,
       difficulty: 'Low',
@@ -176,6 +176,10 @@ function serviceTemplateBackend(body) {
     [
       '/reference/watercourse-creation',
       () => creationReference(project, 'watercourses', 'watercourse')
+    ],
+    [
+      '/reference/tree-creation',
+      () => creationReference(project, 'trees', 'tree')
     ]
   ])
 

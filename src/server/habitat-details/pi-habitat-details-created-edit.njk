@@ -35,7 +35,7 @@
 
 {% block content %}
   {% if errorList.length %}
-    {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+    {{ govukErrorSummary({ titleText: errorSummaryTitle, errorList: errorList }) }}
   {% endif %}
   <div class="govuk-grid-row app-pi-edit-heading">
     <div class="govuk-grid-column-two-thirds">
@@ -66,7 +66,17 @@
         {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
         {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
+        {% if showTreeRows %}
+          {{ derived("Tree size", "treeSizeDisplay", treeSizeDisplay) }}
+          {{ derived("Number of trees", "treeCountDisplay", treeCountDisplay) }}
+        {% endif %}
         {% if fields.broadHabitat %}{{ select(fields.broadHabitat) }}{% endif %}
+        {# An individual tree is always Individual trees: shown, and sent with
+           the form under the broad habitat's id and name, but not editable. #}
+        {% if fixedBroadHabitat %}
+          {{ derived("Broad habitat", "broadHabitatDisplay", fixedBroadHabitat) }}
+          <input type="hidden" id="broadHabitat" name="broadHabitat" value="{{ fixedBroadHabitat }}">
+        {% endif %}
         {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
         {{ select(fields.strategicSignificance) }}

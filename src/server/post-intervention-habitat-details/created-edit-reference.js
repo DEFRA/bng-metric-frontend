@@ -17,6 +17,11 @@ export function loadCreatedWatercourseReference() {
   return loadCreationReference('watercourse', 'watercourse', false)
 }
 
+// An individual tree's choices, Urban tree and Rural tree in Individual trees.
+export function loadCreatedTreeReference() {
+  return loadCreationReference('tree', 'tree', true)
+}
+
 function hasRequiredArrays(kind, payload) {
   const fields = ['habitatTypes', 'strategicSignificance']
   if (kind === 'watercourse') {
