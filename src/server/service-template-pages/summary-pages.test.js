@@ -313,7 +313,9 @@ describe('summary pages of a BNG Service template project', () => {
     )
   })
 
-  test('the watercourse pages render a Created watercourse saved Incomplete, with no units', async () => {
+  // BMD-1050 AC11 Scenario B: the row shows zero units, as a Created area or
+  // hedgerow row does.
+  test('the watercourse pages render a Created watercourse saved Incomplete, with zero units', async () => {
     const body = serviceTemplateProject('watercourseAdvanceIncomplete')
     const incomplete = body.project.postIntervention.watercourses.find(
       (f) => f.status === 'Incomplete'
@@ -329,7 +331,7 @@ describe('summary pages of a BNG Service template project', () => {
       .map((_, table) => tableRows($, table))
       .get()
     const row = rows.find((r) => r.ref === incomplete.ref)
-    expect(row.cells.Units).toBe('')
+    expect(row.cells.Units).toBe('0.00')
     expect($('main').text()).not.toMatch(/NaN|undefined/u)
   })
 })
