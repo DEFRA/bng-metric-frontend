@@ -5,6 +5,14 @@
   margin-bottom: govuk-spacing(4);
 }
 
+// Free text, such as a Retained habitat's supporting information (BMD-1187):
+// keep the line breaks it was saved with, and wrap a long unbroken word
+// within the column rather than overflow it. Shown in full, never truncated.
+.app-stacked-fields__value--multiline {
+  white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
 // Habitat units delivered: mirror the summary-list bottom rule above the row
 // so the label | value sits between matching top and bottom lines.
 .app-units-delivered .govuk-summary-list__row {

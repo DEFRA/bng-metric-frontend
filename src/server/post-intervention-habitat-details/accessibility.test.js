@@ -72,10 +72,18 @@ const FEATURES = {
   }
 }
 
-function mockBackend(type) {
+/**
+ * @param {string} type
+ * @param {{ comment?: string|null }} [options] the `baselineComment` the
+ *   backend sends with a Retained habitat (BMD-1187); none by default, so the
+ *   page shows "No data"
+ */
+function mockBackend(type, { comment = null } = {}) {
   vi.mocked(wreck.get).mockImplementation((url) => {
     if (url.endsWith(`/post-intervention/features/${featureId}`)) {
-      return Promise.resolve({ payload: { type, feature: FEATURES[type] } })
+      return Promise.resolve({
+        payload: { type, feature: FEATURES[type], baselineComment: comment }
+      })
     }
     return Promise.resolve({
       payload: {
@@ -108,6 +116,22 @@ describe('Post-intervention habitat details page accessibility checks', () => {
     'should have no HTML accessibility issues for a retained %s',
     async (type) => {
       mockBackend(type)
+      const { document } = await loadPage({
+        requestUrl: `/post-intervention-habitat-details?featureId=${featureId}&projectId=${projectId}`,
+        server,
+        auth: authedAuth
+      })
+      assertLayoutLandmarks(document)
+      await runAxeChecks(document.documentElement)
+    }
+  )
+
+  it.each(['habitat', 'hedgerow', 'watercourse'])(
+    'should have no HTML accessibility issues for a retained %s with supporting information',
+    async (type) => {
+      mockBackend(type, {
+        comment: 'Existing woodland on the boundary.\nSee the BNG report.'
+      })
       const { document } = await loadPage({
         requestUrl: `/post-intervention-habitat-details?featureId=${featureId}&projectId=${projectId}`,
         server,

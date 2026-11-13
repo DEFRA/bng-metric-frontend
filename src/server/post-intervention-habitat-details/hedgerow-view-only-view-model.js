@@ -6,7 +6,8 @@ import {
 } from './constants.js'
 import {
   buildSharedPiViewOnlyFields,
-  EMPTY_PLACEHOLDER
+  EMPTY_PLACEHOLDER,
+  supportingInformationFields
 } from './view-only-shared.js'
 
 /**
@@ -14,15 +15,16 @@ import {
  * habitat. All values are display strings; habitat-details/pi-hedgerow-details.njk
  * renders them as a single stacked label-over-value section via
  * layouts/pi-view-only-sections-page.njk, with the parcel ref as the page
- * heading.
+ * heading. Its supporting information is its baseline hedgerow's comment
+ * (BMD-1187).
  *
  * @param {object} feature the raw feature from the PI feature endpoint
- * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null }} ctx
+ * @param {{ projectId: string, projectName: string, baselineFeatureId: string|null, baselineComment?: string|null }} ctx
  * @returns {object}
  */
 export function buildHedgerowViewOnlyViewModel(
   feature,
-  { projectId, projectName, baselineFeatureId }
+  { projectId, projectName, baselineFeatureId, baselineComment }
 ) {
   const proposed = feature.proposed ?? {}
   return {
@@ -37,6 +39,7 @@ export function buildHedgerowViewOnlyViewModel(
     habitatDetailsSectionHeading: PI_DETAILS_HEADING,
     habitatUnitsLabel: HABITAT_UNITS_DELIVERED_LABEL,
     sizeDisplay: formatLengthKm(feature.sizeMetres),
-    habitatTypeDisplay: proposed.type ?? ''
+    habitatTypeDisplay: proposed.type ?? '',
+    ...supportingInformationFields(baselineComment)
   }
 }

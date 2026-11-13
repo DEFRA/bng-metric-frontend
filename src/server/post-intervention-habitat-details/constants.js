@@ -23,3 +23,7 @@ export const WATERCOURSES_TAB_ANCHOR = '#watercourses'
 
 // Match the backend habitat-reference limit, measured in Unicode characters.
 export { MAX_HABITAT_REF_LENGTH as MAX_REF_LENGTH } from '../common/helpers/habitat-ref.js'
+
+// A Retained habitat's supporting information is its baseline habitat's
+// comment, shown read-only (BMD-1187), or this when none is saved.
+export const NO_SUPPORTING_INFORMATION = 'No data'
