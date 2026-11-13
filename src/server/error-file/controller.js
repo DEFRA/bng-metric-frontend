@@ -82,10 +82,7 @@ function lineageValues(s) {
     // A vertical area habitat's, in hectares as the surveyor typed them and
     // in square metres, as the habitat pages show them.
     area: formatVerticalArea(s?.areaSquareMetres),
-    childArea: formatVerticalArea(s?.childAreaSquareMetres),
-    // A tree's Count, and its kept trees' together.
-    count: s?.count,
-    childCount: s?.childCount
+    childArea: formatVerticalArea(s?.childAreaSquareMetres)
   }
 }
 
