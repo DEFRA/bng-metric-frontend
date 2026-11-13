@@ -541,7 +541,11 @@ describe('#projectDetailsPostController', () => {
     'rejects unknown or malformed reference %s and retains the rest of the form',
     async (reference) => {
       if (reference === 'E60099999') {
-        vi.mocked(wreck.patch).mockRejectedValueOnce(responseError(400))
+        vi.mocked(wreck.patch).mockRejectedValueOnce(
+          responseError(400, {
+            message: 'Select a Local Planning Authority from the list'
+          })
+        )
       }
       const res = await post({
         ...formPayload,
@@ -558,6 +562,49 @@ describe('#projectDetailsPostController', () => {
       )
     }
   )
+
+  test('returns 502, not an LPA error, when the backend refuses the payload for another reason', async () => {
+    vi.mocked(wreck.patch).mockRejectedValueOnce(
+      responseError(400, {
+        message: '"planningApplicationType" is not allowed'
+      })
+    )
+    const { statusCode, result } = await post({
+      ...formPayload,
+      localPlanningAuthorityReference: 'E60000001'
+    })
+    expect(statusCode).toBe(statusCodes.badGateway)
+    expect(result).not.toContain(
+      'Select a local planning authority from the list'
+    )
+  })
+
+  test('drops a field the page no longer shows, from a form loaded before BMD-849', async () => {
+    const res = await post({
+      ...formPayload,
+      developmentType: 'Residential',
+      nsips: 'no'
+    })
+    expect(res.statusCode).toBe(statusCodes.redirect)
+    const sent = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
+    expect(sent).not.toHaveProperty('developmentType')
+    expect(sent).not.toHaveProperty('nsips')
+  })
+
+  test('returns 400, not 500, when a field is posted twice', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url,
+      payload: `projectName=A&surveyCompletionDate-day=1&surveyCompletionDate-day=2&crumb=${crumb.token}`,
+      headers: {
+        cookie: crumb.cookie,
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      auth: authedAuth
+    })
+    expect(res.statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.patch).not.toHaveBeenCalled()
+  })
 
   test('returns 404 when backend returns 404', async () => {
     vi.mocked(wreck.patch).mockRejectedValue(responseError(404))

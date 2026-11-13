@@ -21,6 +21,9 @@ const DATE_PART_NAMES = ['day', 'month', 'year']
 const YEAR_DIGIT_LENGTH = 4
 const DIGITS_PATTERN = /^\d+$/
 const DATE_PAD_LENGTH = 2
+// A date as the number YYYYMMDD, so two dates compare as numbers.
+const YEAR_SHIFT = 10000
+const MONTH_SHIFT = 100
 
 // The page's fields, in the order it shows them: the error summary lists its
 // problems in this order too.
@@ -171,12 +174,13 @@ export function validateSurveyDate(parts, today = new Date()) {
     return { error: dateError('notReal', DATE_PART_NAMES) }
   }
 
-  const dd = String(day).padStart(DATE_PAD_LENGTH, '0')
-  const mm = String(month).padStart(DATE_PAD_LENGTH, '0')
-  if (`${year}-${mm}-${dd}` > UK_DATE.format(today)) {
+  const todayNumber = Number(UK_DATE.format(today).replaceAll('-', ''))
+  if (year * YEAR_SHIFT + month * MONTH_SHIFT + day > todayNumber) {
     return { error: dateError('inFuture', DATE_PART_NAMES) }
   }
 
+  const dd = String(day).padStart(DATE_PAD_LENGTH, '0')
+  const mm = String(month).padStart(DATE_PAD_LENGTH, '0')
   return { value: `${dd}/${mm}/${year}` }
 }
 
@@ -198,7 +202,12 @@ function byFieldOrder(a, b) {
  *   name and the details to save
  */
 export function validateProjectDetailsForm(payload, today = new Date()) {
-  const fields = fieldsSchema.validate(payload ?? {}, { abortEarly: false })
+  // A field the page no longer shows (developmentType or nsips, posted from
+  // a form loaded before BMD-849) is dropped, not refused.
+  const fields = fieldsSchema.validate(payload ?? {}, {
+    abortEarly: false,
+    stripUnknown: true
+  })
   const date = validateSurveyDate(datePartsOf(payload), today)
 
   const errors = [

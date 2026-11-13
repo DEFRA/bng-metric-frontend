@@ -33,6 +33,18 @@ const LPA_NOT_IN_LIST = formErrorText(
   'notInList'
 ).inline
 
+// The backend's words when it refuses an authority it does not hold
+// (local-planning-authorities.js). Any other 400 is a contract mismatch,
+// not something the user can fix.
+const BACKEND_LPA_REFUSAL = /local planning authority/i
+
+// Every posted value is text: a field posted twice arrives as an array and is
+// refused here with a 400. The fields themselves are checked by
+// validateProjectDetailsForm, so each problem can be shown on the page.
+const formPayload = Joi.object()
+  .pattern(Joi.string(), Joi.string().allow(''))
+  .allow(null)
+
 const projectIdParams = Joi.object({
   projectId: Joi.string().guid({ version: 'uuidv4' }).required()
 })
@@ -150,7 +162,8 @@ export const projectDetailsController = {
 export const projectDetailsPostController = {
   options: {
     validate: {
-      params: projectIdParams
+      params: projectIdParams,
+      payload: formPayload
     }
   },
   async handler(request, h) {
@@ -178,7 +191,8 @@ export const projectDetailsPostController = {
     // since dropped is refused here.
     if (
       result.statusCode === statusCodes.badRequest &&
-      details.localPlanningAuthorityReference
+      details.localPlanningAuthorityReference &&
+      BACKEND_LPA_REFUSAL.test(result.payload?.message ?? '')
     ) {
       return renderRefusal(request, h, [
         {
