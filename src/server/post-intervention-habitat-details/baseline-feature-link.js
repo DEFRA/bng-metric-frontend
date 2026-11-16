@@ -108,8 +108,14 @@ function isServiceTemplateProject(project) {
   return isServiceTemplateDocument(project?.project?.postIntervention)
 }
 
+// A feature renamed on its own page, such as an Enhanced area habitat
+// (BMD-1045), carries the parent it was renamed from, as its new ref may match
+// no baseline feature, or the wrong one.
 export function viewOnlyBaselineFeatureId(project, type, feature) {
-  if (isServiceTemplateProject(project)) {
+  if (
+    isServiceTemplateProject(project) ||
+    Object.hasOwn(feature, 'parentFeatureId')
+  ) {
     return parentBaselineFeatureId(project, feature)
   }
   return resolveBaselineFeatureId(project, type, feature)

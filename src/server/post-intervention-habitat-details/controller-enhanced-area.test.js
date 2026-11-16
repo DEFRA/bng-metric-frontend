@@ -4,8 +4,10 @@ import {
   baselineFeatureId,
   createMockH,
   featureId,
+  mockFeature,
   mockSectionAreaFeature,
-  projectId
+  projectId,
+  TEST_PROJECT_NAME
 } from './controller-test-helpers.js'
 import { enhancedAreaFeature } from './created-area-test-fixtures.js'
 
@@ -22,6 +24,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 const { getController, postController } = await import('./controller.js')
 const { _resetCreatedAreaReferenceCache, createdAreaValues } =
   await import('./created-area-edit.js')
+const { UNCHANGED_VALUE } = await import('../../shared/created-area-details.js')
 
 const EDIT_TEMPLATE = 'habitat-details/pi-habitat-details-created-edit'
 const READ_ONLY_TEMPLATE = 'habitat-details/pi-habitat-details-enhanced'
@@ -316,5 +319,96 @@ describe('BMD-1045 Enhanced area edit page', () => {
       href: '#condition'
     })
     expect(view.values.ref).toBe('Kept')
+  })
+
+  // A stored proposal its baseline's valid enhancements no longer list, such
+  // as one saved before the baseline was edited: Urban is not offered at all.
+  const outOfListProposal = {
+    broadType: 'Urban',
+    type: 'Artificial unvegetated, unsealed surface',
+    condition: 'N/A - Other',
+    strategicSignificanceCategory: 'High',
+    strategicSignificance: 'High',
+    advanceYears: 0,
+    delayYears: 2
+  }
+
+  test('keeps a stored proposal the list no longer offers as its unchanged choice', async () => {
+    mockEnhanced({ proposed: outOfListProposal })
+    const view = await renderPage()
+
+    expect(view.values).toMatchObject({
+      broadHabitat: UNCHANGED_VALUE,
+      habitatType: UNCHANGED_VALUE,
+      condition: UNCHANGED_VALUE
+    })
+    for (const field of ['broadHabitat', 'habitatType', 'condition']) {
+      expect(view.fields[field].items).toContainEqual(
+        expect.objectContaining({ value: UNCHANGED_VALUE, selected: true })
+      )
+    }
+  })
+
+  test('a rename sends back a stored proposal the list no longer offers, rather than clearing it', async () => {
+    const feature = mockEnhanced({ proposed: outOfListProposal })
+    const h = createMockH()
+    await postController.handler(
+      {
+        payload: {
+          projectId,
+          featureId,
+          ...createdAreaValues(feature),
+          ref: 'E-1 renamed',
+          broadHabitat: UNCHANGED_VALUE,
+          habitatType: UNCHANGED_VALUE,
+          condition: UNCHANGED_VALUE
+        }
+      },
+      h
+    )
+
+    expect(sentPayload()).toMatchObject({
+      ref: 'E-1 renamed',
+      broadType: 'Urban',
+      habitatType: 'Artificial unvegetated, unsealed surface',
+      condition: 'N/A - Other'
+    })
+    expect(h.redirect).toHaveBeenCalledWith(
+      `/projects/${projectId}/area-post-intervention`
+    )
+  })
+
+  test('links a renamed habitat to the baseline it was renamed from, not by its new ref', async () => {
+    const feature = {
+      ...structuredClone(enhancedAreaFeature),
+      ref: 'E-1 renamed',
+      referenceEdited: true,
+      parentFeatureId: baselineFeatureId
+    }
+    mockFeature(
+      { type: 'habitat', feature },
+      {
+        payload: {
+          project: {
+            name: TEST_PROJECT_NAME,
+            baseline: {
+              habitats: [
+                { featureId: baselineFeatureId, ref: 'E-1' },
+                // Carries the new ref, so a join by ref would find it.
+                {
+                  featureId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+                  ref: 'E-1 renamed'
+                }
+              ]
+            }
+          }
+        }
+      }
+    )
+    const view = await renderPage()
+
+    expect(view.viewBaselineHref).toBe(
+      `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+    )
   })
 })

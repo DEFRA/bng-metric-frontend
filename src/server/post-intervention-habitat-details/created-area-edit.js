@@ -88,9 +88,10 @@ const CREATED_AREA_KIND = {
 // BMD-1045: an Enhanced area is edited on the Created area form, with the
 // choices limited to the valid enhancements of its baseline. Its fields,
 // validation, derived values and save are the Created area's; its timing is
-// worded as an enhancement, a refused enhancement blames the condition, and
-// it falls back to its read-only page while the backend does not serve the
-// area enhancement reference.
+// worded as an enhancement, a refused enhancement blames the condition, a
+// stored proposal the list no longer offers is kept, and it falls back to its
+// read-only page while the backend does not serve the area enhancement
+// reference.
 const ENHANCED_AREA_KIND = Object.freeze({
   ...CREATED_AREA_KIND,
   loadReference: (feature) => loadEnhancedAreaReference(feature?.baseline),
@@ -98,6 +99,9 @@ const ENHANCED_AREA_KIND = Object.freeze({
   optionalReference: true,
   buildBase: buildEnhancedAreaViewOnlyViewModel,
   conditionError: formError('condition', 'notValidEnhancement'),
+  // A stored proposal its baseline's valid enhancements no longer list is
+  // kept, not cleared, by a save that leaves it unchanged.
+  preservesStoredChoices: true,
   timingLabels: Object.freeze({
     advanceYears: 'Habitat enhanced in advance (years)',
     delayYears: 'Delay in starting habitat enhancement (years)'
@@ -518,7 +522,30 @@ function advancePayload(values, kind, feature) {
   return timingPayload(values, 'advanceYears', keepBlank)
 }
 
-function createdAreaSavePayload(values, kind, feature) {
+// The stored proposed field each kept choice of an Enhanced area sends back.
+const STORED_CHOICE_FIELDS = Object.freeze({
+  broadHabitat: 'broadType',
+  habitatType: 'type',
+  condition: 'condition'
+})
+
+// An Enhanced area's kept choices, as their stored values: the backend
+// requires every choice with a reference and accepts one left as stored.
+function withStoredChoices(values, kind, feature) {
+  if (!kind.preservesStoredChoices) {
+    return values
+  }
+  return Object.fromEntries(
+    Object.entries(values).map(([field, value]) =>
+      value === UNCHANGED_VALUE && Object.hasOwn(STORED_CHOICE_FIELDS, field)
+        ? [field, feature?.proposed?.[STORED_CHOICE_FIELDS[field]] ?? '']
+        : [field, value]
+    )
+  )
+}
+
+function createdAreaSavePayload(submitted, kind, feature) {
+  const values = withStoredChoices(submitted, kind, feature)
   return {
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
