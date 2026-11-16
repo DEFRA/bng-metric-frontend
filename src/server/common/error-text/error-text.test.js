@@ -26,6 +26,20 @@ const SOURCE = readFileSync(ERROR_TEXT_FILE, 'utf8')
  * Run `check` with `entries` in place of those in `section`, then put the
  * section back: so a reader can be given entries parseErrorText has read.
  */
+// No committed edit code has field wording since HABITAT_REF_IN_USE went
+// (BMD-1180), so the checks of that shape add this one.
+const FIELD_EDIT_CODE = 'TEST_FIELD_REFUSAL'
+const FIELD_EDIT_ENTRY = Object.freeze({
+  wording: 'interim',
+  summary: 'Summary of the refusal.',
+  inline: 'Inline refusal.'
+})
+
+function withFieldEditEntry(text) {
+  text.edit[FIELD_EDIT_CODE] = { ...FIELD_EDIT_ENTRY }
+  return text
+}
+
 function withEntries(section, entries, check) {
   const saved = Object.fromEntries(
     Object.keys(entries).map((key) => [key, section[key]])
@@ -83,7 +97,7 @@ describe('error-text.yaml', () => {
 
 describe('parseErrorText', () => {
   test('reads the committed file', () => {
-    expect(parseErrorText(SOURCE).edit.HABITAT_REF_IN_USE).toBeDefined()
+    expect(parseErrorText(SOURCE).edit.STORED_VALUE_NOT_ALLOWED).toBeDefined()
   })
 
   test('refuses a file with no edit section', () => {
@@ -94,10 +108,10 @@ describe('parseErrorText', () => {
   })
 
   test('refuses an edit entry with no inline message', () => {
-    const text = parseErrorText(SOURCE)
-    delete text.edit.HABITAT_REF_IN_USE.inline
+    const text = withFieldEditEntry(parseErrorText(SOURCE))
+    delete text.edit[FIELD_EDIT_CODE].inline
     expect(() => parseErrorText(JSON.stringify(text))).toThrow(
-      /HABITAT_REF_IN_USE.*inline/
+      /TEST_FIELD_REFUSAL.*inline/
     )
   })
 
@@ -154,7 +168,7 @@ describe("error-text.yaml's wording field", () => {
   test('reads it in every section', () => {
     const text = parseErrorText(SOURCE)
     expect(wordingStatus(text.common.unworded)).toBe(WORDING_STATUS.INTERIM)
-    expect(wordingStatus(text.edit.HABITAT_REF_IN_USE)).toBe(
+    expect(wordingStatus(text.edit.STORED_VALUE_NOT_ALLOWED)).toBe(
       WORDING_STATUS.INTERIM
     )
     expect(wordingStatus(text.edit.ENHANCEMENT_NOT_VALID)).toBe(
@@ -189,9 +203,9 @@ describe("error-text.yaml's wording field", () => {
 
   test('refuses interim wording with no words', () => {
     const text = parseErrorText(SOURCE)
-    text.edit.HABITAT_REF_IN_USE = { wording: 'interim' }
+    text.edit[FIELD_EDIT_CODE] = { wording: 'interim' }
     expect(() => parseErrorText(JSON.stringify(text))).toThrow(
-      /HABITAT_REF_IN_USE\.summary.*required/
+      /TEST_FIELD_REFUSAL\.summary.*required/
     )
   })
 
@@ -206,8 +220,8 @@ describe("error-text.yaml's wording field", () => {
   test.each([
     [
       'an edit entry',
-      (text) => (text.edit.HABITAT_REF_IN_USE = { wording: 'nnoe' }),
-      /HABITAT_REF_IN_USE\.summary.*required/
+      (text) => (text.edit[FIELD_EDIT_CODE] = { wording: 'nnoe' }),
+      /TEST_FIELD_REFUSAL\.summary.*required/
     ],
     [
       'a form rule',
@@ -224,16 +238,16 @@ describe("error-text.yaml's wording field", () => {
   )
 
   test("shows an entry's words whatever its wording field says", () => {
-    const text = parseErrorText(SOURCE)
-    text.edit.HABITAT_REF_IN_USE.wording = 'pending'
+    const text = withFieldEditEntry(parseErrorText(SOURCE))
+    text.edit[FIELD_EDIT_CODE].wording = 'pending'
     text.forms.applicant.tooLong.wording = 'pending'
     text.pages.forbidden.wording = 'pending'
     const parsed = parseErrorText(JSON.stringify(text))
 
     withEntries(errorText.edit, parsed.edit, () => {
-      expect(editErrorText('HABITAT_REF_IN_USE')).toEqual({
-        summary: 'You have entered a habitat reference that is already in use.',
-        inline: 'Enter a habitat reference that is not already in use.'
+      expect(editErrorText(FIELD_EDIT_CODE)).toEqual({
+        summary: FIELD_EDIT_ENTRY.summary,
+        inline: FIELD_EDIT_ENTRY.inline
       })
     })
     withEntries(errorText.forms.applicant, parsed.forms.applicant, () => {
@@ -262,8 +276,9 @@ describe("error-text.yaml's wording field", () => {
   test.each([
     [
       'an edit entry',
-      (text) => (text.edit.HABITAT_REF_IN_USE.wording = 'none'),
-      /HABITAT_REF_IN_USE\.summary.*not allowed/
+      (text) =>
+        (withFieldEditEntry(text).edit[FIELD_EDIT_CODE].wording = 'none'),
+      /TEST_FIELD_REFUSAL\.summary.*not allowed/
     ],
     [
       'a form rule',
@@ -307,9 +322,14 @@ describe("error-text.yaml's wording field", () => {
 
 describe('editErrorText', () => {
   test('gives the wording for an edit code that has some', () => {
-    expect(editErrorText('HABITAT_REF_IN_USE')).toEqual({
-      summary: 'You have entered a habitat reference that is already in use.',
-      inline: 'Enter a habitat reference that is not already in use.'
+    const parsed = parseErrorText(
+      JSON.stringify(withFieldEditEntry(parseErrorText(SOURCE)))
+    )
+    withEntries(errorText.edit, parsed.edit, () => {
+      expect(editErrorText(FIELD_EDIT_CODE)).toEqual({
+        summary: FIELD_EDIT_ENTRY.summary,
+        inline: FIELD_EDIT_ENTRY.inline
+      })
     })
   })
 

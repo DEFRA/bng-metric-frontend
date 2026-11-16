@@ -1229,11 +1229,6 @@ upload:
 # message export says what each is filled in with.
 
 edit:
-  HABITAT_REF_IN_USE:
-    wording: interim
-    summary: You have entered a habitat reference that is already in use.
-    inline: Enter a habitat reference that is not already in use.
-
   ENHANCEMENT_NOT_VALID:
     wording: none
 
