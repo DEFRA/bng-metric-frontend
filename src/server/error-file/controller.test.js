@@ -436,6 +436,47 @@ describe('invalidFileController.handler — populated session', () => {
     ])
   })
 
+  test('errorBlocks: TREE_NOT_ENHANCEABLE lists each Enhanced tree in Good condition by its Habitat Ref, and says what to record instead, even alone', async () => {
+    const errors = [
+      {
+        code: 'TREE_NOT_ENHANCEABLE',
+        message:
+          'One or more trees are enhanced, but their baseline tree is in Good condition and cannot be enhanced: Feature Ref T006',
+        details: {
+          count: 1,
+          sample: [
+            {
+              layer: 'trees',
+              feature_ref: 'T006',
+              habitat_type: 'Individual trees - Rural tree',
+              condition: 'Good',
+              distinctiveness: 'Medium',
+              rule: 'medium-area-good',
+              mvsOnly: true
+            }
+          ]
+        }
+      }
+    ]
+    const request = makeRequest({
+      postInterventionValidationErrors: errors,
+      validationUploadType: 'postIntervention'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more trees are enhanced, but their baseline tree is in Good condition, and a tree in Good condition cannot be enhanced. Record each as Retained or, if its condition will get worse, as lost and Created in a lower condition 30+ years in advance',
+        items: ['Habitat Ref T006 — Individual trees - Rural tree'],
+        more: 0
+      }
+    ])
+  })
+
   test('errorBlocks: BMD-1182 BASELINE_NOT_ENHANCEABLE lists each enhanced habitat with its baseline type and condition', async () => {
     const errors = [
       {
@@ -1800,11 +1841,11 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each tree whose kept trees together count more than it, with both counts', async () => {
+  test('lists each tree with more than one kept tree linked to it, and the trees linked, without the counts the backend sends', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_TREE_CHILDREN_TOO_MANY',
-        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together',
+        'One or more baseline trees have fewer trees than the post-intervention trees that are still them, linked to them together: Retained, Enhanced, or Existing and Created in its setting',
         [
           {
             layer: 'trees',
@@ -1813,8 +1854,8 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
             ref: 'T004',
             habitatType: 'Rural tree',
             childRefs: ['T004a', 'T004b'],
-            count: 3,
-            childCount: 4
+            count: 1,
+            childCount: 2
           }
         ]
       )
@@ -1824,10 +1865,8 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together. A tree that is kept cannot be more trees than it was',
-        [
-          'Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b; Count 3, linked 4'
-        ]
+        'One or more baseline trees have more than one kept tree linked to them. A post-intervention tree is kept if it is Retained or Enhanced, or Created with Category Existing in the same Urban or Rural setting. A baseline tree is one tree, so only one kept tree can be linked to it',
+        ['Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b']
       ]
     ])
   })

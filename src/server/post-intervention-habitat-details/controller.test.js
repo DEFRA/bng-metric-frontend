@@ -153,6 +153,11 @@ describe('#postInterventionHabitatDetailsController', () => {
       'habitat-details/pi-habitat-details',
       expect.objectContaining({ caption: 'Project', viewBaselineHref: null })
     )
+    // The backend sent no baseline comment with this habitat (it has no
+    // retention category), so the section is left off (BMD-1187).
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty(
+      'supportingInformationDisplay'
+    )
   })
 
   test('GET omits the baseline link when the area feature has no ref', async () => {
@@ -244,7 +249,7 @@ describe('#postInterventionHabitatDetailsController', () => {
   )
 
   // A Medium urban tree point standing for 2 trees.
-  function mockTree(retentionCategory, treeCreation) {
+  function mockTree(retentionCategory, treeCreation, treeEnhancement) {
     _resetCreatedAreaReferenceCache()
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {
@@ -273,6 +278,9 @@ describe('#postInterventionHabitatDetailsController', () => {
       }
       if (url.endsWith('/reference/tree-creation') && treeCreation) {
         return treeCreation()
+      }
+      if (url.endsWith('/reference/tree-enhancement') && treeEnhancement) {
+        return treeEnhancement()
       }
       if (isProjectUrl(url)) {
         return Promise.resolve(projectPayload)
@@ -314,8 +322,14 @@ describe('#postInterventionHabitatDetailsController', () => {
     backHref: `/projects/${projectId}/area-post-intervention`
   }
 
-  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and number of trees', async () => {
-    mockTree('Enhanced')
+  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and number of trees, while the backend does not serve the tree enhancement reference', async () => {
+    mockTree('Enhanced', undefined, () =>
+      Promise.reject(
+        Object.assign(new Error('Not Found'), {
+          output: { statusCode: 404 }
+        })
+      )
+    )
 
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)

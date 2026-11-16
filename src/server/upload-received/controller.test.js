@@ -1,3 +1,5 @@
+import Boom from '@hapi/boom'
+
 import { getUploadStatus } from '../common/services/uploader.js'
 import { validateBaseline } from '../common/services/baseline.js'
 import { FILE_ERROR_TEXT } from '../common/helpers/file-validation-messages.js'
@@ -63,6 +65,22 @@ describe('upload-received controller', () => {
       '/projects/proj-123/project-summary'
     )
     expect(h.view).not.toHaveBeenCalled()
+  })
+
+  it('should leave a conflict to the conflict page, not the file error page', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id')
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'ready' })
+    vi.mocked(validateBaseline).mockRejectedValue(
+      Boom.conflict('Another user is editing this project')
+    )
+
+    await expect(getController.handler(request, h)).rejects.toMatchObject({
+      output: { statusCode: 409 }
+    })
+    expect(h.redirect).not.toHaveBeenCalled()
+    // The file is kept, so reloading the page checks it again.
+    expect(request.yar.clear).not.toHaveBeenCalledWith('pendingUploadId')
   })
 
   it('should redirect to dropout page with structured errors when validation fails', async () => {

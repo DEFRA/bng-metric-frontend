@@ -9,9 +9,12 @@
    right (via .app-units-delivered).
 
    Each child template sets `sections` — an array of
-   { heading, rows: [{ label, value, when? }], showBaselineLink? } — plus
-   habitatUnitsLabel and habitatUnitsDisplay. A row with a `when` shows only
-   when it is true: the area pages' tree rows show on a tree's page alone.
+   { heading, rows: [{ label, value, when?, multiline? }], showBaselineLink? }
+   — plus habitatUnitsLabel and habitatUnitsDisplay. A row with a `when` shows
+   only when it is true: the area pages' tree rows show on a tree's page alone.
+   A `multiline` row keeps the line breaks in its value and wraps long words,
+   as free text such as a Retained habitat's supporting information needs
+   (BMD-1187).
 
    Every value is read-only, except on a Retained habitat, whose view model
    carries `refForm` (BMD-1180): the page is then a form, with the "Habitat
@@ -60,7 +63,9 @@
           <div class="app-stacked-fields__item">
             {# govuk-heading-s keeps GDS Transport (same as summary-list keys) #}
             <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ row.label }}</h3>
-            <p class="govuk-body">{{ row.value }}</p>
+            {# The value sits flush against the tags: a multiline row shows
+               any whitespace here. #}
+            <p class="govuk-body{% if row.multiline %} app-stacked-fields__value--multiline{% endif %}">{{ row.value }}</p>
           </div>
           {% endif %}
         {% endfor %}

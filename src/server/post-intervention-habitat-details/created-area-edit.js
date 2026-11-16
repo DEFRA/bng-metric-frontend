@@ -1,14 +1,16 @@
 import {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
-  loadCreatedTreeReference,
   loadCreatedWatercourseReference
 } from './created-edit-reference.js'
+import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
+export { enhancedTreeReference } from './tree-edit-kinds.js'
 export {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
   loadCreatedTreeReference,
   loadCreatedWatercourseReference,
+  loadEnhancedTreeReference,
   _resetCreatedAreaReferenceCache
 } from './created-edit-reference.js'
 import {
@@ -20,8 +22,6 @@ import {
 import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
 import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
-import { buildTreeSectionsViewOnlyViewModel } from './tree-view-only-view-model.js'
-import { INDIVIDUAL_TREES_BROAD_HABITAT } from '../baseline-habitat-details/strategies/tree.js'
 
 import {
   UNCHANGED_VALUE,
@@ -37,7 +37,11 @@ import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.j
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
 import { buildCreatedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
-import { MAX_REF_LENGTH } from './constants.js'
+import {
+  AREA_SECTIONS_TEMPLATE,
+  AREA_SIZE_LABEL,
+  MAX_REF_LENGTH
+} from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import {
@@ -70,10 +74,10 @@ export const CREATED_EDIT_KINDS = {
     loadReference: loadCreatedAreaReference,
     label: 'Area habitat',
     optionalReference: false,
-    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
+    readOnlyTemplate: AREA_SECTIONS_TEMPLATE,
     buildBase: buildCreatedAreaViewOnlyViewModel,
     formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: 'Size (hectares)',
+    sizeLabel: AREA_SIZE_LABEL,
     backType: 'habitat',
     savePath: 'habitats',
     hasBroadHabitat: true,
@@ -109,26 +113,8 @@ export const CREATED_EDIT_KINDS = {
     hasBroadHabitat: false,
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
   },
-  // A Created individual tree is edited as a Created area habitat is, but
-  // stays a tree: its broad habitat is always Individual trees,
-  // shown and sent but not editable, and its habitat type must be Urban tree
-  // or Rural tree. Its size class and number of trees are shown, not edited.
-  // Until the backend serves the tree reference, it keeps its read-only page.
-  tree: {
-    loadReference: loadCreatedTreeReference,
-    label: 'Tree',
-    optionalReference: true,
-    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
-    buildBase: buildTreeSectionsViewOnlyViewModel,
-    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: 'Size (hectares)',
-    backType: 'tree',
-    savePath: 'trees',
-    hasBroadHabitat: true,
-    fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
-    habitatTypeRequired: true,
-    habitatTypeError: formError('habitatType', 'invalidTree')
-  }
+  tree: CREATED_TREE_KIND,
+  enhancedTree: ENHANCED_TREE_KIND
 }
 
 function createdKind(reference) {
@@ -175,7 +161,10 @@ export const createdWatercoursePayloadSchema =
 
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
-  reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
+  reference = {
+    ...(kind.forFeature ? kind.forFeature(reference, feature) : reference),
+    hasBroadHabitat: kind.hasBroadHabitat
+  }
   const saved = createdAreaValues(feature)
   const importedYears = Object.fromEntries(
     ['advanceYears', 'delayYears']
@@ -323,7 +312,7 @@ export function validateCreatedArea(values, reference) {
       const messages = {
         broadHabitat: ERRORS.broadHabitat,
         habitatType: kind.habitatTypeError,
-        condition: ERRORS.condition,
+        condition: kind.conditionError ?? ERRORS.condition,
         strategicSignificance: ERRORS.strategicSignificance,
         watercourseEncroachment: ERRORS.watercourseEncroachment,
         riparianEncroachment: ERRORS.riparianEncroachment

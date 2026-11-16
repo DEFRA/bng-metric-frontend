@@ -95,12 +95,13 @@ function createdFieldChoices(reference, values, type, kind) {
     ],
     [
       'advanceYears',
-      'Habitat created in advance (years)',
+      kind.timingLabels?.advanceYears ?? 'Habitat created in advance (years)',
       options(YEAR_OPTIONS)
     ],
     [
       'delayYears',
-      'Delay in starting habitat creation (years)',
+      kind.timingLabels?.delayYears ??
+        'Delay in starting habitat creation (years)',
       options(YEAR_OPTIONS)
     ]
   ]

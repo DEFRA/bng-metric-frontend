@@ -120,8 +120,12 @@ function baselineIds(body) {
   )
 }
 
+// A Created feature of those layers opens on the edit form, and so does an
+// Enhanced tree, whose condition is all it enhances.
 const isEditable = (layer, feature) =>
-  feature.retentionCategory === 'Created' && EDITABLE_CREATED_LAYERS.has(layer)
+  (feature.retentionCategory === 'Created' &&
+    EDITABLE_CREATED_LAYERS.has(layer)) ||
+  (feature.retentionCategory === 'Enhanced' && layer === 'trees')
 
 describe('details pages of a BNG Service template project', () => {
   let server
@@ -258,7 +262,7 @@ describe('details pages of a BNG Service template project', () => {
     })
 
     test.each(cases.filter(([, layer, f]) => isEditable(layer, f)))(
-      'renders %s on the Created edit form, with its significance chosen',
+      'renders %s on the edit form, with its significance chosen',
       async (_label, _layer, { featureId, proposed }) => {
         const body = serviceTemplateProject('twoStages')
 
@@ -351,22 +355,20 @@ describe('details pages of a BNG Service template project', () => {
       )
     })
 
-    // A Retained tree takes the reference form, a Created one the edit form,
-    // and an Enhanced one is read-only.
+    // A Retained tree takes the reference form, and a Created or an Enhanced
+    // one the edit form.
+    const TREE_EDIT_FIELDS = [
+      'ref',
+      'habitatType',
+      'strategicSignificance',
+      'condition',
+      'advanceYears',
+      'delayYears'
+    ]
     test.each([
       ['Retained', ['habitatRef']],
-      ['Enhanced', []],
-      [
-        'Created',
-        [
-          'ref',
-          'habitatType',
-          'strategicSignificance',
-          'condition',
-          'advanceYears',
-          'delayYears'
-        ]
-      ]
+      ['Enhanced', TREE_EDIT_FIELDS],
+      ['Created', TREE_EDIT_FIELDS]
     ])(
       'a %s individual tree renders in the area layout, sized in hectares',
       async (retentionCategory, editableFields) => {

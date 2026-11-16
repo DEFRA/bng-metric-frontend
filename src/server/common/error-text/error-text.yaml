@@ -1026,6 +1026,18 @@ upload:
           - '{feature} — {habitatType}'
           - ' ({condition})'
 
+    TREE_NOT_ENHANCEABLE:
+      wording: interim
+      problemsList:
+        heading: >-
+          One or more trees are enhanced, but their baseline tree is in Good
+          condition, and a tree in Good condition cannot be enhanced. Record
+          each as Retained or, if its condition will get worse, as lost and
+          Created in a lower condition 30+ years in advance
+        item:
+          - '{tree}'
+          - ' — {habitatType}'
+
     # ----------------------------------- BNG Service template lineage (BMD-1083)
 
     STAGED_PARENT_LINK_MISSING:
@@ -1105,15 +1117,15 @@ upload:
       wording: interim
       problemsList:
         heading: >-
-          One or more baseline trees have fewer trees than the Retained and
-          Enhanced post-intervention trees linked to them together. A tree that
-          is kept cannot be more trees than it was
+          One or more baseline trees have more than one kept tree linked to
+          them. A post-intervention tree is kept if it is Retained or Enhanced,
+          or Created with Category Existing in the same Urban or Rural setting.
+          A baseline tree is one tree, so only one kept tree can be linked to it
         item:
           - '{table} '
           - '{name}'
           - ' — {habitatType}'
           - ', copied to {childRefs}'
-          - '; Count {count}, linked {childCount}'
 
     STAGED_WATERCOURSE_RETAINED_AND_CREATED:
       wording: interim
@@ -1359,6 +1371,9 @@ forms:
     invalidTree: Choose Urban tree or Rural tree
   condition:
     notForHabitatType: Choose a target condition for the selected habitat type
+    # An Enhanced tree's target condition no better than its baseline one,
+    # on the page or refused by the service (ENHANCEMENT_NOT_VALID).
+    notBetterThanBaseline: Choose a target condition better than the tree's baseline condition
   strategicSignificance:
     invalid: Choose a valid strategic significance
   watercourseEncroachment:

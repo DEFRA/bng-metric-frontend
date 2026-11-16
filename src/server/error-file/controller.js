@@ -82,10 +82,7 @@ function lineageValues(s) {
     // A vertical area habitat's, in hectares as the surveyor typed them and
     // in square metres, as the habitat pages show them.
     area: formatVerticalArea(s?.areaSquareMetres),
-    childArea: formatVerticalArea(s?.childAreaSquareMetres),
-    // A tree's Count, and its kept trees' together.
-    count: s?.count,
-    childCount: s?.childCount
+    childArea: formatVerticalArea(s?.childAreaSquareMetres)
   }
 }
 
@@ -152,16 +149,27 @@ function verticalAreaValues(s) {
   return { ...featureValues(s), area: known(s?.area) ?? unknown.area }
 }
 
+// A BNG Service template tree, by its Habitat Ref.
+function treeName(s) {
+  return firstKnown(names.tree, {
+    featureRef: known(s?.feature_ref),
+    fid: known(s?.fid),
+    idx: s?.idx
+  })
+}
+
 // An irreplaceable tree, by its Habitat Ref, in the table of the stage that
 // marks it.
 function irreplaceableTreeValues(s) {
+  return { table: known(s?.table), tree: treeName(s) }
+}
+
+// An Enhanced tree whose baseline tree is in Good condition, by its Habitat
+// Ref and habitat type.
+function unenhanceableTreeValues(s) {
   return {
-    table: known(s?.table),
-    tree: firstKnown(names.tree, {
-      featureRef: known(s?.feature_ref),
-      fid: known(s?.fid),
-      idx: s?.idx
-    })
+    tree: treeName(s),
+    habitatType: known(s?.habitat_type) ?? unknown.habitatType
   }
 }
 
@@ -195,6 +203,7 @@ const SAMPLE_VALUES = {
   AREA_PARCELS_OUTSIDE_REDLINE: outsideRedlineValues,
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE: distinctivenessValues,
   BASELINE_NOT_ENHANCEABLE: unenhanceableValues,
+  TREE_NOT_ENHANCEABLE: unenhanceableTreeValues,
   BASELINE_HABITATS_INCOMPLETE: incompleteBaselineValues,
   VERTICAL_HABITAT_AREA_NOT_POSITIVE: verticalAreaValues,
   IRREPLACEABLE_TREE: irreplaceableTreeValues,

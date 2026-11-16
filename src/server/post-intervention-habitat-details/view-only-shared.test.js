@@ -16,6 +16,8 @@ import {
   formatStandardTimeToTarget,
   proposedStrategicSignificanceDisplay,
   strategicSignificanceDisplay,
+  supportingInformationDisplay,
+  supportingInformationFields,
   withMultiplier
 } from './view-only-shared.js'
 import { DEFAULT_INTERVENTION } from './retention.js'
@@ -290,5 +292,37 @@ describe('buildSharedPiViewOnlyFields', () => {
       conditionDisplay: '',
       viewBaselineHref: null
     })
+  })
+})
+
+describe('supportingInformationDisplay', () => {
+  it('shows a comment as saved, line breaks and inner spacing included', () => {
+    const comment = 'First  line.\n\nSecond line.'
+    expect(supportingInformationDisplay(comment)).toBe(comment)
+  })
+
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['an empty string', ''],
+    ['whitespace only', ' \n\t '],
+    ['a non-string', 42]
+  ])('shows "No data" for %s', (_, comment) => {
+    expect(supportingInformationDisplay(comment)).toBe('No data')
+  })
+})
+
+describe('supportingInformationFields', () => {
+  it('carries the display for a looked-up comment, or its absence', () => {
+    expect(supportingInformationFields('A comment')).toEqual({
+      supportingInformationDisplay: 'A comment'
+    })
+    expect(supportingInformationFields(null)).toEqual({
+      supportingInformationDisplay: 'No data'
+    })
+  })
+
+  it('carries nothing when no comment was looked up', () => {
+    expect(supportingInformationFields(undefined)).toEqual({})
   })
 })

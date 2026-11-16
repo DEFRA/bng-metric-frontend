@@ -71,6 +71,12 @@ export async function initiateUpload(
       uploadUrl
     }
   } catch (error) {
+    // A sign-in that has expired and cannot be renewed goes, unwrapped, to
+    // catchAll, which sends the user to sign in again (BMD-1200 review).
+    if (error?.data?.sessionExpired) {
+      throw error
+    }
+
     // A rate limit refused the upload start: not a backend failure. The
     // "too many requests" page shows it (catchAll).
     if (isRateLimited(error)) {

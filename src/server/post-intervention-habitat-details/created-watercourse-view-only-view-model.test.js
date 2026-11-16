@@ -110,4 +110,19 @@ describe('buildCreatedWatercourseViewOnlyViewModel', () => {
     expect(vm.appliedDifficultyMultiplierDisplay).toBe('')
     expect(vm.viewBaselineHref).toBeNull()
   })
+
+  // BMD-1187 covers Retained habitats only.
+  it('carries no supporting information', () => {
+    const vm = buildCreatedWatercourseViewOnlyViewModel(
+      { ref: 'R1' },
+      {
+        projectId,
+        projectName: 'Test Project',
+        baselineFeatureId: null,
+        baselineComment: 'A baseline comment'
+      }
+    )
+
+    expect(vm).not.toHaveProperty('supportingInformationDisplay')
+  })
 })

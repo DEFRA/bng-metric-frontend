@@ -142,6 +142,29 @@ function creationReference(project, layer, featureType) {
   }
 }
 
+// Each baseline condition's better ones, as /reference/tree-enhancement
+// gives them: by the conditions' scores, one year apiece, as above.
+function enhancementReference(project) {
+  const reference = creationReference(project, 'trees', 'enhancedTree')
+  return {
+    ...reference,
+    habitatTypes: reference.habitatTypes.map(
+      ({ conditions: _conditions, ...habitat }) => ({
+        ...habitat,
+        enhancements: Object.fromEntries(
+          CONDITIONS.map((from) => [
+            from.condition,
+            CONDITIONS.filter((to) => to.score > from.score).map((to) => ({
+              ...to,
+              years: 1
+            }))
+          ])
+        )
+      })
+    )
+  }
+}
+
 /**
  * @param {object} body the fixture, as `GET /projects/{id}` returns it
  * @returns {(url: string) => Promise<{ res: { statusCode: number }, payload: unknown }>}
@@ -180,7 +203,8 @@ function serviceTemplateBackend(body) {
     [
       '/reference/tree-creation',
       () => creationReference(project, 'trees', 'tree')
-    ]
+    ],
+    ['/reference/tree-enhancement', () => enhancementReference(project)]
   ])
 
   return async (url) => {
