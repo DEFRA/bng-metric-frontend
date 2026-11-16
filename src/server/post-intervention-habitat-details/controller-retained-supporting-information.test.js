@@ -2,6 +2,7 @@ import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { primeCrumb } from '../common/test-helpers/csrf.js'
+import { enhancementReference } from './created-area-test-fixtures.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -81,6 +82,11 @@ function mockBackend({
         payload.baselineComment = baselineComment
       }
       return Promise.resolve({ payload })
+    }
+    // An Enhanced area habitat's edit page (BMD-1045) offers the valid
+    // enhancements of its baseline.
+    if (url.includes('/reference/area-enhancement?')) {
+      return Promise.resolve({ payload: enhancementReference })
     }
     if (url.endsWith(`/projects/${projectId}`)) {
       return (
