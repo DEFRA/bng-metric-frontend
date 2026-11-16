@@ -7,8 +7,11 @@ import {
 } from '../../server/post-intervention-habitat-details/created-area-edit.js'
 import {
   createdAreaFeature,
-  creationReference
+  creationReference,
+  enhancedAreaFeature,
+  enhancementReference
 } from '../../server/post-intervention-habitat-details/created-area-test-fixtures.js'
+import { UNCHANGED_VALUE } from '../../shared/created-area-details.js'
 import { renderTemplateIntoDocument } from '../../server/test-helpers/render-template.js'
 import { runAxeChecks } from '../../server/test-helpers/axe-helper.js'
 
@@ -475,5 +478,51 @@ describe('Created area editing', () => {
     ).toBe(false)
     expect(document.querySelector('textarea')).toBeNull()
     expect(text('interventionDisplay')).toBe('Created')
+  })
+})
+
+// BMD-1045: an Enhanced area whose stored proposal its baseline's valid
+// enhancements no longer list keeps it as its unchanged choices.
+describe('Enhanced area editing with a kept proposal', () => {
+  const kept = {
+    ...enhancedAreaFeature,
+    proposed: {
+      ...enhancedAreaFeature.proposed,
+      broadType: 'Urban',
+      type: 'Artificial unvegetated, unsealed surface',
+      condition: 'N/A - Other'
+    }
+  }
+  const keptOptions = (id) =>
+    [...document.querySelectorAll(`#${id} option`)].filter(
+      (option) => option.value === UNCHANGED_VALUE
+    )
+
+  beforeEach(() => {
+    renderTemplateIntoDocument(
+      'habitat-details/pi-habitat-details-created-edit.njk',
+      {
+        ...buildCreatedAreaEditViewModel(
+          kept,
+          { ...enhancementReference, featureType: 'enhancedHabitat' },
+          ctx
+        ),
+        crumb: 'test-token'
+      }
+    )
+    initCreatedAreaDetails()
+  })
+
+  test('offers the kept habitat type and condition again once the broad habitat is back to its kept choice', () => {
+    change('broadHabitat', 'Grassland')
+    expect(keptOptions('habitatType')).toHaveLength(0)
+
+    change('broadHabitat', UNCHANGED_VALUE)
+    expect(keptOptions('habitatType')).toHaveLength(1)
+    expect(keptOptions('condition')).toHaveLength(0)
+
+    change('habitatType', UNCHANGED_VALUE)
+    expect(keptOptions('condition')).toHaveLength(1)
+    expect(keptOptions('condition')[0].textContent).toContain('N/A - Other')
   })
 })

@@ -13,6 +13,18 @@ const DERIVED_LABELS = {
   appliedDifficultyMultiplierDisplay: 'Applied difficulty multiplier'
 }
 
+// A kept choice's option (BMD-1045): an Enhanced area's stored choice the
+// list does not offer, available again whenever the choice above it is back
+// to its stored value, as the server and backend accept it.
+function keptOption(reference, field, parentField, parentValue) {
+  const kept = reference.importedChoices?.[field]
+  const storedParent = reference.importedCalculation?.values?.[parentField]
+  if (kept === undefined || parentValue !== storedParent) {
+    return []
+  }
+  return [{ value: UNCHANGED_VALUE, text: `${kept} (imported value)` }]
+}
+
 function createDerivedUpdater(reference, values, baselineCondition) {
   const initialValues = reference.storedPreview?.values ?? values()
   const initialDerived = createdAreaDerived(
@@ -86,13 +98,12 @@ export function initCreatedAreaDetails() {
   }
   document.getElementById('broadHabitat')?.addEventListener('change', () => {
     const broad = values().broadHabitat
-    reset(
-      'habitatType',
-      'habitat type',
-      reference.habitatTypes
+    reset('habitatType', 'habitat type', [
+      ...reference.habitatTypes
         .filter((t) => t.broad === broad)
-        .map((t) => ({ value: t.name, text: t.name }))
-    )
+        .map((t) => ({ value: t.name, text: t.name })),
+      ...keptOption(reference, 'habitatType', 'broadHabitat', broad)
+    ])
     reset('condition', 'target condition')
     updateDerived()
   })
@@ -112,7 +123,13 @@ export function initCreatedAreaDetails() {
               text: `${reference.importedCondition.condition} (imported value)`
             }
           ]
-        : [])
+        : []),
+      ...keptOption(
+        reference,
+        'condition',
+        'habitatType',
+        currentValues.habitatType
+      )
     ])
     updateDerived()
   })

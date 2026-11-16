@@ -411,4 +411,73 @@ describe('BMD-1045 Enhanced area edit page', () => {
       `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
     )
   })
+
+  test('refuses a kept habitat type under a changed broad habitat against the habitat type, saving nothing', async () => {
+    const feature = mockEnhanced({ proposed: outOfListProposal })
+    const h = createMockH()
+    await postController.handler(
+      {
+        payload: {
+          projectId,
+          featureId,
+          ...createdAreaValues(feature),
+          broadHabitat: 'Grassland',
+          habitatType: UNCHANGED_VALUE,
+          condition: UNCHANGED_VALUE
+        }
+      },
+      h
+    )
+
+    expect(wreck.put).not.toHaveBeenCalled()
+    expect(Object.keys(h.view.mock.calls[0][1].errors)).toEqual(
+      expect.arrayContaining(['habitatType', 'condition'])
+    )
+  })
+
+  test('shows a kept proposal’s stored distinctiveness and time to target, as its save keeps them', async () => {
+    mockEnhanced({
+      proposed: {
+        ...outOfListProposal,
+        distinctiveness: 'Very Low',
+        distinctivenessScore: 0,
+        finalTimeToTargetCondition: '2 years (0.93)'
+      }
+    })
+    const view = await renderPage()
+
+    expect(view.distinctivenessDisplay).toBe('Very Low (0)')
+    expect(view.finalTimeToTargetDisplay).toBe('2 years (0.93)')
+  })
+
+  test('keeps only the condition when the stored broad habitat and type are still offered', async () => {
+    const feature = mockEnhanced({
+      proposed: { ...enhancedAreaFeature.proposed, condition: '3. Poor' }
+    })
+    const view = await renderPage()
+    expect(view.values).toMatchObject({
+      broadHabitat: 'Grassland',
+      habitatType: 'Modified grassland',
+      condition: UNCHANGED_VALUE
+    })
+
+    await postController.handler(
+      {
+        payload: {
+          projectId,
+          featureId,
+          ...createdAreaValues(feature),
+          ref: 'E-1 renamed',
+          condition: UNCHANGED_VALUE
+        }
+      },
+      createMockH()
+    )
+    // The stored condition goes back as stored, prefix and all.
+    expect(sentPayload()).toMatchObject({
+      broadType: 'Grassland',
+      habitatType: 'Modified grassland',
+      condition: '3. Poor'
+    })
+  })
 })
