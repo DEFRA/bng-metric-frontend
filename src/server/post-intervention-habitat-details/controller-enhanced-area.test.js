@@ -258,15 +258,15 @@ describe('BMD-1045 Enhanced area edit page', () => {
     ])
   })
 
-  test('words the timing fields as an enhancement', async () => {
+  test('AC1: labels Advance and Delay as the Created area does, as per Figma', async () => {
     mockEnhanced()
     const view = await renderPage()
 
     expect(view.fields.advanceYears.label).toBe(
-      'Habitat enhanced in advance (years)'
+      'Habitat created in advance (years)'
     )
     expect(view.fields.delayYears.label).toBe(
-      'Delay in starting habitat enhancement (years)'
+      'Delay in starting habitat creation (years)'
     )
   })
 

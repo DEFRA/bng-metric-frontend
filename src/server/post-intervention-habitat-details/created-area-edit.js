@@ -87,8 +87,8 @@ const CREATED_AREA_KIND = {
 
 // BMD-1045: an Enhanced area is edited on the Created area form, with the
 // choices limited to the valid enhancements of its baseline. Its fields,
-// validation, derived values and save are the Created area's; its timing is
-// worded as an enhancement, a refused enhancement blames the condition, a
+// validation, derived values, timing labels and save are the Created area's;
+// a refused enhancement blames the condition, a
 // stored proposal the list no longer offers is kept, and it falls back to its
 // read-only page while the backend does not serve the area enhancement
 // reference.
@@ -101,11 +101,10 @@ const ENHANCED_AREA_KIND = Object.freeze({
   conditionError: formError('condition', 'notValidEnhancement'),
   // A stored proposal its baseline's valid enhancements no longer list is
   // kept, not cleared, by a save that leaves it unchanged.
-  preservesStoredChoices: true,
-  timingLabels: Object.freeze({
-    advanceYears: 'Habitat enhanced in advance (years)',
-    delayYears: 'Delay in starting habitat enhancement (years)'
-  })
+  preservesStoredChoices: true
+  // No timingLabels: BMD-1045 AC1 labels Advance and Delay as the Created
+  // area does, "Habitat created in advance" and "Delay in starting habitat
+  // creation", as per Figma.
 })
 
 export const CREATED_EDIT_KINDS = {
