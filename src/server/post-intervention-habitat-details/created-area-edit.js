@@ -45,6 +45,7 @@ import {
 } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
+import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import {
   createdAreaValues,
   createdImportedChoices
@@ -85,12 +86,22 @@ const CREATED_AREA_KIND = {
 }
 
 // BMD-1045: an Enhanced area is edited on the Created area form, with the
-// choices limited to the valid enhancements of its baseline. Everything else
-// (fields, validation, derived values, save) is the Created area's.
+// choices limited to the valid enhancements of its baseline. Its fields,
+// validation, derived values and save are the Created area's; its timing is
+// worded as an enhancement, a refused enhancement blames the condition, and
+// it falls back to its read-only page while the backend does not serve the
+// area enhancement reference.
 const ENHANCED_AREA_KIND = Object.freeze({
   ...CREATED_AREA_KIND,
   loadReference: (feature) => loadEnhancedAreaReference(feature?.baseline),
-  label: 'Enhanced area habitat'
+  label: 'Enhanced area habitat',
+  optionalReference: true,
+  buildBase: buildEnhancedAreaViewOnlyViewModel,
+  conditionError: formError('condition', 'notValidEnhancement'),
+  timingLabels: Object.freeze({
+    advanceYears: 'Habitat enhanced in advance (years)',
+    delayYears: 'Delay in starting habitat enhancement (years)'
+  })
 })
 
 export const CREATED_EDIT_KINDS = {

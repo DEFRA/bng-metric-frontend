@@ -1362,6 +1362,10 @@ forms:
     # An Enhanced tree's target condition no better than its baseline one,
     # on the page or refused by the service (ENHANCEMENT_NOT_VALID).
     notBetterThanBaseline: Choose a target condition better than the tree's baseline condition
+    # An Enhanced area habitat's target condition that is not a valid
+    # enhancement of its baseline, on the page or refused by the service
+    # (ENHANCEMENT_NOT_VALID).
+    notValidEnhancement: Choose a target condition that is a valid enhancement of the baseline habitat
   strategicSignificance:
     invalid: Choose a valid strategic significance
   watercourseEncroachment:

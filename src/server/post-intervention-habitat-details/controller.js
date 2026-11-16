@@ -281,8 +281,9 @@ async function loadCreationReferenceForFeature(kindKey, feature) {
 
 /**
  * Render a Created area habitat, tree, hedgerow or watercourse, or an
- * Enhanced tree or area habitat: its edit page, or the read-only page for a tree or linear
- * feature while the backend reference endpoint is not deployed.
+ * Enhanced tree or area habitat: its edit page, or, for any but a Created
+ * area habitat, its read-only page while the backend reference endpoint is
+ * not deployed.
  */
 async function renderCreatedFeature(
   h,
@@ -503,8 +504,8 @@ async function saveCreatedDetails(
       })
       return response.code(statusCodes.badRequest)
     }
-    // A page that offered an Enhanced tree a target condition its baseline
-    // tree no longer allows, such as after an edit to the baseline tree in
+    // A page that offered an Enhanced tree or area habitat a target condition
+    // its baseline no longer allows, such as after an edit to the baseline in
     // another tab: the condition is to blame.
     if (isInvalidEnhancementError(err) && kind.conditionError) {
       const response = await showRefused({

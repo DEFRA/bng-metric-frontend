@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { wreck } from '../common/helpers/wreck-client.js'
 import {
   baselineFeatureId,
@@ -23,6 +24,7 @@ const { _resetCreatedAreaReferenceCache, createdAreaValues } =
   await import('./created-area-edit.js')
 
 const EDIT_TEMPLATE = 'habitat-details/pi-habitat-details-created-edit'
+const READ_ONLY_TEMPLATE = 'habitat-details/pi-habitat-details-enhanced'
 
 function mockEnhanced(overrides = {}) {
   const feature = { ...structuredClone(enhancedAreaFeature), ...overrides }
@@ -251,5 +253,68 @@ describe('BMD-1045 Enhanced area edit page', () => {
       expect.stringContaining('condition=Poor'),
       expect.stringMatching(/broadType=Cropland&type=Cereal\+crops$/)
     ])
+  })
+
+  test('words the timing fields as an enhancement', async () => {
+    mockEnhanced()
+    const view = await renderPage()
+
+    expect(view.fields.advanceYears.label).toBe(
+      'Habitat enhanced in advance (years)'
+    )
+    expect(view.fields.delayYears.label).toBe(
+      'Delay in starting habitat enhancement (years)'
+    )
+  })
+
+  test('shows the read-only Enhanced page while the backend does not serve the area enhancement reference', async () => {
+    mockEnhanced()
+    const mocked = vi.mocked(wreck.get).getMockImplementation()
+    vi.mocked(wreck.get).mockImplementation((url) =>
+      url.includes('/reference/area-enhancement?')
+        ? Promise.reject(Boom.notFound())
+        : mocked(url)
+    )
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      READ_ONLY_TEMPLATE,
+      expect.objectContaining({
+        interventionDisplay: 'Enhanced',
+        backHref: `/projects/${projectId}/area-post-intervention`
+      })
+    )
+    expect(h.view.mock.calls[0][1]).not.toHaveProperty('fields')
+  })
+
+  test('shows the condition error when the backend refuses the enhancement', async () => {
+    mockEnhanced()
+    const refused = Boom.badData('not a valid enhancement')
+    refused.data = {
+      res: { statusCode: 422 },
+      payload: {
+        statusCode: 422,
+        error: 'Unprocessable Entity',
+        message:
+          'The proposed habitat is not a valid enhancement of its baseline',
+        code: 'ENHANCEMENT_NOT_VALID'
+      }
+    }
+    vi.mocked(wreck.put).mockRejectedValue(refused)
+    const h = { ...createMockH(), code: vi.fn().mockReturnThis() }
+    await postController.handler(postRequest({ ref: 'Kept' }), h)
+
+    expect(h.code).toHaveBeenCalledWith(422)
+    expect(h.view.mock.calls[0][0]).toBe(EDIT_TEMPLATE)
+    const view = h.view.mock.calls[0][1]
+    expect(view.errors.condition.summary).toBe(
+      'Choose a target condition that is a valid enhancement of the baseline habitat'
+    )
+    expect(view.errorList).toContainEqual({
+      text: 'Choose a target condition that is a valid enhancement of the baseline habitat',
+      href: '#condition'
+    })
+    expect(view.values.ref).toBe('Kept')
   })
 })

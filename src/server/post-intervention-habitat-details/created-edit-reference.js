@@ -41,7 +41,7 @@ export function loadEnhancedAreaReference(baseline = {}) {
   )
   return loadReference({
     cacheKey: `enhanced-habitat?${query}`,
-    kind: 'habitat',
+    kind: 'enhancedHabitat',
     url: `${backendUrl}/reference/area-enhancement?${query}`,
     referenceName: 'area enhancement',
     hasBroadHabitat: true
