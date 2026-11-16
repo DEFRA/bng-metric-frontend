@@ -69,16 +69,19 @@ function standardFields(type, condition, baselineCondition) {
     appliedDifficultyMultiplierDisplay: String(
       type?.difficultyMultiplier ?? ''
     ),
-    standardTimeToTargetDisplay: condition
-      ? `${baselinePrefix}${condition.condition} - ${condition.years} years`
-      : ''
+    // A condition with no time to target, such as an Enhanced tree's stored
+    // one when its baseline condition is not one the Metric scores, shows none.
+    standardTimeToTargetDisplay:
+      condition?.years == null
+        ? ''
+        : `${baselinePrefix}${condition.condition} - ${condition.years} years`
   }
 }
 
 function finalTimeDisplay(reference, condition, values) {
   const { advanceYears, delayYears } = values
   if (
-    !condition ||
+    condition?.years == null ||
     !YEAR_OPTIONS.includes(advanceYears) ||
     !YEAR_OPTIONS.includes(delayYears) ||
     (Number.parseInt(advanceYears) > 0 && Number.parseInt(delayYears) > 0)

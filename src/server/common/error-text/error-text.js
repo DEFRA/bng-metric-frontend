@@ -35,6 +35,12 @@ const message = Joi.object({
   inline: wordsUnlessNone(text)
 }).and('summary', 'inline')
 
+// A refusal no one field can put right: shown in the error summary only.
+const summaryOnlyMessage = Joi.object({
+  wording: wordingField,
+  summaryOnly: wordsUnlessNone(text)
+})
+
 // A form field's message is one text that the error summary and the inline
 // message both show, either alone or as `text` beside a `wording` field, or a
 // pair. One with no wording yet has none of them, and shows common.unworded.
@@ -86,7 +92,17 @@ const errorTextSchema = Joi.object({
     unworded: commonText.required()
   }).required(),
   upload: Joi.object().required(),
-  edit: Joi.object().pattern(code, message).required(),
+  // Chosen by shape, so a slip names the field it is in: "inline is
+  // required" rather than "matches none of the allowed types".
+  edit: Joi.object()
+    .pattern(
+      code,
+      Joi.alternatives().conditional(
+        Joi.object({ summaryOnly: Joi.exist() }).unknown(),
+        { then: summaryOnlyMessage, otherwise: message }
+      )
+    )
+    .required(),
   forms: Joi.object()
     .pattern(Joi.string(), Joi.object().pattern(Joi.string(), formMessage))
     .required(),
@@ -133,15 +149,19 @@ export const errorText = parseErrorText(readFileSync(ERROR_TEXT_FILE, 'utf8'))
 
 /**
  * The wording for an edit the backend refused with `errorCode`, or null when
- * it has none yet: an entry with no words, or no entry.
+ * it has none yet: an entry with no words, or no entry. A refusal no one field
+ * can put right has `summaryOnly` in place of `summary` and `inline`.
  *
  * @param {string} errorCode
- * @returns {{ summary: string, inline: string } | null}
+ * @returns {{ summary: string, inline: string } | { summaryOnly: string } | null}
  */
 export function editErrorText(errorCode) {
   const entry = Object.hasOwn(errorText.edit, errorCode ?? '')
     ? errorText.edit[errorCode]
     : null
+  if (entry?.summaryOnly) {
+    return { summaryOnly: entry.summaryOnly }
+  }
   return entry?.summary
     ? { summary: entry.summary, inline: entry.inline }
     : null

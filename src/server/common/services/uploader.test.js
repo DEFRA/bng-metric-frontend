@@ -17,6 +17,12 @@ vi.mock('../helpers/wreck-client.js', () => ({
   }
 }))
 
+// A refresh that fails, so a 401 from the backend ends the session.
+vi.mock('../helpers/auth/refresh-session.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  refreshSession: vi.fn().mockResolvedValue(false)
+}))
+
 const { initiateUpload, getUploadStatus } = await import('./uploader.js')
 
 // backendRequest reads the id_token from the yar session and forwards it as a
@@ -128,7 +134,122 @@ describe('initiateUpload', () => {
   })
 })
 
+describe('initiateUpload refused by a rate limit', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // What wreck throws for the backend's 429: its shortcut methods reject on
+  // a 4xx with the response attached.
+  function tooManyRequests(retryAfter) {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': retryAfter } },
+      payload: { statusCode: 429, error: 'Too Many Requests' }
+    }
+    return error
+  }
+
+  it('passes the refusal on as a 429 with the wait, not a 502', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(tooManyRequests('42'))
+
+    await expect(
+      initiateUpload(makeRequest(), {
+        redirect: '/projects/1/upload-received',
+        s3Bucket: 'baseline-files'
+      })
+    ).rejects.toMatchObject({
+      isBoom: true,
+      output: { statusCode: 429 },
+      data: { rateLimited: true, retryAfterSeconds: 42 }
+    })
+  })
+
+  it('does not log the refusal as a backend failure', async () => {
+    vi.mocked(wreck.post).mockRejectedValue(tooManyRequests('42'))
+
+    await initiateUpload(makeRequest(), {
+      redirect: '/projects/1/upload-received',
+      s3Bucket: 'baseline-files'
+    }).catch(() => {})
+
+    expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+})
+
+describe('initiateUpload when the sign-in has expired', () => {
+  it('passes the expired sign-in on unwrapped, so catchAll sends the user to sign in again', async () => {
+    vi.mocked(wreck.post).mockResolvedValue({
+      res: { statusCode: 401 },
+      payload: {}
+    })
+    const request = makeRequest()
+    request.yar.reset = vi.fn()
+    request.yar.set = vi.fn()
+
+    await expect(
+      initiateUpload(request, {
+        redirect: '/projects/1/upload-received',
+        s3Bucket: 'baseline-files'
+      })
+    ).rejects.toMatchObject({
+      output: { statusCode: 401 },
+      data: { sessionExpired: true }
+    })
+  })
+})
+
 describe('getUploadStatus', () => {
+  it('keeps polling when a rate limit refuses the status check', async () => {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': '5' } }
+    }
+    vi.mocked(wreck.get).mockRejectedValue(error)
+    mockLoggerError.mockClear()
+
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
+
+    // The same answer as any failed check, so the checking page refreshes
+    // and asks again rather than ending on the "too many requests" page —
+    // at the backend's pace.
+    expect(result).toEqual({
+      uploadStatus: 'error',
+      error: 'Unable to check upload status',
+      retryAfterSeconds: 5
+    })
+    expect(mockLoggerError).not.toHaveBeenCalled()
+  })
+
+  it('polls at the 30-second maximum when the backend asks for an hour', async () => {
+    // Not faster: a wait too long to print on the page is still a long wait.
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': '3600' } }
+    }
+    vi.mocked(wreck.get).mockRejectedValue(error)
+
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
+
+    expect(result.retryAfterSeconds).toBe(30)
+  })
+
+  it('holds a rate-limited status check to the polling maximum of 30 seconds', async () => {
+    const error = new Error('Response Error: 429 Too Many Requests')
+    error.data = {
+      isResponseError: true,
+      res: { statusCode: 429, headers: { 'retry-after': '60' } }
+    }
+    vi.mocked(wreck.get).mockRejectedValue(error)
+
+    const result = await getUploadStatus(makeRequest(), 'abc-123')
+
+    expect(result.retryAfterSeconds).toBe(30)
+  })
+
   it('should return uploadStatus from backend', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },

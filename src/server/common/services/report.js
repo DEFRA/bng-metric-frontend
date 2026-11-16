@@ -1,6 +1,7 @@
 import { config } from '../../../config/config.js'
 import { createLogger } from '../helpers/logging/logger.js'
 import { backendRequest } from '../helpers/auth/backend-request.js'
+import { isRateLimited } from '../helpers/rate-limited.js'
 
 const logger = createLogger()
 
@@ -36,6 +37,14 @@ async function fetchSiteReport(request, projectId) {
     // can redirect to /auth/session-expired rather than being reported here as
     // a generic backend failure.
     if (error?.data?.sessionExpired) {
+      throw error
+    }
+    // So must a refusal by a rate limit, which shows the "too many requests"
+    // page. It is not a backend failure, so it is not logged as one.
+    if (isRateLimited(error)) {
+      logger.info(
+        `Site report refused by the backend's rate limit - projectId: ${projectId}, retryAfterSeconds: ${error.data.retryAfterSeconds ?? 'unset'}`
+      )
       throw error
     }
     if (error?.data?.isResponseError) {

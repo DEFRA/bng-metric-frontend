@@ -37,13 +37,19 @@ const LAYERS = [
 // read-only.
 const EDITABLE_CREATED_LAYERS = new Set([
   'habitats',
+  'trees',
   'hedgerows',
   'watercourses'
 ])
 
 // The layers whose Retained features can have their reference changed; a
 // Retained vertical area habitat renders read-only.
-const RETAINED_REF_LAYERS = new Set(['habitats', 'hedgerows', 'watercourses'])
+const RETAINED_REF_LAYERS = new Set([
+  'habitats',
+  'trees',
+  'hedgerows',
+  'watercourses'
+])
 
 const TIME_TO_TARGET_HEADING = 'Time to target / difficulty'
 const VIEW_BASELINE_LINK = 'View baseline details'
@@ -87,6 +93,15 @@ function fieldNames($) {
     .get()
 }
 
+// The fields a user edits: not the form's hidden inputs or its CSRF token.
+function editableFieldNames($) {
+  return $('form [name]')
+    .filter((_, field) => $(field).attr('type') !== 'hidden')
+    .map((_, field) => $(field).attr('name'))
+    .get()
+    .sort()
+}
+
 function headings($) {
   return $('h2')
     .map((_, h2) => normalise($(h2).text()))
@@ -105,8 +120,12 @@ function baselineIds(body) {
   )
 }
 
+// A Created feature of those layers opens on the edit form, and so does an
+// Enhanced tree, whose condition is all it enhances.
 const isEditable = (layer, feature) =>
-  feature.retentionCategory === 'Created' && EDITABLE_CREATED_LAYERS.has(layer)
+  (feature.retentionCategory === 'Created' &&
+    EDITABLE_CREATED_LAYERS.has(layer)) ||
+  (feature.retentionCategory === 'Enhanced' && layer === 'trees')
 
 describe('details pages of a BNG Service template project', () => {
   let server
@@ -243,7 +262,7 @@ describe('details pages of a BNG Service template project', () => {
     })
 
     test.each(cases.filter(([, layer, f]) => isEditable(layer, f)))(
-      'renders %s on the Created edit form, with its significance chosen',
+      'renders %s on the edit form, with its significance chosen',
       async (_label, _layer, { featureId, proposed }) => {
         const body = serviceTemplateProject('twoStages')
 
@@ -336,9 +355,23 @@ describe('details pages of a BNG Service template project', () => {
       )
     })
 
-    test.each(['Retained', 'Enhanced', 'Created'])(
+    // A Retained tree takes the reference form, and a Created or an Enhanced
+    // one the edit form.
+    const TREE_EDIT_FIELDS = [
+      'ref',
+      'habitatType',
+      'strategicSignificance',
+      'condition',
+      'advanceYears',
+      'delayYears'
+    ]
+    test.each([
+      ['Retained', ['habitatRef']],
+      ['Enhanced', TREE_EDIT_FIELDS],
+      ['Created', TREE_EDIT_FIELDS]
+    ])(
       'a %s individual tree renders in the area layout, sized in hectares',
-      async (retentionCategory) => {
+      async (retentionCategory, editableFields) => {
         const body = serviceTemplateProject('twoStages')
         const tree = body.project.postIntervention.trees.find(
           (f) => f.retentionCategory === retentionCategory
@@ -354,8 +387,11 @@ describe('details pages of a BNG Service template project', () => {
         expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
         expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
         expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
-        expect(fieldValue($, 'Habitat type')).toBe(tree.proposed.type)
-        expect(fieldNames($)).toEqual([])
+        expect(
+          fieldValue($, 'Habitat type') ??
+            $('[name="habitatType"] option[selected]').attr('value')
+        ).toBe(tree.proposed.type)
+        expect(editableFieldNames($)).toEqual([...editableFields].sort())
         expect(viewBaselineHref($)).toBe(
           tree.parentFeatureId
             ? baselineDetailsUrl(body, tree.parentFeatureId)

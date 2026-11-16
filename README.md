@@ -118,6 +118,93 @@ To view them in your command line run:
 npm run
 ```
 
+### Exporting the error messages
+
+Every message a customer can see when the service refuses something lives in
+`src/server/common/error-text/error-text.yaml`. To review them as a table:
+
+```bash
+npm run export:error-text
+```
+
+This writes `export/error-messages-<date>-<HHmmss>-<branch>-<commit>` as
+`.xlsx`, `.csv` and `.html`: the time is UTC, and a run in GitHub Actions adds
+`-run<run ID>`, as in
+`error-messages-2026-11-11-143005-main-ab640af-run43044358011.xlsx`.
+
+Each file has a row for each of the backend's error codes, such as
+`VALIDATION_UNAVAILABLE`: the `upload.errors` and `edit` entries, a code met in
+both as one row. It also has a row for each shared page those codes show, such
+as `upload.catchAll`, with its words and the codes that use it. The file's
+other entries are left out by default, to keep the export short enough to
+review. `-- --include GROUPS` adds them back, by group, separated by commas:
+`upload-text` (the drop-out page's other words, such as `upload.page.title`),
+`common`, `forms` and `pages`, or `all` for every one.
+
+A row gives:
+
+- each part of the message, in its own column, as the user sees it: a link by
+  its text, with where it goes in Links. A wording given as options says when
+  each after the first is used, as "If {ref} is not known:"; a page given in
+  versions gives each a line, after when it is shown; and the catch-all's
+  words say which template file they are for. A single-problem page's wording
+  for several habitats is in the "(several)" columns;
+- its status: Final, Awaiting UCD or Needs content, from the entry's `wording`
+  field. A row that shows a shared page's words is no further on than that
+  page, so an error with no `wording` field of its own is Awaiting UCD when
+  its shared page is interim;
+- Shared page and Shared list heading: the shared page it shows when it is the
+  file's only problem, and the shared title heading its entry when there are
+  others. Their words are in the row's Page heading, Body and List heading;
+- Shown instead: what the user sees in place of words an entry has yet to
+  have: the problems list, for an error with no single-problem page or none
+  worded for several habitats, or the error page a refused change made on
+  screen shows, with its words;
+- what its `{values}` are filled in with, and a link to its line in the file.
+
+Each CSV row ends with the date, branch and commit it was read from, and the
+groups of rows exported. The file is
+checked as the server checks it at start-up, so the export refuses a file the
+server would. `-- --out DIR` writes elsewhere, and `-- --help` lists the
+options.
+
+The Error Messages Export workflow runs the export on every pull request to
+`main`, on every push to `main`, and on demand from the Actions tab for the
+branch picked there. Each run keeps the three files as one
+`error-messages-export` artifact for 90 days, and its summary counts the error
+IDs with each status and links to the artifact. A run on demand can add groups
+of rows, as `--include` does, in its `include` field. A pull request's run exports
+the wording on the pull request's branch, and links each row to its line at
+the branch's head commit. It is not a required check, so it never holds up a
+merge.
+
+A pull request's summary also says what it changes in the wording, against the
+commit its branch left `main` at, and so does a push to `main`'s, against
+`main` as it was before the push, so each merge's run says what it changed. A
+run on demand has nothing to compare with. The comparison gives the error IDs
+added and removed, with their
+words, a before and after for each part of a message it changes, and each
+status it moves. Errors changed alike, such as every error showing a reworded
+shared fallback, share one table. Only the groups of rows exported are
+compared, and the heading names them, as in "Wording changes in codes": a
+change to a `forms.*` entry, say, shows only when `forms` is exported. The
+Export the error messages step's log
+gives the same as plain text, so the changes show without opening the
+summary. To see the same locally, add `-- --base REF`, naming the
+commit your branch left `main` at:
+`npm run export:error-text -- --base "$(git merge-base origin/main HEAD)"`.
+Naming `origin/main` itself would show a change merged to `main` since as your
+branch undoing it.
+
+When the comparison finds a change that leaves wording unfinished, an error
+added that is not Final, or one whose status moves back, as from Final to
+Awaiting UCD, the run warns of it with a GitHub annotation on that entry's line
+of `error-text.yaml`. It shows beside the line in a pull request's Files
+changed, and on the run. GitHub keeps only 10 warnings from a step, so past 9
+the tenth says how many more there are; the run's summary and log list every
+change. It warns of nothing that was unfinished before the change, and never
+fails the run.
+
 ### Update dependencies
 
 To update dependencies use [npm-check-updates](https://github.com/raineorshine/npm-check-updates):

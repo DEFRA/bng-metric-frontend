@@ -126,7 +126,7 @@ function namedTypes(project, layer) {
 function creationReference(project, layer, featureType) {
   return {
     featureType,
-    hasBroadHabitat: layer === 'habitats',
+    hasBroadHabitat: layer === 'habitats' || layer === 'trees',
     habitatTypes: typesIn(project, layer).map((habitat) => ({
       ...habitat,
       difficulty: 'Low',
@@ -139,6 +139,29 @@ function creationReference(project, layer, featureType) {
       watercourseEncroachment: ENCROACHMENTS.watercourse,
       riparianEncroachment: ENCROACHMENTS.riparian
     })
+  }
+}
+
+// Each baseline condition's better ones, as /reference/tree-enhancement
+// gives them: by the conditions' scores, one year apiece, as above.
+function enhancementReference(project) {
+  const reference = creationReference(project, 'trees', 'enhancedTree')
+  return {
+    ...reference,
+    habitatTypes: reference.habitatTypes.map(
+      ({ conditions: _conditions, ...habitat }) => ({
+        ...habitat,
+        enhancements: Object.fromEntries(
+          CONDITIONS.map((from) => [
+            from.condition,
+            CONDITIONS.filter((to) => to.score > from.score).map((to) => ({
+              ...to,
+              years: 1
+            }))
+          ])
+        )
+      })
+    )
   }
 }
 
@@ -176,7 +199,12 @@ function serviceTemplateBackend(body) {
     [
       '/reference/watercourse-creation',
       () => creationReference(project, 'watercourses', 'watercourse')
-    ]
+    ],
+    [
+      '/reference/tree-creation',
+      () => creationReference(project, 'trees', 'tree')
+    ],
+    ['/reference/tree-enhancement', () => enhancementReference(project)]
   ])
 
   return async (url) => {

@@ -73,6 +73,7 @@ function buildViewModel(hedgerow, reference, { projectId, projectName }) {
     sizeDisplay: formatLengthKm(hedgerow.sizeMetres),
     sizeLabel: 'Length (km)',
     showBroadHabitatRow: false,
+    showCommentRow: true,
     distinctivenessDisplay:
       hedgerow.distinctiveness &&
       typeof hedgerow.distinctivenessScore === 'number'

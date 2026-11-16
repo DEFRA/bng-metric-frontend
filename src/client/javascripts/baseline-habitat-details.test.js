@@ -372,6 +372,75 @@ function buildHedgerowViewModel({
   }
 }
 
+// An individual tree's page: the broad habitat is a hidden input, not a
+// dropdown, and the habitat type is Urban tree or Rural tree (BMD-1172).
+describe('initBaselineHabitatDetails — individual tree', () => {
+  const TREE_REFERENCE_DATA = {
+    ...REFERENCE_DATA,
+    habitatTypes: [
+      ...REFERENCE_DATA.habitatTypes,
+      {
+        name: 'Rural tree',
+        broad: 'Individual trees',
+        distinctiveness: 'Medium',
+        distinctivenessScore: 4
+      },
+      {
+        name: 'Urban tree',
+        broad: 'Individual trees',
+        distinctiveness: 'Medium',
+        distinctivenessScore: 4
+      }
+    ]
+  }
+
+  function renderTreePage() {
+    renderTemplateIntoDocument('habitat-details/habitat-details.njk', {
+      ...buildAreaViewModel(),
+      showBroadHabitatRow: false,
+      fixedBroadHabitat: 'Individual trees',
+      showTreeRows: true,
+      treeSizeDisplay: 'Medium',
+      treeCountDisplay: '2',
+      habitatTypeOptions: [
+        { value: 'Rural tree', text: 'Rural tree', selected: false },
+        { value: 'Urban tree', text: 'Urban tree', selected: true }
+      ],
+      referenceJson: JSON.stringify(TREE_REFERENCE_DATA)
+    })
+  }
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(CONDITIONS_FIXTURE)
+      })
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test('fetches the conditions and shows the distinctiveness of the tree type chosen', async () => {
+    renderTreePage()
+    initBaselineHabitatDetails()
+
+    setValue('habitatType', 'Rural tree')
+    fireChange('habitatType')
+    await flushAsync()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/reference/conditions?habitatType=Individual%20trees%20-%20Rural%20tree',
+      expect.anything()
+    )
+    expect(document.getElementById('distinctivenessDisplay').textContent).toBe(
+      'Medium (4)'
+    )
+  })
+})
+
 function renderHedgerowPage(overrides = {}) {
   renderTemplateIntoDocument(
     'habitat-details/habitat-details.njk',

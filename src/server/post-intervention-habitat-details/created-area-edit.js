@@ -3,10 +3,14 @@ import {
   loadCreatedHedgerowReference,
   loadCreatedWatercourseReference
 } from './created-edit-reference.js'
+import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
+export { enhancedTreeReference } from './tree-edit-kinds.js'
 export {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
+  loadCreatedTreeReference,
   loadCreatedWatercourseReference,
+  loadEnhancedTreeReference,
   _resetCreatedAreaReferenceCache
 } from './created-edit-reference.js'
 import {
@@ -33,7 +37,11 @@ import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.j
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
 import { buildCreatedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
-import { MAX_REF_LENGTH } from './constants.js'
+import {
+  AREA_SECTIONS_TEMPLATE,
+  AREA_SIZE_LABEL,
+  MAX_REF_LENGTH
+} from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
 import {
@@ -66,10 +74,10 @@ export const CREATED_EDIT_KINDS = {
     loadReference: loadCreatedAreaReference,
     label: 'Area habitat',
     optionalReference: false,
-    readOnlyTemplate: 'habitat-details/pi-habitat-details-enhanced',
+    readOnlyTemplate: AREA_SECTIONS_TEMPLATE,
     buildBase: buildCreatedAreaViewOnlyViewModel,
     formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: 'Size (hectares)',
+    sizeLabel: AREA_SIZE_LABEL,
     backType: 'habitat',
     savePath: 'habitats',
     hasBroadHabitat: true,
@@ -104,7 +112,9 @@ export const CREATED_EDIT_KINDS = {
     savePath: 'hedgerows',
     hasBroadHabitat: false,
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
-  }
+  },
+  tree: CREATED_TREE_KIND,
+  enhancedTree: ENHANCED_TREE_KIND
 }
 
 function createdKind(reference) {
@@ -151,7 +161,10 @@ export const createdWatercoursePayloadSchema =
 
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
-  reference = { ...reference, hasBroadHabitat: kind.hasBroadHabitat }
+  reference = {
+    ...(kind.forFeature ? kind.forFeature(reference, feature) : reference),
+    hasBroadHabitat: kind.hasBroadHabitat
+  }
   const saved = createdAreaValues(feature)
   const importedYears = Object.fromEntries(
     ['advanceYears', 'delayYears']
@@ -198,7 +211,22 @@ function createdEditValues(feature, reference) {
   if (reference.importedCondition) {
     saved.condition = UNCHANGED_VALUE
   }
-  return saved
+  return withFixedBroadHabitat(saved, createdKind(reference))
+}
+
+/**
+ * The values with a kind's fixed broad habitat in place of whatever was
+ * stored or posted: a tree is always Individual trees, so its habitat types,
+ * conditions and checks are read against that, however the tree was saved.
+ *
+ * @param {object} values
+ * @param {{ fixedBroadHabitat?: string }} kind
+ * @returns {object}
+ */
+export function withFixedBroadHabitat(values, kind) {
+  return kind.fixedBroadHabitat
+    ? { ...values, broadHabitat: kind.fixedBroadHabitat }
+    : values
 }
 
 function importedLinearCondition(reference, values) {
@@ -276,12 +304,15 @@ export function validateCreatedArea(values, reference) {
         )
       : {})
   }
+  if (kind.habitatTypeRequired && !values.habitatType) {
+    errors.habitatType = kind.habitatTypeError
+  }
   for (const [field, options] of Object.entries(choices)) {
     if (invalidChoice(values[field], options, reference, field)) {
       const messages = {
         broadHabitat: ERRORS.broadHabitat,
         habitatType: kind.habitatTypeError,
-        condition: ERRORS.condition,
+        condition: kind.conditionError ?? ERRORS.condition,
         strategicSignificance: ERRORS.strategicSignificance,
         watercourseEncroachment: ERRORS.watercourseEncroachment,
         riparianEncroachment: ERRORS.riparianEncroachment
@@ -339,6 +370,27 @@ function createdUploadHref(ctx, feature, returnUrl) {
   )
 }
 
+// A backend refusal comes first, unlinked; then each field's error in page
+// order, leaving out the delay error when the advance one is shown.
+function createdErrorList(errors, refusal) {
+  return [
+    ...(refusal ? [{ text: refusal.summaryOnly }] : []),
+    ...FIELD_ORDER.filter(
+      (field) =>
+        errors[field] && (field !== 'delayYears' || !errors.advanceYears)
+    ).map((field) => ({
+      text: errors[field].summary,
+      href: `#${field}`
+    }))
+  ]
+}
+
+/**
+ * The Created edit page's view model. `values` and `errors` are set when the
+ * form's own checks refused a save, and `ctx.refusal` when the backend refused
+ * one for a reason no one field can put right (`summaryOnly`, as
+ * stored-value-refusal.js gives), which the error summary shows unlinked.
+ */
 export function buildCreatedAreaEditViewModel(
   feature,
   reference,
@@ -381,7 +433,7 @@ export function buildCreatedAreaEditViewModel(
     habitatUnitsDisplay: createdUnitsDisplay(feature),
     sizeDisplay: kind.formatSize(feature),
     sizeLabel: kind.sizeLabel,
-    pageTitle: `${Object.keys(errors).length ? 'Error: ' : ''}${base.pageTitle}`,
+    pageTitle: `${Object.keys(errors).length || ctx.refusal ? 'Error: ' : ''}${base.pageTitle}`,
     projectId: ctx.projectId,
     featureId: feature.featureId,
     values,
@@ -391,13 +443,8 @@ export function buildCreatedAreaEditViewModel(
       initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
         : null,
-    errorList: FIELD_ORDER.filter(
-      (field) =>
-        errors[field] && (field !== 'delayYears' || !errors.advanceYears)
-    ).map((field) => ({
-      text: errors[field].summary,
-      href: `#${field}`
-    })),
+    errorList: createdErrorList(errors, ctx.refusal),
+    fixedBroadHabitat: kind.fixedBroadHabitat ?? null,
     fields: buildCreatedEditFields(reference, values, storedValues, kind),
     referenceJson: createdReferenceJson(
       reference,

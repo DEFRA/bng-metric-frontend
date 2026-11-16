@@ -104,10 +104,11 @@ describe('project reports', () => {
 
     expect(button.attr('href')).toBe(`/projects/${PROJECT_ID}/report.pdf`)
     expect(button.text().trim()).toBe('Download site report (PDF)')
-    // The default govuk-button — green — per the design; `download` tells the
-    // browser to save rather than display.
+    // The default govuk-button — green — per the design. No `download`
+    // attribute: the response's content-disposition saves the PDF, and an
+    // error page, such as "too many requests", must still show as a page.
     expect(button.hasClass('govuk-button')).toBe(true)
-    expect(button.attr('download')).toBeDefined()
+    expect(button.attr('download')).toBeUndefined()
   })
 
   test('redirects to the project details journey when there is no baseline', async () => {

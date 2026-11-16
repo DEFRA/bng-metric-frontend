@@ -205,11 +205,11 @@ describe('Created area controller', () => {
 
   test('rejects a reference over the Unicode character limit without saving', async () => {
     const h = createMockH()
-    await postController.handler(request({ ref: 'x'.repeat(101) }), h)
+    await postController.handler(request({ ref: 'x'.repeat(100) }), h)
     expect(wreck.put).not.toHaveBeenCalled()
     expect(h.view.mock.calls[0][1].errors.ref).toEqual({
-      summary: 'Enter a habitat reference of 100 characters or fewer.',
-      inline: 'Enter a habitat reference of 100 characters or fewer.'
+      summary: 'Enter a habitat reference of 99 characters or fewer.',
+      inline: 'Enter a habitat reference of 99 characters or fewer.'
     })
     expect(h.view.mock.calls[0][1].referenceHint).toBeNull()
     expect(h.view.mock.calls[0][1].errorList[0]).toEqual({
@@ -218,7 +218,7 @@ describe('Created area controller', () => {
     })
     expect(
       validateCreatedArea(
-        { ...values, ref: '\u{1F33F}'.repeat(100) },
+        { ...values, ref: '\u{1F33F}'.repeat(99) },
         creationReference
       )
     ).toEqual({})
@@ -622,7 +622,7 @@ describe('Created area authenticated form', () => {
   })
 
   test('explains the limit without truncating a legacy imported reference on GET', async () => {
-    const ref = 'x'.repeat(101)
+    const ref = 'x'.repeat(100)
     mockFeature({
       type: 'habitat',
       feature: { ...structuredClone(createdAreaFeature), ref }
@@ -635,10 +635,10 @@ describe('Created area authenticated form', () => {
     expect(page.statusCode).toBe(200)
     expect(page.payload).toContain(`value="${ref}"`)
     expect(page.payload).toContain(
-      'This imported reference exceeds 100 characters.'
+      'This imported reference exceeds 99 characters.'
     )
     expect(page.payload).toContain(
-      'Shorten it to 100 characters or fewer before saving.'
+      'Shorten it to 99 characters or fewer before saving.'
     )
     expect(page.payload).toContain('aria-describedby="ref-hint"')
     expect(wreck.put).not.toHaveBeenCalled()
@@ -659,6 +659,36 @@ describe('Created area authenticated form', () => {
     expect(page.payload).toContain('value="12"')
     expect(createdAreaValues({ ref: 12 }).ref).toBe('12')
     expect(wreck.put).not.toHaveBeenCalled()
+  })
+
+  test('shows the page again, naming the fields, when the backend refuses a habitat holding a value saved before BMD-1175', async () => {
+    const stored = Boom.badData('stored value')
+    stored.data = {
+      res: { statusCode: 422 },
+      payload: {
+        statusCode: 422,
+        error: 'Unprocessable Entity',
+        message:
+          'This habitat holds a value saved before the service checked text lengths and lists (ref, proposed.condition, broadType). Upload the file again, with the value corrected, to update it.',
+        code: 'STORED_VALUE_NOT_ALLOWED'
+      }
+    }
+    vi.mocked(wreck.put).mockRejectedValue(stored)
+    const { token, cookie } = await primeCrumb(server)
+    const response = await server.inject({
+      method: 'POST',
+      url: '/post-intervention-habitat-details',
+      auth,
+      headers: { cookie },
+      payload: { ...request().payload, crumb: token }
+    })
+    expect(response.statusCode).toBe(400)
+    expect(response.payload).toMatch(/<title>\s*Error: /)
+    expect(response.payload).toMatch(
+      /govuk-error-summary__list">\s*<li>\s*This habitat holds a value saved before the service checked text lengths and lists, in its habitat reference, proposed condition and broad habitat\. Upload the file again, with the value corrected, to update this habitat\.\s*<\/li>/
+    )
+    expect(response.payload).not.toContain('govuk-input--error')
+    expect(response.payload).toContain(`value="${values.ref}"`)
   })
 
   test('renders the CSRF token and saves a protected form submission', async () => {

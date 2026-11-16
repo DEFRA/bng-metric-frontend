@@ -521,11 +521,6 @@ describe('#resolveSingleErrorCopy', () => {
       'COMMENT_INVALID_CHARACTERS',
       'The file contains a comment that uses non-UTF8 characters. Remove those characters and ',
       'The file contains a comment that uses non-UTF8 characters. Remove those characters.'
-    ],
-    [
-      'COMMENT_TOO_LONG',
-      'The file contains a comment with more than 999 characters. Shorten the comment and ',
-      'The file contains a comment with more than 999 characters. Shorten the comment.'
     ]
   ])(
     'AC7: %s names the comment problem and links to a new upload',

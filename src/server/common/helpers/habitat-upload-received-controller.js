@@ -203,7 +203,11 @@ function uploadStartedAt(request, uploadType) {
   return startedAt
 }
 
-function handleWaitingUpload(request, h, uploadType, id) {
+/**
+ * @param {number | null} [retryAfterSeconds] the backend's pace, when a rate
+ *   limit refused the status check
+ */
+function handleWaitingUpload(request, h, uploadType, id, retryAfterSeconds) {
   const elapsed = (Date.now() - uploadStartedAt(request, uploadType)) / 1000
 
   if (elapsed > MAX_WAIT_SECONDS) {
@@ -212,7 +216,7 @@ function handleWaitingUpload(request, h, uploadType, id) {
     return h.redirect(uploadHref(uploadType, id))
   }
 
-  return checkingFileView(h, uploadType, id)
+  return checkingFileView(h, uploadType, id, retryAfterSeconds ?? undefined)
 }
 
 function createUploadReceivedController(uploadType, validateUpload) {
@@ -251,7 +255,13 @@ function createUploadReceivedController(uploadType, validateUpload) {
         return handleRejectedUpload(request, h, uploadType, id)
       }
 
-      return handleWaitingUpload(request, h, uploadType, id)
+      return handleWaitingUpload(
+        request,
+        h,
+        uploadType,
+        id,
+        response.retryAfterSeconds
+      )
     }
   }
 }

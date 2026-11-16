@@ -100,9 +100,22 @@ describe('invalidFileController.handler — populated session', () => {
           'One or more comments contain characters that are not valid UTF-8: areas fid 1'
       },
       {
-        code: 'COMMENT_TOO_LONG',
+        code: 'TEXT_TOO_LONG',
         message:
-          'One or more comments are longer than 999 characters: areas fid 2'
+          'Text values longer than their column allows: Habitats H2 Comment',
+        details: {
+          count: 1,
+          sample: [
+            {
+              table: 'Habitats',
+              fid: 2,
+              ref: 'H2',
+              column: 'Comment',
+              limit: 999,
+              length: 1240
+            }
+          ]
+        }
       }
     ]
     const request = makeRequest({ baselineValidationErrors: errors })
@@ -120,7 +133,12 @@ describe('invalidFileController.handler — populated session', () => {
               'One or more comments contain characters that are not valid UTF-8'
           }),
           expect.objectContaining({
-            heading: 'One or more comments are longer than 999 characters'
+            heading:
+              'One or more values are longer than their column allows. Shorten them and upload the file again',
+            items: [
+              'Habitats, H2: Comment has 1,240 characters. The maximum is 999'
+            ],
+            more: 0
           })
         ]
       })
@@ -418,6 +436,47 @@ describe('invalidFileController.handler — populated session', () => {
     ])
   })
 
+  test('errorBlocks: TREE_NOT_ENHANCEABLE lists each Enhanced tree in Good condition by its Habitat Ref, and says what to record instead, even alone', async () => {
+    const errors = [
+      {
+        code: 'TREE_NOT_ENHANCEABLE',
+        message:
+          'One or more trees are enhanced, but their baseline tree is in Good condition and cannot be enhanced: Feature Ref T006',
+        details: {
+          count: 1,
+          sample: [
+            {
+              layer: 'trees',
+              feature_ref: 'T006',
+              habitat_type: 'Individual trees - Rural tree',
+              condition: 'Good',
+              distinctiveness: 'Medium',
+              rule: 'medium-area-good',
+              mvsOnly: true
+            }
+          ]
+        }
+      }
+    ]
+    const request = makeRequest({
+      postInterventionValidationErrors: errors,
+      validationUploadType: 'postIntervention'
+    })
+    const h = makeH()
+
+    await invalidFileController.handler(request, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.errorBlocks).toEqual([
+      {
+        heading:
+          'One or more trees are enhanced, but their baseline tree is in Good condition, and a tree in Good condition cannot be enhanced. Record each as Retained or, if its condition will get worse, as lost and Created in a lower condition 30+ years in advance',
+        items: ['Habitat Ref T006 — Individual trees - Rural tree'],
+        more: 0
+      }
+    ])
+  })
+
   test('errorBlocks: BMD-1182 BASELINE_NOT_ENHANCEABLE lists each enhanced habitat with its baseline type and condition', async () => {
     const errors = [
       {
@@ -467,6 +526,162 @@ describe('invalidFileController.handler — populated session', () => {
         'Feature Ref HG1 — Non-native and ornamental hedgerow'
       ],
       more: 0
+    })
+  })
+
+  describe('BMD-1195 BASELINE_HABITATS_INCOMPLETE', () => {
+    const incompleteBaseline = {
+      code: 'BASELINE_HABITATS_INCOMPLETE',
+      message:
+        'One or more baseline habitats are incomplete, so this post-intervention file cannot replace the project baseline: Feature Ref H002, watercourses fid 7',
+      details: {
+        count: 2,
+        sample: [
+          {
+            layer: 'habitats',
+            idx: 1,
+            fid: 2,
+            feature_ref: 'H002',
+            habitat_type: 'Ground based green wall'
+          },
+          {
+            layer: 'watercourses',
+            idx: 0,
+            fid: 7,
+            feature_ref: null,
+            habitat_type: null
+          }
+        ]
+      }
+    }
+
+    async function render(errors) {
+      const request = makeRequest({
+        postInterventionValidationErrors: errors,
+        validationUploadType: 'postIntervention'
+      })
+      const h = makeH()
+      await invalidFileController.handler(request, h)
+      return h.view.mock.calls[0][1]
+    }
+
+    test('lists each incomplete baseline habitat, with its habitat type when it has one', async () => {
+      const view = await render([
+        incompleteBaseline,
+        { code: 'NO_REDLINE', message: 'No red line boundary' }
+      ])
+
+      expect(view.errorBlocks[0]).toEqual({
+        heading:
+          'One or more baseline habitats cannot be processed by the service due to a missing or incompatible value',
+        items: [
+          'Habitat parcels: Feature Ref H002 — Ground based green wall',
+          'Watercourses: fid 7'
+        ],
+        more: 0
+      })
+    })
+
+    test('alone with one habitat, shows UCD ref 72, naming the habitat', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 1, sample: [incompleteBaseline.details.sample[0]] }
+        }
+      ])
+
+      expect(view.pageTitle).toBe('There is a problem with your file')
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Habitat parcels',
+        helpText:
+          'Baseline habitat H002 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with one watercourse with no ref, names it by its fid under its layer', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 1, sample: [incompleteBaseline.details.sample[1]] }
+        }
+      ])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Watercourses',
+        helpText:
+          'Baseline habitat fid 7 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with one hedgerow, puts it under Hedgerows', async () => {
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: {
+            count: 1,
+            sample: [{ layer: 'hedgerows', idx: 0, fid: 3, feature_ref: 'HG1' }]
+          }
+        }
+      ])
+
+      expect(view.singleError).toMatchObject({
+        subheading: 'Hedgerows',
+        helpText:
+          'Baseline habitat HG1 cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with several habitats in one layer, does not name only the first, and names their layer', async () => {
+      const hedgerow = (ref) => ({
+        layer: 'hedgerows',
+        idx: 0,
+        feature_ref: ref
+      })
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 2, sample: [hedgerow('HG1'), hedgerow('HG2')] }
+        }
+      ])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        subheading: 'Hedgerows',
+        helpText:
+          'Some baseline habitats cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with habitats in more than one layer, names no one layer', async () => {
+      const view = await render([incompleteBaseline])
+
+      expect(view.singleError).toEqual({
+        variant: 'text',
+        h1: 'There is a problem with your file',
+        helpText:
+          'Some baseline habitats cannot be processed by the service due to a missing or incompatible value.'
+      })
+    })
+
+    test('alone with more habitats than the sample shows, names no one layer', async () => {
+      const hedgerow = (ref) => ({
+        layer: 'hedgerows',
+        idx: 0,
+        feature_ref: ref
+      })
+      const view = await render([
+        {
+          ...incompleteBaseline,
+          details: { count: 3, sample: [hedgerow('HG1'), hedgerow('HG2')] }
+        }
+      ])
+
+      expect(view.singleError.subheading).toBeUndefined()
     })
   })
 
@@ -761,7 +976,7 @@ describe('invalidFileController.handler — populated session', () => {
     const errors = [
       { code: 'NO_REDLINE', message: 'Not shown: nor this' },
       {
-        code: 'COMMENT_TOO_LONG',
+        code: 'COMMENT_INVALID_CHARACTERS',
         message: 'Not shown: nor this',
         details: { count: 1, sample: [{ layer: 'areas', fid: 2, idx: 1 }] }
       }
@@ -779,7 +994,8 @@ describe('invalidFileController.handler — populated session', () => {
         more: 0
       },
       {
-        heading: 'One or more comments are longer than 999 characters',
+        heading:
+          'One or more comments contain characters that are not valid UTF-8',
         items: ['fid 2'],
         more: 0
       }
@@ -1276,6 +1492,110 @@ describe('invalidFileController.handler — BMD-405 single-error routing', () =>
   })
 })
 
+describe('invalidFileController.handler — one problem naming one habitat or several', () => {
+  const makeRequest = (sessionData) => {
+    const store = { ...sessionData }
+    return {
+      yar: {
+        get: vi.fn((key) => store[key] ?? null),
+        set: vi.fn(),
+        clear: vi.fn((key) => {
+          delete store[key]
+        })
+      }
+    }
+  }
+
+  const parcel = (ref) => ({ layer: 'areas', fid: 1, feature_ref: ref })
+
+  async function render(error) {
+    const request = makeRequest({ baselineValidationErrors: [error] })
+    const h = { view: vi.fn().mockReturnThis() }
+    await invalidFileController.handler(request, h)
+    return h.view.mock.calls[0][1]
+  }
+
+  test('shows a page worded for one habitat when the error names one', async () => {
+    const view = await render({
+      code: 'AREA_PARCELS_TOO_SMALL',
+      details: { count: 1, sample: [parcel('P1')] }
+    })
+
+    expect(view.singleError).toMatchObject({
+      h1: 'This parcel P1 contains an error'
+    })
+  })
+
+  test('shows the problems list, naming each, when that error names several', async () => {
+    const view = await render({
+      code: 'AREA_PARCELS_TOO_SMALL',
+      details: { count: 2, sample: [parcel('P1'), parcel('P2')] }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toHaveLength(1)
+    expect(view.errorBlocks[0].items).toHaveLength(2)
+  })
+
+  test('shows the problems list for several hedgerows outside the boundary, not the first alone', async () => {
+    const view = await render({
+      code: 'HEDGEROWS_OUTSIDE_REDLINE',
+      details: {
+        count: 2,
+        sample: [
+          { layer: 'hedgerows', fid: 1, feature_ref: 'H1' },
+          { layer: 'hedgerows', fid: 2, feature_ref: 'H2' }
+        ]
+      }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toContain('hedgerow habitats')
+  })
+
+  test("shows the page's wording for several when it has some", async () => {
+    const view = await render({
+      code: 'PARCEL_OVERLAPS',
+      details: {
+        count: 2,
+        sample: [
+          { feature_ref_a: 'P1', feature_ref_b: 'P2' },
+          { feature_ref_a: 'P3', feature_ref_b: 'P4' }
+        ]
+      }
+    })
+
+    // Not "These parcels P1, P2", which would name only the first pair.
+    expect(view.singleError).toMatchObject({
+      h1: 'Your Geopackage (.gpkg) file contains an error',
+      // No project in the session, so no link: the sentence ends there.
+      messageBefore:
+        'Some parcels in this file are overlapping. Draw the affected parcels again.'
+    })
+  })
+
+  test('shows a page worded for any number whatever the count', async () => {
+    const view = await render({
+      code: 'HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE',
+      details: { count: 3, sample: [parcel('P1')] }
+    })
+
+    expect(view.singleError).not.toBeNull()
+  })
+
+  test('shows an error with no single-problem page in the problems list', async () => {
+    const view = await render({
+      code: 'TEMPLATE_VERSION_DUPLICATED',
+      details: { recordCount: 2 }
+    })
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks[0].heading).toContain(
+      'The file has 2 template version records'
+    )
+  })
+})
+
 describe('invalidFileController.handler — BMD-1086 BNG Service template lineage errors', () => {
   const makeRequest = (errors) => {
     const store = {
@@ -1521,11 +1841,11 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each tree whose kept trees together count more than it, with both counts', async () => {
+  test('lists each tree with more than one kept tree linked to it, and the trees linked, without the counts the backend sends', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_TREE_CHILDREN_TOO_MANY',
-        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together',
+        'One or more baseline trees have fewer trees than the post-intervention trees that are still them, linked to them together: Retained, Enhanced, or Existing and Created in its setting',
         [
           {
             layer: 'trees',
@@ -1534,8 +1854,8 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
             ref: 'T004',
             habitatType: 'Rural tree',
             childRefs: ['T004a', 'T004b'],
-            count: 3,
-            childCount: 4
+            count: 1,
+            childCount: 2
           }
         ]
       )
@@ -1545,15 +1865,13 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more baseline trees have fewer trees than the Retained and Enhanced post-intervention trees linked to them together. A tree that is kept cannot be more trees than it was',
-        [
-          'Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b; Count 3, linked 4'
-        ]
+        'One or more baseline trees have more than one kept tree linked to them. A post-intervention tree is kept if it is Retained or Enhanced, or Created with Category Existing in the same Urban or Rural setting. A baseline tree is one tree, so only one kept tree can be linked to it',
+        ['Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b']
       ]
     ])
   })
 
-  test('lists each irreplaceable tree, in the table of the stage that marks it, even alone', async () => {
+  test('lists each tree whose Irreplaceable Habitat is not No, in the table of the stage that has it, even alone', async () => {
     const tree = (table, ref, fid) => ({
       layer: 'trees',
       table,
@@ -1565,7 +1883,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       {
         code: 'IRREPLACEABLE_TREE',
         message:
-          'One or more trees are marked as irreplaceable habitat. The service does not accept irreplaceable trees: Individual Trees Baseline Habitat Ref T001',
+          'One or more trees have an Irreplaceable Habitat other than "No". Irreplaceable Habitat must be "No" for every tree, because the service does not accept irreplaceable trees: Individual Trees Baseline Habitat Ref T001',
         stage: 'baseline',
         details: {
           count: 2,
@@ -1581,7 +1899,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more trees are marked as irreplaceable habitat. The service does not accept irreplaceable trees, such as ancient and veteran trees',
+        'Irreplaceable Habitat must be "No" for every tree, because the service does not accept irreplaceable trees, such as ancient and veteran trees. These trees have Irreplaceable Habitat "Yes", blank or another value',
         [
           'Individual Trees Baseline Habitat Ref T001',
           'Individual Trees Baseline fid 7'
@@ -1738,6 +2056,61 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       expect(view.errorBlocks).toEqual([{ heading, items: [], more: 0 }])
     }
   )
+  // BMD-1175: each text-value problem lists the values that fail, by table,
+  // habitat (its ref, or its fid when it has none) and column.
+  test.each([
+    [
+      'TEXT_TOO_LONG',
+      { ref: 'H1', column: 'Comment', length: 1240, limit: 999 },
+      'Habitats, H1: Comment has 1,240 characters. The maximum is 999'
+    ],
+    [
+      'VALUE_NOT_ALLOWED',
+      { ref: null, column: 'Condition', value: 'Excellent' },
+      'Habitats, fid 3: Condition has "Excellent"'
+    ],
+    [
+      'VALUE_NOT_ALLOWED',
+      { ref: 'H1', column: 'Condition', value: null },
+      'Habitats, H1: Condition'
+    ],
+    [
+      'FEATURE_UUID_INVALID',
+      { ref: 'H1', column: 'feature_uuid' },
+      'Habitats, H1'
+    ],
+    [
+      'PARENT_UUID_INVALID',
+      { ref: 'H1', column: 'parent_uuid' },
+      'Habitats, H1'
+    ],
+    [
+      'PARENT_GEOM_INVALID',
+      { ref: 'H1', column: 'parent_geom', shape: 'multipolygon' },
+      'Habitats, H1 (expected a multipolygon)'
+    ]
+  ])('lists a lone %s by the values that fail', async (code, entry, item) => {
+    const view = await viewFor([
+      {
+        code,
+        message: 'not shown',
+        details: {
+          count: 3,
+          sample: [{ table: 'Habitats', fid: 3, ...entry }]
+        }
+      }
+    ])
+
+    expect(view.singleError).toBeNull()
+    expect(view.errorBlocks).toEqual([
+      {
+        heading: expect.stringMatching(/^One or more /),
+        items: [item],
+        more: 2
+      }
+    ])
+  })
+
   test('shows a lone LEGACY_TEMPLATE_NOT_ACCEPTED as single-error copy, not split at its colon', async () => {
     const view = await viewFor([
       {
@@ -2118,7 +2491,7 @@ describe('invalidFileController.handler — bullets a habitat cannot fill', () =
     test('has a case for every variant in the copy', () => {
       const worded = Object.entries(dropoutCopy.errors).flatMap(
         ([code, entry]) =>
-          Object.keys(entry.inList?.variants ?? {}).map(
+          Object.keys(entry.problemsList?.variants ?? {}).map(
             (variant) => `${code} ${variant}`
           )
       )

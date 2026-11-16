@@ -2,7 +2,7 @@ import Joi from 'joi'
 
 import { joiErrorText, joiMessages } from '../error-text/joi-error-text.js'
 
-const MAX_PROJECT_NAME_LENGTH = 1000
+export const MAX_PROJECT_NAME_LENGTH = 1000
 
 export const projectNameSchema = Joi.string()
   .trim()

@@ -134,4 +134,47 @@ describe('backendRequest', () => {
     )
     expect(refreshSession).not.toHaveBeenCalled()
   })
+
+  describe('a 429 from a backend rate limit', () => {
+    test('is thrown as a rate-limited 429 when wreck rejects with it', async () => {
+      const error = new Error('Response Error: 429 Too Many Requests')
+      error.data = {
+        isResponseError: true,
+        res: { statusCode: 429, headers: { 'retry-after': '25' } }
+      }
+      vi.mocked(wreck.get).mockRejectedValue(error)
+
+      await expect(
+        backendRequest(makeRequest(), 'get', URL)
+      ).rejects.toMatchObject({
+        output: { statusCode: 429 },
+        data: { rateLimited: true, retryAfterSeconds: 25 }
+      })
+      expect(refreshSession).not.toHaveBeenCalled()
+    })
+
+    test('is thrown as a rate-limited 429 when wreck returns it', async () => {
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: 429, headers: { 'retry-after': '9' } },
+        payload: null
+      })
+
+      await expect(
+        backendRequest(makeRequest(), 'get', URL)
+      ).rejects.toMatchObject({
+        output: { statusCode: 429 },
+        data: { rateLimited: true, retryAfterSeconds: 9 }
+      })
+    })
+
+    test('leaves any other error as it was', async () => {
+      const error = new Error('Response Error: 500 Internal Server Error')
+      error.data = { isResponseError: true, res: { statusCode: 500 } }
+      vi.mocked(wreck.get).mockRejectedValue(error)
+
+      await expect(backendRequest(makeRequest(), 'get', URL)).rejects.toBe(
+        error
+      )
+    })
+  })
 })

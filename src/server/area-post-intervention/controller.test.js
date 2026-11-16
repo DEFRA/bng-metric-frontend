@@ -618,6 +618,7 @@ describe('area post intervention', () => {
 
     expect(headings('#retained thead th')).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Broad habitat',
@@ -637,6 +638,7 @@ describe('area post intervention', () => {
     ]
     expect(headings('#enhanced thead th')).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Broad habitat',
@@ -646,6 +648,7 @@ describe('area post intervention', () => {
     ])
     expect(headings('#created thead th')).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Broad habitat',
@@ -655,6 +658,51 @@ describe('area post intervention', () => {
     ])
     expect($('#retained tbody').text()).toContain('Grassland')
     expect($('#created tbody').text()).toContain('Individual trees')
+  })
+
+  test("shows each row's status as a tag after Ref on every tab (BMD-1102)", async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...populatedProject.project,
+          postIntervention: {
+            ...populatedProject.project.postIntervention,
+            habitats: [
+              { ...retainedHabitat, status: 'Complete' },
+              { ...enhancedHabitat, status: 'Incomplete' }
+            ],
+            trees: [{ ...createdTree, status: 'Incomplete' }]
+          }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: PAGE_PATH,
+      auth
+    })
+
+    const $ = load(result)
+    const statusCell = (tab) =>
+      $(`#${tab} tbody .govuk-table__row`).first().find('td').eq(1)
+
+    for (const tab of ['retained', 'enhanced', 'created']) {
+      const $heading = $(`#${tab} thead th`).eq(1)
+      expect($heading.text()).toBe('Status')
+      expect($heading.attr('data-sort-ties-by-ref')).toBe('true')
+      expect($(`#${tab} tfoot td`).eq(1).text()).toBe('')
+    }
+    expect(statusCell('retained').find('strong.govuk-tag--grey').text()).toBe(
+      'Complete'
+    )
+    expect(statusCell('enhanced').find('strong.govuk-tag--blue').text()).toBe(
+      'Incomplete'
+    )
+    expect(statusCell('created').find('strong.govuk-tag--blue').text()).toBe(
+      'Incomplete'
+    )
   })
 
   test('shows the area habitat totals row in hectares', async () => {

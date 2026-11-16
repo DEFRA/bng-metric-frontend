@@ -154,4 +154,33 @@ describe('buildWatercourseViewOnlyViewModel', () => {
       viewBaselineHref: null
     })
   })
+
+  // BMD-1187: the baseline watercourse's comment, read-only.
+  it('shows the baseline comment as the supporting information', () => {
+    const vm = buildWatercourseViewOnlyViewModel(
+      { ref: 'R1', retentionCategory: 'Retained' },
+      {
+        projectId,
+        projectName: 'Test Project',
+        baselineFeatureId,
+        baselineComment: 'Line one.\nLine two.'
+      }
+    )
+
+    expect(vm.supportingInformationDisplay).toBe('Line one.\nLine two.')
+  })
+
+  it('shows "No data" when the baseline has no comment', () => {
+    const vm = buildWatercourseViewOnlyViewModel(
+      { ref: 'R1', retentionCategory: 'Retained' },
+      {
+        projectId,
+        projectName: 'Test Project',
+        baselineFeatureId: null,
+        baselineComment: null
+      }
+    )
+
+    expect(vm.supportingInformationDisplay).toBe('No data')
+  })
 })

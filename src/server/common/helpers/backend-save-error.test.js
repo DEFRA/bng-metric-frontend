@@ -1,6 +1,7 @@
 import Boom from '@hapi/boom'
 
 import { backendSaveError, backendStatusOf } from './backend-save-error.js'
+import { rateLimitedError } from './rate-limited.js'
 
 const featureId = 'aa0e8400-e29b-41d4-a716-446655440001'
 
@@ -24,6 +25,12 @@ describe('backendSaveError', () => {
     expired.data = { sessionExpired: true }
 
     expect(backendSaveError(expired, featureId)).toBe(expired)
+  })
+
+  test('passes a refusal by a rate limit through untouched', () => {
+    const refused = rateLimitedError({ 'retry-after': '10' })
+
+    expect(backendSaveError(refused, featureId)).toBe(refused)
   })
 
   test.each([

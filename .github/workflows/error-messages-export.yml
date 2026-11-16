@@ -1,0 +1,145 @@
+name: Error Messages Export
+
+# Writes error-text.yaml's error codes and shared pages, or more with a run on demand's
+# include, as .xlsx, .csv and .html for product, BAs and UCD to review
+# (npm run export:error-text), keeps them as
+# one artifact, and counts each status in the run's summary. A pull request's
+# summary, and a push to main's, also say what it changes in the wording,
+# and warn, beside the line, of any error it adds that is not Final or moves
+# back from Final.
+#
+# It reports and never gates: it is not a required check, and is kept apart
+# from check-pull-request.yml, so an artifact outage cannot hold up a merge.
+# It does not run in the merge queue: the pull request's run has already
+# exported its wording.
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - main
+  # On demand: "Use workflow from" picks the branch to export.
+  workflow_dispatch:
+    inputs:
+      include:
+        description: >-
+          Groups of rows to add to the error codes, separated by commas
+          (upload-text, common, forms, pages), or "all"
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# A newer push to a pull request makes its older export out of date, so a
+# pull request's runs share a group and the newer cancels the older. Every
+# other run has a group of its own: a group holds one pending run at most, so
+# sharing one would drop a commit's export when merges land close together.
+concurrency:
+  group: error-messages-export-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ARTIFACT_NAME: error-messages-export
+  EXPORT_DIR: export
+  RETENTION_DAYS: 90
+
+jobs:
+  export:
+    name: Export the error messages
+    runs-on: ubuntu-latest
+    steps:
+      # A pull request's run exports its head commit, not the merge commit
+      # checked out by default: each row links to its line of the file, and
+      # only the head commit has a lasting URL whose lines match the rows.
+      #
+      # A pull request's run, and a push's, fetch the history they need to
+      # find the commit they compare the wording with.
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Quoted: 0 is falsy in an expression, so && 0 || 1 always gives 1.
+          fetch-depth: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && '0' || '1' }}
+          persist-credentials: false
+
+      # The commit to compare the wording with:
+      # - a pull request: the commit its branch left main at, not main as it
+      #   is now, as a change merged to main since would otherwise show as
+      #   this pull request undoing it.
+      # - a push to main: main as it was before the push, so each merge's
+      #   run says what it changed. One push of several commits is compared
+      #   as one change.
+      # A run on demand has nothing to compare with. Not finding the commit,
+      # as for a push that made the branch (its "before" is all zeros),
+      # leaves the comparison out, with a warning, rather than losing the
+      # export.
+      - name: Find the commit to compare with
+        id: base
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT_NAME" = pull_request ]; then
+            base=$(git merge-base "origin/$BASE_REF" HEAD) || base=
+            what="where the branch left $BASE_REF"
+          else
+            base=$BEFORE
+            what="the commit before this push ($BEFORE)"
+          fi
+          if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "sha=$base" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not find $what, so the summary does not say what the wording changes"
+          fi
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Export the error messages
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+          # Empty but for a run on demand that asks for more groups of rows.
+          INCLUDE: ${{ inputs.include }}
+        run: |
+          args=(--out "$EXPORT_DIR" --sha "$SOURCE_SHA" --summary "$RUNNER_TEMP/summary.md")
+          if [ -n "$BASE_SHA" ]; then
+            args+=(--base "$BASE_SHA")
+          fi
+          if [ -n "$INCLUDE" ]; then
+            args+=(--include "$INCLUDE")
+          fi
+          npm run export:error-text -- "${args[@]}"
+
+      - name: Keep the files
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.EXPORT_DIR }}/
+          retention-days: ${{ env.RETENTION_DAYS }}
+          if-no-files-found: error
+
+      - name: Write the run summary
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          {
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "[Download the .xlsx, .csv and .html]($ARTIFACT_URL), kept for $RETENTION_DAYS days."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -77,6 +77,7 @@ describe('buildPostInterventionHabitatGrid', () => {
 
     expect(grid.columns.map((column) => column.text)).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
@@ -87,15 +88,15 @@ describe('buildPostInterventionHabitatGrid', () => {
     expect(grid.habitatRows[0][0].href).toBe(
       `/post-intervention-habitat-details?featureId=hedge-1&projectId=${PROJECT_ID}`
     )
-    expect(grid.habitatRows[0][1].text).toBe('0.80')
-    expect(grid.habitatRows[0][2].text).toBe('1234.568km')
-    expect(grid.habitatRows[0][3].text).toBe('Native hedgerow')
-    expect(grid.habitatRows[0][4].text).toBe('Low (2)')
-    expect(grid.habitatRows[0][5].text).toBe('Fairly Poor (1.5)')
-    expect(grid.habitatRows[0][6].text).toBe('Low (1)')
+    expect(grid.habitatRows[0][2].text).toBe('0.80')
+    expect(grid.habitatRows[0][3].text).toBe('1234.568km')
+    expect(grid.habitatRows[0][4].text).toBe('Native hedgerow')
+    expect(grid.habitatRows[0][5].text).toBe('Low (2)')
+    expect(grid.habitatRows[0][6].text).toBe('Fairly Poor (1.5)')
+    expect(grid.habitatRows[0][7].text).toBe('Low (1)')
     expect(grid.totalsRow[0].text).toBe('Total')
-    expect(grid.totalsRow[1].text).toBe('0.80')
-    expect(grid.totalsRow[2].text).toBe('1234.568km')
+    expect(grid.totalsRow[2].text).toBe('0.80')
+    expect(grid.totalsRow[3].text).toBe('1234.568km')
     expect(grid.totalsRow).toHaveLength(grid.columns.length)
   })
 
@@ -124,9 +125,9 @@ describe('buildPostInterventionHabitatGrid', () => {
       }
     ])
 
-    expect(grid.habitatRows[0][3].text).toBe('Native hedgerow')
-    expect(grid.habitatRows[0][4].text).toBe('Low (2)')
-    expect(grid.habitatRows[0][5].text).toBe('Fairly Poor (1.5)')
+    expect(grid.habitatRows[0][4].text).toBe('Native hedgerow')
+    expect(grid.habitatRows[0][5].text).toBe('Low (2)')
+    expect(grid.habitatRows[0][6].text).toBe('Fairly Poor (1.5)')
   })
 
   test('builds enhanced and created columns with target, time and difficulty', () => {
@@ -155,6 +156,7 @@ describe('buildPostInterventionHabitatGrid', () => {
 
     expect(enhanced.columns.map((column) => column.text)).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Habitat type',
@@ -173,12 +175,12 @@ describe('buildPostInterventionHabitatGrid', () => {
     expect(enhanced.columns.some((column) => column.text === 'Condition')).toBe(
       false
     )
-    expect(enhanced.habitatRows[0][6].text).toBe('Good (3)')
-    expect(enhanced.habitatRows[0][7].text).toBe('1 year')
-    expect(enhanced.habitatRows[0][8].text).toBe('10 years')
-    expect(enhanced.habitatRows[0][9].text).toBe('0 years')
-    expect(enhanced.habitatRows[0][10].text).toBe('10 years (0.5555)')
-    expect(enhanced.habitatRows[0][11].text).toBe('Low (1)')
+    expect(enhanced.habitatRows[0][7].text).toBe('Good (3)')
+    expect(enhanced.habitatRows[0][8].text).toBe('1 year')
+    expect(enhanced.habitatRows[0][9].text).toBe('10 years')
+    expect(enhanced.habitatRows[0][10].text).toBe('0 years')
+    expect(enhanced.habitatRows[0][11].text).toBe('10 years (0.5555)')
+    expect(enhanced.habitatRows[0][12].text).toBe('Low (1)')
   })
 
   test('shows the proposed strategic significance for created and enhanced features only', () => {
@@ -210,8 +212,8 @@ describe('buildPostInterventionHabitatGrid', () => {
       { units: 0.02, sizeMetres: 500, proposed: {} }
     ])
 
-    expect(grid.totalsRow[1].text).toBe('0.12')
-    expect(grid.totalsRow[2].text).toBe('1.5km')
+    expect(grid.totalsRow[2].text).toBe('0.12')
+    expect(grid.totalsRow[3].text).toBe('1.5km')
   })
 
   test('inserts leadingExtraColumns after Size and before Habitat type', () => {
@@ -232,6 +234,7 @@ describe('buildPostInterventionHabitatGrid', () => {
 
     expect(grid.columns.map((column) => column.text)).toEqual([
       'Ref',
+      'Status',
       'Units',
       'Size',
       'Broad habitat',
@@ -240,6 +243,36 @@ describe('buildPostInterventionHabitatGrid', () => {
       'Condition',
       'Strategic significance'
     ])
-    expect(grid.habitatRows[0][3].text).toBe('Grassland')
+    expect(grid.habitatRows[0][4].text).toBe('Grassland')
   })
+
+  test.each(['Retained', 'Enhanced', 'Created'])(
+    'shows a Status tag after Ref on the %s grid, blank in the totals (BMD-1102)',
+    (interventionType) => {
+      const grid = buildGrid(interventionType, [
+        { featureId: 'a', ref: 'P-1', status: 'Complete' },
+        { featureId: 'b', ref: 'P-2', status: 'Incomplete' },
+        { featureId: 'c', ref: 'P-3' }
+      ])
+
+      expect(grid.columns[1]).toEqual({
+        text: 'Status',
+        attributes: { 'data-sort-ties-by-ref': true }
+      })
+      expect(grid.habitatRows.map((row) => row[1])).toEqual([
+        {
+          text: 'Complete',
+          tag: { classes: 'govuk-tag--grey' },
+          attributes: { 'data-sort-value': 'Complete' }
+        },
+        {
+          text: 'Incomplete',
+          tag: { classes: 'govuk-tag--blue' },
+          attributes: { 'data-sort-value': 'Incomplete' }
+        },
+        { text: '' }
+      ])
+      expect(grid.totalsRow[1]).toEqual({ text: '' })
+    }
+  )
 })
