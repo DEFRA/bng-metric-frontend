@@ -86,8 +86,11 @@
 
             {{ textInput("applicant", "Planning permission applicant name", maxLengths.personName) }}
 
-            {% if values.localPlanningAuthority and not values.localPlanningAuthorityReference %}
-              <p class="govuk-body">Previously saved local planning authority: {{ values.localPlanningAuthority }}. Choose an authority from the list to update it.</p>
+            {% if legacyLocalPlanningAuthority %}
+              <input type="hidden" name="{{ keepLpaField }}" value="true">
+              {% if not values.localPlanningAuthorityReference %}
+                <p class="govuk-body">Previously saved local planning authority: {{ legacyLocalPlanningAuthority }}. Choose an authority from the list to update it.</p>
+              {% endif %}
             {% endif %}
             {{ govukSelect({
               id: "localPlanningAuthorityReference",

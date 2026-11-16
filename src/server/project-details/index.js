@@ -72,6 +72,11 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *                 type: string
  *               returnUrl:
  *                 type: string
+ *               keepLocalPlanningAuthority:
+ *                 type: string
+ *                 description: >
+ *                   "true" when the project holds a legacy authority name with
+ *                   no reference; a blank select then leaves it as saved
  *     responses:
  *       302:
  *         description: Redirects to returnUrl (or the project summary) on success

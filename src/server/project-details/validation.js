@@ -43,6 +43,11 @@ const DETAIL_FIELDS = FIELD_ORDER.filter(
   (field) => field !== 'projectName' && field !== DATE_FIELD
 )
 
+// Posted only when the project holds an authority name saved before the list
+// had references. While the select stays on its placeholder, the reference is
+// then left out of the save, so the backend keeps that name.
+export const KEEP_LPA_FIELD = 'keepLocalPlanningAuthority'
+
 // "Today" for the survey date is the UK's, whatever the server's clock zone.
 const UK_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' })
 
@@ -98,7 +103,8 @@ const fieldsSchema = Joi.object({
   [DAY_KEY]: Joi.string().allow(''),
   [MONTH_KEY]: Joi.string().allow(''),
   [YEAR_KEY]: Joi.string().allow(''),
-  returnUrl: Joi.string().allow('')
+  returnUrl: Joi.string().allow(''),
+  [KEEP_LPA_FIELD]: Joi.string().allow('')
 })
 
 /**
@@ -221,6 +227,12 @@ export function validateProjectDetailsForm(payload, today = new Date()) {
   const details = Object.fromEntries(
     DETAIL_FIELDS.map((field) => [field, fields.value[field]])
   )
+  if (
+    fields.value[KEEP_LPA_FIELD] === 'true' &&
+    details.localPlanningAuthorityReference === null
+  ) {
+    delete details.localPlanningAuthorityReference
+  }
   return {
     errors: [],
     name: fields.value.projectName,

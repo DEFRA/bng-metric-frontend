@@ -286,6 +286,31 @@ describe('#projectDetailsController', () => {
     expect(result).toMatch(/<option value="" selected>/)
   })
 
+  test('marks a legacy authority to be kept, and only then', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: { details: { localPlanningAuthority: 'Historic council' } }
+      }
+    })
+    const legacy = await server.inject({ method: 'GET', url, auth: authedAuth })
+    expect(legacy.result).toContain(
+      '<input type="hidden" name="keepLocalPlanningAuthority" value="true">'
+    )
+
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: mockProjectWithDetails
+    })
+    const current = await server.inject({
+      method: 'GET',
+      url,
+      auth: authedAuth
+    })
+    expect(current.result).not.toContain('keepLocalPlanningAuthority')
+    expect(current.result).not.toContain('Previously saved')
+  })
+
   test('returns 404 when backend returns 404', async () => {
     vi.mocked(wreck.get).mockRejectedValue(responseError(404))
     const { statusCode } = await server.inject({
@@ -433,6 +458,48 @@ describe('#projectDetailsPostController', () => {
       planningApplicationReference: null,
       planningApplicationType: null
     })
+  })
+
+  test('keeps a legacy authority when only the name is changed', async () => {
+    await post({
+      projectName: 'Renamed',
+      localPlanningAuthorityReference: '',
+      keepLocalPlanningAuthority: 'true'
+    })
+    const body = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
+    expect(body.name).toBe('Renamed')
+    expect(body).not.toHaveProperty('localPlanningAuthorityReference')
+    expect(body).not.toHaveProperty('keepLocalPlanningAuthority')
+  })
+
+  test('replaces a legacy authority when one is chosen from the list', async () => {
+    await post({ ...formPayload, keepLocalPlanningAuthority: 'true' })
+    const body = JSON.parse(vi.mocked(wreck.patch).mock.calls[0][1].payload)
+    expect(body).toEqual(expectedPatch)
+  })
+
+  test('still shows and keeps a legacy authority after a refusal', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: {
+        project: {
+          name: projectName,
+          details: { localPlanningAuthority: 'Historic council' }
+        }
+      }
+    })
+    const res = await post({
+      projectName: '',
+      localPlanningAuthorityReference: '',
+      keepLocalPlanningAuthority: 'true'
+    })
+    expect(wreck.patch).not.toHaveBeenCalled()
+    expect(res.result).toContain(
+      'Previously saved local planning authority: Historic council'
+    )
+    expect(res.result).toContain(
+      '<input type="hidden" name="keepLocalPlanningAuthority" value="true">'
+    )
   })
 
   test('saves without fetching the project or the LPA lookup', async () => {

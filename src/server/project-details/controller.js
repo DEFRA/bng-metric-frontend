@@ -22,6 +22,7 @@ import {
 } from './constants.js'
 import {
   DATE_FIELD,
+  KEEP_LPA_FIELD,
   datePartsOf,
   validateProjectDetailsForm
 } from './validation.js'
@@ -79,6 +80,7 @@ function renderForm(
   h,
   { projectId, project, values, dateParts, returnUrl, authorities, errors = [] }
 ) {
+  const details = project?.details ?? {}
   const fieldErrors = Object.fromEntries(
     errors.map((error) => [error.name, error.text])
   )
@@ -99,6 +101,12 @@ function renderForm(
     errors,
     fieldErrors,
     values,
+    // An authority name saved before the list had references (BMD-849): it
+    // is shown, and kept on Save, until the user chooses one from the list.
+    legacyLocalPlanningAuthority: details.localPlanningAuthorityReference
+      ? null
+      : (details.localPlanningAuthority ?? null),
+    keepLpaField: KEEP_LPA_FIELD,
     surveyCompletionDate: dateParts,
     surveyCompletionDateErrorParts: dateError?.parts ?? [],
     maxLengths: {
