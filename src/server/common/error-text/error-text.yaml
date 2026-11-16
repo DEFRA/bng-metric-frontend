@@ -1237,6 +1237,13 @@ edit:
   ENHANCEMENT_NOT_VALID:
     wording: none
 
+  # An edit that would leave a degraded tree, its baseline tree recorded as
+  # lost and created again in a lower condition, no longer a degrade of it.
+  # Shown against the field to blame, with forms' habitatType.degradeSameSetting,
+  # condition.degradeNotWorse or advanceOrDelay.degradeNot30Plus.
+  DEGRADE_NOT_VALID:
+    wording: none
+
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
     wording: none
 
@@ -1369,6 +1376,13 @@ forms:
     invalidHedgerow: Choose a valid hedgerow habitat type
     invalidWatercourse: Choose a valid watercourse habitat type
     invalidTree: Choose Urban tree or Rural tree
+    # A degraded tree moved out of its baseline tree's setting, refused by the
+    # service (DEGRADE_NOT_VALID).
+    degradeSameSetting:
+      wording: interim
+      text: >-
+        Choose the same Urban or Rural setting as the baseline tree, as this
+        is the baseline tree recorded as lost and created again
   condition:
     notForHabitatType: Choose a target condition for the selected habitat type
     # An Enhanced tree's target condition no better than its baseline one,
@@ -1378,6 +1392,15 @@ forms:
     # enhancement of its baseline, on the page or refused by the service
     # (ENHANCEMENT_NOT_VALID).
     notValidEnhancement: Choose a target condition that is a valid enhancement of the baseline habitat
+    # A degraded tree given its baseline condition or a better one, with no
+    # delay, refused by the service (DEGRADE_NOT_VALID). A delay also makes
+    # the edit valid, as the tree is then put back after a temporary loss.
+    degradeNotWorse:
+      wording: interim
+      text: >-
+        Choose a target condition lower than the baseline tree's condition,
+        enter a delay if the tree is put back after a time, or record the tree
+        as Retained or Enhanced
   strategicSignificance:
     invalid: Choose a valid strategic significance
   watercourseEncroachment:
@@ -1390,6 +1413,14 @@ forms:
     both:
       summary: A habitat cannot be created both in advance and with a delay.
       inline: Either the advance or delay field must be set at zero.
+    # A degraded tree, with no delay, not created 30+ years in advance,
+    # refused by the service (DEGRADE_NOT_VALID).
+    degradeNot30Plus:
+      wording: interim
+      text: >-
+        Set the years in advance to 30+, as a tree whose condition gets worse
+        is recorded as created 30+ years in advance, or enter a delay if the
+        tree is put back after a time
 
 # ------------------------------------------------------------------- pages
 #

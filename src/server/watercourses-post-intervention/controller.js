@@ -18,6 +18,7 @@ import {
 } from '../common/helpers/format-habitat-values.js'
 import { buildWatercourseExtraColumns } from '../common/helpers/watercourse-post-intervention-grid.js'
 import { watercourseTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
+import { prepareCreatedWatercourseListDisplay } from './created-watercourse-list-display.js'
 
 const PAGE_HEADING = 'Post intervention for watercourses'
 const RESULTS_HEADING = 'Watercourses results'
@@ -45,5 +46,6 @@ export const getController = createHabitatPostInterventionController({
   tradingRulesStatus: watercourseTradingRulesStatus,
   tradingSummaryPath: WATERCOURSES_TRADING_SUMMARY_PATH,
   tradingSummaryHabitatKey: WATERCOURSES_HABITAT_KEY,
-  tradingRulesLinkText: 'View watercourses trading rules'
+  tradingRulesLinkText: 'View watercourses trading rules',
+  prepareProjectForDisplay: prepareCreatedWatercourseListDisplay
 })

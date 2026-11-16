@@ -39,6 +39,7 @@ import {
   isFeatureNotEditableError
 } from '../common/helpers/feature-not-editable-refusal.js'
 import { isInvalidEnhancementError } from '../common/helpers/invalid-enhancement-refusal.js'
+import { invalidDegradeErrors } from '../common/helpers/invalid-degrade-refusal.js'
 import { AREA_SECTIONS_TEMPLATE, PI_DETAILS_HEADING } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
@@ -515,6 +516,14 @@ async function saveCreatedDetails(
       const response = await showRefused({
         errors: { condition: kind.conditionError }
       })
+      return response.code(statusCodes.unprocessableEntity)
+    }
+    // A degraded tree, its baseline tree recorded as lost and created again,
+    // given a setting, condition or timing that would stop it being one: the
+    // field the backend's rule names is to blame.
+    const degradeErrors = invalidDegradeErrors(err)
+    if (degradeErrors) {
+      const response = await showRefused({ errors: degradeErrors })
       return response.code(statusCodes.unprocessableEntity)
     }
     throw err
