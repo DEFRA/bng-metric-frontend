@@ -35,11 +35,12 @@ describe('#invalidDegradeErrors', () => {
 
   // A rule the backend adds later is not one this page can place, so the
   // save fails as any other refused save does rather than blaming a field.
-  test('is null for a rule the page does not know', () => {
-    expect(invalidDegradeErrors(refusal({ rule: 'degrade-new-rule' }))).toBe(
-      null
-    )
-  })
+  test.each(['degrade-new-rule', 'constructor', 'toString', undefined])(
+    'is null for a rule the page does not know (%s)',
+    (rule) => {
+      expect(invalidDegradeErrors(refusal({ rule }))).toBe(null)
+    }
+  )
 
   test.each([
     [

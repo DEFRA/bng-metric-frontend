@@ -46,7 +46,11 @@ export function invalidDegradeErrors(err) {
   if (!isInvalidDegradeError(err)) {
     return null
   }
-  const match = FIELD_BY_RULE[err.data.payload.rule]
+  // Own keys only: a rule such as "constructor" is not one the page knows.
+  const { rule: brokenRule } = err.data.payload
+  const match = Object.hasOwn(FIELD_BY_RULE, brokenRule ?? '')
+    ? FIELD_BY_RULE[brokenRule]
+    : null
   if (!match) {
     return null
   }
