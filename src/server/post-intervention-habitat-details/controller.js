@@ -73,6 +73,7 @@ const CREATED_EDIT_TYPES = new Set([
 // habitat (BMD-1045) are edited as.
 const ENHANCED_TREE_KIND = 'enhancedTree'
 const ENHANCED_HABITAT_KIND = 'enhancedHabitat'
+const ENHANCED_HEDGEROW_KIND = 'enhancedHedgerow'
 
 /**
  * The feature as its edit kind reads it: an Enhanced tree whose file left its
@@ -105,6 +106,9 @@ function editKindOf(type, retentionCategory) {
   }
   if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_ENHANCED) {
     return ENHANCED_HABITAT_KIND
+  }
+  if (type === HEDGEROW_TYPE && retentionCategory === RETENTION_ENHANCED) {
+    return ENHANCED_HEDGEROW_KIND
   }
   return null
 }
@@ -246,11 +250,18 @@ function renderUnsupportedFeature(
   })
 }
 
+// The Enhanced kinds whose edit page links to the baseline as their read-only
+// page finds it: an area habitat (BMD-725) and a hedgerow (BMD-733).
+const VIEW_ONLY_BASELINE_KINDS = new Set([
+  ENHANCED_HABITAT_KIND,
+  ENHANCED_HEDGEROW_KIND
+])
+
 // The baseline an edit page's "View baseline details" opens: a Created
-// feature's parent, or an Enhanced area's baseline as its read-only page finds
-// it (BMD-725).
+// feature's parent, or an Enhanced area's or hedgerow's baseline as its
+// read-only page finds it.
 function editBaselineFeatureId(project, type, feature, kindKey) {
-  return kindKey === ENHANCED_HABITAT_KIND
+  return VIEW_ONLY_BASELINE_KINDS.has(kindKey)
     ? viewOnlyBaselineFeatureId(project, type, feature)
     : createdBaselineFeatureId(project, type, feature)
 }
@@ -412,6 +423,7 @@ const CREATED_PAYLOAD_SCHEMAS = {
   [ENHANCED_TREE_KIND]: createdAreaPayloadSchema,
   [ENHANCED_HABITAT_KIND]: createdAreaPayloadSchema,
   hedgerow: createdHedgerowPayloadSchema,
+  [ENHANCED_HEDGEROW_KIND]: createdHedgerowPayloadSchema,
   watercourse: createdWatercoursePayloadSchema
 }
 

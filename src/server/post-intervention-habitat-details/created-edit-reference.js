@@ -48,6 +48,25 @@ export function loadEnhancedAreaReference(baseline = {}) {
   })
 }
 
+// BMD-1046: an Enhanced hedgerow chooses only from the valid enhancements of
+// its baseline, which the backend lists per baseline hedgerow type and
+// condition, including the hedgerow type moves the metric's G-6 table allows.
+export function loadEnhancedHedgerowReference(baseline = {}) {
+  const query = new URLSearchParams(
+    Object.entries({
+      type: baseline.type,
+      condition: baseline.condition
+    }).filter(([, value]) => typeof value === 'string' && value !== '')
+  )
+  return loadReference({
+    cacheKey: `enhanced-hedgerow?${query}`,
+    kind: 'enhancedHedgerow',
+    url: `${backendUrl}/reference/hedgerow-enhancement?${query}`,
+    referenceName: 'hedgerow enhancement',
+    hasBroadHabitat: false
+  })
+}
+
 function hasRequiredArrays(kind, payload) {
   const fields = ['habitatTypes', 'strategicSignificance']
   if (kind === 'watercourse') {
