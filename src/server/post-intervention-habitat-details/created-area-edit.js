@@ -54,7 +54,10 @@ export { createdAreaValues } from './created-choice-values.js'
 export { saveCreatedArea } from './created-area-save.js'
 import { formErrorText } from '../common/error-text/error-text.js'
 import { HABITAT_REF_ERROR } from '../common/helpers/habitat-ref.js'
-import { commentFormFields, commentRefusals } from '../common/helpers/habitat-comment.js'
+import {
+  commentFormFields,
+  commentRefusals
+} from '../common/helpers/habitat-comment.js'
 
 // A { summary, inline } pair from error-text.yaml's forms section, frozen as it
 // is shared by every request.
@@ -102,6 +105,9 @@ const ENHANCED_AREA_KIND = Object.freeze({
   optionalReference: true,
   buildBase: buildEnhancedAreaViewOnlyViewModel,
   conditionError: formError('condition', 'notValidEnhancement'),
+  // An Enhanced area's supporting information is not editable yet
+  // (BMD-1190): the backend refuses a comment on an Enhanced area.
+  hasComment: false,
   // A stored proposal its baseline's valid enhancements no longer list is
   // kept, not cleared, by a save that leaves it unchanged.
   preservesStoredChoices: true
