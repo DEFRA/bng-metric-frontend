@@ -1,9 +1,12 @@
 import {
   loadCreatedAreaReference,
-  loadCreatedHedgerowReference,
   loadCreatedWatercourseReference,
   loadEnhancedAreaReference
 } from './created-edit-reference.js'
+import {
+  CREATED_HEDGEROW_KIND,
+  ENHANCED_HEDGEROW_KIND
+} from './hedgerow-edit-kinds.js'
 import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
 export { enhancedTreeReference } from './tree-edit-kinds.js'
 export {
@@ -35,7 +38,6 @@ import {
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
-import { buildCreatedHedgerowViewOnlyViewModel } from './enhanced-hedgerow-view-only-view-model.js'
 import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
 import {
   AREA_SECTIONS_TEMPLATE,
@@ -126,22 +128,11 @@ export const CREATED_EDIT_KINDS = {
     restoresLineageAdvance: true,
     habitatTypeError: formError('habitatType', 'invalidWatercourse')
   },
-  hedgerow: {
-    loadReference: loadCreatedHedgerowReference,
-    label: 'Hedgerow',
-    optionalReference: true,
-    readOnlyTemplate: 'habitat-details/pi-hedgerow-details-enhanced',
-    buildBase: buildCreatedHedgerowViewOnlyViewModel,
-    formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
-    sizeLabel: 'Length (km)',
-    backType: 'hedgerow',
-    savePath: 'hedgerows',
-    hasBroadHabitat: false,
-    habitatTypeError: formError('habitatType', 'invalidHedgerow')
-  },
+  hedgerow: CREATED_HEDGEROW_KIND,
   tree: CREATED_TREE_KIND,
   enhancedTree: ENHANCED_TREE_KIND,
-  enhancedHabitat: ENHANCED_AREA_KIND
+  enhancedHabitat: ENHANCED_AREA_KIND,
+  enhancedHedgerow: ENHANCED_HEDGEROW_KIND
 }
 
 function createdKind(reference) {

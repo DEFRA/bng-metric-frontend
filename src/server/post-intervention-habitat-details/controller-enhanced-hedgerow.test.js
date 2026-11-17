@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { wreck } from '../common/helpers/wreck-client.js'
 import {
   baselineFeatureId,
@@ -24,8 +25,14 @@ describe('#postInterventionHabitatDetailsController enhanced hedgerow', () => {
     vi.restoreAllMocks()
   })
 
+  // Since BMD-1046 an Enhanced hedgerow is edited on the Created hedgerow form.
+  // BMD-733's read-only page is the fallback while the backend does not serve
+  // the hedgerow enhancement reference, as here.
   test('GET renders the Enhanced hedgerow details page with section layout', async () => {
     vi.mocked(wreck.get).mockImplementation((url) => {
+      if (url.includes('/reference/hedgerow-enhancement')) {
+        return Promise.reject(Boom.notFound())
+      }
       if (url.includes(`/post-intervention/features/${featureId}`)) {
         return Promise.resolve({
           payload: {

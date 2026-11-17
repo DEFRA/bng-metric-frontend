@@ -2,7 +2,10 @@ import { watercourseCreationReference } from './created-watercourse-test-fixture
 import { vi } from 'vitest'
 
 import { wreck } from '../common/helpers/wreck-client.js'
-import { hedgerowCreationReference } from './created-hedgerow-test-fixtures.js'
+import {
+  hedgerowCreationReference,
+  hedgerowEnhancementReference
+} from './created-hedgerow-test-fixtures.js'
 import {
   creationReference,
   enhancementReference
@@ -54,6 +57,9 @@ export function mockFeature(featurePayload, projectResponse = projectPayload) {
     }
     if (url.endsWith('/reference/hedgerow-creation')) {
       return Promise.resolve({ payload: hedgerowCreationReference })
+    }
+    if (url.includes('/reference/hedgerow-enhancement?')) {
+      return Promise.resolve({ payload: hedgerowEnhancementReference })
     }
     if (url.endsWith('/reference/area-creation')) {
       return Promise.resolve({ payload: creationReference })

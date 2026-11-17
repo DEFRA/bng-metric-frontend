@@ -202,6 +202,12 @@ function serviceTemplateBackend(body) {
       '/reference/hedgerow-creation',
       () => creationReference(project, 'hedgerows', 'hedgerow')
     ],
+    // An Enhanced hedgerow's choices (BMD-1046), whatever its baseline, as for
+    // an Enhanced area.
+    [
+      '/reference/hedgerow-enhancement',
+      () => creationReference(project, 'hedgerows', 'hedgerow')
+    ],
     [
       '/reference/watercourse-creation',
       () => creationReference(project, 'watercourses', 'watercourse')
