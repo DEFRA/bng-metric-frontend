@@ -27,3 +27,8 @@ export { MAX_HABITAT_REF_LENGTH as MAX_REF_LENGTH } from '../common/helpers/habi
 // A Retained habitat's supporting information is its baseline habitat's
 // comment, shown read-only (BMD-1187), or this when none is saved.
 export const NO_SUPPORTING_INFORMATION = 'No data'
+
+// The hint under a Created habitat's supporting information box (BMD-1153).
+// The baseline details page keeps its own wording (habitat-details.njk).
+export const CREATED_SUPPORTING_INFORMATION_HINT =
+  'Add any information that will help support your submission.'

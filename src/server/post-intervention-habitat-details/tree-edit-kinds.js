@@ -33,10 +33,15 @@ const TREE_KIND_BASE = Object.freeze({
   habitatTypeError: Object.freeze(formErrorText('habitatType', 'invalidTree'))
 })
 
-/** A Created individual tree, edited as a Created area habitat is. */
+/**
+ * A Created individual tree, edited as a Created area habitat is, with its
+ * supporting information (BMD-1153). An Enhanced tree's is not editable yet
+ * (BMD-1190).
+ */
 export const CREATED_TREE_KIND = Object.freeze({
   ...TREE_KIND_BASE,
-  loadReference: loadCreatedTreeReference
+  loadReference: loadCreatedTreeReference,
+  hasComment: true
 })
 
 /**

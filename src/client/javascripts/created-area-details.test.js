@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+/* global Node */
 import { initCreatedAreaDetails } from './created-area-details.js'
 import {
   buildCreatedAreaEditViewModel,
@@ -476,7 +477,23 @@ describe('Created area editing', () => {
         .querySelector('a.govuk-button')
         .classList.contains('govuk-button--secondary')
     ).toBe(false)
-    expect(document.querySelector('textarea')).toBeNull()
+    // BMD-1153: the supporting information box sits below the units, above
+    // Save, and has no character count.
+    const comment = document.querySelector('textarea#comment')
+    expect(
+      document.querySelector('label[for="comment"]').textContent.trim()
+    ).toBe('Supporting information')
+    expect(
+      document
+        .querySelector('.app-pi-edit-units')
+        .compareDocumentPosition(comment) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      comment.compareDocumentPosition(
+        document.querySelector('.govuk-button-group')
+      ) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(document.querySelector('.govuk-character-count')).toBeNull()
     expect(text('interventionDisplay')).toBe('Created')
   })
 })

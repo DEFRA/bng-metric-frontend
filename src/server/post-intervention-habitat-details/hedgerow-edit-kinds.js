@@ -27,6 +27,7 @@ export const CREATED_HEDGEROW_KIND = Object.freeze({
   backType: 'hedgerow',
   savePath: 'hedgerows',
   hasBroadHabitat: false,
+  hasComment: true,
   habitatTypeError: formError('habitatType', 'invalidHedgerow')
 })
 
@@ -45,6 +46,9 @@ export const ENHANCED_HEDGEROW_KIND = Object.freeze({
   formatSize: (feature) => formatLengthKm(feature.sizeMetres),
   sizeLabel: 'Size (kilometres)',
   conditionError: formError('condition', 'notValidEnhancement'),
+  // Its supporting information is not editable yet (BMD-1190), as an
+  // Enhanced area's is not.
+  hasComment: false,
   preservesImportedType: true,
   // A kept habitat type shows its stored distinctiveness, difficulty and
   // times, as an Enhanced area's kept choices do.
