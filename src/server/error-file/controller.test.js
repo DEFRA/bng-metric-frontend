@@ -1841,11 +1841,11 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each tree with more than one kept tree linked to it, and the trees linked, without the counts the backend sends', async () => {
+  test('lists each tree with more than one Retained or Enhanced tree linked to it, and the trees linked, without the counts the backend sends', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_TREE_CHILDREN_TOO_MANY',
-        'One or more baseline trees have fewer trees than the post-intervention trees that are still them, linked to them together: Retained, Enhanced, or Existing and Created in its setting',
+        'One or more baseline trees have more than one Retained or Enhanced tree linked to them. A baseline tree is one tree, so only one Retained or Enhanced tree can be linked to it',
         [
           {
             layer: 'trees',
@@ -1865,7 +1865,7 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more baseline trees have more than one kept tree linked to them. A post-intervention tree is kept if it is Retained or Enhanced, or Created with Category Existing in the same Urban or Rural setting. A baseline tree is one tree, so only one kept tree can be linked to it',
+        'One or more baseline trees have more than one Retained or Enhanced tree linked to them. A baseline tree is one tree, so only one Retained or Enhanced tree can be linked to it',
         ['Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b']
       ]
     ])

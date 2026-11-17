@@ -85,6 +85,30 @@ describe('Created tree controller', () => {
     )
   })
 
+  test('shows an Existing tree Created in a lower condition as a creation, naming no baseline condition', async () => {
+    mockTree({
+      ...createdTree,
+      properties: { Category: 'Existing' },
+      baseline: {
+        broadType: 'Individual trees',
+        type: 'Urban tree',
+        treeSize: 'Medium',
+        condition: 'Moderate'
+      },
+      proposed: {
+        ...createdTree.proposed,
+        advanceYears: 30,
+        standardTimeToTargetCondition: '10'
+      }
+    })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.baselineCondition).toBe('')
+    expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
+  })
+
   test('saves the tree to the trees endpoint and redirects to the area list', async () => {
     const h = createMockH()
     await postController.handler(
@@ -229,57 +253,6 @@ describe('Created tree authenticated form', () => {
     expect(response.payload).not.toContain('govuk-input--error')
     expect(response.payload).toContain(`value="${values.ref}"`)
   })
-
-  // A degraded tree, an Existing tree Created as its baseline tree lost and
-  // created again, is held by the backend to staying one.
-  test.each([
-    [
-      'degrade-same-setting',
-      'habitatType',
-      'Choose the same Urban or Rural setting as the baseline tree'
-    ],
-    [
-      'degrade-worse-condition',
-      'condition',
-      'Choose a target condition lower than the baseline tree&#39;s condition'
-    ],
-    [
-      'degrade-advance-30-plus',
-      'advanceYears',
-      'Set the years in advance to 30+'
-    ]
-  ])(
-    'shows the field to blame when the backend refuses the edit of a degraded tree (%s)',
-    async (rule, field, wording) => {
-      const refused = Boom.badData('not a degrade')
-      refused.data = {
-        res: { statusCode: 422 },
-        payload: {
-          statusCode: 422,
-          error: 'Unprocessable Entity',
-          message: `The tree is no longer its baseline tree recorded as lost and created again in a lower condition (rule ${rule})`,
-          code: 'DEGRADE_NOT_VALID',
-          rule
-        }
-      }
-      vi.mocked(wreck.put).mockRejectedValue(refused)
-      const { token, cookie } = await primeCrumb(server)
-
-      const response = await server.inject({
-        method: 'POST',
-        url: '/post-intervention-habitat-details',
-        auth,
-        headers: { cookie },
-        payload: { ...request().payload, crumb: token }
-      })
-
-      expect(response.statusCode).toBe(422)
-      expect(response.payload).toMatch(/<title>\s*Error: /)
-      expect(response.payload).toContain(`href="#${field}"`)
-      expect(response.payload).toContain(wording)
-      expect(response.payload).toContain(`value="${values.ref}"`)
-    }
-  )
 })
 
 describe('Retained tree reference', () => {

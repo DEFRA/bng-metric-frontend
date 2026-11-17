@@ -425,9 +425,21 @@ function createdCommentFields(feature, kind, values, errors) {
   }
 }
 
-function createdAreaDisplayFields(feature, reference, values, base) {
+/**
+ * The baseline condition a page's time to target runs from: none for a kind
+ * that names none, such as a Created tree.
+ */
+function shownBaselineCondition(feature, kind) {
+  if (kind.namesBaselineCondition === false) {
+    return ''
+  }
   const baseline = stripConditionPrefix(feature.baseline?.condition)
-  const baselineCondition = typeof baseline === 'string' ? baseline : ''
+  return typeof baseline === 'string' ? baseline : ''
+}
+
+function createdAreaDisplayFields(feature, reference, values, base) {
+  const kind = createdKind(reference)
+  const baselineCondition = shownBaselineCondition(feature, kind)
   const originalDerived = createdAreaDerived(
     reference,
     createdAreaValues(feature),
@@ -437,7 +449,6 @@ function createdAreaDisplayFields(feature, reference, values, base) {
   const originalValues = createdEditValues(feature, reference)
   // A kept Enhanced area or hedgerow choice is not in the list, so nothing is
   // derived from it: its stored display stands, as its save keeps it.
-  const kind = createdKind(reference)
   const keepsStored =
     (kind.preservesStoredChoices || kind.showsKeptDisplays) &&
     Object.values(PARENT_CHOICE)

@@ -34,6 +34,20 @@ const TREE_KIND_BASE = Object.freeze({
 })
 
 /**
+ * A Created tree is a creation, whatever its row says it was at baseline. An
+ * Existing tree whose condition gets worse is recorded as its baseline tree
+ * lost and a tree created, so its page shows the standard Created fields and
+ * names no baseline condition in its time to target.
+ *
+ * @param {object} feature the post-intervention tree
+ * @returns {object}
+ */
+const withoutBaselineCondition = (feature) => ({
+  ...feature,
+  baseline: { ...feature.baseline, condition: null }
+})
+
+/**
  * A Created individual tree, edited as a Created area habitat is, with its
  * supporting information (BMD-1153). An Enhanced tree's is not editable yet
  * (BMD-1190).
@@ -41,7 +55,10 @@ const TREE_KIND_BASE = Object.freeze({
 export const CREATED_TREE_KIND = Object.freeze({
   ...TREE_KIND_BASE,
   loadReference: loadCreatedTreeReference,
-  hasComment: true
+  buildBase: (feature, ctx) =>
+    buildTreeSectionsViewOnlyViewModel(withoutBaselineCondition(feature), ctx),
+  hasComment: true,
+  namesBaselineCondition: false
 })
 
 /**
