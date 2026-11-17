@@ -348,6 +348,30 @@ describe('Enhanced tree controller', () => {
       'Choose Urban tree or Rural tree'
     )
   })
+
+  // An Enhanced tree's supporting information is not editable yet (BMD-1190),
+  // though it shares the Created edit page (BMD-1153).
+  test('has no supporting information box', async () => {
+    mockTree({ ...enhancedTree, comment: 'Imported note' })
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.showCommentRow).toBe(false)
+    expect(vm).not.toHaveProperty('commentInput')
+  })
+
+  test('neither checks nor sends a posted comment', async () => {
+    const h = createMockH()
+    await postController.handler(
+      request({ condition: 'Fairly Good', comment: '� too long' }),
+      h
+    )
+
+    expect(wreck.put).toHaveBeenCalledTimes(1)
+    const [, options] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(options.payload)).not.toHaveProperty('comment')
+  })
 })
 
 describe('Enhanced tree authenticated form', () => {

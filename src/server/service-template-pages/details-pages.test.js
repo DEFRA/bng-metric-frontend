@@ -358,7 +358,8 @@ describe('details pages of a BNG Service template project', () => {
     })
 
     // A Retained tree takes the reference form, and a Created or an Enhanced
-    // one the edit form.
+    // one the edit form. Only a Created one has supporting information
+    // (BMD-1153; an Enhanced one's is BMD-1190).
     const TREE_EDIT_FIELDS = [
       'ref',
       'habitatType',
@@ -370,7 +371,7 @@ describe('details pages of a BNG Service template project', () => {
     test.each([
       ['Retained', ['habitatRef']],
       ['Enhanced', TREE_EDIT_FIELDS],
-      ['Created', TREE_EDIT_FIELDS]
+      ['Created', [...TREE_EDIT_FIELDS, 'comment']]
     ])(
       'a %s individual tree renders in the area layout, sized in hectares',
       async (retentionCategory, editableFields) => {
