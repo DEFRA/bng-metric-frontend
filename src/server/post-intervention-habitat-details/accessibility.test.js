@@ -6,6 +6,26 @@ import { primeCrumb } from '../common/test-helpers/csrf.js'
 import { loadPage } from '../test-helpers/load-page.js'
 import { runAxeChecks } from '../test-helpers/axe-helper.js'
 import { assertLayoutLandmarks } from '../test-helpers/assert-landmarks.js'
+import {
+  createdAreaValues,
+  _resetCreatedAreaReferenceCache
+} from './created-area-edit.js'
+import {
+  createdAreaFeature,
+  creationReference
+} from './created-area-test-fixtures.js'
+import {
+  createdHedgerowFeature,
+  hedgerowCreationReference
+} from './created-hedgerow-test-fixtures.js'
+import {
+  createdWatercourseFeature,
+  watercourseCreationReference
+} from './created-watercourse-test-fixtures.js'
+import {
+  createdTree,
+  treeCreationReference
+} from './created-tree-test-fixtures.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: { get: vi.fn(), put: vi.fn() }
@@ -96,6 +116,65 @@ function mockBackend(type, { comment = null } = {}) {
   })
 }
 
+const withoutBroadHabitat = (feature) => {
+  const { broadHabitat: _broad, ...values } = createdAreaValues(feature)
+  return values
+}
+
+// Created features, with a saved comment, and the reference each is edited
+// against.
+const CREATED = {
+  habitat: {
+    feature: createdAreaFeature,
+    reference: ['/reference/area-creation', creationReference],
+    values: createdAreaValues
+  },
+  tree: {
+    feature: createdTree,
+    reference: ['/reference/tree-creation', treeCreationReference],
+    values: createdAreaValues
+  },
+  hedgerow: {
+    feature: createdHedgerowFeature,
+    reference: ['/reference/hedgerow-creation', hedgerowCreationReference],
+    values: withoutBroadHabitat
+  },
+  watercourse: {
+    feature: createdWatercourseFeature,
+    reference: [
+      '/reference/watercourse-creation',
+      watercourseCreationReference
+    ],
+    values: withoutBroadHabitat
+  }
+}
+
+/**
+ * @param {string} type a key of CREATED
+ */
+function mockCreatedBackend(type) {
+  const { feature, reference } = CREATED[type]
+  const [referencePath, referencePayload] = reference
+  vi.mocked(wreck.get).mockImplementation((url) => {
+    if (url.endsWith(referencePath)) {
+      return Promise.resolve({ payload: referencePayload })
+    }
+    if (url.endsWith(`/post-intervention/features/${featureId}`)) {
+      return Promise.resolve({
+        payload: {
+          type,
+          feature: {
+            ...feature,
+            featureId,
+            comment: 'Planted along the northern boundary.\nSee the plan.'
+          }
+        }
+      })
+    }
+    return Promise.resolve({ payload: { project: { name: 'Project 1' } } })
+  })
+}
+
 describe('Post-intervention habitat details page accessibility checks', () => {
   let server
 
@@ -110,6 +189,7 @@ describe('Post-intervention habitat details page accessibility checks', () => {
 
   afterEach(() => {
     vi.mocked(wreck.get).mockReset()
+    _resetCreatedAreaReferenceCache()
   })
 
   it.each(['habitat', 'hedgerow', 'watercourse'])(
@@ -159,5 +239,49 @@ describe('Post-intervention habitat details page accessibility checks', () => {
     )
     assertLayoutLandmarks(document)
     await runAxeChecks(document.documentElement)
+  })
+
+  // The Created edit page, with its supporting information box (BMD-1153).
+  describe.each(Object.keys(CREATED))('a Created %s', (type) => {
+    it('should have no HTML accessibility issues', async () => {
+      mockCreatedBackend(type)
+      const { document } = await loadPage({
+        requestUrl: `/post-intervention-habitat-details?featureId=${featureId}&projectId=${projectId}`,
+        server,
+        auth: authedAuth
+      })
+      expect(document.getElementById('comment')).not.toBeNull()
+      assertLayoutLandmarks(document)
+      await runAxeChecks(document.documentElement)
+    })
+
+    it('should have no HTML accessibility issues when the supporting information is refused', async () => {
+      mockCreatedBackend(type)
+      const { feature, values } = CREATED[type]
+      const crumb = await primeCrumb(server)
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        payload: {
+          projectId,
+          featureId,
+          ...values(feature),
+          comment: `�${'a'.repeat(1000)}`,
+          crumb: crumb.token
+        },
+        headers: { cookie: crumb.cookie },
+        auth: authedAuth
+      })
+      expect(response.statusCode).toBe(200)
+      const document = new DOMParser().parseFromString(
+        response.result,
+        'text/html'
+      )
+      expect(
+        document.querySelector('.govuk-error-summary a[href="#comment"]')
+      ).not.toBeNull()
+      assertLayoutLandmarks(document)
+      await runAxeChecks(document.documentElement)
+    })
   })
 })

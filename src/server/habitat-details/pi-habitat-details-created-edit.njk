@@ -3,6 +3,7 @@
 {% from "govuk/components/button/macro.njk" import govukButton %}
 {% from "govuk/components/select/macro.njk" import govukSelect %}
 {% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 {% from "govuk/components/fieldset/macro.njk" import govukFieldset %}
@@ -105,6 +106,21 @@
         {{ govukSummaryList({ classes: "app-units-delivered app-pi-edit-units govuk-!-margin-top-6", rows: [
           { key: { text: habitatUnitsLabel }, value: { text: habitatUnitsDisplay } }
         ] }) }}
+        {# A Created habitat's supporting information (BMD-1153). An Enhanced
+           tree's page leaves showCommentRow unset, submits no comment, and
+           keeps the stored one. #}
+        {% if showCommentRow %}
+          {{ govukTextarea({
+            id: commentInput.id,
+            name: commentInput.id,
+            rows: 5,
+            label: { text: "Supporting information", classes: "govuk-label--m" },
+            hint: { text: commentHint },
+            value: commentInput.value,
+            errorMessage: commentInput.error,
+            classes: "govuk-!-margin-top-6"
+          }) }}
+        {% endif %}
         <div class="govuk-button-group">
           {{ govukButton({ text: "Save" }) }}
           <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>

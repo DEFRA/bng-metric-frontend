@@ -40,6 +40,7 @@ import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
 import {
   AREA_SECTIONS_TEMPLATE,
   AREA_SIZE_LABEL,
+  CREATED_SUPPORTING_INFORMATION_HINT,
   MAX_REF_LENGTH
 } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
@@ -53,6 +54,10 @@ export { createdAreaValues } from './created-choice-values.js'
 export { saveCreatedArea } from './created-area-save.js'
 import { formErrorText } from '../common/error-text/error-text.js'
 import { HABITAT_REF_ERROR } from '../common/helpers/habitat-ref.js'
+import {
+  commentFormFields,
+  commentRefusals
+} from '../common/helpers/habitat-comment.js'
 
 // A { summary, inline } pair from error-text.yaml's forms section, frozen as it
 // is shared by every request.
@@ -82,6 +87,7 @@ const CREATED_AREA_KIND = {
   backType: 'habitat',
   savePath: 'habitats',
   hasBroadHabitat: true,
+  hasComment: true,
   habitatTypeError: formError('habitatType', 'notInBroadHabitat')
 }
 
@@ -99,6 +105,9 @@ const ENHANCED_AREA_KIND = Object.freeze({
   optionalReference: true,
   buildBase: buildEnhancedAreaViewOnlyViewModel,
   conditionError: formError('condition', 'notValidEnhancement'),
+  // An Enhanced area's supporting information is not editable yet
+  // (BMD-1190): the backend refuses a comment on an Enhanced area.
+  hasComment: false,
   // A stored proposal its baseline's valid enhancements no longer list is
   // kept, not cleared, by a save that leaves it unchanged.
   preservesStoredChoices: true
@@ -120,6 +129,7 @@ export const CREATED_EDIT_KINDS = {
     backType: 'watercourse',
     savePath: 'watercourses',
     hasBroadHabitat: false,
+    hasComment: true,
     hasEncroachments: true,
     // Match the merged Created editors: imported choices are kept through omission.
     preservesImportedType: true,
@@ -137,6 +147,7 @@ export const CREATED_EDIT_KINDS = {
     backType: 'hedgerow',
     savePath: 'hedgerows',
     hasBroadHabitat: false,
+    hasComment: true,
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
   },
   tree: CREATED_TREE_KIND,
@@ -167,6 +178,9 @@ export const createdAreaPayloadSchema = Joi.object({
   delayYears: Joi.string()
     .valid('', ...YEAR_OPTIONS, UNCHANGED_VALUE)
     .required(),
+  // Supporting information (BMD-1153). No length limit here: a long comment
+  // must reach the handler and be shown as a field error, not a 400.
+  comment: Joi.string().allow('').optional(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
 })
@@ -370,7 +384,55 @@ export function validateCreatedArea(values, reference) {
       errors[field] = messages[field]
     }
   }
+  validateCreatedComment(values, kind, errors)
   return errors
+}
+
+/**
+ * A Created habitat's supporting information breaks the same rules as a
+ * baseline habitat's (BMD-1112), and, like any other field error, stops the
+ * whole page being saved. `errors.comment` is a list, as both rules can be
+ * broken at once.
+ *
+ * @param {{ comment?: string }} values
+ * @param {{ hasComment?: boolean }} kind
+ * @param {object} errors
+ */
+function validateCreatedComment(values, kind, errors) {
+  if (!kind.hasComment) {
+    return
+  }
+  const refusals = commentRefusals(values.comment)
+  if (refusals.length > 0) {
+    errors.comment = refusals
+  }
+}
+
+/**
+ * The supporting information box, for a kind that has one: the comment typed
+ * when the page is shown again, otherwise the one saved.
+ *
+ * @param {object} feature
+ * @param {{ hasComment?: boolean }} kind
+ * @param {{ comment?: string }} values
+ * @param {object} errors
+ * @returns {object}
+ */
+function createdCommentFields(feature, kind, values, errors) {
+  if (!kind.hasComment) {
+    return { showCommentRow: false, commentErrors: [] }
+  }
+  const { commentErrors, commentInput } = commentFormFields({
+    savedComment: feature.comment,
+    submittedComment: values.comment,
+    refusals: errors.comment
+  })
+  return {
+    showCommentRow: true,
+    commentHint: CREATED_SUPPORTING_INFORMATION_HINT,
+    commentInput,
+    commentErrors
+  }
 }
 
 function createdAreaDisplayFields(feature, reference, values, base) {
@@ -428,8 +490,9 @@ function createdUploadHref(ctx, feature, returnUrl) {
 }
 
 // A backend refusal comes first, unlinked; then each field's error in page
-// order, leaving out the delay error when the advance one is shown.
-function createdErrorList(errors, refusal) {
+// order, leaving out the delay error when the advance one is shown. The
+// supporting information is last on the page, so its errors come last.
+function createdErrorList(errors, refusal, commentErrors) {
   return [
     ...(refusal ? [{ text: refusal.summaryOnly }] : []),
     ...FIELD_ORDER.filter(
@@ -438,7 +501,8 @@ function createdErrorList(errors, refusal) {
     ).map((field) => ({
       text: errors[field].summary,
       href: `#${field}`
-    }))
+    })),
+    ...commentErrors
   ]
 }
 
@@ -484,6 +548,12 @@ export function buildCreatedAreaEditViewModel(
     kind.backType,
     ctx.returnUrl
   )
+  const { commentErrors, ...commentFields } = createdCommentFields(
+    feature,
+    kind,
+    values,
+    errors
+  )
   return {
     ...base,
     ...derived,
@@ -500,7 +570,8 @@ export function buildCreatedAreaEditViewModel(
       initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
         ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
         : null,
-    errorList: createdErrorList(errors, ctx.refusal),
+    errorList: createdErrorList(errors, ctx.refusal, commentErrors),
+    ...commentFields,
     fixedBroadHabitat: kind.fixedBroadHabitat ?? null,
     fields: buildCreatedEditFields(reference, values, storedValues, kind),
     referenceJson: createdReferenceJson(

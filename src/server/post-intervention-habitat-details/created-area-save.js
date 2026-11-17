@@ -1,5 +1,6 @@
 import { UNCHANGED_VALUE } from '../../shared/created-area-details.js'
 import { saveHabitat } from '../common/helpers/habitat-details-controller.js'
+import { cleanComment } from '../common/helpers/habitat-comment.js'
 import { ENCROACHMENT_FIELDS } from './created-area-edit-fields.js'
 
 // The PUT a Created or Enhanced feature's edit page sends for a save: what
@@ -62,9 +63,19 @@ function withStoredChoices(values, kind, feature) {
   )
 }
 
+// Sent only when the form has the box: a post without it keeps the stored
+// comment. Blank is sent as null, which the backend stores as no value.
+function commentPayload(values, kind) {
+  if (!kind.hasComment || values.comment === undefined) {
+    return {}
+  }
+  return { comment: cleanComment(values.comment) || null }
+}
+
 function createdAreaSavePayload(submitted, kind, feature) {
   const values = withStoredChoices(submitted, kind, feature)
   return {
+    ...commentPayload(values, kind),
     ref: values.ref.trim(),
     ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
     ...(values.habitatType === UNCHANGED_VALUE
