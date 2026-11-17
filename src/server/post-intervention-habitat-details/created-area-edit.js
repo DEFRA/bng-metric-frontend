@@ -374,10 +374,11 @@ function createdAreaDisplayFields(feature, reference, values, base) {
   )
   const derived = createdAreaDerived(reference, values, baselineCondition)
   const originalValues = createdEditValues(feature, reference)
-  // A kept Enhanced area choice is not in the list, so nothing is derived
-  // from it: its stored display stands, as its save keeps it.
+  // A kept Enhanced area or hedgerow choice is not in the list, so nothing is
+  // derived from it: its stored display stands, as its save keeps it.
+  const kind = createdKind(reference)
   const keepsStored =
-    createdKind(reference).preservesStoredChoices &&
+    (kind.preservesStoredChoices || kind.showsKeptDisplays) &&
     Object.values(PARENT_CHOICE)
       .concat('condition')
       .some((field) => values[field] === UNCHANGED_VALUE)

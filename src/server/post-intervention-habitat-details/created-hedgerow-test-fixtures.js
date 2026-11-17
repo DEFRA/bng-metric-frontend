@@ -1,9 +1,11 @@
+const NATIVE_HEDGEROW = 'Native hedgerow'
+
 export const hedgerowCreationReference = {
   featureType: 'hedgerow',
   hasBroadHabitat: false,
   habitatTypes: [
     {
-      name: 'Native hedgerow',
+      name: NATIVE_HEDGEROW,
       distinctiveness: 'Low',
       distinctivenessScore: 2,
       difficulty: 'Low',
@@ -42,7 +44,7 @@ export const createdHedgerowFeature = {
   sizeMetres: 336,
   units: 1.57,
   proposed: {
-    type: 'Native hedgerow',
+    type: NATIVE_HEDGEROW,
     condition: 'Good',
     strategicSignificanceCategory: 'Low',
     advanceYears: 0,
@@ -60,7 +62,7 @@ export const hedgerowEnhancementReference = {
   hasBroadHabitat: false,
   habitatTypes: [
     {
-      name: 'Native hedgerow',
+      name: NATIVE_HEDGEROW,
       distinctiveness: 'Low',
       distinctivenessScore: 2,
       difficulty: 'Low',
@@ -93,9 +95,9 @@ export const enhancedHedgerowFeature = {
   sizeMetres: 336,
   units: 2.5,
   status: 'Complete',
-  baseline: { type: 'Native hedgerow', condition: 'Moderate' },
+  baseline: { type: NATIVE_HEDGEROW, condition: 'Moderate' },
   proposed: {
-    type: 'Native hedgerow',
+    type: NATIVE_HEDGEROW,
     condition: 'Good',
     strategicSignificanceCategory: 'Low',
     strategicSignificance: 'Low',

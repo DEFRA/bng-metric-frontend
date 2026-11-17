@@ -231,11 +231,19 @@ describe('BMD-1046 Enhanced hedgerow edit page', () => {
       proposed: {
         ...enhancedHedgerowFeature.proposed,
         type: 'Line of trees',
-        condition: 'Good'
+        condition: 'Good',
+        distinctiveness: 'Low',
+        distinctivenessScore: 2,
+        difficulty: 'Low',
+        difficultyMultiplier: 1,
+        finalTimeToTargetCondition: '2 years (0.931225)'
       }
     })
     const view = await renderPage()
     expect(view.values.habitatType).toBe(UNCHANGED_VALUE)
+    // Its stored displays stand while nothing it is derived from changes.
+    expect(view.distinctivenessDisplay).toBe('Low (2)')
+    expect(view.finalTimeToTargetDisplay).toBe('2 years (0.931225)')
 
     vi.mocked(wreck.put).mockClear()
     await postController.handler(

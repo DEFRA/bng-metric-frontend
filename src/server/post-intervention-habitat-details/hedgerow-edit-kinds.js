@@ -45,5 +45,8 @@ export const ENHANCED_HEDGEROW_KIND = Object.freeze({
   formatSize: (feature) => formatLengthKm(feature.sizeMetres),
   sizeLabel: 'Size (kilometres)',
   conditionError: formError('condition', 'notValidEnhancement'),
-  preservesImportedType: true
+  preservesImportedType: true,
+  // A kept habitat type shows its stored distinctiveness, difficulty and
+  // times, as an Enhanced area's kept choices do.
+  showsKeptDisplays: true
 })
