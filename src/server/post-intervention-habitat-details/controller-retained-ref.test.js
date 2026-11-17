@@ -422,15 +422,26 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(wreck.put).not.toHaveBeenCalled()
     })
 
-    test('saves a reference another habitat already uses: references need not be unique (AC7)', async () => {
+    test('refuses a reference another habitat already uses, showing the error and what was typed', async () => {
       mockBackend()
-      vi.mocked(wreck.put).mockImplementation(() => savedAs('habitat', 'A2'))
+      const inUse = Boom.badData('in use')
+      inUse.data = {
+        res: { statusCode: 422 },
+        payload: { code: 'HABITAT_REF_IN_USE' }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(inUse)
 
-      const { statusCode } = await post({ habitatRef: 'A2' })
+      const { statusCode, result } = await post({ habitatRef: 'A2' })
 
-      expect(statusCode).toBe(302)
-      const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
-      expect(JSON.parse(payload)).toEqual({ ref: 'A2' })
+      expect(statusCode).toBe(statusCodes.badRequest)
+      expect(result).toMatch(/<title>\s*Error: Habitat A1 -/)
+      expect(result).toContain(
+        '<a href="#habitatRef">Another habitat already has this habitat reference.</a>'
+      )
+      expect(result).toContain(
+        'Enter a habitat reference that no other habitat has.'
+      )
+      expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
     })
 
     test('refuses a save of a habitat holding a value saved before BMD-1175, naming the fields in the error summary', async () => {

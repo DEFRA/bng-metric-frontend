@@ -1229,6 +1229,16 @@ upload:
 # message export says what each is filled in with.
 
 edit:
+  # A rename onto a reference another baseline habitat already carries, on a
+  # legacy upload only: its post-intervention rows are joined to the baseline
+  # by reference. A BNG Service template project joins them by id, so there a
+  # reference need not be unique (BMD-1180 AC7) and this is never shown.
+  # Wording not yet reviewed by UCD (BMD-1061, BMD-1180).
+  HABITAT_REF_IN_USE:
+    wording: interim
+    summary: Another habitat already has this habitat reference.
+    inline: Enter a habitat reference that no other habitat has.
+
   ENHANCEMENT_NOT_VALID:
     wording: none
 
@@ -1331,7 +1341,9 @@ forms:
   habitatRef:
     # Blank, whitespace only or not UTF-8, on the baseline details page, the
     # retained post-intervention details page and the created habitat page.
+    # Wording not yet reviewed by UCD (BMD-1061 AC4, BMD-1180 AC7).
     invalid:
+      wording: interim
       summary: You have entered an invalid habitat reference.
       inline: Enter a valid habitat reference.
     # Longer than {max} characters once trimmed (BMD-1175), which the backend

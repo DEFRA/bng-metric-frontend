@@ -92,6 +92,19 @@ describe('saveRetainedRef', () => {
     vi.mocked(backendRequest).mockReset()
   })
 
+  test('says the reference is in use when the backend refuses it as such (a legacy upload)', async () => {
+    vi.mocked(backendRequest).mockRejectedValue({
+      data: {
+        res: { statusCode: 422 },
+        payload: { code: 'HABITAT_REF_IN_USE' }
+      }
+    })
+
+    await expect(
+      saveRetainedRef({}, { projectId, featureId, ref: 'A2' })
+    ).resolves.toEqual({ refInUse: true })
+  })
+
   test('gives the page-level refusal when the habitat holds a value saved before BMD-1175', async () => {
     vi.mocked(backendRequest).mockRejectedValue({
       data: {

@@ -21,7 +21,8 @@ import {
 import { statusCodes } from '../common/constants.js'
 import {
   HABITAT_REF_TOO_LONG_ERROR,
-  habitatRefFormFields
+  habitatRefFormFields,
+  isRefInUseError
 } from '../common/helpers/habitat-ref.js'
 import {
   isStoredValueRefusal,
@@ -153,16 +154,18 @@ export function retainedRefEditFields({
 
 /**
  * Save the reference. Resolves to the backend's `{ type, feature }`, or to
- * `{ refInvalid: true }` when the backend refuses one this side passed, or
+ * `{ refInUse: true }` when the backend refuses a reference another habitat
+ * already carries (a legacy upload only: a BNG Service template project
+ * joins its rows by id, so there references need not be unique, BMD-1180
+ * AC7), `{ refInvalid: true }` when it refuses one this side passed, or
  * `{ storedValueRefusal }` when the habitat holds a value saved before the
- * service checked text lengths and lists (stored-value-refusal.js). A
- * reference another habitat already carries is saved: references need not be
- * unique (AC7). Any other failure throws (backendSaveError).
+ * service checked text lengths and lists (stored-value-refusal.js). Any other
+ * failure throws (backendSaveError).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
  *   `ref` has passed habitatRefRefusal; it is sent trimmed
- * @returns {Promise<{ type: string, feature: object } | { refInvalid: true } | { storedValueRefusal: { summaryOnly: string } | { summary: string, inline: string } }>}
+ * @returns {Promise<{ type: string, feature: object } | { refInUse: true } | { refInvalid: true } | { storedValueRefusal: { summaryOnly: string } | { summary: string, inline: string } }>}
  */
 export async function saveRetainedRef(request, { projectId, featureId, ref }) {
   try {
@@ -177,6 +180,9 @@ export async function saveRetainedRef(request, { projectId, featureId, ref }) {
     )
     return payload
   } catch (err) {
+    if (isRefInUseError(err)) {
+      return { refInUse: true }
+    }
     if (isStoredValueRefusal(err)) {
       return {
         storedValueRefusal: storedValueRefusal(err, {
