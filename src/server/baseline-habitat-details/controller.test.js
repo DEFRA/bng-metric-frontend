@@ -1465,10 +1465,10 @@ describe('#baselineHabitatDetails - editable habitat reference (BMD-1061)', () =
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(result).toMatch(/<title[^>]*>\s*Error: Habitat 12/)
       expect(result).toContain(
-        '<a href="#habitatRef">You have entered a habitat reference that is already in use.</a>'
+        '<a href="#habitatRef">Another habitat already has this habitat reference.</a>'
       )
       expect(result).toContain(
-        'Enter a habitat reference that is not already in use.'
+        'Enter a habitat reference that no other habitat has.'
       )
       expect(result).toMatch(/id="habitatRef" name="habitatRef"[^>]*value="A2"/)
       expect(result).toMatch(/<option value="Bracken" selected>/)

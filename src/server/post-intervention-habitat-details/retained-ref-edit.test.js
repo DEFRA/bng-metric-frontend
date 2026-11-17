@@ -35,17 +35,16 @@ describe('isRefEditable', () => {
 
 describe('retainedRefEditFields', () => {
   const base = {
-    type: 'hedgerow',
     feature: { ref: 'H1' },
     projectId,
     featureId,
     cancelHref: '/back'
   }
 
-  test('names the page by its saved reference, with no error', () => {
+  test('names the page Habitat and its saved reference, with no error — for a hedgerow too', () => {
     expect(retainedRefEditFields(base)).toEqual({
-      heading: 'Hedgerow H1',
-      pageTitle: 'Hedgerow H1',
+      heading: 'Habitat H1',
+      pageTitle: 'Habitat H1',
       errors: [],
       habitatRefInput: {
         id: 'habitatRef',
@@ -72,8 +71,8 @@ describe('retainedRefEditFields', () => {
         refusal: { summary: 'Summary.', inline: 'Inline.' }
       })
     ).toMatchObject({
-      heading: 'Hedgerow H1',
-      pageTitle: 'Error: Hedgerow H1',
+      heading: 'Habitat H1',
+      pageTitle: 'Error: Habitat H1',
       errors: [{ text: 'Summary.', href: '#habitatRef' }],
       habitatRefInput: { value: '  ', error: { text: 'Inline.' } },
       refForm: { returnUrl: '/r' }
@@ -81,9 +80,10 @@ describe('retainedRefEditFields', () => {
   })
 
   test('copes with a habitat that has no reference', () => {
-    expect(
-      retainedRefEditFields({ ...base, type: 'habitat', feature: {} })
-    ).toMatchObject({ heading: 'Habitat', habitatRefInput: { value: '' } })
+    expect(retainedRefEditFields({ ...base, feature: {} })).toMatchObject({
+      heading: 'Habitat',
+      habitatRefInput: { value: '' }
+    })
   })
 })
 
@@ -92,7 +92,7 @@ describe('saveRetainedRef', () => {
     vi.mocked(backendRequest).mockReset()
   })
 
-  test('says the reference is in use when the backend refuses it as such', async () => {
+  test('says the reference is in use when the backend refuses it as such (a legacy upload)', async () => {
     vi.mocked(backendRequest).mockRejectedValue({
       data: {
         res: { statusCode: 422 },

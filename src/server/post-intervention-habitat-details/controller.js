@@ -378,7 +378,6 @@ async function renderDetailsPage(
   })
   const refEditFields = canRename
     ? retainedRefEditFields({
-        type,
         feature,
         projectId,
         featureId,

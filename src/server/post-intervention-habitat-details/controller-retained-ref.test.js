@@ -150,8 +150,8 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
   describe('GET', () => {
     test.each([
       ['habitat', 'Habitat A1', 'A1'],
-      ['hedgerow', 'Hedgerow H1', 'H1'],
-      ['watercourse', 'Watercourse W1', 'W1']
+      ['hedgerow', 'Habitat H1', 'H1'],
+      ['watercourse', 'Habitat W1', 'W1']
     ])(
       'shows a retained %s’s reference in an input, with Save and Cancel',
       async (type, heading, ref) => {
@@ -438,10 +438,10 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       expect(statusCode).toBe(statusCodes.badRequest)
       expect(result).toMatch(/<title>\s*Error: Habitat A1 -/)
       expect(result).toContain(
-        '<a href="#habitatRef">You have entered a habitat reference that is already in use.</a>'
+        '<a href="#habitatRef">Another habitat already has this habitat reference.</a>'
       )
       expect(result).toContain(
-        'Enter a habitat reference that is not already in use.'
+        'Enter a habitat reference that no other habitat has.'
       )
       expect(result).toMatch(/<input[^>]*id="habitatRef"[^>]*value="A2"/s)
     })

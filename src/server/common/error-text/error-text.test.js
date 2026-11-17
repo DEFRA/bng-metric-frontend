@@ -232,8 +232,8 @@ describe("error-text.yaml's wording field", () => {
 
     withEntries(errorText.edit, parsed.edit, () => {
       expect(editErrorText('HABITAT_REF_IN_USE')).toEqual({
-        summary: 'You have entered a habitat reference that is already in use.',
-        inline: 'Enter a habitat reference that is not already in use.'
+        summary: 'Another habitat already has this habitat reference.',
+        inline: 'Enter a habitat reference that no other habitat has.'
       })
     })
     withEntries(errorText.forms.applicant, parsed.forms.applicant, () => {
@@ -308,8 +308,8 @@ describe("error-text.yaml's wording field", () => {
 describe('editErrorText', () => {
   test('gives the wording for an edit code that has some', () => {
     expect(editErrorText('HABITAT_REF_IN_USE')).toEqual({
-      summary: 'You have entered a habitat reference that is already in use.',
-      inline: 'Enter a habitat reference that is not already in use.'
+      summary: 'Another habitat already has this habitat reference.',
+      inline: 'Enter a habitat reference that no other habitat has.'
     })
   })
 

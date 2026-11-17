@@ -44,14 +44,17 @@ export const retainedRefPayloadSchema = Joi.object({
   crumb: Joi.string().optional()
 })
 
-// The page heading names the habitat by its saved reference, as the baseline
-// details pages do (BMD-1061). An individual tree is an area habitat there.
-const HEADING_PREFIX_BY_TYPE = new Map([
-  ['habitat', 'Habitat'],
-  ['tree', 'Habitat'],
-  ['hedgerow', 'Hedgerow'],
-  ['watercourse', 'Watercourse']
+/** The feature types whose Retained rows have an editable reference. */
+const REF_EDITABLE_TYPES = new Set([
+  'habitat',
+  'tree',
+  'hedgerow',
+  'watercourse'
 ])
+
+// The page heading is "Habitat <saved reference>" for every type, trees,
+// hedgerows and watercourses included, as the three designs show (PO, 3 Nov).
+const HEADING_PREFIX = 'Habitat'
 
 /**
  * Whether the page for this feature carries the reference input: Retained area
@@ -63,7 +66,7 @@ const HEADING_PREFIX_BY_TYPE = new Map([
  */
 export function isRefEditable(type, retentionCategory) {
   return (
-    retentionCategory === RETENTION_RETAINED && HEADING_PREFIX_BY_TYPE.has(type)
+    retentionCategory === RETENTION_RETAINED && REF_EDITABLE_TYPES.has(type)
   )
 }
 
@@ -118,11 +121,10 @@ export async function canRenameNow(
  * (habitatRefFormFields), and what the form posts. `refusal` and
  * `submittedRef` are set when a save was refused.
  *
- * @param {{ type: string, feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
+ * @param {{ feature: object, projectId: string, featureId: string, returnUrl?: string, cancelHref: string, submittedRef?: string, refusal?: { summary: string, inline: string } | { summaryOnly: string } }} params
  * @returns {object}
  */
 export function retainedRefEditFields({
-  type,
   feature,
   projectId,
   featureId,
@@ -131,8 +133,7 @@ export function retainedRefEditFields({
   submittedRef,
   refusal
 }) {
-  const heading =
-    `${HEADING_PREFIX_BY_TYPE.get(type)} ${feature.ref ?? ''}`.trimEnd()
+  const heading = `${HEADING_PREFIX} ${feature.ref ?? ''}`.trimEnd()
   return {
     heading,
     ...habitatRefFormFields({
@@ -154,10 +155,12 @@ export function retainedRefEditFields({
 /**
  * Save the reference. Resolves to the backend's `{ type, feature }`, or to
  * `{ refInUse: true }` when the backend refuses a reference another habitat
- * already carries, `{ refInvalid: true }` when it refuses one this side
- * passed, or `{ storedValueRefusal }` when the habitat holds a value saved
- * before the service checked text lengths and lists
- * (stored-value-refusal.js). Any other failure throws (backendSaveError).
+ * already carries (a legacy upload only: a BNG Service template project
+ * joins its rows by id, so there references need not be unique, BMD-1180
+ * AC7), `{ refInvalid: true }` when it refuses one this side passed, or
+ * `{ storedValueRefusal }` when the habitat holds a value saved before the
+ * service checked text lengths and lists (stored-value-refusal.js). Any other
+ * failure throws (backendSaveError).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {{ projectId: string, featureId: string, ref: string }} params
