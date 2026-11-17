@@ -34,7 +34,7 @@ const LAYERS = [
 ]
 
 // The layers whose Created features open on the edit form; the others render
-// read-only.
+// read-only. An Enhanced area habitat opens on it too (BMD-1045).
 const EDITABLE_CREATED_LAYERS = new Set([
   'habitats',
   'trees',
@@ -121,11 +121,13 @@ function baselineIds(body) {
 }
 
 // A Created feature of those layers opens on the edit form, and so does an
-// Enhanced tree, whose condition is all it enhances.
+// Enhanced tree, whose condition is all it enhances, and an Enhanced area
+// habitat (BMD-1045).
 const isEditable = (layer, feature) =>
   (feature.retentionCategory === 'Created' &&
     EDITABLE_CREATED_LAYERS.has(layer)) ||
-  (feature.retentionCategory === 'Enhanced' && layer === 'trees')
+  (feature.retentionCategory === 'Enhanced' &&
+    (layer === 'trees' || layer === 'habitats'))
 
 describe('details pages of a BNG Service template project', () => {
   let server
@@ -173,11 +175,11 @@ describe('details pages of a BNG Service template project', () => {
     expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
   })
 
-  // A Created area habitat opens on its edit form; a Created vertical area
-  // habitat uses the read-only Created page the trees share.
+  // A Created or Enhanced area habitat opens on its edit form; a Created
+  // vertical area habitat uses the read-only Created page the trees share.
   test.each([
     ['habitats', 'Retained'],
-    ['habitats', 'Enhanced'],
+    ['verticalHabitats', 'Enhanced'],
     ['verticalHabitats', 'Created']
   ])(
     'post-intervention details of %s (%s) have no tree rows',

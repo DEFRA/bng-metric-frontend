@@ -1388,6 +1388,10 @@ forms:
     # An Enhanced tree's target condition no better than its baseline one,
     # on the page or refused by the service (ENHANCEMENT_NOT_VALID).
     notBetterThanBaseline: Choose a target condition better than the tree's baseline condition
+    # An Enhanced area habitat's target condition that is not a valid
+    # enhancement of its baseline, on the page or refused by the service
+    # (ENHANCEMENT_NOT_VALID).
+    notValidEnhancement: Choose a target condition that is a valid enhancement of the baseline habitat
     # A degraded tree given its baseline condition or a better one, with no
     # delay, refused by the service (DEGRADE_NOT_VALID). A delay also makes
     # the edit valid, as the tree is then put back after a temporary loss.

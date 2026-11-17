@@ -30,16 +30,7 @@ import {
   habitatRefRefusal,
   isRefUnchanged
 } from '../common/helpers/habitat-ref.js'
-import {
-  isStoredValueRefusal,
-  storedValueRefusal
-} from '../common/helpers/stored-value-refusal.js'
-import {
-  featureNotEditableRefusal,
-  isFeatureNotEditableError
-} from '../common/helpers/feature-not-editable-refusal.js'
-import { isInvalidEnhancementError } from '../common/helpers/invalid-enhancement-refusal.js'
-import { invalidDegradeErrors } from '../common/helpers/invalid-degrade-refusal.js'
+import { shownSaveRefusal } from './created-save-refusal.js'
 import { AREA_SECTIONS_TEMPLATE, PI_DETAILS_HEADING } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import {
@@ -78,8 +69,10 @@ const CREATED_EDIT_TYPES = new Set([
   HEDGEROW_TYPE,
   WATERCOURSE_TYPE
 ])
-// The CREATED_EDIT_KINDS entry an Enhanced tree is edited as.
+// The CREATED_EDIT_KINDS entries an Enhanced tree and an Enhanced area
+// habitat (BMD-1045) are edited as.
 const ENHANCED_TREE_KIND = 'enhancedTree'
+const ENHANCED_HABITAT_KIND = 'enhancedHabitat'
 
 /**
  * The feature as its edit kind reads it: an Enhanced tree whose file left its
@@ -96,8 +89,8 @@ function editableFeature(kindKey, feature) {
 /**
  * The CREATED_EDIT_KINDS entry a post-intervention feature's details page
  * edits it as: a Created area habitat, tree, hedgerow or watercourse its own
- * type's, and an Enhanced tree the Enhanced tree's. Null for a feature whose
- * page is read-only or only renames it.
+ * type's, and an Enhanced tree or area habitat its Enhanced kind. Null for a
+ * feature whose page is read-only or only renames it.
  *
  * @param {string} type
  * @param {string|null} retentionCategory
@@ -110,6 +103,9 @@ function editKindOf(type, retentionCategory) {
   if (type === TREE_TYPE && retentionCategory === RETENTION_ENHANCED) {
     return ENHANCED_TREE_KIND
   }
+  if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_ENHANCED) {
+    return ENHANCED_HABITAT_KIND
+  }
   return null
 }
 
@@ -118,7 +114,9 @@ function editKindOf(type, retentionCategory) {
 // time to target and difficulty.
 const AREA_DETAILS_TEMPLATE = 'habitat-details/pi-habitat-details'
 
-// Enhanced areas use the view-only layout; Created areas use the edit page.
+// Enhanced vertical habitats use the view-only layout. Created and Enhanced
+// area habitats use the edit page (editKindOf); the area entry below is its
+// read-only layout.
 const ENHANCED_AREA_PAGE = {
   template: AREA_SECTIONS_TEMPLATE,
   buildViewModel: buildEnhancedAreaViewOnlyViewModel
@@ -248,10 +246,19 @@ function renderUnsupportedFeature(
   })
 }
 
+// The baseline an edit page's "View baseline details" opens: a Created
+// feature's parent, or an Enhanced area's baseline as its read-only page finds
+// it (BMD-725).
+function editBaselineFeatureId(project, type, feature, kindKey) {
+  return kindKey === ENHANCED_HABITAT_KIND
+    ? viewOnlyBaselineFeatureId(project, type, feature)
+    : createdBaselineFeatureId(project, type, feature)
+}
+
 async function loadCreationReferenceForFeature(kindKey, feature) {
   const kind = CREATED_EDIT_KINDS[kindKey]
   try {
-    const reference = await kind.loadReference()
+    const reference = await kind.loadReference(feature)
     return createdReferenceForFeature(reference, feature)
   } catch (error) {
     if (
@@ -266,14 +273,20 @@ async function loadCreationReferenceForFeature(kindKey, feature) {
 
 /**
  * Render a Created area habitat, tree, hedgerow or watercourse, or an
- * Enhanced tree: its edit page, or the read-only page for a tree or linear
- * feature while the backend reference endpoint is not deployed.
+ * Enhanced tree or area habitat: its edit page, or, for any but a Created
+ * area habitat, its read-only page while the backend reference endpoint is
+ * not deployed.
  */
 async function renderCreatedFeature(
   h,
   { type, kindKey, feature, project, projectId, projectName, returnUrl }
 ) {
-  const baselineFeatureId = createdBaselineFeatureId(project, type, feature)
+  const baselineFeatureId = editBaselineFeatureId(
+    project,
+    type,
+    feature,
+    kindKey
+  )
   const kind = CREATED_EDIT_KINDS[kindKey]
   const reference = await loadCreationReferenceForFeature(kindKey, feature)
   if (!reference) {
@@ -398,6 +411,7 @@ const CREATED_PAYLOAD_SCHEMAS = {
   habitat: createdAreaPayloadSchema,
   tree: createdAreaPayloadSchema,
   [ENHANCED_TREE_KIND]: createdAreaPayloadSchema,
+  [ENHANCED_HABITAT_KIND]: createdAreaPayloadSchema,
   hedgerow: createdHedgerowPayloadSchema,
   watercourse: createdWatercoursePayloadSchema
 }
@@ -414,7 +428,11 @@ function validatedPayload(schema, payload) {
   return value
 }
 
-/** Save Created area, tree, hedgerow or watercourse details (BMD-1048/BMD-1049/BMD-1050), or an Enhanced tree's. */
+/**
+ * Save Created area, tree, hedgerow or watercourse details
+ * (BMD-1048/BMD-1049/BMD-1050), or an Enhanced tree's or area habitat's
+ * (BMD-1045).
+ */
 async function saveCreatedDetails(
   request,
   h,
@@ -447,7 +465,12 @@ async function saveCreatedDetails(
         {
           projectId,
           projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-          baselineFeatureId: createdBaselineFeatureId(project, type, feature),
+          baselineFeatureId: editBaselineFeatureId(
+            project,
+            type,
+            feature,
+            kindKey
+          ),
           returnUrl,
           refusal
         },
@@ -463,38 +486,12 @@ async function saveCreatedDetails(
   try {
     await saveCreatedArea(request, values, kind, feature)
   } catch (err) {
-    // A value saved before the service checked text lengths and lists
-    // refuses any save of the habitat, whatever was changed.
-    if (isStoredValueRefusal(err)) {
-      const response = await showRefused({ refusal: storedValueRefusal(err) })
-      return response.code(statusCodes.badRequest)
+    const refused = shownSaveRefusal(err, kind)
+    if (!refused) {
+      throw err
     }
-    // A stale page or a crafted post asking for a tree that is no longer a
-    // tree: shown in the error summary, keeping what was chosen.
-    if (isFeatureNotEditableError(err)) {
-      const response = await showRefused({
-        refusal: featureNotEditableRefusal()
-      })
-      return response.code(statusCodes.badRequest)
-    }
-    // A page that offered an Enhanced tree a target condition its baseline
-    // tree no longer allows, such as after an edit to the baseline tree in
-    // another tab: the condition is to blame.
-    if (isInvalidEnhancementError(err) && kind.conditionError) {
-      const response = await showRefused({
-        errors: { condition: kind.conditionError }
-      })
-      return response.code(statusCodes.unprocessableEntity)
-    }
-    // A degraded tree, its baseline tree recorded as lost and created again,
-    // given a setting, condition or timing that would stop it being one: the
-    // field the backend's rule names is to blame.
-    const degradeErrors = invalidDegradeErrors(err)
-    if (degradeErrors) {
-      const response = await showRefused({ errors: degradeErrors })
-      return response.code(statusCodes.unprocessableEntity)
-    }
-    throw err
+    const response = await showRefused(refused.shown)
+    return response.code(refused.statusCode)
   }
   return h.redirect(postInterventionBackHref(projectId, type, returnUrl))
 }
@@ -546,7 +543,8 @@ async function saveRetainedReference(request, h, { type, feature, payload }) {
 }
 
 // Both editable post-intervention forms post here: the Created details
-// (BMD-1048, BMD-1049, BMD-1050) and a Retained habitat's reference (BMD-1180). The habitat being
+// (BMD-1048, BMD-1049, BMD-1050), also used for an Enhanced area (BMD-1045),
+// and a Retained habitat's reference (BMD-1180). The habitat being
 // saved decides which, and each form's payload is checked against its own
 // schema. Every other details page is read-only.
 const postController = {

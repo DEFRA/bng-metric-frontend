@@ -212,9 +212,11 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       )
     })
 
-    test('shows an Enhanced habitat read-only, with no reference input', async () => {
+    // An Enhanced area habitat gets the Enhanced area edit form (BMD-1045).
+    test('shows an Enhanced hedgerow read-only, with no reference input', async () => {
       mockBackend({
-        feature: { ...FEATURES.habitat, retentionCategory: 'Enhanced' }
+        type: 'hedgerow',
+        feature: { ...FEATURES.hedgerow, retentionCategory: 'Enhanced' }
       })
 
       const { statusCode, result } = await server.inject({

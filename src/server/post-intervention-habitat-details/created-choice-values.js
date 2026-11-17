@@ -39,6 +39,9 @@ export function createdImportedChoices(feature, reference, kind) {
     ...(kind.preservesImportedType
       ? { habitatType: reference.habitatTypes.map((t) => t.name) }
       : {}),
+    ...(kind.preservesStoredChoices
+      ? storedAreaChoices(reference, values)
+      : {}),
     ...(kind.hasEncroachments
       ? {
           ...Object.fromEntries(
@@ -54,6 +57,21 @@ export function createdImportedChoices(feature, reference, kind) {
       )
       .map(([field]) => [field, values[field]])
   )
+}
+
+// BMD-1045: an Enhanced area's broad habitat, habitat type and condition, each
+// as the list offers it under the choices above it. A stored one the list
+// does not offer is kept unchanged rather than shown blank and cleared.
+function storedAreaChoices(reference, values) {
+  const inBroad = reference.habitatTypes.filter(
+    (t) => t.broad === values.broadHabitat
+  )
+  const type = inBroad.find((t) => t.name === values.habitatType)
+  return {
+    broadHabitat: [...new Set(reference.habitatTypes.map((t) => t.broad))],
+    habitatType: inBroad.map((t) => t.name),
+    condition: (type?.conditions ?? []).map((c) => c.condition)
+  }
 }
 
 function significanceValue(proposed) {

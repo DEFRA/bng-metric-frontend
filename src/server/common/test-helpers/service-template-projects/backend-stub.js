@@ -192,6 +192,12 @@ function serviceTemplateBackend(body) {
       '/reference/area-creation',
       () => creationReference(project, 'habitats', 'habitat')
     ],
+    // An Enhanced area's choices (BMD-1045), whatever its baseline: the stub
+    // offers the project's own area habitats, as for a Created one.
+    [
+      '/reference/area-enhancement',
+      () => creationReference(project, 'habitats', 'habitat')
+    ],
     [
       '/reference/hedgerow-creation',
       () => creationReference(project, 'hedgerows', 'hedgerow')

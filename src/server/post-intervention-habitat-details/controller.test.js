@@ -968,7 +968,10 @@ describe('#postInterventionHabitatDetailsController', () => {
   })
 
   test('POST refuses edits for read-only retention categories', async () => {
-    mockFeature({ type: 'habitat', feature: { retentionCategory: 'Enhanced' } })
+    mockFeature({
+      type: 'hedgerow',
+      feature: { retentionCategory: 'Enhanced' }
+    })
     await expect(
       postController.handler(
         { payload: { projectId, featureId } },
@@ -980,7 +983,8 @@ describe('#postInterventionHabitatDetailsController', () => {
 
 test.each([
   ['habitat', 'Retained', 'habitat-details/pi-habitat-details'],
-  ['habitat', 'Enhanced', 'habitat-details/pi-habitat-details-enhanced'],
+  // An Enhanced area is edited (BMD-1045).
+  ['habitat', 'Enhanced', 'habitat-details/pi-habitat-details-created-edit'],
   ['hedgerow', 'Retained', 'habitat-details/pi-hedgerow-details'],
   ['hedgerow', 'Enhanced', 'habitat-details/pi-hedgerow-details-enhanced']
 ])(

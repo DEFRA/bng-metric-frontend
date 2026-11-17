@@ -1,7 +1,8 @@
 import {
   loadCreatedAreaReference,
   loadCreatedHedgerowReference,
-  loadCreatedWatercourseReference
+  loadCreatedWatercourseReference,
+  loadEnhancedAreaReference
 } from './created-edit-reference.js'
 import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
 export { enhancedTreeReference } from './tree-edit-kinds.js'
@@ -31,7 +32,6 @@ import {
   selectedHabitat,
   YEAR_OPTIONS
 } from '../../shared/created-area-details.js'
-import { saveHabitat } from '../common/helpers/habitat-details-controller.js'
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
@@ -44,11 +44,13 @@ import {
 } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
 import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view-model.js'
+import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import {
   createdAreaValues,
   createdImportedChoices
 } from './created-choice-values.js'
 export { createdAreaValues } from './created-choice-values.js'
+export { saveCreatedArea } from './created-area-save.js'
 import { formErrorText } from '../common/error-text/error-text.js'
 import { HABITAT_REF_ERROR } from '../common/helpers/habitat-ref.js'
 
@@ -69,20 +71,44 @@ const ERRORS = Object.freeze({
   riparianEncroachment: formError('riparianEncroachment', 'invalid')
 })
 
+const CREATED_AREA_KIND = {
+  loadReference: loadCreatedAreaReference,
+  label: 'Area habitat',
+  optionalReference: false,
+  readOnlyTemplate: AREA_SECTIONS_TEMPLATE,
+  buildBase: buildCreatedAreaViewOnlyViewModel,
+  formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
+  sizeLabel: AREA_SIZE_LABEL,
+  backType: 'habitat',
+  savePath: 'habitats',
+  hasBroadHabitat: true,
+  habitatTypeError: formError('habitatType', 'notInBroadHabitat')
+}
+
+// BMD-1045: an Enhanced area is edited on the Created area form, with the
+// choices limited to the valid enhancements of its baseline. Its fields,
+// validation, derived values, timing labels and save are the Created area's;
+// a refused enhancement blames the condition, a
+// stored proposal the list no longer offers is kept, and it falls back to its
+// read-only page while the backend does not serve the area enhancement
+// reference.
+const ENHANCED_AREA_KIND = Object.freeze({
+  ...CREATED_AREA_KIND,
+  loadReference: (feature) => loadEnhancedAreaReference(feature?.baseline),
+  label: 'Enhanced area habitat',
+  optionalReference: true,
+  buildBase: buildEnhancedAreaViewOnlyViewModel,
+  conditionError: formError('condition', 'notValidEnhancement'),
+  // A stored proposal its baseline's valid enhancements no longer list is
+  // kept, not cleared, by a save that leaves it unchanged.
+  preservesStoredChoices: true
+  // No timingLabels: BMD-1045 AC1 labels Advance and Delay as the Created
+  // area does, "Habitat created in advance" and "Delay in starting habitat
+  // creation", as per Figma.
+})
+
 export const CREATED_EDIT_KINDS = {
-  habitat: {
-    loadReference: loadCreatedAreaReference,
-    label: 'Area habitat',
-    optionalReference: false,
-    readOnlyTemplate: AREA_SECTIONS_TEMPLATE,
-    buildBase: buildCreatedAreaViewOnlyViewModel,
-    formatSize: (feature) => formatAreaHectaresValue(feature.sizeSquareMetres),
-    sizeLabel: AREA_SIZE_LABEL,
-    backType: 'habitat',
-    savePath: 'habitats',
-    hasBroadHabitat: true,
-    habitatTypeError: formError('habitatType', 'notInBroadHabitat')
-  },
+  habitat: CREATED_AREA_KIND,
   watercourse: {
     loadReference: loadCreatedWatercourseReference,
     label: 'Watercourse',
@@ -114,7 +140,8 @@ export const CREATED_EDIT_KINDS = {
     habitatTypeError: formError('habitatType', 'invalidHedgerow')
   },
   tree: CREATED_TREE_KIND,
-  enhancedTree: ENHANCED_TREE_KIND
+  enhancedTree: ENHANCED_TREE_KIND,
+  enhancedHabitat: ENHANCED_AREA_KIND
 }
 
 function createdKind(reference) {
@@ -268,12 +295,35 @@ function validateCreatedTiming(values, reference, errors) {
   }
 }
 
-function invalidChoice(value, options, reference, field) {
+// The choice each kept Enhanced area choice is listed under.
+const PARENT_CHOICE = Object.freeze({
+  habitatType: 'broadHabitat',
+  condition: 'habitatType'
+})
+
+// An Enhanced area's kept choice stands only under the stored choices above
+// it, as the backend accepts it (BMD-1045): a kept habitat type under a new
+// broad habitat is refused here, against the habitat type, not by the
+// backend against the condition.
+function keptUnderStoredParents(values, reference, field, kind) {
+  const parent = PARENT_CHOICE[field]
+  if (!kind.preservesStoredChoices || !parent) {
+    return true
+  }
+  const stored = reference.importedCalculation?.values ?? {}
+  return (
+    values[parent] === stored[parent] &&
+    keptUnderStoredParents(values, reference, parent, kind)
+  )
+}
+
+function invalidChoice(values, field, options, { reference, kind }) {
+  const value = values[field]
   if (
     value === UNCHANGED_VALUE &&
     Object.hasOwn(reference.importedChoices ?? {}, field)
   ) {
-    return false
+    return !keptUnderStoredParents(values, reference, field, kind)
   }
   return Boolean(value) && !options.includes(value)
 }
@@ -308,7 +358,7 @@ export function validateCreatedArea(values, reference) {
     errors.habitatType = kind.habitatTypeError
   }
   for (const [field, options] of Object.entries(choices)) {
-    if (invalidChoice(values[field], options, reference, field)) {
+    if (invalidChoice(values, field, options, { reference, kind })) {
       const messages = {
         broadHabitat: ERRORS.broadHabitat,
         habitatType: kind.habitatTypeError,
@@ -333,6 +383,13 @@ function createdAreaDisplayFields(feature, reference, values, base) {
   )
   const derived = createdAreaDerived(reference, values, baselineCondition)
   const originalValues = createdEditValues(feature, reference)
+  // A kept Enhanced area choice is not in the list, so nothing is derived
+  // from it: its stored display stands, as its save keeps it.
+  const keepsStored =
+    createdKind(reference).preservesStoredChoices &&
+    Object.values(PARENT_CHOICE)
+      .concat('condition')
+      .some((field) => values[field] === UNCHANGED_VALUE)
   for (const field of Object.keys(derived)) {
     const sameInputs = createdDerivedInputsUnchanged(
       field,
@@ -341,7 +398,7 @@ function createdAreaDisplayFields(feature, reference, values, base) {
     )
     if (
       sameInputs &&
-      derived[field] &&
+      (derived[field] || keepsStored) &&
       derived[field] === originalDerived[field] &&
       base[field]
     ) {
@@ -458,74 +515,4 @@ export function buildCreatedAreaEditViewModel(
     returnUrl: backHref,
     uploadHref: createdUploadHref(ctx, feature, backHref)
   }
-}
-
-function timingPayload(values, field, keepBlank = false) {
-  if (
-    values[field] === UNCHANGED_VALUE ||
-    (keepBlank && values[field] === '')
-  ) {
-    return {}
-  }
-  return { [field]: values[field] === '' ? null : values[field] }
-}
-
-function habitatTypePayload(values, kind, feature) {
-  if (
-    !kind.hasBroadHabitat &&
-    values.condition === UNCHANGED_VALUE &&
-    feature
-  ) {
-    // The backend compares types before preserving an omitted condition.
-    // Keep a stored empty string distinct from null on an unchanged-type save.
-    return feature.proposed?.type ?? null
-  }
-  return values.habitatType || null
-}
-
-function advancePayload(values, kind, feature) {
-  const hasPositiveDelay = Number.parseFloat(values.delayYears) > 0
-  // Preserve a lineage-hidden advance on rename, but clear it for a positive delay.
-  const keepBlank =
-    kind.restoresLineageAdvance &&
-    feature &&
-    feature.proposed?.advanceYears == null &&
-    !hasPositiveDelay
-  return timingPayload(values, 'advanceYears', keepBlank)
-}
-
-function createdAreaSavePayload(values, kind, feature) {
-  return {
-    ref: values.ref.trim(),
-    ...(kind.hasBroadHabitat ? { broadType: values.broadHabitat || null } : {}),
-    ...(values.habitatType === UNCHANGED_VALUE
-      ? {}
-      : { habitatType: habitatTypePayload(values, kind, feature) }),
-    ...(kind.hasBroadHabitat || values.condition !== UNCHANGED_VALUE
-      ? { condition: values.condition || null }
-      : {}),
-    ...timingPayload(values, 'strategicSignificance'),
-    ...advancePayload(values, kind, feature),
-    ...timingPayload(values, 'delayYears'),
-    ...(kind.hasEncroachments
-      ? Object.assign(
-          {},
-          ...ENCROACHMENT_FIELDS.map((field) => timingPayload(values, field))
-        )
-      : {})
-  }
-}
-
-export async function saveCreatedArea(
-  request,
-  values,
-  kind = CREATED_EDIT_KINDS.habitat,
-  feature = null
-) {
-  const { projectId, featureId } = request.payload
-  return saveHabitat(
-    request,
-    `projects/${projectId}/post-intervention/${kind.savePath}/${featureId}`,
-    createdAreaSavePayload(values, kind, feature)
-  )
 }
