@@ -85,28 +85,52 @@ describe('Created tree controller', () => {
     )
   })
 
+  // An Existing tree recorded as its baseline tree lost and a tree Created in
+  // Poor condition: its row still carries the baseline tree's Moderate.
+  const existingCreatedTree = (proposed = {}) => ({
+    ...createdTree,
+    properties: { Category: 'Existing' },
+    baseline: {
+      broadType: 'Individual trees',
+      type: 'Urban tree',
+      treeSize: 'Medium',
+      condition: 'Moderate'
+    },
+    proposed: { ...createdTree.proposed, advanceYears: 30, ...proposed }
+  })
+
   test('shows an Existing tree Created in a lower condition as a creation, naming no baseline condition', async () => {
-    mockTree({
-      ...createdTree,
-      properties: { Category: 'Existing' },
-      baseline: {
-        broadType: 'Individual trees',
-        type: 'Urban tree',
-        treeSize: 'Medium',
-        condition: 'Moderate'
-      },
-      proposed: {
-        ...createdTree.proposed,
-        advanceYears: 30,
-        standardTimeToTargetCondition: '10'
-      }
-    })
+    mockTree(existingCreatedTree({ standardTimeToTargetCondition: '10' }))
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
 
     const view = h.view.mock.calls[0][1]
     expect(view.baselineCondition).toBe('')
     expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
+  })
+
+  test('names no baseline condition in the time to target it works out with no stored years', async () => {
+    mockTree(existingCreatedTree())
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view.mock.calls[0][1].standardTimeToTargetDisplay).toBe(
+      'Poor - 10 years'
+    )
+  })
+
+  test('names no baseline condition in the time to target it works out for a changed condition', async () => {
+    mockTree(existingCreatedTree({ standardTimeToTargetCondition: '10' }))
+    const h = createMockH()
+    // A blank reference shows the page again with the condition chosen.
+    await postController.handler(
+      request({ ref: ' ', condition: 'Moderate' }),
+      h
+    )
+
+    expect(h.view.mock.calls[0][1].standardTimeToTargetDisplay).toBe(
+      'Moderate - 27 years'
+    )
   })
 
   test('saves the tree to the trees endpoint and redirects to the area list', async () => {
