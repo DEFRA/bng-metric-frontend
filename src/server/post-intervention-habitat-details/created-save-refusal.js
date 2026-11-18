@@ -8,7 +8,6 @@ import {
   isFeatureNotEditableError
 } from '../common/helpers/feature-not-editable-refusal.js'
 import { isInvalidEnhancementError } from '../common/helpers/invalid-enhancement-refusal.js'
-import { invalidDegradeErrors } from '../common/helpers/invalid-degrade-refusal.js'
 
 // The backend refusals a Created or Enhanced edit page can show again, each
 // with its status. Split out of controller.js, which saves the page.
@@ -47,14 +46,5 @@ export function shownSaveRefusal(err, kind) {
       statusCode: statusCodes.unprocessableEntity
     }
   }
-  // A degraded tree, its baseline tree recorded as lost and created again,
-  // given a setting, condition or timing that would stop it being one: the
-  // field the backend's rule names is to blame.
-  const degradeErrors = invalidDegradeErrors(err)
-  return degradeErrors
-    ? {
-        shown: { errors: degradeErrors },
-        statusCode: statusCodes.unprocessableEntity
-      }
-    : null
+  return null
 }
