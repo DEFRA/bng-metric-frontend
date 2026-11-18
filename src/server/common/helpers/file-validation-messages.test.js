@@ -6,7 +6,7 @@ import {
 import { FILE_CHECK_CODES } from '../../../shared/file-checks.js'
 
 describe('uploadErrorText', () => {
-  test("words a rule the session holds from error-text.yaml's forms.file", () => {
+  test("words a rule the session holds from error-text.yaml's fileCheck", () => {
     expect(uploadErrorText('timedOut')).toBe(
       'The file check timed out. Please try again.'
     )

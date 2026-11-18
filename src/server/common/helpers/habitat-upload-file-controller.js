@@ -7,7 +7,7 @@ import {
   safeUploadReturnUrl,
   uploadFileHref
 } from './upload-file-navigation.js'
-import { formErrorText } from '../error-text/error-text.js'
+import { fileCheckErrorText } from '../error-text/error-text.js'
 import {
   CLIENT_FILE_ERROR_TEXT,
   uploadErrorText
@@ -17,7 +17,7 @@ const backendUrl = config.get('backend').url
 const appBaseUrl = config.get('appBaseUrl')
 
 // Shown in place of the form when the uploader gave no address to post to.
-const UPLOAD_UNAVAILABLE = formErrorText('file', 'cannotStart').inline
+const UPLOAD_UNAVAILABLE = fileCheckErrorText('cannotStart')
 
 async function fetchProjectName(request, id) {
   try {

@@ -203,7 +203,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).markdown).toBe(
-      '### Wording changes in codes, fallbacks from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
+      '### Wording changes in codes, fallbacks, file-check from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
     )
   })
 })
@@ -269,7 +269,7 @@ describe('describeDiff, as plain text for the run log', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).text).toBe(
-      'Wording changes in codes, fallbacks from abc1234: none.\n'
+      'Wording changes in codes, fallbacks, file-check from abc1234: none.\n'
     )
   })
 
@@ -302,13 +302,13 @@ describe('compareWithBase', () => {
     expect(unfinished).toEqual([])
     expect(markdown).toContain('error-text.yaml is not on the base commit')
     expect(text).toBe(
-      'Wording changes in codes, fallbacks from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
+      'Wording changes in codes, fallbacks, file-check from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
     )
   })
 
   test('says so, rather than failing, when the base file cannot be read', () => {
     expect(compareWithBase(rows, 'upload: [', base).markdown).toMatch(
-      /^### Wording changes in codes, fallbacks from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
+      /^### Wording changes in codes, fallbacks, file-check from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
     )
   })
 

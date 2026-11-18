@@ -46,7 +46,7 @@ const columns = [
 
 const meta = { date: '2026-11-10', branch: 'main', commit: '39a95e5' }
 const metaHeaders = 'Generated,Branch,Commit,Rows'
-const metaValues = '2026-11-10,main,39a95e5,"codes, fallbacks"'
+const metaValues = '2026-11-10,main,39a95e5,"codes, fallbacks, file-check"'
 
 describe('toCsv', () => {
   test('starts with a byte-order mark and ends each record with CRLF', () => {
@@ -79,7 +79,7 @@ describe('toCsv', () => {
         meta.date,
         meta.branch,
         meta.commit,
-        'codes, fallbacks'
+        'codes, fallbacks, file-check'
       ])
     )
   })

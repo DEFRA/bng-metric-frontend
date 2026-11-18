@@ -135,7 +135,9 @@ This writes `export/error-messages-<date>-<HHmmss>-<branch>-<commit>` as
 Each file has a row for each of the backend's error codes, such as
 `VALIDATION_UNAVAILABLE`: the `upload.errors` and `edit` entries, a code met in
 both as one row. It also has a row for each shared page those codes show, such
-as `upload.catchAll`, with its words and the codes that use it. The file's
+as `upload.catchAll`, with its words and the codes that use it, and one for
+each of the upload page's `fileCheck` messages, such as `fileCheck.timedOut`,
+shown when the service could not start or finish checking a file. The file's
 other entries are left out by default, to keep the export short enough to
 review. `-- --include GROUPS` adds them back, by group, separated by commas:
 `upload-text` (the drop-out page's other words, such as `upload.page.title`),

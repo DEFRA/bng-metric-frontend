@@ -61,6 +61,11 @@ common:
   unworded:
     wording: interim
     text: There is a problem with this answer
+fileCheck:
+  timedOut: The check timed out.
+  serviceBusy:
+    wording: interim
+    text: The service is busy.
 upload:
   page:
     title: There is a problem with your file
@@ -464,8 +469,12 @@ describe('buildRows, from error-text.yaml', () => {
 describe('buildRows, by group', () => {
   const ids = (groups) => buildRows(FIXTURE, { groups }).map(({ id }) => id)
 
-  test('gives the error codes and the shared pages by default', () => {
-    expect(DEFAULT_GROUPS).toEqual([ROW_GROUPS.CODES, ROW_GROUPS.FALLBACKS])
+  test('gives the error codes, the shared pages and the file check messages by default', () => {
+    expect(DEFAULT_GROUPS).toEqual([
+      ROW_GROUPS.CODES,
+      ROW_GROUPS.FALLBACKS,
+      ROW_GROUPS.FILE_CHECK
+    ])
     expect(buildRows(FIXTURE).map(({ id }) => id)).toEqual([
       'a_parcel',
       'B_LAYER',
@@ -473,6 +482,8 @@ describe('buildRows, by group', () => {
       'C_ALONE',
       'D_LISTED',
       'EDIT_ONLY',
+      'fileCheck.serviceBusy',
+      'fileCheck.timedOut',
       'UNKNOWN_WORDING',
       'upload.catchAll',
       'upload.fileProblem',
@@ -541,6 +552,8 @@ describe('buildRows, from a small file', () => {
       'common.unworded',
       'D_LISTED',
       'EDIT_ONLY',
+      'fileCheck.serviceBusy',
+      'fileCheck.timedOut',
       'forms.applicant.tooLong',
       'forms.pair.both',
       'forms.projectName.required',
@@ -569,6 +582,24 @@ describe('buildRows, from a small file', () => {
     expect(fixtureRow('upload.fileProblem').status).toBe(STATUS.AWAITING_UCD)
   })
 
+  test('gives a file check message as both the error summary and the inline message', () => {
+    expect(fixtureRow('fileCheck.timedOut')).toMatchObject({
+      shown: SHOWN.FILE_CHECK,
+      status: STATUS.FINAL,
+      summary: 'The check timed out.',
+      inline: 'The check timed out.'
+    })
+    expect(fixtureRow('fileCheck.serviceBusy')).toMatchObject({
+      status: STATUS.AWAITING_UCD,
+      summary: 'The service is busy.'
+    })
+  })
+
+  test('gives no file check rows for a file from before the section', () => {
+    const before = FIXTURE.replace(/^fileCheck:\n(?: {2}.*\n)+/m, '')
+    expect(buildRows(before, { groups: [ROW_GROUPS.FILE_CHECK] })).toEqual([])
+  })
+
   test('counts an unrecognised wording value as needing content', () => {
     expect(fixtureRow('UNKNOWN_WORDING').status).toBe(STATUS.NEEDS_CONTENT)
   })
@@ -592,8 +623,8 @@ describe('buildRows, from a small file', () => {
   test('counts each status', () => {
     expect(statusCounts(fixture)).toEqual({
       [STATUS.NEEDS_CONTENT]: 3,
-      [STATUS.AWAITING_UCD]: 4,
-      [STATUS.FINAL]: 17
+      [STATUS.AWAITING_UCD]: 5,
+      [STATUS.FINAL]: 18
     })
   })
 

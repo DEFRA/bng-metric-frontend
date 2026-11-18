@@ -17,21 +17,23 @@
 #
 # Sections
 #
-#   common   words every page shares, such as the error summary's title.
-#   upload   the drop-out page (/error-file), shown when an uploaded
-#            GeoPackage is refused. Keyed by the backend's error code.
-#            A code met only on an edit has no entry here.
-#   edit     refusals of a change made to a habitat on screen, after the file
-#            was accepted. Keyed by the backend's error code.
-#   forms    a form field's own validation, before anything reaches the
-#            backend. Keyed by field, then by rule.
-#   pages    a whole page shown in place of the one asked for, such as
-#            "Page not found". Keyed by page.
+#   common     words every page shares, such as the error summary's title.
+#   fileCheck  the upload page, when the service could not start or finish
+#              checking an uploaded file. Keyed by what went wrong.
+#   upload     the drop-out page (/error-file), shown when an uploaded
+#              GeoPackage is refused. Keyed by the backend's error code.
+#              A code met only on an edit has no entry here.
+#   edit       refusals of a change made to a habitat on screen, after the
+#              file was accepted. Keyed by the backend's error code.
+#   forms      a form field's own validation, before anything reaches the
+#              backend. Keyed by field, then by rule.
+#   pages      a whole page shown in place of the one asked for, such as
+#              "Page not found". Keyed by page.
 #
 # Wording rules, which the file's checks (error-text.js) hold it to
 #
-# - Plain text only in common, forms, edit and pages: no HTML. A page shows
-#   the words as typed.
+# - Plain text only in common, fileCheck, forms, edit and pages: no HTML. A
+#   page shows the words as typed.
 # - {braces} are filled in by the page: a limit from the code, or a value from
 #   the customer's file or answer. Only the sentence around a value is
 #   wording; the value itself is not.
@@ -58,8 +60,9 @@
 #                      upload error whose singleProblemPage names a shared
 #                      page. On an upload error it means its single-problem
 #                      page: its problemsList heading is still shown when the
-#                      page lists it with others. A common text, a page or a
-#                      shared page is always shown, so can only be interim
+#                      page lists it with others. A common text, a file
+#                      check message, a page or a shared page is always
+#                      shown, so can only be interim
 #
 # An entry with no "wording" field is final. Search for "wording:" to find
 # everything UCD still has to word. A "none" where the page would show words
@@ -84,6 +87,28 @@ common:
   unworded:
     wording: interim
     text: There is a problem with this answer
+
+# --------------------------------------------------------------- fileCheck
+#
+# The upload page, when the service could not start or finish checking an
+# uploaded file. Nothing is wrong with the file and there is nothing for the
+# customer to change, so none of these may suggest changing it: each says to
+# try again. Shown in the error summary and against the file input alike.
+# Like common, every entry is shown, so its wording can be interim but never
+# none.
+
+fileCheck:
+  # The file uploader gave the upload page nowhere to send the file, so the
+  # page shows this in place of the form.
+  cannotStart: Unable to start file upload. Please try again later.
+  # The checks gave up waiting for a busy validator, after two minutes on
+  # the "Checking your file" page. The drop-out page's
+  # upload.errors.VALIDATION_BUSY heading repeats these words with
+  # *serviceBusy.
+  serviceBusy: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
+  # The file uploader had not said the file was ready, after two minutes on
+  # the "Checking your file" page.
+  timedOut: The file check timed out. Please try again.
 
 # ------------------------------------------------------------------ upload
 #
@@ -1167,7 +1192,8 @@ upload:
     VALIDATION_BUSY:
       singleProblemPage: service-problem
       problemsList:
-        heading: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
+        # The same words as fileCheck.serviceBusy: change them there.
+        heading: *serviceBusy
 
     VALIDATION_UNAVAILABLE:
       singleProblemPage: service-problem
@@ -1269,9 +1295,6 @@ forms:
     required: Select the type of file you want to upload
 
   file:
-    # The upload page, shown in place of the form when the file uploader
-    # gave the page nowhere to send the file.
-    cannotStart: Unable to start file upload. Please try again later.
     # Checked in the browser before the file is sent, and again by the
     # service once it has it.
     noFile: Select a GeoPackage (.gpkg) file
@@ -1281,13 +1304,6 @@ forms:
     tooLarge: The selected file must be smaller than {max}
     invalidName: The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets
     nameTooLong: The file name must be {max} characters or fewer
-    # The upload page, once the service has looked at the uploaded file.
-    # The checks gave up waiting for a busy validator. There is nothing wrong
-    # with the file, so this must not suggest changing it.
-    # The same words as the drop-out page's upload.errors.VALIDATION_BUSY
-    # heading, which this repeats with *serviceBusy: change them there.
-    serviceBusy: *serviceBusy
-    timedOut: The file check timed out. Please try again.
 
   habitatRef:
     # Blank, whitespace only or not UTF-8, on the baseline details page, the
