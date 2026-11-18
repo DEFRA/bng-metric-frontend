@@ -109,6 +109,12 @@ fileCheck:
   # The file uploader had not said the file was ready, after two minutes on
   # the "Checking your file" page.
   timedOut: The file check timed out. Please try again.
+  # The service could not say how the check was going, several times in a
+  # row: the backend or the file uploader is failing, not slow. GOV.UK's
+  # wording for a service problem.
+  statusUnavailable:
+    wording: interim
+    text: Sorry, there is a problem with the service. Please try again later.
 
 # ------------------------------------------------------------------ upload
 #

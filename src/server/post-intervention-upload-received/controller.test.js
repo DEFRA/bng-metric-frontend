@@ -248,10 +248,7 @@ describe('post-intervention-upload-received controller', () => {
   test('renders processing view for unrecognised post-intervention upload status', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
-    vi.mocked(getUploadStatus).mockResolvedValue({
-      uploadStatus: 'error',
-      error: 'Unable to check upload status'
-    })
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'unknown' })
 
     await getController.handler(request, h)
 
@@ -262,6 +259,30 @@ describe('post-intervention-upload-received controller', () => {
       backHref: '/projects/proj-123/upload-post-intervention-file',
       refreshInterval: expect.any(Number) // jittered — see the range test
     })
+  })
+
+  test('gives up on the third failed status check in a row, with the post-intervention keys', async () => {
+    const h = createMockH()
+    const request = createMockRequest('test-upload-id', 'proj-123', {
+      postInterventionUploadStatusFailures: 2
+    })
+    vi.mocked(getUploadStatus).mockResolvedValue({
+      uploadStatus: 'error',
+      error: 'Unable to check upload status'
+    })
+
+    await getController.handler(request, h)
+
+    expect(request.yar.clear).toHaveBeenCalledWith(
+      'postInterventionUploadStatusFailures'
+    )
+    expect(request.yar.set).toHaveBeenCalledWith(
+      'postInterventionUploadError',
+      FILE_ERROR_TEXT.statusUnavailable
+    )
+    expect(h.redirect).toHaveBeenCalledWith(
+      '/projects/proj-123/upload-post-intervention-file'
+    )
   })
 
   test('redirects with post-intervention timeout error when max wait time exceeded', async () => {

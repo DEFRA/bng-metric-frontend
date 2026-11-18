@@ -257,10 +257,7 @@ describe('upload-received controller', () => {
   it('should render processing view for unrecognised status', async () => {
     const h = createMockH()
     const request = createMockRequest('test-upload-id')
-    vi.mocked(getUploadStatus).mockResolvedValue({
-      uploadStatus: 'error',
-      error: 'Unable to check upload status'
-    })
+    vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'unknown' })
 
     await getController.handler(request, h)
 
@@ -270,6 +267,130 @@ describe('upload-received controller', () => {
       projectId: 'proj-123',
       backHref: '/projects/proj-123/upload-baseline-file',
       refreshInterval: expect.any(Number) // jittered — see the range test
+    })
+  })
+
+  describe('when the status check fails', () => {
+    const failedCheck = {
+      uploadStatus: 'error',
+      error: 'Unable to check upload status'
+    }
+
+    it('should keep waiting after a failed check, and count it', async () => {
+      const h = createMockH()
+      const request = createMockRequest('test-upload-id')
+      vi.mocked(getUploadStatus).mockResolvedValue(failedCheck)
+
+      await getController.handler(request, h)
+
+      expect(request.yar.set).toHaveBeenCalledWith('uploadStatusFailures', 1)
+      expect(h.view).toHaveBeenCalledWith(
+        'upload-received/upload-received',
+        expect.objectContaining({ heading: 'Checking your file' })
+      )
+      expect(h.redirect).not.toHaveBeenCalled()
+    })
+
+    it('should give up on the third failed check in a row, with the service problem message', async () => {
+      const h = createMockH()
+      const request = createMockRequest('test-upload-id', 'proj-123', {
+        uploadStatusFailures: 2,
+        uploadStartedAt: Date.now() - 15 * 1000
+      })
+      vi.mocked(getUploadStatus).mockResolvedValue(failedCheck)
+
+      await getController.handler(request, h)
+
+      expect(request.yar.clear).toHaveBeenCalledWith('pendingUploadId')
+      expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
+      expect(request.yar.clear).toHaveBeenCalledWith('uploadStatusFailures')
+      expect(request.yar.set).toHaveBeenCalledWith(
+        'uploadError',
+        FILE_ERROR_TEXT.statusUnavailable
+      )
+      expect(h.redirect).toHaveBeenCalledWith(
+        '/projects/proj-123/upload-baseline-file'
+      )
+      expect(h.view).not.toHaveBeenCalled()
+    })
+
+    it('should end a run of failures when a check answers', async () => {
+      const h = createMockH()
+      const request = createMockRequest('test-upload-id', 'proj-123', {
+        uploadStatusFailures: 2
+      })
+      vi.mocked(getUploadStatus).mockResolvedValue({ uploadStatus: 'pending' })
+
+      await getController.handler(request, h)
+
+      expect(request.yar.clear).toHaveBeenCalledWith('uploadStatusFailures')
+      expect(h.view).toHaveBeenCalled()
+    })
+
+    it('should neither count nor end a run of failures for a check a rate limit refused', async () => {
+      const h = createMockH()
+      const request = createMockRequest('test-upload-id', 'proj-123', {
+        uploadStatusFailures: 2
+      })
+      vi.mocked(getUploadStatus).mockResolvedValue({
+        ...failedCheck,
+        rateLimited: true,
+        retryAfterSeconds: 10
+      })
+
+      await getController.handler(request, h)
+
+      expect(request.yar.set).not.toHaveBeenCalledWith(
+        'uploadStatusFailures',
+        expect.anything()
+      )
+      expect(request.yar.clear).not.toHaveBeenCalledWith('uploadStatusFailures')
+      expect(h.view).toHaveBeenCalled()
+      expect(h.redirect).not.toHaveBeenCalled()
+    })
+
+    it('should give up when failures are interleaved with rate-limit refusals', async () => {
+      const store = {}
+      const request = createMockRequest('test-upload-id', 'proj-123', store)
+      const refused = {
+        ...failedCheck,
+        rateLimited: true,
+        retryAfterSeconds: 5
+      }
+      const answers = [failedCheck, refused, failedCheck, refused, failedCheck]
+      let h
+      for (const answer of answers) {
+        h = createMockH()
+        vi.mocked(getUploadStatus).mockResolvedValueOnce(answer)
+        await getController.handler(request, h)
+      }
+
+      expect(request.yar.set).toHaveBeenCalledWith(
+        'uploadError',
+        FILE_ERROR_TEXT.statusUnavailable
+      )
+      expect(h.redirect).toHaveBeenCalledWith(
+        '/projects/proj-123/upload-baseline-file'
+      )
+    })
+
+    it('should still time out at the maximum wait between failures', async () => {
+      const h = createMockH()
+      const request = createMockRequest('test-upload-id', 'proj-123', {
+        uploadStatusFailures: 1,
+        uploadStartedAt: Date.now() - 121 * 1000
+      })
+      vi.mocked(getUploadStatus).mockResolvedValue(failedCheck)
+
+      await getController.handler(request, h)
+
+      expect(request.yar.set).toHaveBeenCalledWith(
+        'uploadError',
+        FILE_ERROR_TEXT.timedOut
+      )
+      expect(h.redirect).toHaveBeenCalledWith(
+        '/projects/proj-123/upload-baseline-file'
+      )
     })
   })
 
@@ -383,6 +504,7 @@ describe('upload-received controller', () => {
     vi.mocked(getUploadStatus).mockResolvedValue({
       uploadStatus: 'error',
       error: 'Unable to check upload status',
+      rateLimited: true,
       retryAfterSeconds: 20
     })
 

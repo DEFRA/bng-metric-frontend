@@ -72,6 +72,7 @@ describe('upload-baseline-file controller', () => {
     })
     expect(request.yar.set).toHaveBeenCalledWith('pendingUploadId', 'abc-123')
     expect(request.yar.clear).toHaveBeenCalledWith('uploadStartedAt')
+    expect(request.yar.clear).toHaveBeenCalledWith('uploadStatusFailures')
     expect(h.view).toHaveBeenCalledWith(
       'common/templates/upload-geopackage-file',
       expect.objectContaining({
