@@ -29,7 +29,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
   }
 }))
 
-function mockTree(feature = createdTree) {
+function mockTree(feature = createdTree, project = projectPayload) {
   vi.mocked(wreck.get).mockImplementation((url) => {
     if (url.endsWith('/reference/tree-creation')) {
       return Promise.resolve({
@@ -43,7 +43,7 @@ function mockTree(feature = createdTree) {
       })
     }
     if (isProjectUrl(url)) {
-      return Promise.resolve(projectPayload)
+      return Promise.resolve(project)
     }
     throw new Error(`Unexpected URL ${url}`)
   })
@@ -147,6 +147,73 @@ describe('Created tree controller', () => {
     const view = h.view.mock.calls[0][1]
     expect(view).not.toHaveProperty('formAction')
     expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
+  })
+
+  // A legacy project's Created tree names no parent, so its link is found by
+  // ref, and, where two baseline trees share it, by the baseline snapshot its
+  // row carries: here the second tree's Moderate condition. The page clears
+  // that condition for its time to target, but not before the link is found.
+  describe('the baseline link of a legacy Created tree whose ref two baseline trees share', () => {
+    const POOR_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+    const MODERATE_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'
+    const baselineTree = (featureId, condition) => ({
+      featureId,
+      ref: 'T026',
+      type: 'Urban tree',
+      broadType: 'Individual trees',
+      condition
+    })
+    const legacyProject = {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            trees: [
+              baselineTree(POOR_TREE_ID, 'Poor'),
+              baselineTree(MODERATE_TREE_ID, 'Moderate')
+            ]
+          }
+        }
+      }
+    }
+    const linkedToModerate = (view) => {
+      expect(view.viewBaselineHref).toContain(MODERATE_TREE_ID)
+      expect(view.standardTimeToTargetDisplay).not.toContain('Moderate to')
+    }
+
+    beforeEach(() => {
+      mockTree(
+        existingCreatedTree({ standardTimeToTargetCondition: '10' }),
+        legacyProject
+      )
+    })
+
+    test('opens the tree its snapshot describes on the edit page', async () => {
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      linkedToModerate(h.view.mock.calls[0][1])
+    })
+
+    test('opens the tree its snapshot describes when the page is shown again', async () => {
+      const h = createMockH()
+      await postController.handler(request({ ref: ' ' }), h)
+
+      linkedToModerate(h.view.mock.calls[0][1])
+    })
+
+    test('opens the tree its snapshot describes on the read-only page', async () => {
+      const get = vi.mocked(wreck.get).getMockImplementation()
+      vi.mocked(wreck.get).mockImplementation((url) =>
+        url.endsWith('/reference/tree-creation')
+          ? Promise.reject(Boom.notFound())
+          : get(url)
+      )
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      linkedToModerate(h.view.mock.calls[0][1])
+    })
   })
 
   test('saves the tree to the trees endpoint and redirects to the area list', async () => {

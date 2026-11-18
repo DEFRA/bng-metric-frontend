@@ -77,7 +77,9 @@ const ENHANCED_HEDGEROW_KIND = 'enhancedHedgerow'
 
 /**
  * The feature as its edit kind reads it: an Enhanced tree whose file left its
- * setting blank takes its baseline one, as the backend reads it.
+ * setting blank takes its baseline one, as the backend reads it, and a
+ * Created tree names no baseline condition. Its "View baseline details" link
+ * is found from the feature as fetched, before this.
  *
  * @param {string} kindKey
  * @param {object} feature
@@ -290,14 +292,17 @@ async function loadCreationReferenceForFeature(kindKey, feature) {
  */
 async function renderCreatedFeature(
   h,
-  { type, kindKey, feature, project, projectId, projectName, returnUrl }
+  { type, kindKey, fetched, project, projectId, projectName, returnUrl }
 ) {
+  // The link is found from the feature as fetched: a legacy one with no
+  // parent is matched on its baseline snapshot, which normalising can clear.
   const baselineFeatureId = editBaselineFeatureId(
     project,
     type,
-    feature,
+    fetched,
     kindKey
   )
+  const feature = editableFeature(kindKey, fetched)
   const kind = CREATED_EDIT_KINDS[kindKey]
   const reference = await loadCreationReferenceForFeature(kindKey, feature)
   if (!reference) {
@@ -357,7 +362,7 @@ async function renderDetailsPage(
     return renderCreatedFeature(h, {
       type,
       kindKey,
-      feature: editableFeature(kindKey, feature),
+      fetched: feature,
       project,
       projectId,
       projectName,
@@ -447,8 +452,9 @@ function validatedPayload(schema, payload) {
 async function saveCreatedDetails(
   request,
   h,
-  { type, kindKey, feature, payload }
+  { type, kindKey, fetched, payload }
 ) {
+  const feature = editableFeature(kindKey, fetched)
   const kind = CREATED_EDIT_KINDS[kindKey]
   if (kind.hasBroadHabitat && !Object.hasOwn(payload, 'broadHabitat')) {
     throw Boom.badRequest('Broad habitat field is required for area edits')
@@ -479,7 +485,7 @@ async function saveCreatedDetails(
           baselineFeatureId: editBaselineFeatureId(
             project,
             type,
-            feature,
+            fetched,
             kindKey
           ),
           returnUrl,
@@ -581,7 +587,7 @@ const postController = {
       return saveCreatedDetails(request, h, {
         type,
         kindKey,
-        feature: editableFeature(kindKey, feature),
+        fetched: feature,
         payload: request.payload
       })
     }
