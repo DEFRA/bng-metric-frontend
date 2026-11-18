@@ -107,11 +107,10 @@
           { key: { text: habitatUnitsLabel }, value: { text: habitatUnitsDisplay } }
         ] }) }}
         {# A Created habitat's supporting information (BMD-1153), or an
-           Enhanced area's, tree's or hedgerow's (BMD-1190). Every edit kind
-           has the box today. A kind without hasComment (an Enhanced
-           watercourse, until BMD-1047 and BMD-1190 add its box) leaves
-           showCommentRow false, submits no comment, and keeps the stored
-           one. #}
+           Enhanced area's, tree's or hedgerow's (BMD-1190). A kind without
+           hasComment leaves showCommentRow false, submits no comment, and
+           keeps the stored one. An Enhanced watercourse has no edit page
+           yet. #}
         {% if showCommentRow %}
           {{ govukTextarea({
             id: commentInput.id,
