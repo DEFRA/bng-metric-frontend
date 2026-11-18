@@ -55,10 +55,8 @@ const withoutBaselineCondition = (feature) => ({
 export const CREATED_TREE_KIND = Object.freeze({
   ...TREE_KIND_BASE,
   loadReference: loadCreatedTreeReference,
-  buildBase: (feature, ctx) =>
-    buildTreeSectionsViewOnlyViewModel(withoutBaselineCondition(feature), ctx),
   hasComment: true,
-  namesBaselineCondition: false
+  normaliseFeature: withoutBaselineCondition
 })
 
 /**

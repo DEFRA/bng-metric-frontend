@@ -133,6 +133,22 @@ describe('Created tree controller', () => {
     )
   })
 
+  test('names no baseline condition on the read-only page shown until the backend serves the tree reference', async () => {
+    mockTree(existingCreatedTree({ standardTimeToTargetCondition: '10' }))
+    const get = vi.mocked(wreck.get).getMockImplementation()
+    vi.mocked(wreck.get).mockImplementation((url) =>
+      url.endsWith('/reference/tree-creation')
+        ? Promise.reject(Boom.notFound())
+        : get(url)
+    )
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view).not.toHaveProperty('formAction')
+    expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
+  })
+
   test('saves the tree to the trees endpoint and redirects to the area list', async () => {
     const h = createMockH()
     await postController.handler(
