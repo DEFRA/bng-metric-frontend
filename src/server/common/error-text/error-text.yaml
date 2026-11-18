@@ -1153,47 +1153,6 @@ upload:
           - ' — {habitatType}'
           - ', copied to {childRefs}'
 
-    STAGED_DEGRADE_NOT_WORSE:
-      wording: interim
-      problemsList:
-        heading: >-
-          One or more habitats are Created in their baseline habitat type without
-          a lower condition. A habitat that is kept should be Retained or
-          Enhanced; one lost for a time and put back should give its delay in
-          starting habitat creation
-        item:
-          - '{table} '
-          - '{name}'
-          - ' — {habitatType}'
-          - ', copied from {parentRef}'
-
-    STAGED_DEGRADE_ADVANCE_NOT_30_PLUS:
-      wording: interim
-      problemsList:
-        heading: >-
-          One or more habitats recorded as lost and created again in a lower
-          condition are not created 30+ years in advance, as the Metric guide
-          asks
-        item:
-          - '{table} '
-          - '{name}'
-          - ' — {habitatType}'
-          - ', copied from {parentRef}'
-
-    STAGED_WATERCOURSE_NO_INTERVENTION:
-      wording: interim
-      problemsList:
-        heading: >-
-          One or more watercourses are Created in their baseline River Type with
-          no lower condition, more encroachment or shorter length. A watercourse
-          with no intervention should be Retained; one lost for a time and put
-          back should give its delay in starting habitat creation
-        item:
-          - '{table} '
-          - '{name}'
-          - ' — {habitatType}'
-          - ', copied from {parentRef}'
-
     # ------------------------------------------------------ while uploading
 
     SIZING_FAILED:

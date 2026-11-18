@@ -65,8 +65,8 @@ function joinRefs(refs) {
 
 // BMD-1083/BMD-1086: the lineage checks of a BNG Service template file name a
 // post-intervention row or a baseline parent by its template table, Habitat
-// Ref and habitat type, as the backend's message does. A row's parent, or a
-// parent's post-intervention rows, follow it, so the user can find both.
+// Ref and habitat type, as the backend's message does. A parent's
+// post-intervention rows follow it, so the user can find both.
 function lineageValues(s) {
   return {
     table: known(s?.table),
@@ -75,7 +75,6 @@ function lineageValues(s) {
       fid: s?.fid
     }),
     habitatType: known(s?.habitatType),
-    parentRef: known(s?.parentRef),
     childRefs: joinRefs(s?.childRefs),
     length: s?.lengthMetres,
     childLength: s?.childLengthMetres,

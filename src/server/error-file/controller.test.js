@@ -1908,41 +1908,6 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each degraded row with the parent it was copied from', async () => {
-    const row = (code, ref, habitatType, parentRef) =>
-      lineageError(code, `Heading for ${code}`, [
-        {
-          layer: 'hedgerows',
-          table: 'Hedgerows Post-Intervention',
-          fid: 9,
-          ref,
-          habitatType,
-          parentRef
-        }
-      ])
-
-    const view = await viewFor([
-      row('STAGED_DEGRADE_NOT_WORSE', 'HG009', 'Native hedgerow', 'HG002'),
-      row(
-        'STAGED_DEGRADE_ADVANCE_NOT_30_PLUS',
-        'HG010',
-        'Native hedgerow with trees',
-        'HG003'
-      ),
-      row('STAGED_WATERCOURSE_NO_INTERVENTION', 'R004', 'Ditches', null)
-    ])
-
-    expect(view.errorBlocks.map(({ items }) => items)).toEqual([
-      [
-        'Hedgerows Post-Intervention HG009 — Native hedgerow, copied from HG002'
-      ],
-      [
-        'Hedgerows Post-Intervention HG010 — Native hedgerow with trees, copied from HG003'
-      ],
-      ['Hedgerows Post-Intervention R004 — Ditches']
-    ])
-  })
-
   test('falls back to "a habitat" when a sample names neither a ref nor a fid', async () => {
     const view = await viewFor([
       lineageError('STAGED_AMBIGUOUS_PARENT', 'Ambiguous', [
@@ -1954,32 +1919,27 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
   })
 
   test('shows a lone lineage error as its list of habitats, not as single-error copy', async () => {
+    const heading =
+      'One or more baseline watercourses have both a Retained or Enhanced part and a Created part, so their length cannot be split between what continues and what is lost. Draw each as two baseline watercourses, one for each part'
     const view = await viewFor([
-      lineageError(
-        'STAGED_DEGRADE_ADVANCE_NOT_30_PLUS',
-        'One or more habitats recorded as lost and created again in a lower condition are not created 30+ years in advance, as the Metric guide asks',
-        [
-          {
-            layer: 'areas',
-            table: POST_INTERVENTION_AREAS,
-            fid: 12,
-            ref: 'H012',
-            habitatType: 'Grassland - Other neutral grassland',
-            parentRef: 'H012'
-          }
-        ]
-      )
+      lineageError('STAGED_WATERCOURSE_RETAINED_AND_CREATED', heading, [
+        {
+          layer: 'watercourses',
+          table: 'Watercourses Baseline',
+          fid: 4,
+          ref: 'R004',
+          habitatType: 'Ditches',
+          childRefs: ['R004a', 'R004b']
+        }
+      ])
     ])
 
     expect(view.singleError).toBeNull()
     expect(view.pageTitle).toBe('There is a problem with your file')
     expect(view.errorBlocks).toEqual([
       {
-        heading:
-          'One or more habitats recorded as lost and created again in a lower condition are not created 30+ years in advance, as the Metric guide asks',
-        items: [
-          'Area Habitats Post-Intervention H012 — Grassland - Other neutral grassland, copied from H012'
-        ],
+        heading,
+        items: ['Watercourses Baseline R004 — Ditches, copied to R004a, R004b'],
         more: 0
       }
     ])
