@@ -133,7 +133,9 @@ export function viewOnlyBaselineFeatureId(project, type, feature) {
 
 // A Created feature's parent is looked for in its own layer only: the backend
 // links a template row's parent_uuid to a baseline feature of the same layer,
-// so a Created tree's parent is always a baseline tree.
+// so a Created hedgerow's parent is always a baseline hedgerow. Its callers are
+// the Created area habitat, hedgerow and watercourse edit pages, and the
+// Created and Enhanced tree ones, which isUnlinked sends no link.
 export function createdBaselineFeatureId(project, type, feature) {
   if (isUnlinked(type)) {
     return null
