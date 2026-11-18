@@ -94,9 +94,11 @@ function createUploadFileController(uploadType) {
       )
 
       if (!uploadSession.failure) {
-        // A retry must start its own timeout window. The previous attempt may
-        // have left a timestamp behind after redirecting back with an error.
+        // A retry must start its own timeout window, and its own count of
+        // failed status checks. The previous attempt may have left either
+        // behind after redirecting back with an error.
         request.yar.clear(uploadType.uploadStartedAtSessionKey)
+        request.yar.clear(uploadType.statusFailuresSessionKey)
         request.yar.set(
           uploadType.pendingUploadSessionKey,
           uploadSession.uploadId

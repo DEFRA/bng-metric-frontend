@@ -20,6 +20,7 @@ const HABITAT_UPLOAD_TYPES = {
       `projects/${projectId}/features/${featureId}`,
     pendingUploadSessionKey: 'pendingUploadId',
     uploadStartedAtSessionKey: 'uploadStartedAt',
+    statusFailuresSessionKey: 'uploadStatusFailures',
     uploadErrorSessionKey: 'uploadError',
     validationErrorsSessionKey: 'baselineValidationErrors',
     validationErrorsProjectIdSessionKey: 'baselineValidationErrorsProjectId',
@@ -46,6 +47,7 @@ const HABITAT_UPLOAD_TYPES = {
       `projects/${projectId}/post-intervention/habitats/${featureId}`,
     pendingUploadSessionKey: 'postInterventionPendingUploadId',
     uploadStartedAtSessionKey: 'postInterventionUploadStartedAt',
+    statusFailuresSessionKey: 'postInterventionUploadStatusFailures',
     uploadErrorSessionKey: 'postInterventionUploadError',
     validationErrorsSessionKey: 'postInterventionValidationErrors',
     validationErrorsProjectIdSessionKey:

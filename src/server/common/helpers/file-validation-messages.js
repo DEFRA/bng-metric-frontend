@@ -19,7 +19,8 @@ export const FILE_ERROR_TEXT = Object.freeze({
   invalidName: message('invalidName'),
   nameTooLong: message('nameTooLong', { max: MAX_FILENAME_LENGTH }),
   serviceBusy: fileCheckErrorText('serviceBusy'),
-  timedOut: fileCheckErrorText('timedOut')
+  timedOut: fileCheckErrorText('timedOut'),
+  statusUnavailable: fileCheckErrorText('statusUnavailable')
 })
 
 /**
