@@ -44,8 +44,6 @@ export const ENHANCED_HEDGEROW_KIND = Object.freeze({
   buildBase: buildEnhancedHedgerowViewOnlyViewModel,
   formatSize: (feature) => formatLengthKm(feature.sizeMetres),
   sizeLabel: 'Size (kilometres)',
-  conditionError: formError('condition', 'notValidEnhancement'),
-  // Its supporting information is not editable yet (BMD-1190), as an
-  // Enhanced area's is not.
-  hasComment: false
+  conditionError: formError('condition', 'notValidEnhancement')
+  // hasComment comes from the Created hedgerow kind (BMD-1190).
 })

@@ -207,29 +207,14 @@ describe('BMD-1045 Enhanced area edit page', () => {
     })
   })
 
-  // An Enhanced area's supporting information is not editable yet
-  // (BMD-1190), though it shares the Created edit page (BMD-1153).
-  test('has no supporting information box', async () => {
+  // An Enhanced area has the Created area's supporting information box
+  // (BMD-1190); controller-supporting-information.test.js covers its rules.
+  test('has a supporting information box', async () => {
     mockEnhanced()
     const view = await renderPage()
 
-    expect(view.showCommentRow).toBe(false)
-    expect(view).not.toHaveProperty('commentInput')
-  })
-
-  test('neither checks nor sends a posted comment', async () => {
-    mockEnhanced()
-    const h = createMockH()
-    await postController.handler(
-      postRequest({ comment: `�${'a'.repeat(1000)}` }),
-      h
-    )
-
-    expect(wreck.put).toHaveBeenCalledTimes(1)
-    expect(sentPayload()).not.toHaveProperty('comment')
-    expect(h.redirect).toHaveBeenCalledWith(
-      `/projects/${projectId}/area-post-intervention`
-    )
+    expect(view.showCommentRow).toBe(true)
+    expect(view.commentInput).toMatchObject({ id: 'comment' })
   })
 
   test.each([

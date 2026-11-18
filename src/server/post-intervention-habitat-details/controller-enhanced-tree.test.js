@@ -15,6 +15,10 @@ import {
   _resetCreatedAreaReferenceCache
 } from './created-area-edit.js'
 import { getController, postController } from './controller.js'
+import {
+  enhancedTree,
+  treeEnhancementReference
+} from './created-tree-test-fixtures.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
   wreck: {
@@ -29,64 +33,6 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 // An Enhanced individual tree is edited on the Created edit page, but it
 // enhances its condition only: it keeps its baseline tree's setting, and is
 // offered only the target conditions better than its baseline one.
-
-// A Medium urban tree in Moderate condition, kept and enhanced to Good,
-// standing for 2 trees.
-const enhancedTree = {
-  featureId,
-  ref: 'T006',
-  retentionCategory: 'Enhanced',
-  count: 2,
-  sizeSquareMetres: 326,
-  units: 0.2,
-  status: 'Complete',
-  baseline: {
-    broadType: 'Individual trees',
-    type: 'Urban tree',
-    treeSize: 'Medium',
-    condition: 'Moderate'
-  },
-  proposed: {
-    broadType: 'Individual trees',
-    type: 'Urban tree',
-    treeSize: 'Medium',
-    condition: 'Good',
-    strategicSignificance: 'Low',
-    strategicSignificanceCategory: 'Low',
-    advanceYears: 0,
-    delayYears: 0
-  }
-}
-
-const enhancements = {
-  Good: [],
-  'Fairly Good': [{ condition: 'Good', score: 3, years: 8 }],
-  Moderate: [
-    { condition: 'Good', score: 3, years: 16 },
-    { condition: 'Fairly Good', score: 2.5, years: 8 }
-  ],
-  Poor: [
-    { condition: 'Good', score: 3, years: '30+' },
-    { condition: 'Moderate', score: 2, years: 16 }
-  ]
-}
-
-const treeEnhancementReference = {
-  habitatTypes: ['Rural tree', 'Urban tree'].map((name) => ({
-    name,
-    broad: 'Individual trees',
-    distinctiveness: 'Medium',
-    distinctivenessScore: 4,
-    difficulty: 'Low',
-    difficultyMultiplier: 1,
-    enhancements
-  })),
-  strategicSignificance: [
-    { value: 'High', score: 1.15 },
-    { value: 'Low', score: 1 }
-  ],
-  timeMultipliers: { 0: 1, 8: 0.75, 16: 0.565 }
-}
 
 function mockTree(feature = enhancedTree) {
   vi.mocked(wreck.get).mockImplementation((url) => {
@@ -133,7 +79,9 @@ describe('enhancedTreeReference', () => {
     )
 
     expect(reference.habitatTypes.map((t) => t.name)).toEqual(['Urban tree'])
-    expect(reference.habitatTypes[0].conditions).toEqual(enhancements.Moderate)
+    expect(reference.habitatTypes[0].conditions).toEqual(
+      treeEnhancementReference.habitatTypes[0].enhancements.Moderate
+    )
   })
 
   test('gives the same choices when narrowed again', () => {
@@ -148,7 +96,9 @@ describe('enhancedTreeReference', () => {
       baseline: { ...enhancedTree.baseline, condition: '3. Moderate' }
     })
 
-    expect(reference.habitatTypes[0].conditions).toEqual(enhancements.Moderate)
+    expect(reference.habitatTypes[0].conditions).toEqual(
+      treeEnhancementReference.habitatTypes[0].enhancements.Moderate
+    )
   })
 
   test('offers the baseline setting for a tree whose file left its proposed one blank', () => {
@@ -349,28 +299,33 @@ describe('Enhanced tree controller', () => {
     )
   })
 
-  // An Enhanced tree's supporting information is not editable yet (BMD-1190),
-  // though it shares the Created edit page (BMD-1153).
-  test('has no supporting information box', async () => {
+  // An Enhanced tree has the Created tree's supporting information box
+  // (BMD-1190); controller-supporting-information.test.js covers its rules.
+  test('has a supporting information box, filled from the saved comment', async () => {
     mockTree({ ...enhancedTree, comment: 'Imported note' })
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
 
     const vm = h.view.mock.calls[0][1]
-    expect(vm.showCommentRow).toBe(false)
-    expect(vm).not.toHaveProperty('commentInput')
+    expect(vm.showCommentRow).toBe(true)
+    expect(vm.commentInput).toMatchObject({
+      id: 'comment',
+      value: 'Imported note'
+    })
   })
 
-  test('neither checks nor sends a posted comment', async () => {
+  test('sends a posted comment with the rest of the edit', async () => {
     const h = createMockH()
     await postController.handler(
-      request({ condition: 'Fairly Good', comment: '� too long' }),
+      request({ condition: 'Fairly Good', comment: '  A note  ' }),
       h
     )
 
-    expect(wreck.put).toHaveBeenCalledTimes(1)
     const [, options] = vi.mocked(wreck.put).mock.calls[0]
-    expect(JSON.parse(options.payload)).not.toHaveProperty('comment')
+    expect(JSON.parse(options.payload)).toMatchObject({
+      condition: 'Fairly Good',
+      comment: 'A note'
+    })
   })
 })
 

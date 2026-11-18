@@ -34,6 +34,22 @@ export const projectWithBaselinePayload = {
 }
 
 /**
+ * Whether a backend URL asks for a reference. A creation reference's path ends
+ * the URL; an enhancement reference's is followed by its baseline as a query,
+ * so its path is given with a trailing "?" and matched anywhere in the URL.
+ *
+ * @param {string} url
+ * @param {string} referencePath e.g. '/reference/area-creation' or
+ *   '/reference/area-enhancement?'
+ * @returns {boolean}
+ */
+export function servesReference(url, referencePath) {
+  return referencePath.endsWith('?')
+    ? url.includes(referencePath)
+    : url.endsWith(referencePath)
+}
+
+/**
  * @param {string} url
  * @returns {boolean}
  */
