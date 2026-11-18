@@ -31,7 +31,8 @@ const GPKG_FORMAT_ERROR_CODES = new Set([
   'GPKG_INVALID_FILE',
   'GPKG_NOT_A_GEOPACKAGE'
 ])
-// The forms.file rule of error-text.yaml each problem is worded by. The session
+// The rule of error-text.yaml each problem is worded by: forms.file's for a
+// problem with the file, fileCheck's for a check that could not finish. The session
 // carries its words to the upload page for now: an instance from before the
 // upload page could word a rule would show the rule's name during a rolling
 // deploy. Once every instance reads rules (uploadErrorText), it can carry the

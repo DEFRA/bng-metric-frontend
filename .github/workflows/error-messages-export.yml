@@ -1,8 +1,8 @@
 name: Error Messages Export
 
-# Writes error-text.yaml's error codes and shared pages, or more with a run on demand's
-# include, as .xlsx, .csv and .html for product, BAs and UCD to review
-# (npm run export:error-text), keeps them as
+# Writes error-text.yaml's error codes, shared pages and file check messages,
+# or more with a run on demand's include, as .xlsx, .csv and .html for
+# product, BAs and UCD to review (npm run export:error-text), keeps them as
 # one artifact, and counts each status in the run's summary. A pull request's
 # summary, and a push to main's, also say what it changes in the wording,
 # and warn, beside the line, of any error it adds that is not Final or moves
@@ -29,7 +29,8 @@ on:
     inputs:
       include:
         description: >-
-          Groups of rows to add to the error codes, separated by commas
+          Groups of rows to add to the error codes, shared pages and file
+          check messages, separated by commas
           (upload-text, common, forms, pages), or "all"
         required: false
         default: ''

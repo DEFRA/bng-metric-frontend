@@ -58,14 +58,19 @@ describe('fileStem', () => {
 })
 
 describe('groupsToExport', () => {
-  test('gives the error codes and the shared pages by default', () => {
-    expect(groupsToExport()).toEqual([ROW_GROUPS.CODES, ROW_GROUPS.FALLBACKS])
+  test('gives the error codes, the shared pages and the file check messages by default', () => {
+    expect(groupsToExport()).toEqual([
+      ROW_GROUPS.CODES,
+      ROW_GROUPS.FALLBACKS,
+      ROW_GROUPS.FILE_CHECK
+    ])
   })
 
   test('adds the groups --include names, in the usual order, each once', () => {
     expect(groupsToExport('pages, forms,codes')).toEqual([
       ROW_GROUPS.CODES,
       ROW_GROUPS.FALLBACKS,
+      ROW_GROUPS.FILE_CHECK,
       ROW_GROUPS.FORMS,
       ROW_GROUPS.PAGES
     ])
@@ -91,7 +96,7 @@ describe('exportMeta', () => {
     }
     expect(exportMeta({}, env, NOW)).toEqual({
       repository: 'https://github.com/DEFRA/bng-metric-frontend',
-      groups: [ROW_GROUPS.CODES, ROW_GROUPS.FALLBACKS],
+      groups: [ROW_GROUPS.CODES, ROW_GROUPS.FALLBACKS, ROW_GROUPS.FILE_CHECK],
       date: '2026-11-10',
       time: '090507',
       runId: '43044358011',
@@ -200,7 +205,7 @@ describe('summaryMarkdown', () => {
     expect(summaryMarkdown(rows, meta, files).split('\n')).toEqual([
       '## Error messages export',
       '',
-      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10. Rows: codes, fallbacks.`,
+      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10. Rows: codes, fallbacks, file-check.`,
       '',
       '| Status | Error IDs |',
       '| --- | ---: |',
@@ -277,12 +282,12 @@ describe('npm run export:error-text -- --summary', () => {
       const printed = run(summary, '--base', 'HEAD')
 
       expect(printed).toMatch(
-        /\nWording changes in codes, fallbacks from [0-9a-f]{7}\b/
+        /\nWording changes in codes, fallbacks, file-check from [0-9a-f]{7}\b/
       )
       expect(readFileSync(summary, 'utf8')).toMatch(
         // What follows depends on any edit to the file not yet committed.
         // The repository's URL comes from GitHub Actions when it runs there.
-        /\n### Wording changes in codes, fallbacks from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
+        /\n### Wording changes in codes, fallbacks, file-check from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
       )
     },
     TWO_RUNS_TIMEOUT_MS
@@ -299,7 +304,7 @@ describe('npm run export:error-text -- --summary', () => {
         readdirSync(dir).filter((name) => name.endsWith('.xlsx'))
       ).toHaveLength(1)
       expect(readFileSync(summary, 'utf8')).toContain(
-        '### Wording changes in codes, fallbacks from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
+        '### Wording changes in codes, fallbacks, file-check from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
       )
     },
     TWO_RUNS_TIMEOUT_MS

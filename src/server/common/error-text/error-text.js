@@ -76,9 +76,10 @@ const pageLine = plainText.custom((line, helpers) => {
     : helpers.message(`links to "${target}", which is not a page link target`)
 })
 
-// Common text is what other entries fall back to, so it always has words:
-// alone, or as `text` beside a `wording` field.
-const commonText = Joi.alternatives().conditional(Joi.string(), {
+// Common text is what other entries fall back to, and a file check message
+// is the upload page's only words for what went wrong, so each always has
+// words: alone, or as `text` beside a `wording` field.
+const shownText = Joi.alternatives().conditional(Joi.string(), {
   then: plainText,
   otherwise: Joi.object({
     wording: shownWordingField,
@@ -88,9 +89,10 @@ const commonText = Joi.alternatives().conditional(Joi.string(), {
 
 const errorTextSchema = Joi.object({
   common: Joi.object({
-    summaryTitle: commonText.required(),
-    unworded: commonText.required()
+    summaryTitle: shownText.required(),
+    unworded: shownText.required()
   }).required(),
+  fileCheck: Joi.object().pattern(Joi.string(), shownText).required(),
   upload: Joi.object().required(),
   // Chosen by shape, so a slip names the field it is in: "inline is
   // required" rather than "matches none of the allowed types".
@@ -224,6 +226,21 @@ export function formErrorText(field, rule, values = {}) {
     summary: fillErrorText(summary, values),
     inline: fillErrorText(inline, values)
   }
+}
+
+/**
+ * The upload page's message for a file check the service could not start or
+ * finish. Throws when the file has no such rule, so a page that names a
+ * missing one fails as it loads, not when a user meets it.
+ *
+ * @param {string} rule
+ * @returns {string}
+ */
+export function fileCheckErrorText(rule) {
+  if (!Object.hasOwn(errorText.fileCheck, rule)) {
+    throw new Error(`error-text.yaml has no fileCheck.${rule}`)
+  }
+  return wordsOf(errorText.fileCheck[rule])
 }
 
 /**
