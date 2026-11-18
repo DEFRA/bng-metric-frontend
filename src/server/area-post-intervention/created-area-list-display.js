@@ -18,5 +18,7 @@ export const prepareCreatedAreaListDisplay = createdListDisplay({
         t.name === sourceValue(feature, feature.proposed, 'type') &&
         t.broad === sourceValue(feature, feature.proposed, 'broadType')
     ),
-  typeFields: ['distinctiveness', 'distinctivenessScore']
+  typeFields: ['distinctiveness', 'distinctivenessScore'],
+  // BMD-1045 AC2: an incomplete Enhanced area habitat shows zero units too.
+  includeEnhanced: true
 })

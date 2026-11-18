@@ -34,7 +34,10 @@ export const getController = createHabitatPostInterventionController({
   label: HEDGEROWS_TEXT,
   habitatNoun: 'hedgerow',
   habitatKey: HEDGEROWS_HABITAT_KEY,
-  prepareProjectForDisplay: createdZeroUnitsDisplay(HEDGEROWS_HABITAT_KEY),
+  // BMD-1046 AC2: an incomplete Enhanced hedgerow shows zero units too.
+  prepareProjectForDisplay: createdZeroUnitsDisplay(HEDGEROWS_HABITAT_KEY, {
+    includeEnhanced: true
+  }),
   readSize: (feature) => feature.sizeMetres,
   formatSize: formatLengthKmDisplay,
   formatSizeTotal: formatTotalLengthSize,

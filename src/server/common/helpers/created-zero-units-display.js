@@ -1,41 +1,71 @@
 import { isFiniteNumber } from './unit-summary.js'
 import {
   featureRetentionCategory,
-  RETENTION_CREATED
+  RETENTION_CREATED,
+  RETENTION_ENHANCED
 } from '../../post-intervention-habitat-details/retention.js'
 
 // BMD-1048 AC2 and AC11: an incomplete Created habitat shows zero units, on its
-// list row as on its details page. Display only: the stored units, null after
-// an import or zero after an edit save, are left unchanged.
+// list row as on its details page. BMD-1045 and BMD-1046 AC2: so does an
+// incomplete Enhanced area habitat or hedgerow, the layers whose Enhanced
+// features have an edit page (an Enhanced watercourse is view only). Display
+// only: the stored units, null after an import or zero after an edit save, are
+// left unchanged.
 
-export function needsCreatedZeroUnits(feature) {
+/**
+ * @typedef {object} ZeroUnitsOptions
+ * @property {boolean} [includeEnhanced] also show an Enhanced feature's
+ *   missing units as zero
+ */
+
+function showsZeroUnits(feature, includeEnhanced) {
+  const retention = featureRetentionCategory(feature)
   return (
-    featureRetentionCategory(feature) === RETENTION_CREATED &&
-    !isFiniteNumber(feature.units)
+    retention === RETENTION_CREATED ||
+    (includeEnhanced && retention === RETENTION_ENHANCED)
   )
 }
 
-export function withCreatedZeroUnits(feature) {
-  return needsCreatedZeroUnits(feature) ? { ...feature, units: 0 } : feature
+/**
+ * @param {object} feature
+ * @param {ZeroUnitsOptions} [options]
+ */
+export function needsCreatedZeroUnits(feature, { includeEnhanced } = {}) {
+  return (
+    showsZeroUnits(feature, includeEnhanced) && !isFiniteNumber(feature.units)
+  )
+}
+
+/**
+ * @param {object} feature
+ * @param {ZeroUnitsOptions} [options]
+ */
+export function withCreatedZeroUnits(feature, options) {
+  return needsCreatedZeroUnits(feature, options)
+    ? { ...feature, units: 0 }
+    : feature
 }
 
 /**
  * A list page's `prepareProjectForDisplay` for one post-intervention layer.
  *
  * @param {string} layer e.g. 'hedgerows'
+ * @param {ZeroUnitsOptions} [options]
  * @returns {(project: object) => object}
  */
-export function createdZeroUnitsDisplay(layer) {
+export function createdZeroUnitsDisplay(layer, options) {
   return (project) => {
     const features = project?.postIntervention?.[layer] ?? []
-    if (!features.some(needsCreatedZeroUnits)) {
+    if (!features.some((feature) => needsCreatedZeroUnits(feature, options))) {
       return project
     }
     return {
       ...project,
       postIntervention: {
         ...project.postIntervention,
-        [layer]: features.map(withCreatedZeroUnits)
+        [layer]: features.map((feature) =>
+          withCreatedZeroUnits(feature, options)
+        )
       }
     }
   }
