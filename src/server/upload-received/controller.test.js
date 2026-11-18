@@ -327,7 +327,7 @@ describe('upload-received controller', () => {
       expect(h.view).toHaveBeenCalled()
     })
 
-    it('should not count a check a rate limit refused', async () => {
+    it('should neither count nor end a run of failures for a check a rate limit refused', async () => {
       const h = createMockH()
       const request = createMockRequest('test-upload-id', 'proj-123', {
         uploadStatusFailures: 2
@@ -344,8 +344,34 @@ describe('upload-received controller', () => {
         'uploadStatusFailures',
         expect.anything()
       )
+      expect(request.yar.clear).not.toHaveBeenCalledWith('uploadStatusFailures')
       expect(h.view).toHaveBeenCalled()
       expect(h.redirect).not.toHaveBeenCalled()
+    })
+
+    it('should give up when failures are interleaved with rate-limit refusals', async () => {
+      const store = {}
+      const request = createMockRequest('test-upload-id', 'proj-123', store)
+      const refused = {
+        ...failedCheck,
+        rateLimited: true,
+        retryAfterSeconds: 5
+      }
+      const answers = [failedCheck, refused, failedCheck, refused, failedCheck]
+      let h
+      for (const answer of answers) {
+        h = createMockH()
+        vi.mocked(getUploadStatus).mockResolvedValueOnce(answer)
+        await getController.handler(request, h)
+      }
+
+      expect(request.yar.set).toHaveBeenCalledWith(
+        'uploadError',
+        FILE_ERROR_TEXT.statusUnavailable
+      )
+      expect(h.redirect).toHaveBeenCalledWith(
+        '/projects/proj-123/upload-baseline-file'
+      )
     })
 
     it('should still time out at the maximum wait between failures', async () => {

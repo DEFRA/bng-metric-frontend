@@ -294,7 +294,11 @@ function createUploadReceivedController(uploadType, validateUpload) {
         return handleFailedStatusCheck(request, h, uploadType, id, uploadId)
       }
 
-      resetStatusCheckFailures(request, uploadType)
+      // A check a rate limit refused did not answer either: it neither counts
+      // as a failure nor ends a run of them.
+      if (!response.rateLimited) {
+        resetStatusCheckFailures(request, uploadType)
+      }
 
       if (uploadStatus === STATUS_READY) {
         return handleReadyUpload(
