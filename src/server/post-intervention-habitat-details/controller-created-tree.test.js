@@ -149,11 +149,9 @@ describe('Created tree controller', () => {
     expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
   })
 
-  // A legacy project's Created tree names no parent, so its link is found by
-  // ref, and, where two baseline trees share it, by the baseline snapshot its
-  // row carries: here the second tree's Moderate condition. The page clears
-  // that condition for its time to target, but not before the link is found.
-  describe('the baseline link of a legacy Created tree whose ref two baseline trees share', () => {
+  // A tree's page links to no baseline tree, even where one shares its ref and
+  // matches the baseline its row carries, as the second tree here does.
+  describe('no baseline link for a Created tree whose ref baseline trees share', () => {
     const POOR_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
     const MODERATE_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'
     const baselineTree = (featureId, condition) => ({
@@ -176,9 +174,10 @@ describe('Created tree controller', () => {
         }
       }
     }
-    const linkedToModerate = (view) => {
-      expect(view.viewBaselineHref).toContain(MODERATE_TREE_ID)
-      expect(view.standardTimeToTargetDisplay).not.toContain('Moderate to')
+    const unlinked = (view) => {
+      expect(view.viewBaselineHref).toBeFalsy()
+      expect(JSON.stringify(view)).not.toContain(POOR_TREE_ID)
+      expect(JSON.stringify(view)).not.toContain(MODERATE_TREE_ID)
     }
 
     beforeEach(() => {
@@ -188,21 +187,21 @@ describe('Created tree controller', () => {
       )
     })
 
-    test('opens the tree its snapshot describes on the edit page', async () => {
+    test('shows none on the edit page', async () => {
       const h = createMockH()
       await getController.handler({ query: { projectId, featureId } }, h)
 
-      linkedToModerate(h.view.mock.calls[0][1])
+      unlinked(h.view.mock.calls[0][1])
     })
 
-    test('opens the tree its snapshot describes when the page is shown again', async () => {
+    test('shows none when the page is shown again', async () => {
       const h = createMockH()
       await postController.handler(request({ ref: ' ' }), h)
 
-      linkedToModerate(h.view.mock.calls[0][1])
+      unlinked(h.view.mock.calls[0][1])
     })
 
-    test('opens the tree its snapshot describes on the read-only page', async () => {
+    test('shows none on the read-only page', async () => {
       const get = vi.mocked(wreck.get).getMockImplementation()
       vi.mocked(wreck.get).mockImplementation((url) =>
         url.endsWith('/reference/tree-creation')
@@ -212,7 +211,7 @@ describe('Created tree controller', () => {
       const h = createMockH()
       await getController.handler({ query: { projectId, featureId } }, h)
 
-      linkedToModerate(h.view.mock.calls[0][1])
+      unlinked(h.view.mock.calls[0][1])
     })
   })
 
