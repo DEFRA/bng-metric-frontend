@@ -108,10 +108,20 @@ function isServiceTemplateProject(project) {
   return isServiceTemplateDocument(project?.project?.postIntervention)
 }
 
+/**
+ * A post-intervention tree's page links to no baseline tree, whatever its
+ * Retention Category: a Created tree is recorded as a creation of its own,
+ * not as its baseline tree, and every tree page is alike.
+ */
+const isUnlinked = (type) => type === TREE_TYPE
+
 // A feature renamed on its own page, such as an Enhanced area habitat
 // (BMD-1045), carries the parent it was renamed from, as its new ref may match
 // no baseline feature, or the wrong one.
 export function viewOnlyBaselineFeatureId(project, type, feature) {
+  if (isUnlinked(type)) {
+    return null
+  }
   if (
     isServiceTemplateProject(project) ||
     Object.hasOwn(feature, 'parentFeatureId')
@@ -123,8 +133,13 @@ export function viewOnlyBaselineFeatureId(project, type, feature) {
 
 // A Created feature's parent is looked for in its own layer only: the backend
 // links a template row's parent_uuid to a baseline feature of the same layer,
-// so a Created tree's parent is always a baseline tree.
+// so a Created hedgerow's parent is always a baseline hedgerow. Its callers are
+// the Created area habitat, hedgerow and watercourse edit pages, and the
+// Created and Enhanced tree ones, which isUnlinked sends no link.
 export function createdBaselineFeatureId(project, type, feature) {
+  if (isUnlinked(type)) {
+    return null
+  }
   if (
     isServiceTemplateProject(project) ||
     Object.hasOwn(feature, 'parentFeatureId')

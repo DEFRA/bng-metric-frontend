@@ -309,11 +309,15 @@ describe('details pages of a BNG Service template project', () => {
       }
     )
 
+    // A tree's page links to no baseline tree, though it names its parent.
+    const linksToParent = (layer, parentFeatureId, body) =>
+      layer !== 'trees' && baselineIds(body).has(parentFeatureId)
+
     test.each(cases)(
       'links %s to the baseline feature it names as its parent, or shows no link',
-      async (_label, _layer, { featureId, parentFeatureId }) => {
+      async (_label, layer, { featureId, parentFeatureId }) => {
         const body = serviceTemplateProject('twoStages')
-        const expected = baselineIds(body).has(parentFeatureId)
+        const expected = linksToParent(layer, parentFeatureId, body)
           ? baselineDetailsUrl(body, parentFeatureId)
           : undefined
 
@@ -325,6 +329,24 @@ describe('details pages of a BNG Service template project', () => {
         expect(viewBaselineHref($)).toBe(expected)
       }
     )
+
+    test('a tree that names a baseline tree as its parent shows no link, and there is one', async () => {
+      const body = serviceTemplateProject('twoStages')
+      const linked = cases.filter(
+        ([, layer, f]) =>
+          layer === 'trees' && baselineIds(body).has(f.parentFeatureId)
+      )
+      expect(linked.length).toBeGreaterThan(0)
+      const [, , tree] = linked[0]
+
+      const $ = await render(
+        body,
+        postInterventionDetailsUrl(body, tree.featureId)
+      )
+
+      expect(viewBaselineHref($)).toBeUndefined()
+      expect($('main').text()).not.toContain('View baseline details')
+    })
 
     test('a feature with no parent shows no link, and there is one', async () => {
       const unlinked = cases.filter(([, , f]) => !f.parentFeatureId)
@@ -396,11 +418,7 @@ describe('details pages of a BNG Service template project', () => {
             $('[name="habitatType"] option[selected]').attr('value')
         ).toBe(tree.proposed.type)
         expect(editableFieldNames($)).toEqual([...editableFields].sort())
-        expect(viewBaselineHref($)).toBe(
-          tree.parentFeatureId
-            ? baselineDetailsUrl(body, tree.parentFeatureId)
-            : undefined
-        )
+        expect(viewBaselineHref($)).toBeUndefined()
       }
     )
 
