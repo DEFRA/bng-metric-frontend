@@ -324,8 +324,10 @@ test('does not hide genuine backend failures as a rollout fallback', async () =>
   ).rejects.toThrow()
 })
 
+// The PO's ruling (BMD-1046 testing): a stored value the list does not offer
+// is not shown or kept, so it shows the default option and a save clears it.
 test.each([2.5, 31])(
-  'preserves imported timing %s on a reference-only save, and clears it only explicitly',
+  'shows imported timing %s as the default option, and a rename clears it',
   async (advanceYears) => {
     mockFeature({
       type: 'hedgerow',
@@ -341,45 +343,23 @@ test.each([2.5, 31])(
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
     const vm = h.view.mock.calls[0][1]
-    expect(vm.values.advanceYears).toBe('unchanged')
-    expect(vm.finalTimeToTargetDisplay).toBe('4.5 years (0.8519)')
-    expect(vm.fields.advanceYears.items).toContainEqual(
-      expect.objectContaining({
-        value: 'unchanged',
-        selected: true,
-        text: `${advanceYears} (imported value)`
-      })
-    )
+    expect(vm.values.advanceYears).toBe('')
+    expect(vm.finalTimeToTargetDisplay).toBe('')
+    expect(
+      vm.fields.advanceYears.items.find((item) => item.selected).value
+    ).toBe('')
+    expect(
+      vm.fields.advanceYears.items.map((item) => item.text).join()
+    ).not.toContain('imported value')
     await postController.handler(
-      request({ ref: 'Renamed hedge', advanceYears: 'unchanged' }),
+      request({ ref: 'Renamed hedge', advanceYears: vm.values.advanceYears }),
       h
     )
     const payload = JSON.parse(wreck.put.mock.calls[0][1].payload)
     expect(payload.ref).toBe('Renamed hedge')
-    expect(payload).not.toHaveProperty('advanceYears')
-    await postController.handler(request({ advanceYears: '' }), h)
-    expect(
-      JSON.parse(wreck.put.mock.calls[1][1].payload).advanceYears
-    ).toBeNull()
+    expect(payload.advanceYears).toBeNull()
   }
 )
-
-test('validates conflicting timing after resolving an unchanged imported fraction', async () => {
-  mockFeature({
-    type: 'hedgerow',
-    feature: {
-      ...feature,
-      proposed: { ...feature.proposed, advanceYears: 0.5 }
-    }
-  })
-  const h = createMockH()
-  await postController.handler(
-    request({ advanceYears: 'unchanged', delayYears: '1' }),
-    h
-  )
-  expect(h.view.mock.calls[0][1].errors.advanceYears).toBeDefined()
-  expect(wreck.put).not.toHaveBeenCalled()
-})
 
 test('does not give a Created area a baseline link to a hedgerow parent', async () => {
   mockFeature(
@@ -404,7 +384,7 @@ test('does not give a Created area a baseline link to a hedgerow parent', async 
 })
 
 test.each(['Moderate', 'Fairly Poor'])(
-  'retains unavailable imported %s condition only through an unchanged submission',
+  'shows unavailable imported %s condition as the default option, and a rename clears it',
   async (condition) => {
     mockFeature({
       type: 'hedgerow',
@@ -413,34 +393,17 @@ test.each(['Moderate', 'Fairly Poor'])(
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
     const vm = h.view.mock.calls[0][1]
-    expect(vm.values.condition).toBe('unchanged')
-    expect(vm.fields.condition.items).toContainEqual(
-      expect.objectContaining({
-        value: 'unchanged',
-        text: `${condition} (imported value)`,
-        selected: true
-      })
+    expect(vm.values.condition).toBe('')
+    expect(vm.fields.condition.items.find((item) => item.selected).value).toBe(
+      ''
     )
+    expect(
+      vm.fields.condition.items.map((item) => item.text).join()
+    ).not.toContain(condition)
     await postController.handler(
-      request({ ref: 'Renamed hedge', condition: 'unchanged' }),
+      request({ ref: 'Renamed hedge', condition: vm.values.condition }),
       createMockH()
     )
-    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).not.toHaveProperty(
-      'condition'
-    )
-    wreck.put.mockClear()
-    await postController.handler(request({ condition: '' }), createMockH())
     expect(JSON.parse(wreck.put.mock.calls[0][1].payload).condition).toBeNull()
-    wreck.put.mockClear()
-    const changed = createMockH()
-    await postController.handler(
-      request({
-        condition: 'unchanged',
-        habitatType: 'Native hedgerow with trees'
-      }),
-      changed
-    )
-    expect(wreck.put).not.toHaveBeenCalled()
-    expect(changed.view.mock.calls[0][1].errors.condition).toBeDefined()
   }
 )

@@ -1,8 +1,7 @@
 import {
   createdAreaDerived,
   createdDerivedInputsUnchanged,
-  selectedHabitat,
-  UNCHANGED_VALUE
+  selectedHabitat
 } from '../../shared/created-area-details.js'
 
 const DERIVED_LABELS = {
@@ -11,18 +10,6 @@ const DERIVED_LABELS = {
   standardDifficultyDisplay: 'Standard difficulty',
   finalTimeToTargetDisplay: 'Final time to target condition (multiplier)',
   appliedDifficultyMultiplierDisplay: 'Applied difficulty multiplier'
-}
-
-// A kept choice's option (BMD-1045): an Enhanced area's stored choice the
-// list does not offer, available again whenever the choice above it is back
-// to its stored value, as the server and backend accept it.
-function keptOption(reference, field, parentField, parentValue) {
-  const kept = reference.importedChoices?.[field]
-  const storedParent = reference.importedCalculation?.values?.[parentField]
-  if (kept === undefined || parentValue !== storedParent) {
-    return []
-  }
-  return [{ value: UNCHANGED_VALUE, text: `${kept} (imported value)` }]
 }
 
 function createDerivedUpdater(reference, values, baselineCondition) {
@@ -98,39 +85,27 @@ export function initCreatedAreaDetails() {
   }
   document.getElementById('broadHabitat')?.addEventListener('change', () => {
     const broad = values().broadHabitat
-    reset('habitatType', 'habitat type', [
-      ...reference.habitatTypes
+    reset(
+      'habitatType',
+      'habitat type',
+      reference.habitatTypes
         .filter((t) => t.broad === broad)
-        .map((t) => ({ value: t.name, text: t.name })),
-      ...keptOption(reference, 'habitatType', 'broadHabitat', broad)
-    ])
+        .map((t) => ({ value: t.name, text: t.name }))
+    )
     reset('condition', 'target condition')
     updateDerived()
   })
   document.getElementById('habitatType').addEventListener('change', () => {
     const currentValues = values()
     const type = selectedHabitat(reference, currentValues)
-    reset('condition', 'target condition', [
-      ...(type?.conditions ?? []).map((c) => ({
+    reset(
+      'condition',
+      'target condition',
+      (type?.conditions ?? []).map((c) => ({
         value: c.condition,
         text: `${c.condition} (${c.score})`
-      })),
-      ...(reference.importedCondition?.habitatType ===
-      (currentValues.habitatType ?? '')
-        ? [
-            {
-              value: UNCHANGED_VALUE,
-              text: `${reference.importedCondition.condition} (imported value)`
-            }
-          ]
-        : []),
-      ...keptOption(
-        reference,
-        'condition',
-        'habitatType',
-        currentValues.habitatType
-      )
-    ])
+      }))
+    )
     updateDerived()
   })
   for (const id of ['condition', 'advanceYears', 'delayYears']) {
