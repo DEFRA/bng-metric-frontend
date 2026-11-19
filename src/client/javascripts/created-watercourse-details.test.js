@@ -40,37 +40,25 @@ beforeAll(() => {
 })
 beforeEach(() => render())
 
-test('preserves an imported condition when the stored type is blank', () => {
+// PO ruling (BMD-1046 testing): a stored value its list does not offer is
+// not shown or kept; its dropdown shows the default option.
+test('shows a condition stored without a type as the default option, and a save clears it', () => {
   render({
     ...feature,
     proposed: { ...feature.proposed, type: null, condition: 'Good' }
   })
   expect(value('habitatType')).toBe('')
-  expect(value('condition')).toBe('unchanged')
-  change('ref', 'Renamed')
-  expect(
-    new FormData(document.getElementById('created-area-details-form')).get(
-      'condition'
-    )
-  ).toBe('unchanged')
-  change('habitatType', 'Canals')
   expect(value('condition')).toBe('')
   expect(
-    document.querySelector('#condition option[value="unchanged"]')
-  ).toBeNull()
-  change('habitatType', '')
-  expect(
-    document.querySelector('#condition option[value="unchanged"]')
-  ).not.toBeNull()
+    [...document.querySelectorAll('#condition option')].map((o) => o.value)
+  ).toEqual([''])
+  expect(document.body.textContent).not.toContain('imported value')
+  change('ref', 'Renamed')
   const values = Object.fromEntries(
     new FormData(document.getElementById('created-area-details-form'))
   )
-  const savedReference = JSON.parse(
-    document.getElementById('created-area-reference-data').textContent
-  )
-  expect(validateCreatedArea(values, savedReference)).toEqual({})
-  change('condition', '')
-  expect(value('condition')).toBe('')
+  expect(values.condition).toBe('')
+  expect(validateCreatedArea(values, reference)).toEqual({})
 })
 
 test('renders fixed size and all watercourse-only controls with their own defaults', async () => {
@@ -221,17 +209,18 @@ test('restores stored timing after validation redisplay instead of treating subm
   expect(text('finalTimeToTargetDisplay')).toBe('0 years (1)')
 })
 
-test('preserves imported encroachment independently when the habitat type changes', () => {
+test('shows an unlisted encroachment as the default option, leaving the other encroachment as stored', () => {
   render({
     ...feature,
     proposed: { ...feature.proposed, riparianEncroachment: 'Imported value' }
   })
-  expect(value('riparianEncroachment')).toBe('unchanged')
+  expect(value('riparianEncroachment')).toBe('')
   expect(
     document.querySelector('#riparianEncroachment option[value="unchanged"]')
-  ).not.toBeNull()
+  ).toBeNull()
+  expect(document.body.textContent).not.toContain('(imported value)')
   change('habitatType', 'Canals')
-  expect(value('riparianEncroachment')).toBe('unchanged')
+  expect(value('riparianEncroachment')).toBe('')
   expect(value('watercourseEncroachment')).toBe('Minor')
 })
 

@@ -632,6 +632,29 @@ describe('watercourses post intervention', () => {
     })
   })
 
+  // Zero units on the list follow an edit page's AC2 (BMD-1045, BMD-1046): an
+  // Enhanced watercourse is view only, so its missing units stay blank.
+  test('leaves an Enhanced watercourse with no units blank', async () => {
+    const stored = structuredClone(project)
+    stored.project.postIntervention.watercourses = [
+      { ...enhancedWatercourse, units: null, status: 'Incomplete' }
+    ]
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: stored
+    })
+    const response = await server.inject({ method: 'GET', url: pagePath, auth })
+    const $ = load(response.result)
+    const columns = $('#enhanced thead th')
+      .map((_, el) => $(el).text().trim())
+      .get()
+    const row = $('#enhanced tbody tr').filter(
+      (_, r) => $(r).find('a').first().text() === enhancedWatercourse.ref
+    )
+    expect(row).toHaveLength(1)
+    expect(row.find('td').eq(columns.indexOf('Units')).text().trim()).toBe('')
+  })
+
   test('redirects a project without baseline data to project summary', async () => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },

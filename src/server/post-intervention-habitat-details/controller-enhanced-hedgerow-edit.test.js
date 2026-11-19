@@ -23,7 +23,6 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 const { getController, postController } = await import('./controller.js')
 const { _resetCreatedAreaReferenceCache, createdAreaValues } =
   await import('./created-area-edit.js')
-const { UNCHANGED_VALUE } = await import('../../shared/created-area-details.js')
 
 const EDIT_TEMPLATE = 'habitat-details/pi-habitat-details-created-edit'
 const READ_ONLY_TEMPLATE = 'habitat-details/pi-hedgerow-details-enhanced'
@@ -228,8 +227,24 @@ describe('BMD-1046 Enhanced hedgerow edit page', () => {
     expect(h.view.mock.calls[0][1].errors).toHaveProperty('condition')
   })
 
-  test('keeps a stored habitat type the list no longer offers, leaving it out of the save', async () => {
-    const feature = mockEnhanced({
+  // The PO's ruling (BMD-1046 testing): a stored choice the list does not
+  // offer is not shown or kept. It shows the default option and a save clears it.
+  const renamePost = (view) => {
+    const { broadHabitat: _none, ...values } = view.values
+    return { payload: { projectId, featureId, ...values, ref: 'Renamed' } }
+  }
+  const selectedValue = (field) =>
+    field.items.find((item) => item.selected)?.value
+  const pageText = (view) =>
+    Object.values(view.fields)
+      .flatMap((field) => [
+        field.hint ?? '',
+        ...field.items.map((item) => item.text)
+      ])
+      .join(' ')
+
+  test('shows a stored habitat type the list no longer offers as the default option, and a rename clears it', async () => {
+    mockEnhanced({
       proposed: {
         ...enhancedHedgerowFeature.proposed,
         type: 'Line of trees',
@@ -242,27 +257,59 @@ describe('BMD-1046 Enhanced hedgerow edit page', () => {
       }
     })
     const view = await renderPage()
-    expect(view.values.habitatType).toBe(UNCHANGED_VALUE)
-    // Its stored displays stand while nothing it is derived from changes.
-    expect(view.distinctivenessDisplay).toBe('Low (2)')
-    expect(view.finalTimeToTargetDisplay).toBe('2 years (0.931225)')
+    expect(view.values).toMatchObject({ habitatType: '', condition: '' })
+    expect(selectedValue(view.fields.habitatType)).toBe('')
+    // AC2: with no habitat type, Target condition has only its default option.
+    expect(optionValues(view.fields.condition)).toEqual([])
+    expect(pageText(view)).not.toContain('imported value')
+    expect(view).toMatchObject({
+      distinctivenessDisplay: '',
+      standardDifficultyDisplay: '',
+      standardTimeToTargetDisplay: '',
+      finalTimeToTargetDisplay: ''
+    })
 
     vi.mocked(wreck.put).mockClear()
-    await postController.handler(
-      postRequest(
-        {
-          ref: 'Renamed',
-          habitatType: UNCHANGED_VALUE,
-          condition: UNCHANGED_VALUE
-        },
-        feature
-      ),
-      createMockH()
-    )
-    const sent = sentPayload()
-    expect(sent.ref).toBe('Renamed')
-    expect(sent).not.toHaveProperty('habitatType')
-    expect(sent).not.toHaveProperty('condition')
+    await postController.handler(renamePost(view), createMockH())
+    expect(sentPayload()).toMatchObject({
+      ref: 'Renamed',
+      habitatType: null,
+      condition: null
+    })
+  })
+
+  // The tester's AC2 case: HG032's strategic significance was rejected on
+  // import, so the backend nulled it and recorded the rejected label.
+  test('AC2: shows a significance rejected on import as the default option, and a rename clears it', async () => {
+    mockEnhanced({
+      ref: 'HG032',
+      status: 'Incomplete',
+      units: 0,
+      proposed: {
+        ...enhancedHedgerowFeature.proposed,
+        strategicSignificance: null,
+        strategicSignificanceCategory: null,
+        strategicSignificanceScore: null,
+        rejectedStrategicSignificance:
+          'Location ecologically desirable but not in local strategy'
+      }
+    })
+    const view = await renderPage()
+    expect(view.values.strategicSignificance).toBe('')
+    expect(selectedValue(view.fields.strategicSignificance)).toBe('')
+    expect(view.fields.strategicSignificance.items[0]).toMatchObject({
+      value: '',
+      selected: true
+    })
+    expect(pageText(view)).not.toContain('imported value')
+    expect(pageText(view)).not.toContain('Location ecologically desirable')
+
+    vi.mocked(wreck.put).mockClear()
+    await postController.handler(renamePost(view), createMockH())
+    expect(sentPayload()).toMatchObject({
+      ref: 'Renamed',
+      strategicSignificance: null
+    })
   })
 
   test('shows the condition error when the backend refuses the enhancement', async () => {

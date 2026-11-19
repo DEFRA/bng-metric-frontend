@@ -154,7 +154,9 @@ test.each([false, true])(
   }
 )
 
-test('preserves imported timing until a replacement or explicit clear is selected', () => {
+// PO ruling (BMD-1046 testing): a stored value its list does not offer is
+// not shown or kept; its dropdown shows the default option.
+test('shows an unlisted fractional timing as the default option, with no imported-value hint', () => {
   const imported = {
     ...feature,
     proposed: { ...feature.proposed, advanceYears: 2.5 }
@@ -167,13 +169,14 @@ test('preserves imported timing until a replacement or explicit clear is selecte
     }
   )
   initCreatedAreaDetails()
-  expect(value('advanceYears')).toBe('unchanged')
-  expect(text('advanceYears-hint')).toContain('Keep it unchanged')
-  change('ref', 'Renamed hedge')
-  expect(value('advanceYears')).toBe('unchanged')
-  change('advanceYears', '')
   expect(value('advanceYears')).toBe('')
-  expect(text('finalTimeToTargetDisplay')).toBe('')
+  expect(document.getElementById('advanceYears-hint')).toBeNull()
+  expect(document.body.textContent).not.toContain('imported value')
+  expect(
+    document.querySelector('#advanceYears option[value="unchanged"]')
+  ).toBeNull()
+  change('ref', 'Renamed hedge')
+  expect(value('advanceYears')).toBe('')
   change('advanceYears', '2')
   expect(value('advanceYears')).toBe('2')
 })
@@ -206,24 +209,7 @@ test('keeps baseline transition wording consistent through condition edits and v
   expect(text('standardTimeToTargetDisplay')).toBe('Moderate to Good - 7 years')
 })
 
-test('a stale unchanged delay has an inline timing error and accessible summary link', async () => {
-  const values = { ...createdAreaValues(feature), delayYears: 'unchanged' }
-  const errors = validateCreatedArea(values, reference)
-  expect(errors.delayYears.inline).toBe('Choose a valid advance or delay value')
-  expect(errors.advanceYears).toBeUndefined()
-  render(values, errors)
-  expect(
-    document.querySelector('.govuk-error-summary__list a').getAttribute('href')
-  ).toBe('#delayYears')
-  expect(text('timing-error')).toContain(errors.delayYears.inline)
-  const delay = document.getElementById('delayYears')
-  expect(delay.getAttribute('aria-describedby')).toContain('timing-error')
-  expect(delay.classList.contains('govuk-select--error')).toBe(true)
-  expect(delay.closest('.govuk-form-group--error')).not.toBeNull()
-  await runAxeChecks(document.documentElement)
-})
-
-test('keeps the stored fractional timing display until a calculation input changes', () => {
+test('shows no final time for an unlisted fractional timing until a listed one is chosen', () => {
   const imported = {
     ...feature,
     proposed: {
@@ -240,18 +226,14 @@ test('keeps the stored fractional timing display until a calculation input chang
     }
   )
   initCreatedAreaDetails()
-  expect(text('finalTimeToTargetDisplay')).toBe('4.5 years (0.8519)')
-  change('condition', 'Poor')
   expect(text('finalTimeToTargetDisplay')).toBe('')
-  change('condition', 'Good')
-  expect(text('finalTimeToTargetDisplay')).toBe('4.5 years (0.8519)')
   change('advanceYears', '0')
   expect(text('finalTimeToTargetDisplay')).toBe('7 years (0.7792758067)')
   change('advanceYears', '')
   expect(text('finalTimeToTargetDisplay')).toBe('')
 })
 
-test('keeps an unavailable imported condition selected and offers it only for its original type', () => {
+test('shows an unlisted condition as the default option and offers only listed conditions', () => {
   const imported = {
     ...feature,
     proposed: {
@@ -268,27 +250,21 @@ test('keeps an unavailable imported condition selected and offers it only for it
     }
   )
   initCreatedAreaDetails()
-  expect(value('condition')).toBe('unchanged')
-  expect(text('condition-hint')).toContain('Keep it unchanged')
-  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
-  change('ref', 'Renamed hedge')
-  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
-  change('advanceYears', '1')
-  expect(value('condition')).toBe('unchanged')
-  expect(text('finalTimeToTargetDisplay')).toBe('')
-  change('advanceYears', '0')
-  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
-  change('habitatType', 'Native hedgerow with trees')
-  expect(
-    document.querySelector('#condition option[value="unchanged"]')
-  ).toBeNull()
-  change('habitatType', 'Native hedgerow')
-  expect(
-    document.querySelector('#condition option[value="unchanged"]').textContent
-  ).toBe('Moderate (imported value)')
-  change('condition', '')
   expect(value('condition')).toBe('')
+  expect(document.getElementById('condition-hint')).toBeNull()
+  expect(document.body.textContent).not.toContain('imported value')
   expect(text('finalTimeToTargetDisplay')).toBe('')
-  change('condition', 'unchanged')
-  expect(text('finalTimeToTargetDisplay')).toBe('Imported final time')
+  const conditionValues = () =>
+    [...document.querySelectorAll('#condition option')].map((o) => o.value)
+  const listed = (name) => [
+    '',
+    ...reference.habitatTypes
+      .find((t) => t.name === name)
+      .conditions.map((c) => c.condition)
+  ]
+  expect(conditionValues()).toEqual(listed('Native hedgerow'))
+  change('habitatType', 'Native hedgerow with trees')
+  expect(conditionValues()).toEqual(listed('Native hedgerow with trees'))
+  change('habitatType', 'Native hedgerow')
+  expect(conditionValues()).toEqual(listed('Native hedgerow'))
 })

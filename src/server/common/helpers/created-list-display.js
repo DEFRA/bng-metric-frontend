@@ -124,12 +124,16 @@ async function loadReferenceForDisplay({ loadReference, label }) {
  * @param {(feature: object, types: object[]) => object | undefined} options.findType
  *   the reference type the feature's saved habitat type is
  * @param {string[]} options.typeFields the fields its habitat type alone determines
+ * @param {boolean} [options.includeEnhanced] also show an incomplete Enhanced
+ *   row's units as zero (a layer whose Enhanced features have an edit page)
  * @returns {(project: object) => Promise<object>}
  */
 export function createdListDisplay(options) {
-  const { layer, typeFields } = options
+  const { layer, typeFields, includeEnhanced } = options
+  const zeroUnits = { includeEnhanced }
   const needsDisplayProjection = (feature) =>
-    needsReference(feature, typeFields) || needsCreatedZeroUnits(feature)
+    needsReference(feature, typeFields) ||
+    needsCreatedZeroUnits(feature, zeroUnits)
 
   return async function prepareCreatedListDisplay(project) {
     const features = project?.postIntervention?.[layer] ?? []
@@ -144,7 +148,10 @@ export function createdListDisplay(options) {
       postIntervention: {
         ...project.postIntervention,
         [layer]: features.map((feature) =>
-          withCreatedZeroUnits(withReferenceFields(feature, reference, options))
+          withCreatedZeroUnits(
+            withReferenceFields(feature, reference, options),
+            zeroUnits
+          )
         )
       }
     }
