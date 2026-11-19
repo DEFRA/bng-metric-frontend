@@ -172,6 +172,54 @@ describe('authenticated hedgerow form', () => {
       `/projects/${projectId}/hedgerows-post-intervention`
     )
   })
+  // A hedgerow Created in its parent's own type is held by the backend to the
+  // guide's steps for a habitat whose condition gets worse.
+  test.each([
+    [
+      'degrade-worse-condition',
+      'condition',
+      'Choose a target condition lower than the baseline habitat&#39;s condition'
+    ],
+    [
+      'degrade-advance-30-plus',
+      'advanceYears',
+      'Set the years in advance to 30+'
+    ]
+  ])(
+    'shows the field to blame when the backend refuses the edit of a hedgerow whose condition gets worse (%s)',
+    async (rule, field, wording) => {
+      const refused = Boom.badData('does not follow the guide')
+      refused.data = {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message: `The habitat is its baseline habitat created again in its own type, so it must be in a lower condition and created 30+ years in advance, or put back after a delay (rule ${rule})`,
+          code: 'HABITAT_DEGRADE_NOT_VALID',
+          rule
+        }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(refused)
+      const { token: crumb, cookie } = await primeCrumb(server)
+
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...request().payload, crumb }
+      })
+
+      expect(response.statusCode).toBe(422)
+      expect(response.payload).toMatch(/<title>\s*Error: /)
+      expect(response.payload).toContain(`href="#${field}"`)
+      expect(response.payload).toContain(wording)
+      expect(response.payload).toContain('cleared and put back')
+      expect(response.payload).not.toContain('Newly Planted')
+      expect(response.payload).toContain(`value="${values.ref}"`)
+    }
+  )
+
   test('shows the page again, naming the fields, when the backend refuses a hedgerow holding a value saved before BMD-1175', async () => {
     const stored = Boom.badData('stored value')
     stored.data = {
