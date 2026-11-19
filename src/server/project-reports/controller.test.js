@@ -84,6 +84,7 @@ describe('project reports', () => {
       'Area habitats',
       'Hedgerows',
       'Watercourses',
+      'Project details',
       'Reports'
     ])
     expect(

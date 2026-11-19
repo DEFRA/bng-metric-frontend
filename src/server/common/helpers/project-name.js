@@ -1,6 +1,7 @@
 import Joi from 'joi'
 
 import { joiErrorText, joiMessages } from '../error-text/joi-error-text.js'
+import { validCharacters } from './valid-characters.js'
 
 export const MAX_PROJECT_NAME_LENGTH = 1000
 
@@ -9,17 +10,7 @@ export const projectNameSchema = Joi.string()
   .empty('')
   .required()
   .max(MAX_PROJECT_NAME_LENGTH)
-  .custom((value, helpers) => {
-    const hasInvalidChars = [...value].some((char) => {
-      const codePoint = char.codePointAt(0)
-      return (
-        codePoint < 0x20 ||
-        codePoint === 0x7f ||
-        (codePoint >= 0xd800 && codePoint <= 0xdfff)
-      )
-    })
-    return hasInvalidChars ? helpers.error('string.invalidChars') : value
-  })
+  .custom(validCharacters)
   .messages(
     joiMessages('projectName', {
       'string.base': 'required',
