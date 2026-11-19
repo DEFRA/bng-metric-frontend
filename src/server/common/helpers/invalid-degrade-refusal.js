@@ -15,10 +15,20 @@ import { backendStatusOf } from './backend-save-error.js'
 
 export const DEGRADE_NOT_VALID_CODE = 'TREE_DEGRADE_NOT_VALID'
 
-/** Each degrade rule's field, and its wording (error-text.yaml, forms). */
+/**
+ * Each degrade rule's field, and its wording (error-text.yaml, forms), read
+ * when the module loads, so a missing key fails at start-up rather than when
+ * a user meets the refusal. The timing errors share advanceOrDelay's wording.
+ */
 const FIELD_BY_RULE = Object.freeze({
-  'degrade-worse-condition': ['condition', 'degradeNotWorse'],
-  'degrade-advance-30-plus': ['advanceYears', 'degradeNot30Plus']
+  'degrade-worse-condition': [
+    'condition',
+    formErrorText('condition', 'degradeNotWorse')
+  ],
+  'degrade-advance-30-plus': [
+    'advanceYears',
+    formErrorText('advanceOrDelay', 'degradeNot30Plus')
+  ]
 })
 
 /**
@@ -54,9 +64,6 @@ export function invalidDegradeErrors(err) {
   if (!match) {
     return null
   }
-  const [field, rule] = match
-  // The wording is filed under the form field it is shown against; the
-  // timing errors share advanceOrDelay's.
-  const wordingField = field === 'advanceYears' ? 'advanceOrDelay' : field
-  return { [field]: formErrorText(wordingField, rule) }
+  const [field, error] = match
+  return { [field]: { ...error } }
 }
