@@ -212,13 +212,25 @@ describe('#postInterventionHabitatDetails — retained habitat reference (BMD-11
       )
     })
 
-    // An Enhanced area habitat or hedgerow gets its Enhanced edit form
-    // (BMD-1045, BMD-1046); an Enhanced watercourse is still read-only.
-    test('shows an Enhanced watercourse read-only, with no reference input', async () => {
+    // An Enhanced area habitat, hedgerow or watercourse gets its Enhanced
+    // edit form (BMD-1045, BMD-1046, BMD-1047), not the Retained reference
+    // form: it falls back to its read-only page while the backend does not
+    // serve its enhancement reference.
+    test('shows an Enhanced watercourse read-only, with no reference input, while its enhancement reference is not served', async () => {
       mockBackend({
         type: 'watercourse',
         feature: { ...FEATURES.watercourse, retentionCategory: 'Enhanced' }
       })
+      const backend = vi.mocked(wreck.get).getMockImplementation()
+      vi.mocked(wreck.get).mockImplementation((url) =>
+        url.includes('/reference/watercourse-enhancement')
+          ? Promise.reject(
+              Object.assign(new Error('Not Found'), {
+                output: { statusCode: statusCodes.notFound }
+              })
+            )
+          : backend(url)
+      )
 
       const { statusCode, result } = await server.inject({
         method: 'GET',

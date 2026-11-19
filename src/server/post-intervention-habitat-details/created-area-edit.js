@@ -1,6 +1,5 @@
 import {
   loadCreatedAreaReference,
-  loadCreatedWatercourseReference,
   loadEnhancedAreaReference
 } from './created-edit-reference.js'
 import {
@@ -8,6 +7,10 @@ import {
   ENHANCED_HEDGEROW_KIND
 } from './hedgerow-edit-kinds.js'
 import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
+import {
+  CREATED_WATERCOURSE_KIND,
+  ENHANCED_WATERCOURSE_KIND
+} from './watercourse-edit-kinds.js'
 export { enhancedTreeReference } from './tree-edit-kinds.js'
 export {
   loadCreatedAreaReference,
@@ -24,7 +27,6 @@ import {
 } from './created-area-edit-fields.js'
 import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
-import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
 import {
   createdAreaDerived,
@@ -35,7 +37,7 @@ import {
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
-import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
+import { createdUnitsDisplay } from './view-only-shared.js'
 import {
   AREA_SECTIONS_TEMPLATE,
   AREA_SIZE_LABEL,
@@ -110,27 +112,13 @@ const ENHANCED_AREA_KIND = Object.freeze({
 
 export const CREATED_EDIT_KINDS = {
   habitat: CREATED_AREA_KIND,
-  watercourse: {
-    loadReference: loadCreatedWatercourseReference,
-    label: 'Watercourse',
-    optionalReference: true,
-    readOnlyTemplate: 'habitat-details/pi-watercourse-details-created',
-    buildBase: buildCreatedWatercourseViewOnlyViewModel,
-    formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
-    sizeLabel: 'Length (km)',
-    backType: 'watercourse',
-    savePath: 'watercourses',
-    hasBroadHabitat: false,
-    hasComment: true,
-    hasEncroachments: true,
-    restoresLineageAdvance: true,
-    habitatTypeError: formError('habitatType', 'invalidWatercourse')
-  },
+  watercourse: CREATED_WATERCOURSE_KIND,
   hedgerow: CREATED_HEDGEROW_KIND,
   tree: CREATED_TREE_KIND,
   enhancedTree: ENHANCED_TREE_KIND,
   enhancedHabitat: ENHANCED_AREA_KIND,
-  enhancedHedgerow: ENHANCED_HEDGEROW_KIND
+  enhancedHedgerow: ENHANCED_HEDGEROW_KIND,
+  enhancedWatercourse: ENHANCED_WATERCOURSE_KIND
 }
 
 function createdKind(reference) {

@@ -212,6 +212,12 @@ function serviceTemplateBackend(body) {
       '/reference/watercourse-creation',
       () => creationReference(project, 'watercourses', 'watercourse')
     ],
+    // An Enhanced watercourse's choices (BMD-1047), whatever its baseline, as
+    // for an Enhanced area.
+    [
+      '/reference/watercourse-enhancement',
+      () => creationReference(project, 'watercourses', 'watercourse')
+    ],
     [
       '/reference/tree-creation',
       () => creationReference(project, 'trees', 'tree')

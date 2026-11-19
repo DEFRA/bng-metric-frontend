@@ -67,9 +67,34 @@ export function loadEnhancedHedgerowReference(baseline = {}) {
   })
 }
 
+// BMD-1047: an Enhanced watercourse chooses its habitat type and target
+// condition only from the valid enhancements of its baseline, which the
+// backend lists per baseline watercourse type and condition, with the
+// encroachment lists unrestricted.
+export function loadEnhancedWatercourseReference(baseline = {}) {
+  const query = new URLSearchParams(
+    Object.entries({
+      type: baseline.type,
+      condition: baseline.condition
+    }).filter(([, value]) => typeof value === 'string' && value !== '')
+  )
+  return loadReference({
+    cacheKey: `enhanced-watercourse?${query}`,
+    kind: 'enhancedWatercourse',
+    url: `${backendUrl}/reference/watercourse-enhancement?${query}`,
+    referenceName: 'watercourse enhancement',
+    hasBroadHabitat: false
+  })
+}
+
+const ENCROACHMENT_REFERENCE_KINDS = new Set([
+  'watercourse',
+  'enhancedWatercourse'
+])
+
 function hasRequiredArrays(kind, payload) {
   const fields = ['habitatTypes', 'strategicSignificance']
-  if (kind === 'watercourse') {
+  if (ENCROACHMENT_REFERENCE_KINDS.has(kind)) {
     fields.push('watercourseEncroachment', 'riparianEncroachment')
   }
   return fields.every((field) => Array.isArray(payload?.[field]))

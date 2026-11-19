@@ -177,3 +177,52 @@ export const createdWatercourseFeature = {
     finalTimeToTargetCondition: '5 years (0.8368287006)'
   }
 }
+
+// BMD-1047: the backend's watercourse enhancement reference for a Culvert in
+// Poor condition, which may move to any Medium distinctiveness watercourse at
+// a fixed 10 years (BMD-820 AC10). Culvert itself is never offered.
+const UPLIFT_CONDITIONS = [
+  { condition: 'Good', score: 3, years: 10 },
+  { condition: 'Fairly Good', score: 2.5, years: 10 },
+  { condition: 'Moderate', score: 2, years: 10 },
+  { condition: 'Fairly Poor', score: 1.5, years: 10 },
+  { condition: 'Poor', score: 1, years: 10 }
+]
+
+export const watercourseEnhancementReference = {
+  ...watercourseCreationReference,
+  habitatTypes: ['Canals', 'Ditches'].map((name) => ({
+    name,
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    difficulty: 'Low',
+    difficultyMultiplier: 1,
+    conditions: UPLIFT_CONDITIONS
+  }))
+}
+
+export const enhancedWatercourseFeature = {
+  featureId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  ref: 'WC-E',
+  retentionCategory: 'Enhanced',
+  sizeMetres: 1250,
+  units: 3.1,
+  status: 'Complete',
+  baseline: { type: 'Culvert', condition: 'Poor' },
+  proposed: {
+    type: 'Ditches',
+    condition: 'Moderate',
+    strategicSignificance: 'Low',
+    strategicSignificanceCategory: 'Low',
+    advanceYears: 0,
+    delayYears: 0,
+    watercourseEncroachment: 'Minor',
+    riparianEncroachment: 'Minor/No Encroachment',
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    difficulty: 'Low',
+    difficultyMultiplier: 1,
+    standardTimeToTargetCondition: '10',
+    finalTimeToTargetCondition: '10 years (0.7002822742)'
+  }
+}
