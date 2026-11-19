@@ -39,7 +39,7 @@ import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
 import {
   AREA_SECTIONS_TEMPLATE,
   AREA_SIZE_LABEL,
-  CREATED_SUPPORTING_INFORMATION_HINT,
+  EDIT_SUPPORTING_INFORMATION_HINT,
   MAX_REF_LENGTH
 } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
@@ -101,10 +101,8 @@ const ENHANCED_AREA_KIND = Object.freeze({
   label: 'Enhanced area habitat',
   optionalReference: true,
   buildBase: buildEnhancedAreaViewOnlyViewModel,
-  conditionError: formError('condition', 'notValidEnhancement'),
-  // An Enhanced area's supporting information is not editable yet
-  // (BMD-1190): the backend refuses a comment on an Enhanced area.
-  hasComment: false
+  conditionError: formError('condition', 'notValidEnhancement')
+  // hasComment comes from the Created area kind (BMD-1190).
   // No timingLabels: BMD-1045 AC1 labels Advance and Delay as the Created
   // area does, "Habitat created in advance" and "Delay in starting habitat
   // creation", as per Figma.
@@ -323,7 +321,7 @@ function createdCommentFields(feature, kind, values, errors) {
   })
   return {
     showCommentRow: true,
-    commentHint: CREATED_SUPPORTING_INFORMATION_HINT,
+    commentHint: EDIT_SUPPORTING_INFORMATION_HINT,
     commentInput,
     commentErrors
   }

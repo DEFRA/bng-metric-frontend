@@ -128,8 +128,8 @@ describe('BMD-1046 Enhanced hedgerow edit page', () => {
       expect(view.fields[field].items[0].value).toBe('')
     }
     expect(view.uploadHref).toContain(projectId)
-    // Its supporting information is not editable yet (BMD-1190).
-    expect(view.showCommentRow).toBe(false)
+    // Its supporting information box is the Created hedgerow's (BMD-1190).
+    expect(view.showCommentRow).toBe(true)
   })
 
   test('AC2: an incomplete hedgerow shows defaults and only the default target condition', async () => {

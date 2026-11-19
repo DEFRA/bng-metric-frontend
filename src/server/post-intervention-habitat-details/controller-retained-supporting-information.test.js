@@ -1,3 +1,4 @@
+import { load } from 'cheerio'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
@@ -282,20 +283,35 @@ describe('#postInterventionHabitatDetails — Retained supporting information (B
     expect(result).not.toContain('Supporting information')
   })
 
-  test.each(['Enhanced', 'Lost'])(
-    'shows no supporting information on an %s habitat’s page',
-    async (retentionCategory) => {
-      mockBackend({
-        feature: retainedFeature({ retentionCategory }),
-        sendsBaselineComment: false
-      })
+  test('shows no supporting information on a Lost habitat’s page', async () => {
+    mockBackend({
+      feature: retainedFeature({ retentionCategory: 'Lost' }),
+      sendsBaselineComment: false
+    })
 
-      const { statusCode, result } = await getPage()
+    const { statusCode, result } = await getPage()
 
-      expect(statusCode).toBe(statusCodes.ok)
-      expect(result).not.toContain('Supporting information')
-    }
-  )
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).not.toContain('Supporting information')
+  })
+
+  // An Enhanced habitat edits its own supporting information (BMD-1190). Its
+  // baseline's comment is neither shown read-only nor put in the box (AC2),
+  // even if the backend sends one.
+  test('shows an Enhanced habitat’s own empty box, not its baseline comment', async () => {
+    mockBackend({
+      feature: retainedFeature({ retentionCategory: 'Enhanced', comment: null })
+    })
+
+    const { statusCode, result } = await getPage()
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(supportingInformation(result)).toBeNull()
+    const box = load(result)('textarea#comment')
+    expect(box).toHaveLength(1)
+    expect(box.val()).toBe('')
+    expect(result).not.toContain(COMMENT)
+  })
 
   test('keeps the comment when a reference save is refused', async () => {
     mockBackend()
