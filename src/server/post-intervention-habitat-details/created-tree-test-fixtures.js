@@ -1,7 +1,11 @@
 import { featureId } from './controller-test-helpers.js'
+import { INDIVIDUAL_TREES_BROAD_HABITAT } from '../baseline-habitat-details/strategies/tree.js'
 
 // A Created individual tree is edited as a Created area habitat is, but stays
 // a tree.
+
+const URBAN_TREE = 'Urban tree'
+const TREE_TYPES = ['Rural tree', URBAN_TREE]
 
 // A Medium urban tree newly planted, standing for 2 trees.
 export const createdTree = {
@@ -14,8 +18,8 @@ export const createdTree = {
   status: 'Complete',
   baseline: {},
   proposed: {
-    broadType: 'Individual trees',
-    type: 'Urban tree',
+    broadType: INDIVIDUAL_TREES_BROAD_HABITAT,
+    type: URBAN_TREE,
     treeSize: 'Medium',
     condition: 'Poor',
     strategicSignificance: 'Low',
@@ -26,9 +30,9 @@ export const createdTree = {
 }
 
 export const treeCreationReference = {
-  habitatTypes: ['Rural tree', 'Urban tree'].map((name) => ({
+  habitatTypes: TREE_TYPES.map((name) => ({
     name,
-    broad: 'Individual trees',
+    broad: INDIVIDUAL_TREES_BROAD_HABITAT,
     distinctiveness: 'Medium',
     distinctivenessScore: 4,
     difficulty: 'Low',
@@ -56,14 +60,14 @@ export const enhancedTree = {
   units: 0.2,
   status: 'Complete',
   baseline: {
-    broadType: 'Individual trees',
-    type: 'Urban tree',
+    broadType: INDIVIDUAL_TREES_BROAD_HABITAT,
+    type: URBAN_TREE,
     treeSize: 'Medium',
     condition: 'Moderate'
   },
   proposed: {
-    broadType: 'Individual trees',
-    type: 'Urban tree',
+    broadType: INDIVIDUAL_TREES_BROAD_HABITAT,
+    type: URBAN_TREE,
     treeSize: 'Medium',
     condition: 'Good',
     strategicSignificance: 'Low',
@@ -87,9 +91,9 @@ const enhancements = {
 }
 
 export const treeEnhancementReference = {
-  habitatTypes: ['Rural tree', 'Urban tree'].map((name) => ({
+  habitatTypes: TREE_TYPES.map((name) => ({
     name,
-    broad: 'Individual trees',
+    broad: INDIVIDUAL_TREES_BROAD_HABITAT,
     distinctiveness: 'Medium',
     distinctivenessScore: 4,
     difficulty: 'Low',
