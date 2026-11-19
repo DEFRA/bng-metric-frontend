@@ -1908,6 +1908,36 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
+  test('lists each Existing tree Created over its baseline tree with the tree it was copied from', async () => {
+    const view = await viewFor([
+      lineageError('STAGED_TREE_DEGRADE_NOT_VALID', 'Heading', [
+        {
+          layer: 'trees',
+          table: 'Individual Trees Post-Intervention',
+          fid: 2,
+          ref: 'T002',
+          habitatType: 'Rural tree',
+          parentRef: 'T001'
+        },
+        {
+          layer: 'trees',
+          table: 'Individual Trees Post-Intervention',
+          fid: 5,
+          ref: 'T005',
+          habitatType: 'Urban tree',
+          parentRef: null
+        }
+      ])
+    ])
+
+    expect(view.errorBlocks.map(({ items }) => items)).toEqual([
+      [
+        'Individual Trees Post-Intervention T002 — Rural tree, copied from T001',
+        'Individual Trees Post-Intervention T005 — Urban tree'
+      ]
+    ])
+  })
+
   test('falls back to "a habitat" when a sample names neither a ref nor a fid', async () => {
     const view = await viewFor([
       lineageError('STAGED_AMBIGUOUS_PARENT', 'Ambiguous', [

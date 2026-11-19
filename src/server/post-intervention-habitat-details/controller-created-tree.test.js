@@ -359,6 +359,53 @@ describe('Created tree authenticated form', () => {
     expect(response.payload).not.toContain('govuk-input--error')
     expect(response.payload).toContain(`value="${values.ref}"`)
   })
+
+  // An Existing tree Created over its baseline tree is held by the backend to
+  // the guide's steps for a tree whose condition gets worse.
+  test.each([
+    [
+      'degrade-worse-condition',
+      'condition',
+      'Choose a target condition lower than the baseline tree&#39;s condition'
+    ],
+    [
+      'degrade-advance-30-plus',
+      'advanceYears',
+      'Set the years in advance to 30+'
+    ]
+  ])(
+    'shows the field to blame when the backend refuses the edit of an Existing tree Created over its baseline tree (%s)',
+    async (rule, field, wording) => {
+      const refused = Boom.badData('does not follow the guide')
+      refused.data = {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message: `The tree is its baseline tree created again, so it must be in a lower condition and created 30+ years in advance, or put back after a delay (rule ${rule})`,
+          code: 'TREE_DEGRADE_NOT_VALID',
+          rule
+        }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(refused)
+      const { token, cookie } = await primeCrumb(server)
+
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...request().payload, crumb: token }
+      })
+
+      expect(response.statusCode).toBe(422)
+      expect(response.payload).toMatch(/<title>\s*Error: /)
+      expect(response.payload).toContain(`href="#${field}"`)
+      expect(response.payload).toContain(wording)
+      expect(response.payload).toContain('Newly Planted')
+      expect(response.payload).toContain(`value="${values.ref}"`)
+    }
+  )
 })
 
 describe('Retained tree reference', () => {
