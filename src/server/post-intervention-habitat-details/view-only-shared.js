@@ -13,12 +13,12 @@ import {
   KM_UNIT
 } from '../common/helpers/format-habitat-values.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
+import { supportingInformationDisplay } from '../common/helpers/supporting-information.js'
 import {
   ABSENT_BASELINE_CONDITION,
   ABSENT_BASELINE_CONDITION_PREFIX,
   HABITAT_UNITS_DELIVERED_LABEL,
   HEDGEROWS_TAB_ANCHOR,
-  NO_SUPPORTING_INFORMATION,
   OVER_MAX_YEARS,
   OVER_MAX_YEARS_DISPLAY,
   PI_DETAILS_HEADING,
@@ -101,21 +101,10 @@ export function strategicSignificanceDisplay(feature) {
   return proposedStrategicSignificanceDisplay(feature?.proposed)
 }
 
-/**
- * A Retained habitat's "Supporting information": the comment saved on its
- * baseline habitat (BMD-1187), as saved, line breaks included, or "No data"
- * when there is none. The backend stores a blank comment as null; blank or
- * whitespace-only text is treated the same, in case an older document holds it.
- *
- * @param {unknown} comment
- * @returns {string}
- */
-export function supportingInformationDisplay(comment) {
-  if (typeof comment === 'string' && comment.trim() !== '') {
-    return comment
-  }
-  return NO_SUPPORTING_INFORMATION
-}
+// A Retained habitat's "Supporting information" is the comment saved on its
+// baseline habitat (BMD-1187), shown as the baseline page shows it once
+// locked (BMD-1194).
+export { supportingInformationDisplay }
 
 /**
  * The supporting information field for a view model: shown on a Retained

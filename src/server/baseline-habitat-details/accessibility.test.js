@@ -103,6 +103,29 @@ describe('Baseline habitat details page accessibility checks', () => {
     await runAxeChecks(document.documentElement)
   })
 
+  it('should have no HTML accessibility issues once post-intervention data is uploaded', async () => {
+    vi.mocked(wreck.get).mockImplementation((url) =>
+      Promise.resolve(
+        url.endsWith(`/projects/${projectId}`)
+          ? {
+              res: { statusCode: 200 },
+              payload: {
+                project: { name: 'Project 1', postIntervention: { units: {} } }
+              }
+            }
+          : routeWreck(url)
+      )
+    )
+    const { document } = await loadPage({
+      requestUrl: `/baseline-habitat-details?featureId=${featureId}&projectId=${projectId}`,
+      server,
+      auth: authedAuth
+    })
+    expect(document.querySelector('form')).toBeNull()
+    assertLayoutLandmarks(document)
+    await runAxeChecks(document.documentElement)
+  })
+
   it('should have no HTML accessibility issues when the habitat reference is refused', async () => {
     const crumb = await primeCrumb(server)
     const response = await server.inject({

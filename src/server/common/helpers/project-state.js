@@ -12,6 +12,17 @@ function projectHasHabitatData(project, habitatType) {
   )
 }
 
+/**
+ * Whether a post-intervention file has been uploaded to the project. Once it
+ * has, the baseline is locked (BMD-1194).
+ *
+ * @param {object | null | undefined} project
+ * @returns {boolean}
+ */
+function hasPostInterventionData(project) {
+  return Boolean(project?.postIntervention)
+}
+
 function hasPostInterventionOnlyHabitat(project, habitatType) {
   return (
     !hasHabitatData(project?.baseline, habitatType) &&
@@ -22,6 +33,7 @@ function hasPostInterventionOnlyHabitat(project, habitatType) {
 export {
   hasBaselineData,
   hasHabitatData,
+  hasPostInterventionData,
   hasPostInterventionOnlyHabitat,
   projectHasHabitatData
 }

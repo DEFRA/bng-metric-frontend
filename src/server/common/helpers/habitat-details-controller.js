@@ -2,7 +2,10 @@ import Boom from '@hapi/boom'
 import Joi from 'joi'
 
 import { config } from '../../../config/config.js'
-import { statusCodes } from '../constants.js'
+import { DEFAULT_PROJECT_NAME, statusCodes } from '../constants.js'
+import { lockedFieldDisplays } from '../../baseline-habitat-details/locked-fields.js'
+import { hasPostInterventionData } from './project-state.js'
+import { supportingInformationDisplay } from './supporting-information.js'
 import { backendRequest } from './auth/backend-request.js'
 import { backendSaveError } from './backend-save-error.js'
 import { isInvalidEnhancementError } from './invalid-enhancement-refusal.js'
@@ -288,10 +291,12 @@ async function renderDetailsPage(
   uploadType,
   { projectId, featureId, piBackHref = null, submitted = null, refusals }
 ) {
-  const [{ type, feature: rawFeature }, projectName] = await Promise.all([
+  const [{ type, feature: rawFeature }, projectPayload] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
-    fetchProjectName(request, projectId)
+    fetchProject(request, projectId)
   ])
+  const project = projectPayload?.project
+  const projectName = project?.name ?? DEFAULT_PROJECT_NAME
 
   const storedFeature = uploadType.isPostIntervention
     ? normalizePostInterventionFeatureForDisplay(rawFeature)
@@ -311,6 +316,25 @@ async function renderDetailsPage(
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.
   const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
+  const backLinks = {
+    backHref: piBackHref ?? viewModel.backHref,
+    cancelHref: piBackHref ?? viewModel.cancelHref
+  }
+  // Once post-intervention data is uploaded the baseline is locked (BMD-1194):
+  // every value is shown as text and there is nothing to save.
+  if (!uploadType.isPostIntervention && hasPostInterventionData(project)) {
+    return h.view('habitat-details/habitat-details', {
+      heading,
+      caption: projectName,
+      ...viewModel,
+      ...lockedFieldDisplays(viewModel),
+      locked: true,
+      commentDisplay: supportingInformationDisplay(storedFeature.comment),
+      pageTitle: heading,
+      detailsSectionHeading: uploadType.detailsSectionHeading,
+      ...backLinks
+    })
+  }
   const refFields = habitatRefFormFields({
     heading,
     savedRef: viewModel.habitatRef,
@@ -338,8 +362,7 @@ async function renderDetailsPage(
     detailsSectionHeading: uploadType.detailsSectionHeading,
     // Carried through the form so a refused save keeps Back and Cancel.
     returnUrl: piBackHref ?? '',
-    backHref: piBackHref ?? viewModel.backHref,
-    cancelHref: piBackHref ?? viewModel.cancelHref
+    ...backLinks
   })
 }
 
