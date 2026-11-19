@@ -1199,6 +1199,22 @@ upload:
           - ' — {habitatType}'
           - ', copied from {parentRef}'
 
+    STAGED_HABITAT_DEGRADE_NOT_VALID:
+      wording: interim
+      problemsList:
+        heading: >-
+          One or more habitats are Created in the habitat type of the baseline
+          habitat they are linked to, but not in a lower condition or not
+          created 30+ years in advance, as the Metric guide asks for a habitat
+          whose condition gets worse. Lower its condition and set its years
+          created in advance to 30+, or, if it is cleared and put back, enter
+          its delay in starting habitat creation
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied from {parentRef}'
+
     # ------------------------------------------------------ while uploading
 
     SIZING_FAILED:
@@ -1252,6 +1268,14 @@ edit:
   # advance. Shown against the field to blame, with forms'
   # condition.degradeNotWorse or advanceOrDelay.degradeNot30Plus.
   TREE_DEGRADE_NOT_VALID:
+    wording: none
+
+  # An edit that would leave an area habitat or hedgerow Created in its
+  # parent's own habitat type, with no delay, not in a lower condition or not
+  # created 30+ years in advance. Shown against the field to blame, with
+  # forms' condition.habitatDegradeNotWorse or
+  # advanceOrDelay.habitatDegradeNot30Plus.
+  HABITAT_DEGRADE_NOT_VALID:
     wording: none
 
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
@@ -1442,6 +1466,15 @@ forms:
         enter a delay if the tree is put back after a time. If this is a new
         tree planted in its place, set its Category to Newly Planted in your
         file and upload it again
+    # An area habitat or hedgerow Created in its parent's own type in its
+    # condition or a better one, with no delay, refused by the service
+    # (HABITAT_DEGRADE_NOT_VALID). A delay also makes the edit valid, as the
+    # habitat is then cleared and put back.
+    habitatDegradeNotWorse:
+      wording: interim
+      text: >-
+        Choose a target condition lower than the baseline habitat's condition,
+        or enter a delay if the habitat is cleared and put back
   strategicSignificance:
     invalid: Choose a valid strategic significance
   watercourseEncroachment:
@@ -1465,6 +1498,15 @@ forms:
         tree is put back after a time. If this is a new tree planted in its
         place, set its Category to Newly Planted in your file and upload it
         again
+    # An area habitat or hedgerow Created in its parent's own type, with no
+    # delay, not created 30+ years in advance, refused by the service
+    # (HABITAT_DEGRADE_NOT_VALID).
+    habitatDegradeNot30Plus:
+      wording: interim
+      text: >-
+        Set the years in advance to 30+, as a habitat whose condition gets
+        worse is recorded as created 30+ years in advance, or enter a delay if
+        the habitat is cleared and put back
 
 # ------------------------------------------------------------------- pages
 #

@@ -1908,6 +1908,25 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
+  test('lists each habitat Created in its baseline habitat’s own type with the habitat it was copied from', async () => {
+    const view = await viewFor([
+      lineageError('STAGED_HABITAT_DEGRADE_NOT_VALID', 'Heading', [
+        {
+          layer: 'hedgerows',
+          table: 'Hedgerows Post-Intervention',
+          fid: 17,
+          ref: 'HG017',
+          habitatType: 'Native hedgerow',
+          parentRef: 'HG017'
+        }
+      ])
+    ])
+
+    expect(view.errorBlocks.map(({ items }) => items)).toEqual([
+      ['Hedgerows Post-Intervention HG017 — Native hedgerow, copied from HG017']
+    ])
+  })
+
   test('lists each Existing tree Created over its baseline tree with the tree it was copied from', async () => {
     const view = await viewFor([
       lineageError('STAGED_TREE_DEGRADE_NOT_VALID', 'Heading', [
