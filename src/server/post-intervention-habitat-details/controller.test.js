@@ -967,11 +967,11 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
-  // An Enhanced area habitat or hedgerow is edited (BMD-1045, BMD-1046); an
-  // Enhanced watercourse is still read-only.
+  // An Enhanced area habitat, hedgerow or watercourse is edited (BMD-1045,
+  // BMD-1046, BMD-1047); an Enhanced vertical area habitat is still read-only.
   test('POST refuses edits for read-only retention categories', async () => {
     mockFeature({
-      type: 'watercourse',
+      type: 'verticalHabitat',
       feature: { retentionCategory: 'Enhanced' }
     })
     await expect(
@@ -990,7 +990,8 @@ test.each([
   ['hedgerow', 'Retained', 'habitat-details/pi-hedgerow-details'],
   // An Enhanced hedgerow is edited (BMD-1046).
   ['hedgerow', 'Enhanced', 'habitat-details/pi-habitat-details-created-edit'],
-  ['watercourse', 'Enhanced', 'habitat-details/pi-watercourse-details-enhanced']
+  // An Enhanced watercourse is edited (BMD-1047).
+  ['watercourse', 'Enhanced', 'habitat-details/pi-habitat-details-created-edit']
 ])(
   'keeps legacy %s %s routing consistent with the shared retention resolver',
   async (type, retentionCategory, template) => {

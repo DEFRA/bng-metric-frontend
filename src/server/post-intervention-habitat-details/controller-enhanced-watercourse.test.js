@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { wreck } from '../common/helpers/wreck-client.js'
 import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import {
@@ -27,11 +28,16 @@ describe('#postInterventionHabitatDetailsController enhanced watercourse', () =>
 
   // Covers both the raw GeoPackage value ("Enhanced") and the list-prefixed
   // form the backend does not strip ("1. Enhanced") — both must resolve
-  // through normaliseRetentionCategory to the same Enhanced page.
+  // through normaliseRetentionCategory to the same Enhanced page. An Enhanced
+  // watercourse is edited (BMD-1047); this is the read-only page it falls
+  // back to while the backend does not serve its enhancement reference.
   test.each(['1. Enhanced', 'Enhanced'])(
-    'GET renders the Enhanced watercourse details page with section layout (retentionCategory: %s)',
+    'GET renders the Enhanced watercourse details page with section layout while its enhancement reference is not served (retentionCategory: %s)',
     async (retentionCategory) => {
       vi.mocked(wreck.get).mockImplementation((url) => {
+        if (url.includes('/reference/watercourse-enhancement')) {
+          return Promise.reject(Boom.notFound())
+        }
         if (url.includes(`/post-intervention/features/${featureId}`)) {
           return Promise.resolve({
             payload: {

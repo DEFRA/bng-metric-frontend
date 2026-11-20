@@ -6,9 +6,9 @@ import {
 } from '../../post-intervention-habitat-details/retention.js'
 
 // BMD-1048 AC2 and AC11: an incomplete Created habitat shows zero units, on its
-// list row as on its details page. BMD-1045 and BMD-1046 AC2: so does an
-// incomplete Enhanced area habitat or hedgerow, the layers whose Enhanced
-// features have an edit page (an Enhanced watercourse is view only). Display
+// list row as on its details page. BMD-1045, BMD-1046 and BMD-1047 AC2: so
+// does an incomplete Enhanced area habitat, hedgerow or watercourse, the
+// layers whose Enhanced features have an edit page. Display
 // only: the stored units, null after an import or zero after an edit save, are
 // left unchanged.
 

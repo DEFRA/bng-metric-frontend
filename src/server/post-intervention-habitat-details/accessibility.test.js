@@ -25,7 +25,9 @@ import {
 } from './created-hedgerow-test-fixtures.js'
 import {
   createdWatercourseFeature,
-  watercourseCreationReference
+  enhancedWatercourseFeature,
+  watercourseCreationReference,
+  watercourseEnhancementReference
 } from './created-watercourse-test-fixtures.js'
 import {
   createdTree,
@@ -177,6 +179,15 @@ const EDIT_PAGES = {
     reference: [
       '/reference/hedgerow-enhancement?',
       hedgerowEnhancementReference
+    ],
+    values: withoutBroadHabitat
+  },
+  'Enhanced watercourse': {
+    type: 'watercourse',
+    feature: enhancedWatercourseFeature,
+    reference: [
+      '/reference/watercourse-enhancement?',
+      watercourseEnhancementReference
     ],
     values: withoutBroadHabitat
   }
