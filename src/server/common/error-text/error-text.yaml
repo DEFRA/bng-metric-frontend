@@ -1117,6 +1117,19 @@ upload:
           - ' — {habitatType}'
           - ', copied to {childRefs}'
 
+    STAGED_OUTSIDE_PARENT:
+      wording: interim
+      problemsList:
+        heading: >-
+          One or more post-intervention area habitats do not lie within the
+          baseline habitat they name as their parent. Name the baseline habitat
+          each one was copied from
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', named by {childRefs}'
+
     STAGED_HEDGEROW_CHILDREN_TOO_LONG:
       wording: interim
       problemsList:
