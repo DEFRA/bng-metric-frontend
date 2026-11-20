@@ -1,3 +1,5 @@
+const MINOR_RIPARIAN = 'Minor/No Encroachment'
+
 export const watercourseCreationReference = {
   featureType: 'watercourse',
   hasBroadHabitat: false,
@@ -145,7 +147,7 @@ export const watercourseCreationReference = {
     'Moderate/Minor',
     'Moderate/No Encroachment',
     'Minor/Minor',
-    'Minor/No Encroachment',
+    MINOR_RIPARIAN,
     'No Encroachment/No Encroachment',
     'N/A - Culvert'
   ]
@@ -168,7 +170,7 @@ export const createdWatercourseFeature = {
     advanceYears: 0,
     delayYears: 0,
     watercourseEncroachment: 'Minor',
-    riparianEncroachment: 'Minor/No Encroachment',
+    riparianEncroachment: MINOR_RIPARIAN,
     distinctiveness: 'Medium',
     distinctivenessScore: 4,
     difficulty: 'Medium',
@@ -181,13 +183,11 @@ export const createdWatercourseFeature = {
 // BMD-1047: the backend's watercourse enhancement reference for a Culvert in
 // Poor condition, which may move to any Medium distinctiveness watercourse at
 // a fixed 10 years (BMD-820 AC10). Culvert itself is never offered.
-const UPLIFT_CONDITIONS = [
-  { condition: 'Good', score: 3, years: 10 },
-  { condition: 'Fairly Good', score: 2.5, years: 10 },
-  { condition: 'Moderate', score: 2, years: 10 },
-  { condition: 'Fairly Poor', score: 1.5, years: 10 },
-  { condition: 'Poor', score: 1, years: 10 }
-]
+const UPLIFT_YEARS = 10
+const UPLIFT_CONDITIONS =
+  watercourseCreationReference.habitatTypes[0].conditions.map(
+    ({ condition, score }) => ({ condition, score, years: UPLIFT_YEARS })
+  )
 
 export const watercourseEnhancementReference = {
   ...watercourseCreationReference,
@@ -217,7 +217,7 @@ export const enhancedWatercourseFeature = {
     advanceYears: 0,
     delayYears: 0,
     watercourseEncroachment: 'Minor',
-    riparianEncroachment: 'Minor/No Encroachment',
+    riparianEncroachment: MINOR_RIPARIAN,
     distinctiveness: 'Medium',
     distinctivenessScore: 4,
     difficulty: 'Low',
