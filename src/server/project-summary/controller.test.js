@@ -279,12 +279,9 @@ describe('project summary', () => {
     ])
     expect(result).toContain('View trading rules')
     expect(result).not.toContain('>View trading rules</a>')
-    expect(result).toContain('View project details')
-    expect(result).toContain('class="app-project-summary__actions"')
+    expect(result).not.toContain('View project details')
+    expect(result).not.toContain('app-project-summary__actions')
     expect(result).not.toContain('Submit metric')
-    expect(result).toContain(
-      'View and amend your project details, including project name and target percentage'
-    )
   })
 
   test('links only the area Trading Rules tile when PI is uploaded', async () => {
