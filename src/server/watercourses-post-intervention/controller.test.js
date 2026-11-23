@@ -632,9 +632,9 @@ describe('watercourses post intervention', () => {
     })
   })
 
-  // Zero units on the list follow an edit page's AC2 (BMD-1045, BMD-1046): an
-  // Enhanced watercourse is view only, so its missing units stay blank.
-  test('leaves an Enhanced watercourse with no units blank', async () => {
+  // BMD-1047 AC2: an incomplete Enhanced watercourse shows zero units, as an
+  // Enhanced area habitat and hedgerow do (BMD-1045, BMD-1046).
+  test('shows an Enhanced watercourse with no units as zero', async () => {
     const stored = structuredClone(project)
     stored.project.postIntervention.watercourses = [
       { ...enhancedWatercourse, units: null, status: 'Incomplete' }
@@ -652,7 +652,9 @@ describe('watercourses post intervention', () => {
       (_, r) => $(r).find('a').first().text() === enhancedWatercourse.ref
     )
     expect(row).toHaveLength(1)
-    expect(row.find('td').eq(columns.indexOf('Units')).text().trim()).toBe('')
+    expect(row.find('td').eq(columns.indexOf('Units')).text().trim()).toBe(
+      '0.00'
+    )
   })
 
   test('redirects a project without baseline data to project summary', async () => {

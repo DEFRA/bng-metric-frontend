@@ -15,5 +15,7 @@ export const prepareCreatedWatercourseListDisplay = createdListDisplay({
     types.find(
       (t) => t.name === sourceValue(feature, feature.proposed, 'type')
     ),
-  typeFields: ['distinctiveness', 'distinctivenessScore']
+  typeFields: ['distinctiveness', 'distinctivenessScore'],
+  // BMD-1047 AC2: an incomplete Enhanced watercourse shows zero units too.
+  includeEnhanced: true
 })

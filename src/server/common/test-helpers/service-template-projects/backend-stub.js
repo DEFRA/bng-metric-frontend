@@ -166,23 +166,13 @@ function enhancementReference(project) {
 }
 
 /**
- * @param {object} body the fixture, as `GET /projects/{id}` returns it
- * @returns {(url: string) => Promise<{ res: { statusCode: number }, payload: unknown }>}
+ * The reference routes the stub serves, by path suffix.
+ *
+ * @param {object} project the fixture's project
+ * @returns {Map<string, () => unknown>}
  */
-function serviceTemplateBackend(body) {
-  const { project } = body
-  const projectPath = `/projects/${body.id}`
-  const baseline = featuresOf(project.baseline)
-  const postIntervention = featuresOf(project.postIntervention)
-
-  const featureRoutes = [
-    {
-      prefix: `${projectPath}/post-intervention/features/`,
-      features: postIntervention
-    },
-    { prefix: `${projectPath}/features/`, features: baseline }
-  ]
-  const references = new Map([
+function referenceRoutes(project) {
+  return new Map([
     ['/reference/habitat-types-by-broad', () => typesByBroad(project)],
     ['/reference/hedgerow-types', () => namedTypes(project, 'hedgerows')],
     ['/reference/watercourse-types', () => namedTypes(project, 'watercourses')],
@@ -212,12 +202,38 @@ function serviceTemplateBackend(body) {
       '/reference/watercourse-creation',
       () => creationReference(project, 'watercourses', 'watercourse')
     ],
+    // An Enhanced watercourse's choices (BMD-1047), whatever its baseline, as
+    // for an Enhanced area.
+    [
+      '/reference/watercourse-enhancement',
+      () => creationReference(project, 'watercourses', 'watercourse')
+    ],
     [
       '/reference/tree-creation',
       () => creationReference(project, 'trees', 'tree')
     ],
     ['/reference/tree-enhancement', () => enhancementReference(project)]
   ])
+}
+
+/**
+ * @param {object} body the fixture, as `GET /projects/{id}` returns it
+ * @returns {(url: string) => Promise<{ res: { statusCode: number }, payload: unknown }>}
+ */
+function serviceTemplateBackend(body) {
+  const { project } = body
+  const projectPath = `/projects/${body.id}`
+  const baseline = featuresOf(project.baseline)
+  const postIntervention = featuresOf(project.postIntervention)
+
+  const featureRoutes = [
+    {
+      prefix: `${projectPath}/post-intervention/features/`,
+      features: postIntervention
+    },
+    { prefix: `${projectPath}/features/`, features: baseline }
+  ]
+  const references = referenceRoutes(project)
 
   return async (url) => {
     const path = pathOf(url)

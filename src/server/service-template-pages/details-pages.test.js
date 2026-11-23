@@ -122,8 +122,14 @@ function baselineIds(body) {
 
 // A Created feature of those layers opens on the edit form, and so does an
 // Enhanced tree, whose condition is all it enhances, an Enhanced area habitat
-// (BMD-1045) and an Enhanced hedgerow (BMD-1046).
-const EDITABLE_ENHANCED_LAYERS = new Set(['trees', 'habitats', 'hedgerows'])
+// (BMD-1045), an Enhanced hedgerow (BMD-1046) and an Enhanced watercourse
+// (BMD-1047).
+const EDITABLE_ENHANCED_LAYERS = new Set([
+  'trees',
+  'habitats',
+  'hedgerows',
+  'watercourses'
+])
 const isEditable = (layer, feature) =>
   (feature.retentionCategory === 'Created' &&
     EDITABLE_CREATED_LAYERS.has(layer)) ||

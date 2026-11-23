@@ -1,4 +1,7 @@
-import { watercourseCreationReference } from './created-watercourse-test-fixtures.js'
+import {
+  watercourseCreationReference,
+  watercourseEnhancementReference
+} from './created-watercourse-test-fixtures.js'
 import { vi } from 'vitest'
 
 import { wreck } from '../common/helpers/wreck-client.js'
@@ -73,6 +76,9 @@ export function mockFeature(featurePayload, projectResponse = projectPayload) {
     }
     if (url.endsWith('/reference/hedgerow-creation')) {
       return Promise.resolve({ payload: hedgerowCreationReference })
+    }
+    if (url.includes('/reference/watercourse-enhancement?')) {
+      return Promise.resolve({ payload: watercourseEnhancementReference })
     }
     if (url.includes('/reference/hedgerow-enhancement?')) {
       return Promise.resolve({ payload: hedgerowEnhancementReference })
