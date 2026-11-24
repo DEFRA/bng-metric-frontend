@@ -1,4 +1,5 @@
 import { canonicalRelationshipId } from './relationship-id.js'
+import { isOnPrivateBetaList, PRIVATE_BETA_PATH } from './private-beta.js'
 
 export const bngCompleterRole = 'bng completer'
 
@@ -107,6 +108,16 @@ export const requireBngCompleterRole = {
     const creds = request.auth.credentials
 
     if (hasBngCompleterRole(creds)) {
+      // During Private Beta an approved role is not enough: the user's email
+      // address must also be on the allowlist (BMD-1104). Checked on every
+      // protected route, so typing a project URL cannot get round it.
+      if (!isOnPrivateBetaList(creds)) {
+        request.logger.warn(
+          { sub: creds?.sub, hasEmail: Boolean(creds?.email) },
+          `Private Beta check failed: user is not on the list, redirecting to ${PRIVATE_BETA_PATH}`
+        )
+        return h.redirect(PRIVATE_BETA_PATH).takeover()
+      }
       request.logger.debug(
         { sub: creds?.sub },
         'Role check passed: user has an approved bng completer role'

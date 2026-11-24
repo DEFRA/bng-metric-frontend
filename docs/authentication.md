@@ -74,6 +74,7 @@ All OIDC settings are in `src/config/config.js` under the `oidc` key. Each has a
 | `oidc.scopes`                | `OIDC_SCOPES`                   | `openid profile email offline_access`                                      | Scopes requested from the provider. Against live B2C the client ID is appended automatically (see `oidc.useStub`)                                                                               |
 | `oidc.serviceId`             | `OIDC_SERVICE_ID`               | _(empty)_                                                                  | Defra ID service identifier (required for real B2C, ignored by stub)                                                                                                                            |
 | `oidc.useStub`               | `OIDC_USE_STUB`                 | `false`                                                                    | Set `true` when the OIDC provider is the cdp-defra-id-stub (changes scope and nonce handling — see below)                                                                                       |
+| `privateBeta.allowedEmails`  | `PRIVATE_BETA_ALLOWED_EMAILS`   | _(empty)_                                                                  | Comma-separated email addresses allowed in during Private Beta (a CDP Portal secret). Unset or empty turns the filter off. See [Private Beta allowlist](#private-beta-allowlist-bmd-1104)       |
 
 ### Stub vs live OIDC
 
@@ -241,6 +242,16 @@ The `hasBngCompleterRole()` helper requires an **approved** role: the role name 
 
 > **Why approval matters end to end:** the backend independently verifies the same id_token and only returns projects whose relationship has an approved (status 3) role (`bng-metric-backend/src/db/project-visibility.js`). Without this front-end gate, a pending user would sign in, reach the pages, and then see empty lists / 404s from the backend. Gating on approval turns that into a clear "Access denied" instead. See [Authenticated user journey](./authenticated-user-journey.md) for the full lifecycle.
 
+### Private Beta allowlist (BMD-1104)
+
+While the service is in Private Beta, an approved role is not enough: the user's `email` claim must also be on the allowlist in `PRIVATE_BETA_ALLOWED_EMAILS`, a comma-separated list set as a secret in the CDP Portal for each environment.
+
+- **Off when unset.** If the variable is unset or empty, nobody is filtered. Local dev and the journey tests run this way.
+- **Parsed once.** `src/server/common/helpers/auth/private-beta.js` reads the list into a `Set` when the app starts. Each entry is trimmed and lower-cased; empty entries are skipped; an entry that is not a plausible email address (no `@`, or no `.` in the domain) is rejected. A list whose every entry is rejected still turns the filter on, so a mistyped secret denies rather than opens the service.
+- **Start-up log.** One line says whether the filter is on, how many entries it holds and how many were rejected. Addresses are never logged.
+- **Where it is checked.** In the callback, after the role check: a user with an approved role who is not on the list (or has no `email` claim) gets `LoginFailed` with reason `private-beta` and is sent to `/auth/private-beta` (403, same layout as `/auth/forbidden`, words in `error-text.yaml` under `pages.privateBeta`). `requireBngCompleterRole` makes the same check, so every protected route sends that user to the drop-out page too. A user without an approved role still sees `/auth/forbidden` and counts as `rbac`.
+- **Turning it off.** Remove the secret and redeploy; the start-up log then says the filter is off.
+
 ### Logout (`/auth/logout`)
 
 1. Reads the `idToken` from the yar session.
@@ -284,7 +295,7 @@ export const myFeature = {
 ### What each part does
 
 - **`auth: 'session'`** - Requires a valid yar session with user credentials. Unauthenticated requests receive a 401 response (handled by the error page).
-- **`pre: [requireBngCompleterRole]`** - Runs before the handler. Checks `request.auth.credentials.roles` for the `bng completer` role. If missing, redirects to `/auth/forbidden` with a takeover response.
+- **`pre: [requireBngCompleterRole]`** - Runs before the handler. Checks `request.auth.credentials.roles` for the `bng completer` role. If missing, redirects to `/auth/forbidden` with a takeover response. If the role is approved but the user is not on the Private Beta allowlist, redirects to `/auth/private-beta`.
 - **`...myController.options`** - Preserves any existing options the controller defines (e.g., validation).
 
 ### Auth-only (no role check)

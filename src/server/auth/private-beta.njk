@@ -1,0 +1,16 @@
+{% extends 'layouts/page.njk' %}
+
+{% from "error-text-body/macro.njk" import appErrorTextBody %}
+
+{% block content %}
+  {{ appHeading({
+    text: heading,
+    caption: "bng-metric-frontend"
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {{ appErrorTextBody({ lines: body, testId: "private-beta-body" }) }}
+    </div>
+  </div>
+{% endblock %}

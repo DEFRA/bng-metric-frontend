@@ -1580,6 +1580,16 @@ pages:
       - Access is limited to users with an approved BNG completer role. If your role is still awaiting approval, or you think this is wrong, contact your Defra administrator.
       - '[Return to the home page](home)'
 
+  # Signed in with an approved role, but not on the Private Beta list
+  # (PRIVATE_BETA_ALLOWED_EMAILS). BMD-1104 leaves the words "TBC".
+  privateBeta:
+    wording: interim
+    title: You cannot use this service yet
+    body:
+      - This service is in Private Beta. Only invited users can use it at the moment.
+      - Continue to use the Statutory Biodiversity Metric Excel tool to calculate biodiversity net gain.
+      - '[Return to the home page](home)'
+
   # A habitat on the post-intervention details page that has no details
   # page of its own, such as an IGGI.
   featureUnsupported:

@@ -13,9 +13,11 @@ import {
   forbiddenController,
   loginController,
   logoutController,
+  privateBetaController,
   sessionExpiredController,
   signedOutController
 } from './controller.js'
+import { isOnPrivateBetaList } from '../common/helpers/auth/private-beta.js'
 import { getOidcConfig } from '../common/helpers/auth/oidc-client.js'
 import {
   recordLoginSuccess,
@@ -57,6 +59,12 @@ vi.mock('../common/helpers/auth/auth-metrics.js', async (importOriginal) => {
   }
 })
 
+// Keep the real drop-out path; let each test say whether the user is listed.
+vi.mock('../common/helpers/auth/private-beta.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  isOnPrivateBetaList: vi.fn()
+}))
+
 const fakeOidcConfig = { fake: 'config' }
 
 function buildRequest(overrides = {}) {
@@ -92,6 +100,7 @@ function buildToolkit() {
 beforeEach(() => {
   vi.clearAllMocks()
   getOidcConfig.mockResolvedValue(fakeOidcConfig)
+  isOnPrivateBetaList.mockReturnValue(true)
 })
 
 describe('#loginController', () => {
@@ -278,6 +287,102 @@ describe('#callbackController', () => {
     )
     expect(recordLoginSuccess).not.toHaveBeenCalled()
     expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
+  })
+
+  describe('Private Beta allowlist (BMD-1104)', () => {
+    function signIn(claims) {
+      const request = buildRequest()
+      request.yar.set('oidc', {
+        codeVerifier: 'verifier',
+        state: 'state',
+        nonce: 'nonce'
+      })
+      authorizationCodeGrant.mockResolvedValue({
+        id_token: 'id-token',
+        refresh_token: 'refresh-token',
+        claims: () => claims
+      })
+      return request
+    }
+
+    test('records LoginFailed (private-beta) and redirects to the drop-out page when the user is not on the list', async () => {
+      isOnPrivateBetaList.mockReturnValue(false)
+      const claims = {
+        sub: 'user-3',
+        email: 'not.listed@example.com',
+        roles: ['rel-1:bng completer:3']
+      }
+      const request = signIn(claims)
+      const h = buildToolkit()
+
+      await callbackController.handler(request, h)
+
+      expect(isOnPrivateBetaList).toHaveBeenCalledWith(claims)
+      expect(recordLoginFailure).toHaveBeenCalledWith(
+        request,
+        LOGIN_FAILURE_REASON.privateBeta
+      )
+      expect(LOGIN_FAILURE_REASON.privateBeta).toBe('private-beta')
+      expect(recordLoginSuccess).not.toHaveBeenCalled()
+      expect(h.redirect).toHaveBeenCalledWith('/auth/private-beta')
+      expect(h.redirect).not.toHaveBeenCalledWith('/manage-projects')
+      expect(request.logger.warn).toHaveBeenCalledWith(
+        { sub: 'user-3', hasEmail: true },
+        expect.stringContaining('not on the Private Beta list')
+      )
+    })
+
+    test('never logs the email address of a denied user', async () => {
+      isOnPrivateBetaList.mockReturnValue(false)
+      const request = signIn({
+        sub: 'user-3',
+        email: 'not.listed@example.com',
+        roles: ['rel-1:bng completer:3']
+      })
+
+      await callbackController.handler(request, buildToolkit())
+
+      const logged = JSON.stringify([
+        request.logger.info.mock.calls,
+        request.logger.warn.mock.calls,
+        request.logger.error.mock.calls,
+        request.logger.debug.mock.calls
+      ])
+      expect(logged).not.toContain('not.listed@example.com')
+    })
+
+    test('records LoginSucceeded and redirects to /manage-projects when the user is on the list', async () => {
+      const request = signIn({
+        sub: 'user-4',
+        email: 'listed@example.com',
+        roles: ['rel-1:bng completer:3']
+      })
+      const h = buildToolkit()
+
+      await callbackController.handler(request, h)
+
+      expect(recordLoginSuccess).toHaveBeenCalledWith(request)
+      expect(recordLoginFailure).not.toHaveBeenCalled()
+      expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
+    })
+
+    test('treats a user with no approved role as an RBAC denial, even when they are not on the list', async () => {
+      isOnPrivateBetaList.mockReturnValue(false)
+      const request = signIn({
+        sub: 'user-5',
+        roles: ['rel-1:bng completer:1']
+      })
+      const h = buildToolkit()
+
+      await callbackController.handler(request, h)
+
+      expect(recordLoginFailure).toHaveBeenCalledWith(
+        request,
+        LOGIN_FAILURE_REASON.rbac
+      )
+      expect(recordLoginFailure).toHaveBeenCalledTimes(1)
+      expect(h.redirect).toHaveBeenCalledWith('/manage-projects')
+    })
   })
 
   // BMD-890: projects are scoped to the org the user is signed in as, so a
@@ -509,6 +614,25 @@ describe('#forbiddenController', () => {
       'auth/forbidden',
       expect.objectContaining({ navigation: [] })
     )
+  })
+})
+
+describe('#privateBetaController', () => {
+  test('renders the private-beta view with a 403 status and no navigation', () => {
+    const h = buildToolkit()
+
+    privateBetaController.handler({}, h)
+
+    expect(h.view).toHaveBeenCalledWith(
+      'auth/private-beta',
+      expect.objectContaining({
+        pageTitle: 'You cannot use this service yet',
+        heading: 'You cannot use this service yet',
+        body: expect.any(Array),
+        navigation: []
+      })
+    )
+    expect(h._response.code).toHaveBeenCalledWith(403)
   })
 })
 
