@@ -2516,7 +2516,7 @@ describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
 // An individual tree is an area habitat on this page, and takes supporting
 // information like one (BMD-1112). Covered separately from the area habitat
 // tests above because a tree reaches the box through treeStrategy, and
-// because its size class and number of trees must survive a save untouched.
+// because its size class must survive a save untouched.
 describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)', () => {
   let server
   let crumb
@@ -2598,8 +2598,9 @@ describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)'
       /<label class="govuk-label govuk-label--m" for="comment">\s*Supporting information\s*<\/label>/
     )
     expect(result).toContain('>Imported tree note</textarea>')
-    // The rest of the tree's page is unchanged by this story.
-    expect(result).toContain('Number of trees')
+    // Each tree point is one tree, so the page shows no number of trees.
+    expect(result).toContain('Tree size')
+    expect(result).not.toContain('Number of trees')
   })
 
   const postTree = (payload) =>

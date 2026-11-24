@@ -149,7 +149,6 @@ describe('Enhanced tree controller', () => {
         fixedBroadHabitat: 'Individual trees',
         showTreeRows: true,
         treeSizeDisplay: 'Medium',
-        treeCountDisplay: '2',
         values: expect.objectContaining({
           broadHabitat: 'Individual trees',
           habitatType: 'Urban tree',

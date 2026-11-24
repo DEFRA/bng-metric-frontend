@@ -401,7 +401,6 @@ describe('initBaselineHabitatDetails — individual tree', () => {
       fixedBroadHabitat: 'Individual trees',
       showTreeRows: true,
       treeSizeDisplay: 'Medium',
-      treeCountDisplay: '2',
       habitatTypeOptions: [
         { value: 'Rural tree', text: 'Rural tree', selected: false },
         { value: 'Urban tree', text: 'Urban tree', selected: true }

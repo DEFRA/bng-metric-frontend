@@ -25,8 +25,7 @@ function treeTypeItems(habitatTypes, savedType) {
 
 /**
  * An individual tree is an area habitat on the details page, with its size
- * class and the number of trees the point stands for besides: the values the
- * surveyor entered, from which its size in hectares comes. Its broad habitat
+ * class besides: the value the surveyor entered, from which its size in hectares comes. Its broad habitat
  * is always Individual trees, shown and sent with the form but not editable,
  * and its habitat type is Urban tree or Rural tree.
  *
@@ -37,13 +36,13 @@ export const treeStrategy = {
   buildViewModel(tree, reference, ctx) {
     return {
       ...areaStrategy.buildViewModel(tree, reference, ctx),
-      ...treeDetailsFields(tree.treeSize, tree.count),
+      ...treeDetailsFields(tree.treeSize),
       showTreeRows: true,
       showBroadHabitatRow: false,
       fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
       habitatTypeOptions: treeTypeItems(reference.habitatTypes, tree.type),
       // Supporting information is editable on a tree as on any other area
-      // habitat (BMD-1112). Tree size and Number of trees stay read-only, so
+      // habitat (BMD-1112). Tree size stays read-only, so
       // a save cannot move the tree's notional area, and Broad habitat is
       // fixed while Habitat type offers only the two tree settings
       // (BMD-1172), so a save cannot make the tree another habitat.

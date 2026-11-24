@@ -9,7 +9,7 @@ import { watercourseStrategy } from './watercourse.js'
 const STRATEGIES = {
   habitat: areaStrategy,
   // Individual trees are an area habitat on the details page too, with their
-  // size class and number of trees.
+  // size class.
   tree: treeStrategy,
   // A vertical area habitat too, sized in square metres.
   verticalHabitat: verticalStrategy,

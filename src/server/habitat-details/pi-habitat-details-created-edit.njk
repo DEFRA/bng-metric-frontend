@@ -69,7 +69,6 @@
         {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
         {% if showTreeRows %}
           {{ derived("Tree size", "treeSizeDisplay", treeSizeDisplay) }}
-          {{ derived("Number of trees", "treeCountDisplay", treeCountDisplay) }}
         {% endif %}
         {% if fields.broadHabitat %}{{ select(fields.broadHabitat) }}{% endif %}
         {# An individual tree is always Individual trees: shown, and sent with

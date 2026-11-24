@@ -317,12 +317,11 @@ describe('#postInterventionHabitatDetailsController', () => {
     caption: 'Test Project',
     interventionDisplay: expect.any(String),
     treeSizeDisplay: 'Medium',
-    treeCountDisplay: '2',
     showTreeRows: true,
     backHref: `/projects/${projectId}/area-post-intervention`
   }
 
-  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and number of trees, while the backend does not serve the tree enhancement reference', async () => {
+  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and no number of trees, while the backend does not serve the tree enhancement reference', async () => {
     mockTree('Enhanced', undefined, () =>
       Promise.reject(
         Object.assign(new Error('Not Found'), {
