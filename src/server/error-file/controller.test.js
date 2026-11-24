@@ -1871,11 +1871,13 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each tree recorded both as an Existing tree Created and as another tree that is it, and the trees linked', async () => {
+  test('lists each tree recorded both as an Existing tree Created and as another tree that is it, and the trees linked, under the error text’s heading', async () => {
+    // The page words the heading from error-text.yaml by code, so the
+    // backend's message is not it.
     const heading =
       'One or more baseline trees have an Existing tree Created over them and another Retained, Enhanced or Existing tree linked to them, so the same tree is scored twice. A baseline tree is one tree: either kept, as one Retained or Enhanced tree, or lost and created again, as one Existing tree Created. Record a new tree planted beside it as Newly Planted'
     const view = await viewFor([
-      lineageError('STAGED_TREE_RECORDED_TWICE', heading, [
+      lineageError('STAGED_TREE_RECORDED_TWICE', 'The backend’s message', [
         {
           layer: 'trees',
           table: 'Individual Trees Baseline',
