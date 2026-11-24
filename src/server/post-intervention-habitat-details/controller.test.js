@@ -248,8 +248,14 @@ describe('#postInterventionHabitatDetailsController', () => {
     }
   )
 
-  // A Medium urban tree point standing for 2 trees.
-  function mockTree(retentionCategory, treeCreation, treeEnhancement) {
+  // A Medium urban tree point standing for 2 trees, in a legacy project
+  // unless another project is given.
+  function mockTree(
+    retentionCategory,
+    treeCreation,
+    treeEnhancement,
+    project = projectPayload
+  ) {
     _resetCreatedAreaReferenceCache()
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {
@@ -283,7 +289,7 @@ describe('#postInterventionHabitatDetailsController', () => {
         return treeEnhancement()
       }
       if (isProjectUrl(url)) {
-        return Promise.resolve(projectPayload)
+        return Promise.resolve(project)
       }
       throw new Error(`Unexpected URL ${url}`)
     })
@@ -317,11 +323,13 @@ describe('#postInterventionHabitatDetailsController', () => {
     caption: 'Test Project',
     interventionDisplay: expect.any(String),
     treeSizeDisplay: 'Medium',
+    treeCountDisplay: '2',
     showTreeRows: true,
+    showTreeCountRow: true,
     backHref: `/projects/${projectId}/area-post-intervention`
   }
 
-  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and no number of trees, while the backend does not serve the tree enhancement reference', async () => {
+  test('GET renders an Enhanced individual tree read-only in the area layout, with its size class and number of trees, while the backend does not serve the tree enhancement reference', async () => {
     mockTree('Enhanced', undefined, () =>
       Promise.reject(
         Object.assign(new Error('Not Found'), {
@@ -344,6 +352,44 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
   })
+
+  // A BNG Service template tree has no Count: each point is one tree, so its
+  // page shows no number of trees (BMD-1172). Its size is still the one the
+  // backend saved.
+  test.each([
+    ['Retained', 'habitat-details/pi-habitat-details'],
+    ['Enhanced', 'habitat-details/pi-habitat-details-enhanced']
+  ])(
+    'GET shows a %s BNG Service template tree no number of trees',
+    async (retentionCategory, template) => {
+      const notFound = () =>
+        Promise.reject(
+          Object.assign(new Error('Not Found'), {
+            output: { statusCode: 404 }
+          })
+        )
+      mockTree(retentionCategory, notFound, notFound, {
+        payload: {
+          project: {
+            name: 'Test Project',
+            postIntervention: { template: { name: 'bng-service' } }
+          }
+        }
+      })
+
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      expect(h.view).toHaveBeenCalledWith(
+        template,
+        expect.objectContaining({
+          treeSizeDisplay: 'Medium',
+          showTreeRows: true,
+          showTreeCountRow: false
+        })
+      )
+    }
+  )
 
   test('GET renders a Retained individual tree with its reference form, in the area layout', async () => {
     mockTree('Retained', treeCreationReference)

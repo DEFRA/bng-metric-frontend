@@ -74,6 +74,7 @@ describe('Created tree controller', () => {
         fixedBroadHabitat: 'Individual trees',
         showTreeRows: true,
         treeSizeDisplay: 'Medium',
+        treeCountDisplay: '2',
         values: expect.objectContaining({
           broadHabitat: 'Individual trees',
           habitatType: 'Urban tree',
@@ -326,7 +327,7 @@ describe('Created tree authenticated form', () => {
         .matchAll(/<option value="([^"]*)"/g)
     ].map(([, value]) => value)
     expect(habitatTypes).toEqual(['Rural tree', 'Urban tree'])
-    expect(response.payload).not.toContain('Number of trees')
+    expect(response.payload).toContain('Number of trees')
   })
 
   test('shows the page again, in the error summary, when the backend refuses a tree that would no longer be a tree', async () => {

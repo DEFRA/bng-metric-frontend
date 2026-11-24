@@ -76,10 +76,14 @@
 
           {{ stackedField(sizeLabel, sizeDisplay) }}
 
-          {# An individual tree's size class, from which its size in hectares
-             comes. #}
+          {# An individual tree's size class and, for a legacy tree, its number
+             of trees, from which its size in hectares comes. A BNG Service
+             template tree is always one tree, so shows no number. #}
           {% if showTreeRows %}
             {{ stackedField("Tree size", treeSizeDisplay) }}
+            {% if showTreeCountRow %}
+              {{ stackedField("Number of trees", treeCountDisplay) }}
+            {% endif %}
           {% endif %}
 
           {% if showBroadHabitatRow %}

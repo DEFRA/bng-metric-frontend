@@ -8,6 +8,7 @@ import { backendSaveError } from './backend-save-error.js'
 import { isInvalidEnhancementError } from './invalid-enhancement-refusal.js'
 import { isInvalidDegradeError } from './invalid-degrade-refusal.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
+import { isServiceTemplateDocument } from './service-template.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
 import {
   cleanComment,
@@ -288,10 +289,12 @@ async function renderDetailsPage(
   uploadType,
   { projectId, featureId, piBackHref = null, submitted = null, refusals }
 ) {
-  const [{ type, feature: rawFeature }, projectName] = await Promise.all([
+  const [{ type, feature: rawFeature }, project] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
-    fetchProjectName(request, projectId)
+    fetchProject(request, projectId)
   ])
+  const projectName = project?.project?.name ?? 'Project'
+  const stage = uploadType.isPostIntervention ? 'postIntervention' : 'baseline'
 
   const storedFeature = uploadType.isPostIntervention
     ? normalizePostInterventionFeatureForDisplay(rawFeature)
@@ -306,7 +309,8 @@ async function renderDetailsPage(
   }
   const viewModel = strategy.buildViewModel(feature, reference, {
     projectId,
-    projectName
+    projectName,
+    serviceTemplate: isServiceTemplateDocument(project?.project?.[stage])
   })
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.

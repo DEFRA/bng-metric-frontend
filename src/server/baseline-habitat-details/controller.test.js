@@ -2516,7 +2516,7 @@ describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
 // An individual tree is an area habitat on this page, and takes supporting
 // information like one (BMD-1112). Covered separately from the area habitat
 // tests above because a tree reaches the box through treeStrategy, and
-// because its size class must survive a save untouched.
+// because its size class and number of trees must survive a save untouched.
 describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)', () => {
   let server
   let crumb
@@ -2598,7 +2598,49 @@ describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)'
       /<label class="govuk-label govuk-label--m" for="comment">\s*Supporting information\s*<\/label>/
     )
     expect(result).toContain('>Imported tree note</textarea>')
-    // Each tree point is one tree, so the page shows no number of trees.
+    // The rest of the tree's page is unchanged by this story.
+    expect(result).toContain('Number of trees')
+  })
+
+  // A legacy tree point can stand for several trees, and its area is that
+  // many times its size class's, so the page says how many (BMD-1172).
+  test('Shows a legacy tree whose Count is 3 its number of trees', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Tree size')
+    expect(result).toMatch(/Number of trees[\s\S]*?>\s*3\s*</)
+  })
+
+  // A BNG Service template tree has no Count: each point is one tree, so the
+  // page shows no number of trees, whatever the feature carries.
+  test('Shows a BNG Service template tree no number of trees', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(
+        u.endsWith(`/projects/${projectId}`)
+          ? {
+              res: { statusCode: 200 },
+              payload: {
+                project: {
+                  name: 'Test Project',
+                  baseline: { template: { name: 'bng-service' } }
+                }
+              }
+            }
+          : routeTreeWreck(u)
+      )
+    )
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
     expect(result).toContain('Tree size')
     expect(result).not.toContain('Number of trees')
   })

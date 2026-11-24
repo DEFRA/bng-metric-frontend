@@ -16,7 +16,7 @@ import { AREA_SECTIONS_TEMPLATE, AREA_SIZE_LABEL } from './constants.js'
 // What a Created and an Enhanced tree are edited with alike. A tree stays a
 // tree: its broad habitat is always Individual trees, shown and sent but not
 // editable, and its habitat type must be Urban tree or Rural tree. Its size
-// class is shown, not edited. Until the backend serves
+// class and a legacy tree's number of trees are shown, not edited. Until the backend serves
 // its reference, it keeps its read-only page. Both have the supporting
 // information box (BMD-1153, BMD-1190).
 const TREE_KIND_BASE = Object.freeze({

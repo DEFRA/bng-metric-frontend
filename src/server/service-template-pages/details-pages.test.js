@@ -179,6 +179,7 @@ describe('details pages of a BNG Service template project', () => {
     const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
 
     expect(fieldValue($, 'Tree size')).toBe(tree.treeSize)
+    // A BNG Service template tree is one tree: it has no Count to show.
     expect(fieldValue($, 'Number of trees')).toBeUndefined()
   })
 
@@ -419,6 +420,7 @@ describe('details pages of a BNG Service template project', () => {
         expect(normalise($('main').text())).not.toContain('not yet supported')
         expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
         expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
+        // A BNG Service template tree is one tree: it has no Count to show.
         expect(fieldValue($, 'Number of trees')).toBeUndefined()
         expect(
           fieldValue($, 'Habitat type') ??

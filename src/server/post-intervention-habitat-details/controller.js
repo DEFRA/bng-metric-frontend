@@ -7,6 +7,7 @@ import {
   fetchFeature,
   fetchProject
 } from '../common/helpers/habitat-details-controller.js'
+import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
@@ -288,6 +289,17 @@ async function loadCreationReferenceForFeature(kindKey, feature) {
 }
 
 /**
+ * Whether the project's post-intervention document was uploaded in the BNG
+ * Service template, whose trees have no Count and so show no number of trees.
+ *
+ * @param {object|null} project
+ * @returns {boolean}
+ */
+function isServiceTemplateProject(project) {
+  return isServiceTemplateDocument(project?.project?.postIntervention)
+}
+
+/**
  * Render a Created area habitat, tree, hedgerow or watercourse, or an
  * Enhanced tree or area habitat: its edit page, or, for any but a Created
  * area habitat, its read-only page while the backend reference endpoint is
@@ -315,7 +327,8 @@ async function renderCreatedFeature(
         {
           projectId,
           projectName,
-          baselineFeatureId
+          baselineFeatureId,
+          serviceTemplate: isServiceTemplateProject(project)
         }
       ),
       backHref: postInterventionBackHref(projectId, type, returnUrl)
@@ -327,6 +340,7 @@ async function renderCreatedFeature(
       projectId,
       projectName,
       baselineFeatureId,
+      serviceTemplate: isServiceTemplateProject(project),
       returnUrl
     })
   )
@@ -388,6 +402,7 @@ async function renderDetailsPage(
       projectId,
       projectName,
       baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature),
+      serviceTemplate: isServiceTemplateProject(project),
       baselineComment
     }
   )
@@ -492,6 +507,7 @@ async function saveCreatedDetails(
             fetched,
             kindKey
           ),
+          serviceTemplate: isServiceTemplateProject(project),
           returnUrl,
           refusal
         },
