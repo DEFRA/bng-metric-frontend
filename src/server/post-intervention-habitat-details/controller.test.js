@@ -778,6 +778,21 @@ describe('#postInterventionHabitatDetailsController', () => {
       )
     })
 
+    test('links a Retained tree to the baseline tree, not an area habitat sharing its ref', async () => {
+      mockHedgerowWithBaseline(
+        {
+          habitats: [{ featureId: otherBaselineId, ref: 'H1' }],
+          trees: [{ featureId: baselineFeatureId, ref: 'H1' }]
+        },
+        {},
+        'tree'
+      )
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+      )
+    })
+
     test('shows no link when only another layer carries the ref', async () => {
       mockHedgerowWithBaseline({
         habitats: [{ featureId: otherBaselineId, ref: 'H1' }]

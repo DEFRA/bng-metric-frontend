@@ -255,7 +255,7 @@ test('uses the requested kind even when the reference response omits its discrim
   expect((await loadCreatedHedgerowReference()).featureType).toBe('hedgerow')
 })
 
-test('retains a non-template hedgerow parent link on GET and validation redisplay', async () => {
+test('shows no link to a non-template hedgerow parent on GET and validation redisplay', async () => {
   mockFeature(
     {
       type: 'hedgerow',
@@ -278,9 +278,7 @@ test('retains a non-template hedgerow parent link on GET and validation redispla
   await getController.handler({ query: { projectId, featureId } }, h)
   await postController.handler(request({ ref: '' }), h)
   for (const [, vm] of h.view.mock.calls) {
-    expect(vm.viewBaselineHref).toBe(
-      `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
-    )
+    expect(vm.viewBaselineHref).toBeNull()
   }
 })
 
@@ -303,7 +301,7 @@ test('keeps Created hedgerows viewable until the backend reference endpoint is d
   expect(h.view.mock.calls[0][1]).not.toHaveProperty('formAction')
 })
 
-test('keeps the baseline link on the Created hedgerow rollout fallback', async () => {
+test('shows no baseline link on the Created hedgerow rollout fallback', async () => {
   mockFeature(
     {
       type: 'hedgerow',
@@ -329,7 +327,9 @@ test('keeps the baseline link on the Created hedgerow rollout fallback', async (
   expect(h.view.mock.calls[0][0]).toBe(
     'habitat-details/pi-hedgerow-details-enhanced'
   )
-  expect(JSON.stringify(h.view.mock.calls[0][1])).toContain(baselineFeatureId)
+  expect(JSON.stringify(h.view.mock.calls[0][1])).not.toContain(
+    baselineFeatureId
+  )
 })
 
 test.each([

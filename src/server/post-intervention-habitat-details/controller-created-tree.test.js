@@ -149,8 +149,8 @@ describe('Created tree controller', () => {
     expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
   })
 
-  // A tree's page links to no baseline tree, even where one shares its ref and
-  // matches the baseline its row carries, as the second tree here does.
+  // A Created tree's page links to no baseline tree, even where one shares its
+  // ref and matches the baseline its row carries, as the second tree here does.
   describe('no baseline link for a Created tree whose ref baseline trees share', () => {
     const POOR_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
     const MODERATE_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'

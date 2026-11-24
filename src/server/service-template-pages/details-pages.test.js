@@ -316,15 +316,21 @@ describe('details pages of a BNG Service template project', () => {
       }
     )
 
-    // A tree's page links to no baseline tree, though it names its parent.
-    const linksToParent = (layer, parentFeatureId, body) =>
-      layer !== 'trees' && baselineIds(body).has(parentFeatureId)
+    // A Retained or Enhanced feature's page links to the baseline feature it
+    // names as its parent, a tree's included; a Created one's, a degraded
+    // one's included, to none.
+    const linksToParent = (retentionCategory, parentFeatureId, body) =>
+      retentionCategory !== 'Created' && baselineIds(body).has(parentFeatureId)
 
     test.each(cases)(
-      'links %s to the baseline feature it names as its parent, or shows no link',
-      async (_label, layer, { featureId, parentFeatureId }) => {
+      'links %s to the baseline feature it names as its parent unless it is Created, or shows no link',
+      async (
+        _label,
+        _layer,
+        { featureId, parentFeatureId, retentionCategory }
+      ) => {
         const body = serviceTemplateProject('twoStages')
-        const expected = linksToParent(layer, parentFeatureId, body)
+        const expected = linksToParent(retentionCategory, parentFeatureId, body)
           ? baselineDetailsUrl(body, parentFeatureId)
           : undefined
 
@@ -337,22 +343,47 @@ describe('details pages of a BNG Service template project', () => {
       }
     )
 
-    test('a tree that names a baseline tree as its parent shows no link, and there is one', async () => {
+    test.each(['Retained', 'Enhanced'])(
+      'a %s feature that names a baseline parent links to it, and a tree is among them',
+      async (retentionCategory) => {
+        const body = serviceTemplateProject('twoStages')
+        const linked = cases.filter(
+          ([, , f]) =>
+            f.retentionCategory === retentionCategory &&
+            baselineIds(body).has(f.parentFeatureId)
+        )
+        expect(new Set(linked.map(([, layer]) => layer))).toContain('trees')
+        const [, , feature] = linked[0]
+
+        const $ = await render(
+          body,
+          postInterventionDetailsUrl(body, feature.featureId)
+        )
+
+        expect(viewBaselineHref($)).toBe(
+          baselineDetailsUrl(body, feature.parentFeatureId)
+        )
+        expect($('main').text()).toContain(VIEW_BASELINE_LINK)
+      }
+    )
+
+    test('a Created feature that names a baseline parent shows no link, and there is one', async () => {
       const body = serviceTemplateProject('twoStages')
-      const linked = cases.filter(
-        ([, layer, f]) =>
-          layer === 'trees' && baselineIds(body).has(f.parentFeatureId)
+      const created = cases.filter(
+        ([, , f]) =>
+          f.retentionCategory === 'Created' &&
+          baselineIds(body).has(f.parentFeatureId)
       )
-      expect(linked.length).toBeGreaterThan(0)
-      const [, , tree] = linked[0]
+      expect(created.length).toBeGreaterThan(0)
+      const [, , feature] = created[0]
 
       const $ = await render(
         body,
-        postInterventionDetailsUrl(body, tree.featureId)
+        postInterventionDetailsUrl(body, feature.featureId)
       )
 
       expect(viewBaselineHref($)).toBeUndefined()
-      expect($('main').text()).not.toContain('View baseline details')
+      expect($('main').text()).not.toContain(VIEW_BASELINE_LINK)
     })
 
     test('a feature with no parent shows no link, and there is one', async () => {
@@ -369,7 +400,9 @@ describe('details pages of a BNG Service template project', () => {
       expect(viewBaselineHref($)).toBeUndefined()
     })
 
-    test('the degraded hedgerow HG017 renders in the Created layout and links to its parent', async () => {
+    // A degraded habitat is recorded as Created, so it links to no baseline,
+    // though it names the one it degrades as its parent.
+    test('the degraded hedgerow HG017 renders in the Created layout, with no link to its parent', async () => {
       const body = serviceTemplateProject('twoStages')
       const hedgerow = body.project.postIntervention.hedgerows.find(
         (f) => f.ref === 'HG017'
@@ -381,10 +414,9 @@ describe('details pages of a BNG Service template project', () => {
       )
 
       expect(hedgerow.retentionCategory).toBe('Created')
+      expect(baselineIds(body).has(hedgerow.parentFeatureId)).toBe(true)
       expect(fieldNames($)).toContain('strategicSignificance')
-      expect(viewBaselineHref($)).toBe(
-        baselineDetailsUrl(body, hedgerow.parentFeatureId)
-      )
+      expect(viewBaselineHref($)).toBeUndefined()
     })
 
     // A Retained tree takes the reference form, and a Created or an Enhanced
@@ -427,7 +459,11 @@ describe('details pages of a BNG Service template project', () => {
             $('[name="habitatType"] option[selected]').attr('value')
         ).toBe(tree.proposed.type)
         expect(editableFieldNames($)).toEqual([...editableFields].sort())
-        expect(viewBaselineHref($)).toBeUndefined()
+        expect(viewBaselineHref($)).toBe(
+          linksToParent(retentionCategory, tree.parentFeatureId, body)
+            ? baselineDetailsUrl(body, tree.parentFeatureId)
+            : undefined
+        )
       }
     )
 
@@ -465,9 +501,8 @@ describe('details pages of a BNG Service template project', () => {
 
     expect(watercourse.proposed.advanceYears).toBeNull()
     expect(normalise($('h1').text())).toContain(watercourse.ref)
-    expect(viewBaselineHref($)).toBe(
-      baselineDetailsUrl(body, watercourse.parentFeatureId)
-    )
+    // Recorded as Created, it links to no baseline watercourse.
+    expect(viewBaselineHref($)).toBeUndefined()
   })
 
   test.each([

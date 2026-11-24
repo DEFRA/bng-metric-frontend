@@ -177,6 +177,33 @@ describe('Enhanced tree controller', () => {
     )
   })
 
+  test('links to the baseline tree that shares its ref', async () => {
+    const baselineTreeId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+    mockTree()
+    const get = vi.mocked(wreck.get).getMockImplementation()
+    vi.mocked(wreck.get).mockImplementation((url) =>
+      isProjectUrl(url)
+        ? Promise.resolve({
+            payload: {
+              project: {
+                name: 'Test Project',
+                baseline: {
+                  trees: [{ featureId: baselineTreeId, ref: enhancedTree.ref }]
+                }
+              }
+            }
+          })
+        : get(url)
+    )
+
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view.mock.calls[0][1].viewBaselineHref).toBe(
+      `/baseline-habitat-details?featureId=${baselineTreeId}&projectId=${projectId}`
+    )
+  })
+
   test('saves the tree to the trees endpoint and redirects to the area list', async () => {
     const h = createMockH()
     await postController.handler(
