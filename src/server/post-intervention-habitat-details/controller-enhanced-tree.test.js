@@ -34,7 +34,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
 // enhances its condition only: it keeps its baseline tree's setting, and is
 // offered only the target conditions better than its baseline one.
 
-function mockTree(feature = enhancedTree) {
+function mockTree(feature = enhancedTree, project = projectPayload) {
   vi.mocked(wreck.get).mockImplementation((url) => {
     if (url.endsWith('/reference/tree-enhancement')) {
       return Promise.resolve({
@@ -48,7 +48,7 @@ function mockTree(feature = enhancedTree) {
       })
     }
     if (isProjectUrl(url)) {
-      return Promise.resolve(projectPayload)
+      return Promise.resolve(project)
     }
     throw new Error(`Unexpected URL ${url}`)
   })
@@ -175,6 +175,72 @@ describe('Enhanced tree controller', () => {
     expect(vm.fields.delayYears.label).toBe(
       'Delay in starting habitat enhancement (years)'
     )
+  })
+
+  // Its "View baseline details" opens the baseline tree that shares its ref,
+  // on the page and whenever a refused save shows it again.
+  describe('the baseline tree link', () => {
+    const baselineTreeId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+    const baselineTreeHref = `/baseline-habitat-details?featureId=${baselineTreeId}&projectId=${projectId}`
+    const projectWithBaselineTree = {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            trees: [{ featureId: baselineTreeId, ref: enhancedTree.ref }]
+          }
+        }
+      }
+    }
+    // The toolkit a refused save sets the status on.
+    const refusalH = () => {
+      const h = createMockH()
+      h.code = vi.fn().mockReturnThis()
+      return h
+    }
+
+    beforeEach(() => mockTree(enhancedTree, projectWithBaselineTree))
+
+    test('is shown on the page', async () => {
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      expect(h.view.mock.calls[0][1].viewBaselineHref).toBe(baselineTreeHref)
+    })
+
+    test('is kept when a field error shows the page again', async () => {
+      const h = createMockH()
+      await postController.handler(request({ condition: 'Moderate' }), h)
+
+      expect(wreck.put).not.toHaveBeenCalled()
+      const vm = h.view.mock.calls[0][1]
+      expect(vm.errors.condition).toBeDefined()
+      expect(vm.viewBaselineHref).toBe(baselineTreeHref)
+    })
+
+    test('is kept when the backend refuses the enhancement', async () => {
+      const refused = Boom.badData('not a valid enhancement')
+      refused.data = {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message:
+            'The proposed habitat is not a valid enhancement of its baseline (rule tree-better-condition)',
+          code: 'ENHANCEMENT_NOT_VALID',
+          rule: 'tree-better-condition'
+        }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(refused)
+      const h = refusalH()
+      await postController.handler(request({ condition: 'Fairly Good' }), h)
+
+      expect(wreck.put).toHaveBeenCalled()
+      expect(h.code).toHaveBeenCalledWith(422)
+      const vm = h.view.mock.calls[0][1]
+      expect(vm.errors.condition).toBeDefined()
+      expect(vm.viewBaselineHref).toBe(baselineTreeHref)
+    })
   })
 
   test('saves the tree to the trees endpoint and redirects to the area list', async () => {

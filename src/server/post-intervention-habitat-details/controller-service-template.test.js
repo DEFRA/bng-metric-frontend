@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { serviceTemplateProject } from '../common/test-helpers/service-template-projects/index.js'
+import { wreck } from '../common/helpers/wreck-client.js'
 import { renderTemplate } from '../test-helpers/render-template.js'
+import { treeEnhancementReference } from './created-tree-test-fixtures.js'
 import {
   createMockH,
   featureId,
@@ -23,16 +25,19 @@ const { getController, postController } = await import('./controller.js')
 const { _resetCreatedAreaReferenceCache, createdAreaValues } =
   await import('./created-area-edit.js')
 
-// BMD-1086: on a BNG Service template project, "View baseline details" goes
-// to the baseline feature a post-intervention feature names as its parent
-// (parentFeatureId, BMD-1083), for every Retention Category. Refs play no
-// part. The project is the backend's own, captured from the harness corpus.
+// On a BNG Service template project, "View baseline details" on a Retained or
+// Enhanced feature's page goes to the baseline feature it names as its parent
+// (parentFeatureId). Refs play no part. A Created feature's page has no link,
+// though one Created over a baseline feature it degrades names that feature as
+// its parent. The project is the backend's own, captured from the harness
+// corpus.
 
 const FEATURE_TYPES = {
   habitats: 'habitat',
   hedgerows: 'hedgerow',
   watercourses: 'watercourse',
-  verticalHabitats: 'verticalHabitat'
+  verticalHabitats: 'verticalHabitat',
+  trees: 'tree'
 }
 
 function baselineHref(baselineFeatureId) {
@@ -53,6 +58,13 @@ async function render(body, layer, ref, change = () => {}) {
   )
   change(feature)
   mockFeature({ type: FEATURE_TYPES[layer], feature }, { payload: body })
+  // An Enhanced tree's edit page asks for the tree enhancement reference too.
+  const get = vi.mocked(wreck.get).getMockImplementation()
+  vi.mocked(wreck.get).mockImplementation((url) =>
+    url.endsWith('/reference/tree-enhancement')
+      ? Promise.resolve({ payload: treeEnhancementReference })
+      : get(url)
+  )
   const h = createMockH()
   await getController.handler({ query: { projectId, featureId } }, h)
   return { feature, view: h.view.mock.calls[0][1] }
@@ -70,12 +82,14 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
   test.each([
     ['a Retained area habitat', 'habitats', 'H002'],
     ['an Enhanced area habitat', 'habitats', 'H001'],
-    ['a Created area habitat that degrades its parent', 'habitats', 'H043'],
+    ['a Retained hedgerow', 'hedgerows', 'HG001'],
     ['an Enhanced hedgerow', 'hedgerows', 'HG002'],
-    ['a Created watercourse that degrades its parent', 'watercourses', 'R004'],
+    ['a Retained watercourse', 'watercourses', 'R001'],
+    ['an Enhanced watercourse', 'watercourses', 'R006'],
     ['a Retained vertical area habitat', 'verticalHabitats', 'V001'],
     ['an Enhanced vertical area habitat', 'verticalHabitats', 'V002'],
-    ['a Created vertical area habitat', 'verticalHabitats', 'V003']
+    ['a Retained tree', 'trees', 'T004'],
+    ['an Enhanced tree', 'trees', 'T001']
   ])(
     'links %s to the baseline feature it names as its parent, whatever its ref',
     async (_, layer, ref) => {
@@ -92,42 +106,58 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
     }
   )
 
-  test('links by parent, not by ref: a Created hedgerow HG018b goes to its parent HG018', async () => {
+  test('links by parent, not by ref: a Retained hedgerow HG018a goes to its parent HG018', async () => {
     const body = serviceTemplateProject('twoStages')
 
-    const { view } = await render(body, 'hedgerows', 'HG018b')
+    const { view } = await render(body, 'hedgerows', 'HG018a')
 
     expect(view.viewBaselineHref).toBe(
       baselineHref(baselineIdOf(body, 'hedgerows', 'HG018'))
     )
   })
 
+  test.each([
+    ['a Created area habitat that degrades its parent', 'habitats', 'H043'],
+    ['a Created hedgerow that degrades its parent', 'hedgerows', 'HG017'],
+    ['a Created hedgerow split from its parent', 'hedgerows', 'HG018b'],
+    ['a Created watercourse that degrades its parent', 'watercourses', 'R004'],
+    ['a Created vertical area habitat', 'verticalHabitats', 'V003']
+  ])(
+    'shows no link for %s, though the baseline holds the parent it names',
+    async (_, layer, ref) => {
+      const body = serviceTemplateProject('twoStages')
+
+      const { feature, view } = await render(body, layer, ref)
+
+      expect(feature.retentionCategory).toBe('Created')
+      expect(
+        body.project.baseline[layer].some(
+          (f) => f.featureId === feature.parentFeatureId
+        )
+      ).toBe(true)
+      expect(view.viewBaselineHref).toBeNull()
+    }
+  )
+
   test('shows no link for a feature with no parent, even when a baseline feature shares its ref', async () => {
     const body = serviceTemplateProject('twoStages')
 
-    const { feature, view } = await render(
-      body,
-      'hedgerows',
-      'HG008',
-      (unlinked) => {
-        unlinked.ref = 'HG002'
-      }
-    )
+    const { view } = await render(body, 'hedgerows', 'HG001', (unlinked) => {
+      delete unlinked.parentFeatureId
+      unlinked.ref = 'HG002'
+    })
 
-    expect(feature).not.toHaveProperty('parentFeatureId')
     expect(view.viewBaselineHref).toBeNull()
   })
 
   describe('a Created area habitat, on its edit page and when a validation error redisplays it', () => {
     beforeEach(() => _resetCreatedAreaReferenceCache())
 
-    /** The view models GET and an invalid POST render for H043. */
-    async function renderGetAndRedisplay(change) {
+    test('shows no link, though it names its parent', async () => {
       const body = serviceTemplateProject('twoStages')
       const feature = structuredClone(
         body.project.postIntervention.habitats.find((f) => f.ref === 'H043')
       )
-      change(feature)
       mockFeature({ type: 'habitat', feature }, { payload: body })
       const h = createMockH()
       await getController.handler({ query: { projectId, featureId } }, h)
@@ -142,42 +172,16 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
         },
         h
       )
-      return { body, views: h.view.mock.calls.map(([, vm]) => vm) }
-    }
+      const views = h.view.mock.calls.map(([, vm]) => vm)
 
-    test('links to its parent', async () => {
-      const { body, views } = await renderGetAndRedisplay((renamed) => {
-        renamed.ref = 'H043 renamed'
-      })
-
-      expect(views).toHaveLength(2)
-      for (const vm of views) {
-        expect(vm.viewBaselineHref).toBe(
-          baselineHref(baselineIdOf(body, 'habitats', 'H043'))
-        )
-      }
-    })
-
-    test('shows no link when it names no parent, even though a baseline feature shares its ref', async () => {
-      const { views } = await renderGetAndRedisplay((unlinked) => {
-        delete unlinked.parentFeatureId
-      })
-
+      expect(feature.parentFeatureId).toBe(
+        baselineIdOf(body, 'habitats', 'H043')
+      )
       expect(views).toHaveLength(2)
       for (const vm of views) {
         expect(vm.viewBaselineHref).toBeNull()
       }
     })
-  })
-
-  test('shows no link for a Created area habitat whose edited reference cleared its parent', async () => {
-    const body = serviceTemplateProject('twoStages')
-
-    const { view } = await render(body, 'habitats', 'H043', (edited) => {
-      edited.parentFeatureId = null
-    })
-
-    expect(view.viewBaselineHref).toBeNull()
   })
 
   test('shows no link for a vertical area habitat with no parent, even when a baseline one shares its ref', async () => {
@@ -186,7 +190,7 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
     const { view } = await render(
       body,
       'verticalHabitats',
-      'V003',
+      'V001',
       (unlinked) => {
         delete unlinked.parentFeatureId
       }
@@ -197,13 +201,13 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
 
   test('shows no link when the baseline no longer holds a vertical area habitat’s parent', async () => {
     const body = serviceTemplateProject('twoStages')
-    const parentId = baselineIdOf(body, 'verticalHabitats', 'V003')
+    const parentId = baselineIdOf(body, 'verticalHabitats', 'V001')
     body.project.baseline.verticalHabitats =
       body.project.baseline.verticalHabitats.filter(
         (f) => f.featureId !== parentId
       )
 
-    const { view } = await render(body, 'verticalHabitats', 'V003')
+    const { view } = await render(body, 'verticalHabitats', 'V001')
 
     expect(view.viewBaselineHref).toBeNull()
   })
@@ -236,11 +240,11 @@ describe('#postInterventionHabitatDetailsController on a BNG Service template pr
 
   test('shows no link when the baseline no longer holds the parent', async () => {
     const body = serviceTemplateProject('twoStages')
-    const parentId = baselineIdOf(body, 'watercourses', 'R004')
+    const parentId = baselineIdOf(body, 'watercourses', 'R001')
     body.project.baseline.watercourses =
       body.project.baseline.watercourses.filter((f) => f.featureId !== parentId)
 
-    const { view } = await render(body, 'watercourses', 'R004')
+    const { view } = await render(body, 'watercourses', 'R001')
 
     expect(view.viewBaselineHref).toBeNull()
   })

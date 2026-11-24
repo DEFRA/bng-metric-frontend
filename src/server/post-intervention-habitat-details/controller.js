@@ -21,9 +21,8 @@ import {
 } from './tree-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
-  createdBaselineFeatureId,
-  isServiceTemplateProject,
-  viewOnlyBaselineFeatureId
+  baselineFeatureIdFor,
+  isServiceTemplateProject
 } from './baseline-feature-link.js'
 import {
   HABITAT_REF_ERROR,
@@ -254,24 +253,6 @@ function renderUnsupportedFeature(
   })
 }
 
-// The Enhanced kinds whose edit page links to the baseline as their read-only
-// page finds it: an area habitat (BMD-725), a hedgerow (BMD-733) and a
-// watercourse (BMD-735).
-const VIEW_ONLY_BASELINE_KINDS = new Set([
-  ENHANCED_HABITAT_KIND,
-  ENHANCED_HEDGEROW_KIND,
-  ENHANCED_WATERCOURSE_KIND
-])
-
-// The baseline an edit page's "View baseline details" opens: a Created
-// feature's parent, or an Enhanced area's or hedgerow's baseline as its
-// read-only page finds it.
-function editBaselineFeatureId(project, type, feature, kindKey) {
-  return VIEW_ONLY_BASELINE_KINDS.has(kindKey)
-    ? viewOnlyBaselineFeatureId(project, type, feature)
-    : createdBaselineFeatureId(project, type, feature)
-}
-
 async function loadCreationReferenceForFeature(kindKey, feature) {
   const kind = CREATED_EDIT_KINDS[kindKey]
   try {
@@ -300,12 +281,7 @@ async function renderCreatedFeature(
 ) {
   // The link is found from the feature as fetched: a legacy one with no
   // parent is matched on its baseline snapshot, which normalising can clear.
-  const baselineFeatureId = editBaselineFeatureId(
-    project,
-    type,
-    fetched,
-    kindKey
-  )
+  const baselineFeatureId = baselineFeatureIdFor(project, type, fetched)
   const feature = editableFeature(kindKey, fetched)
   const kind = CREATED_EDIT_KINDS[kindKey]
   const reference = await loadCreationReferenceForFeature(kindKey, feature)
@@ -390,7 +366,7 @@ async function renderDetailsPage(
     {
       projectId,
       projectName,
-      baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature),
+      baselineFeatureId: baselineFeatureIdFor(project, type, feature),
       serviceTemplate: isServiceTemplateProject(project),
       baselineComment
     }
@@ -490,12 +466,7 @@ async function saveCreatedDetails(
         {
           projectId,
           projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-          baselineFeatureId: editBaselineFeatureId(
-            project,
-            type,
-            fetched,
-            kindKey
-          ),
+          baselineFeatureId: baselineFeatureIdFor(project, type, fetched),
           serviceTemplate: isServiceTemplateProject(project),
           returnUrl,
           refusal

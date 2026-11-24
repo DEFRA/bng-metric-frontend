@@ -163,7 +163,8 @@ describe('Created area controller', () => {
     }
   })
 
-  test('keeps the baseline link and safe list anchor on GET and validation redisplay', async () => {
+  // A Created area habitat links to no baseline, though one shares its ref.
+  test('shows no baseline link, and keeps the safe list anchor, on GET and validation redisplay', async () => {
     mockFeature(
       { type: 'habitat', feature: structuredClone(createdAreaFeature) },
       projectWithBaselinePayload
@@ -177,7 +178,7 @@ describe('Created area controller', () => {
     await postController.handler(request({ returnUrl, ref: ' ' }), h)
     for (const [, vm] of h.view.mock.calls) {
       expect(vm).toMatchObject({
-        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
+        viewBaselineHref: null,
         backHref: returnUrl,
         cancelHref: returnUrl,
         returnUrl
@@ -225,7 +226,7 @@ describe('Created area controller', () => {
   })
 
   test.each([baselineFeatureId, null])(
-    'uses the stored Created parent link after reference editing (%s)',
+    'shows no baseline link for a Created area habitat that names a parent (%s)',
     async (parentFeatureId) => {
       mockFeature(
         {
@@ -242,11 +243,7 @@ describe('Created area controller', () => {
       await getController.handler({ query: { projectId, featureId } }, h)
       await postController.handler(request({ ref: ' ' }), h)
       for (const [, vm] of h.view.mock.calls) {
-        expect(vm.viewBaselineHref).toBe(
-          parentFeatureId
-            ? `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
-            : null
-        )
+        expect(vm.viewBaselineHref).toBeNull()
       }
     }
   )
