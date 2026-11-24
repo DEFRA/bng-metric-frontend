@@ -1170,6 +1170,22 @@ upload:
           - ' — {habitatType}'
           - ', copied to {childRefs}'
 
+    STAGED_TREE_RECORDED_TWICE:
+      wording: interim
+      problemsList:
+        heading: >-
+          One or more baseline trees have an Existing tree Created over them
+          and another Retained, Enhanced or Existing tree linked to them, so
+          the same tree is scored twice. A baseline tree is one tree: either
+          kept, as one Retained or Enhanced tree, or lost and created again, as
+          one Existing tree Created. Record a new tree planted beside it as
+          Newly Planted
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+
     STAGED_WATERCOURSE_RETAINED_AND_CREATED:
       wording: interim
       problemsList:
