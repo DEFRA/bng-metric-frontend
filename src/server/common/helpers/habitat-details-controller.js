@@ -35,23 +35,10 @@ import {
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
-async function fetchProjectName(request, projectId) {
-  try {
-    const { payload } = await backendRequest(
-      request,
-      'get',
-      `${backendUrl}/projects/${projectId}`
-    )
-    return payload?.project?.name ?? 'Project'
-  } catch {
-    return 'Project'
-  }
-}
-
 /**
- * Fetch the full project payload, or null when the request fails. Callers that
- * only need the name should use fetchProjectName; this is for callers that also
- * need the stored feature lists (e.g. resolving a baseline feature by ref).
+ * Fetch the full project payload, or null when the request fails: its name,
+ * the template its documents were uploaded in, and the stored feature lists
+ * (e.g. for resolving a baseline feature by ref).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {string} projectId
@@ -634,9 +621,4 @@ function createHabitatDetailsControllers(uploadType) {
   }
 }
 
-export {
-  createHabitatDetailsControllers,
-  fetchFeature,
-  fetchProjectName,
-  fetchProject
-}
+export { createHabitatDetailsControllers, fetchFeature, fetchProject }
