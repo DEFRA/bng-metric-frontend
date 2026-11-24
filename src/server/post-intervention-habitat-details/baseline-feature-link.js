@@ -104,7 +104,15 @@ function parentBaselineFeatureId(project, feature, layers = BASELINE_LAYERS) {
   return exists ? parentId : null
 }
 
-function isServiceTemplateProject(project) {
+/**
+ * Whether the project's post-intervention document was uploaded in the BNG
+ * Service template. Its features link to their parents by parentFeatureId,
+ * and its trees have no Count, so show no number of trees.
+ *
+ * @param {object|null} project
+ * @returns {boolean}
+ */
+export function isServiceTemplateProject(project) {
   return isServiceTemplateDocument(project?.project?.postIntervention)
 }
 

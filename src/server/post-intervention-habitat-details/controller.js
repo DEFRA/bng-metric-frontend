@@ -7,7 +7,6 @@ import {
   fetchFeature,
   fetchProject
 } from '../common/helpers/habitat-details-controller.js'
-import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
 import { HABITAT_UPLOAD_TYPES } from '../common/helpers/habitat-upload-types.js'
 import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
 import { buildAreaViewOnlyViewModel } from './area-view-only-view-model.js'
@@ -23,6 +22,7 @@ import {
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
   createdBaselineFeatureId,
+  isServiceTemplateProject,
   viewOnlyBaselineFeatureId
 } from './baseline-feature-link.js'
 import {
@@ -286,17 +286,6 @@ async function loadCreationReferenceForFeature(kindKey, feature) {
     }
     throw error
   }
-}
-
-/**
- * Whether the project's post-intervention document was uploaded in the BNG
- * Service template, whose trees have no Count and so show no number of trees.
- *
- * @param {object|null} project
- * @returns {boolean}
- */
-function isServiceTemplateProject(project) {
-  return isServiceTemplateDocument(project?.project?.postIntervention)
 }
 
 /**
