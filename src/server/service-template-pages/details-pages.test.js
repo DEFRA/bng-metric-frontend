@@ -172,14 +172,15 @@ describe('details pages of a BNG Service template project', () => {
     )
   })
 
-  test('baseline details of a tree show its size class and number of trees', async () => {
+  test('baseline details of a tree show its size class and no number of trees', async () => {
     const body = serviceTemplateProject('twoStages')
     const [tree] = body.project.baseline.trees
 
     const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
 
     expect(fieldValue($, 'Tree size')).toBe(tree.treeSize)
-    expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
+    // A BNG Service template tree is one tree: it has no Count to show.
+    expect(fieldValue($, 'Number of trees')).toBeUndefined()
   })
 
   // A Created or Enhanced area habitat opens on its edit form; a Created
@@ -419,7 +420,8 @@ describe('details pages of a BNG Service template project', () => {
         expect(normalise($('main').text())).not.toContain('not yet supported')
         expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
         expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
-        expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
+        // A BNG Service template tree is one tree: it has no Count to show.
+        expect(fieldValue($, 'Number of trees')).toBeUndefined()
         expect(
           fieldValue($, 'Habitat type') ??
             $('[name="habitatType"] option[selected]').attr('value')

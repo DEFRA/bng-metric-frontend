@@ -25,8 +25,8 @@ function treeTypeItems(habitatTypes, savedType) {
 
 /**
  * An individual tree is an area habitat on the details page, with its size
- * class and the number of trees the point stands for besides: the values the
- * surveyor entered, from which its size in hectares comes. Its broad habitat
+ * class and, for a legacy tree, the number of trees the point stands for
+ * besides: the values the surveyor entered, from which its size in hectares comes. Its broad habitat
  * is always Individual trees, shown and sent with the form but not editable,
  * and its habitat type is Urban tree or Rural tree.
  *
@@ -37,7 +37,7 @@ export const treeStrategy = {
   buildViewModel(tree, reference, ctx) {
     return {
       ...areaStrategy.buildViewModel(tree, reference, ctx),
-      ...treeDetailsFields(tree.treeSize, tree.count),
+      ...treeDetailsFields(tree.treeSize, tree.count, ctx.serviceTemplate),
       showTreeRows: true,
       showBroadHabitatRow: false,
       fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,

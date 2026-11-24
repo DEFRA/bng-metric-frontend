@@ -22,6 +22,7 @@ import {
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
   createdBaselineFeatureId,
+  isServiceTemplateProject,
   viewOnlyBaselineFeatureId
 } from './baseline-feature-link.js'
 import {
@@ -315,7 +316,8 @@ async function renderCreatedFeature(
         {
           projectId,
           projectName,
-          baselineFeatureId
+          baselineFeatureId,
+          serviceTemplate: isServiceTemplateProject(project)
         }
       ),
       backHref: postInterventionBackHref(projectId, type, returnUrl)
@@ -327,6 +329,7 @@ async function renderCreatedFeature(
       projectId,
       projectName,
       baselineFeatureId,
+      serviceTemplate: isServiceTemplateProject(project),
       returnUrl
     })
   )
@@ -388,6 +391,7 @@ async function renderDetailsPage(
       projectId,
       projectName,
       baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature),
+      serviceTemplate: isServiceTemplateProject(project),
       baselineComment
     }
   )
@@ -492,6 +496,7 @@ async function saveCreatedDetails(
             fetched,
             kindKey
           ),
+          serviceTemplate: isServiceTemplateProject(project),
           returnUrl,
           refusal
         },
