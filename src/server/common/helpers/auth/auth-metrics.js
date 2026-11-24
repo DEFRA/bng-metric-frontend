@@ -16,6 +16,9 @@
  *       • 'token-exchange' — the OIDC token exchange / callback handling threw.
  *       • 'rbac'           — token exchange succeeded but the user lacks an
  *                            approved role (the RBAC condition was not met).
+ *       • 'private-beta'   — the user has an approved role, but their email
+ *                            address is not on the Private Beta allowlist
+ *                            (PRIVATE_BETA_ALLOWED_EMAILS).
  *
  * Local dev never reaches CloudWatch because `AWS_EMF_ENVIRONMENT=Local` is set
  * in the dev/test scripts, and every emit is wrapped so a metrics failure can
@@ -32,7 +35,8 @@ export const LOGIN_FAILURE_REASON = {
   idpError: 'idp-error',
   noSession: 'no-session',
   tokenExchange: 'token-exchange',
-  rbac: 'rbac'
+  rbac: 'rbac',
+  privateBeta: 'private-beta'
 }
 
 /**

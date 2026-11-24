@@ -5,6 +5,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     clearMocks: true,
+    // Tests expect the Private Beta allowlist to be off; a developer's own
+    // PRIVATE_BETA_ALLOWED_EMAILS must not leak in and deny the test users.
+    env: { PRIVATE_BETA_ALLOWED_EMAILS: '' },
     maxWorkers: 4,
     exclude: [...configDefaults.exclude, '.cache/**'],
     coverage: {

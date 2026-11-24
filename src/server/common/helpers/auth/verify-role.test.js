@@ -1,6 +1,17 @@
-import { describe, expect, test, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { hasBngCompleterRole, requireBngCompleterRole } from './verify-role.js'
+import { isOnPrivateBetaList } from './private-beta.js'
+
+// Keep the real path; let each test say whether the user is on the list.
+vi.mock('./private-beta.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  isOnPrivateBetaList: vi.fn()
+}))
+
+beforeEach(() => {
+  isOnPrivateBetaList.mockReset().mockReturnValue(true)
+})
 
 describe('#hasBngCompleterRole', () => {
   test('returns true for an approved (status 3) bng completer role', () => {
@@ -145,6 +156,40 @@ describe('#requireBngCompleterRole', () => {
   test('redirects when credentials are missing entirely', () => {
     const h = buildToolkit()
     const request = { auth: {}, logger: mockLogger }
+
+    requireBngCompleterRole.method(request, h)
+
+    expect(h.redirect).toHaveBeenCalledWith('/auth/forbidden')
+  })
+
+  test('redirects an approved user who is not on the Private Beta list to the drop-out page (BMD-1104 AC8)', () => {
+    isOnPrivateBetaList.mockReturnValue(false)
+    const h = buildToolkit()
+    const credentials = {
+      sub: 'user-9',
+      email: 'not.listed@example.com',
+      roles: ['aaa:bng completer:3']
+    }
+    const request = { auth: { credentials }, logger: mockLogger }
+
+    const result = requireBngCompleterRole.method(request, h)
+
+    expect(isOnPrivateBetaList).toHaveBeenCalledWith(credentials)
+    expect(h.redirect).toHaveBeenCalledWith('/auth/private-beta')
+    expect(h.takeover).toHaveBeenCalled()
+    expect(result).toBe('takeover-response')
+    expect(JSON.stringify(mockLogger.warn.mock.calls)).not.toContain(
+      'not.listed@example.com'
+    )
+  })
+
+  test('sends a user with no approved role to /auth/forbidden, not the Private Beta page', () => {
+    isOnPrivateBetaList.mockReturnValue(false)
+    const h = buildToolkit()
+    const request = {
+      auth: { credentials: { roles: ['aaa:bng completer:1'] } },
+      logger: mockLogger
+    }
 
     requireBngCompleterRole.method(request, h)
 
