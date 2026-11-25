@@ -576,10 +576,44 @@ function submittedFieldRefusals({ refusal, comment }) {
   return fieldRefusals
 }
 
+/**
+ * Whether this baseline habitat is locked because post-intervention data is
+ * uploaded (BMD-1194). The page hides the form, but a page left open from
+ * before the upload, or a direct POST, still reaches the save, so the save
+ * checks too. A project that cannot be fetched is treated as unlocked, as the
+ * page treats it.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {object} uploadType
+ * @param {string} projectId
+ * @returns {Promise<boolean>}
+ */
+async function isBaselineLocked(request, uploadType, projectId) {
+  if (uploadType.isPostIntervention) {
+    return false
+  }
+  const projectPayload = await fetchProject(request, projectId)
+  return hasPostInterventionData(projectPayload?.project)
+}
+
 function createPostController(uploadType) {
   return {
     options: { validate: { payload: habitatDetailsPayload } },
     async handler(request, h) {
+      // Nothing is saved: the locked values are shown instead. It is rendered
+      // here, not redirected to, so Back keeps the post-intervention page the
+      // form carried in returnUrl; the GET page only has the referrer.
+      if (
+        await isBaselineLocked(request, uploadType, request.payload.projectId)
+      ) {
+        const { projectId, featureId, returnUrl } = request.payload
+        return renderDetailsPage(request, h, uploadType, {
+          projectId,
+          featureId,
+          piBackHref: returnedPostInterventionHref(returnUrl, projectId)
+        })
+      }
+
       const {
         projectId,
         featureId,

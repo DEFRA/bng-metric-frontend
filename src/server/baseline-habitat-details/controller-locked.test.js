@@ -3,6 +3,7 @@ import { load } from 'cheerio'
 import { createServer } from '../server.js'
 import { statusCodes } from '../common/constants.js'
 import { wreck } from '../common/helpers/wreck-client.js'
+import { primeCrumb } from '../common/test-helpers/csrf.js'
 import { _resetReferenceCache } from './controller.js'
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -29,6 +30,7 @@ const areaId = 'aa0e8400-e29b-41d4-a716-446655440001'
 const treeId = 'aa0e8400-e29b-41d4-a716-446655440003'
 const hedgerowId = 'bb0e8400-e29b-41d4-a716-446655440012'
 const watercourseId = 'cc0e8400-e29b-41d4-a716-446655440013'
+const piFeatureId = 'dd0e8400-e29b-41d4-a716-446655440014'
 
 const PROJECT_NAME = 'Greenfield Meadow Restoration'
 const AREA_COMMENT = 'First line\nSecond line'
@@ -344,6 +346,88 @@ describe('#baselineHabitatDetails - locked once post-intervention data is upload
     expect($('select#habitatType')).toHaveLength(1)
     expect($('textarea#comment')).toHaveLength(1)
     expect($('body').text()).toContain(COMMENT_HINT)
+  })
+
+  describe('saving', () => {
+    let crumb
+
+    beforeAll(async () => {
+      crumb = await primeCrumb(server)
+    })
+
+    afterEach(() => {
+      vi.mocked(wreck.put).mockReset()
+    })
+
+    const post = (payload) =>
+      server.inject({
+        method: 'POST',
+        url: '/baseline-habitat-details',
+        auth: authedAuth,
+        headers: { cookie: crumb.cookie },
+        payload: {
+          projectId,
+          featureId: areaId,
+          habitatRef: 'A2',
+          comment: 'Changed',
+          crumb: crumb.token,
+          ...payload
+        }
+      })
+
+    it('saves nothing and shows the locked page', async () => {
+      const { statusCode, result } = await post()
+      const $ = load(result)
+
+      expect(wreck.put).not.toHaveBeenCalled()
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($('form')).toHaveLength(0)
+      expect(stackedValue($, 'Habitat reference')).toBe('A1')
+    })
+
+    it('saves nothing, and shows no errors, when the submission would be refused', async () => {
+      const { statusCode, result } = await post({ habitatRef: '' })
+      const $ = load(result)
+
+      expect(wreck.put).not.toHaveBeenCalled()
+      expect(statusCode).toBe(statusCodes.ok)
+      expect($('.govuk-error-summary')).toHaveLength(0)
+    })
+
+    it('keeps Back to the post-intervention page the form came from', async () => {
+      const returnUrl = `/post-intervention-habitat-details?featureId=${piFeatureId}&projectId=${projectId}`
+      const { result } = await post({ returnUrl })
+      const $ = load(result)
+      const cancel = $('a.govuk-link').filter(
+        (_i, el) => $(el).text().trim() === 'Cancel'
+      )
+
+      expect(cancel.attr('href')).toBe(returnUrl)
+    })
+
+    it('still saves when no post-intervention data is uploaded', async () => {
+      serve(projectWithoutPostIntervention)
+      vi.mocked(wreck.put).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: { type: 'habitat' }
+      })
+      const { statusCode } = await post()
+
+      expect(wreck.put).toHaveBeenCalledTimes(1)
+      expect(statusCode).toBe(statusCodes.redirect)
+    })
+
+    it('is refused with 403 without a crumb', async () => {
+      const { statusCode } = await server.inject({
+        method: 'POST',
+        url: '/baseline-habitat-details',
+        auth: authedAuth,
+        payload: { projectId, featureId: areaId }
+      })
+
+      expect(statusCode).toBe(statusCodes.forbidden)
+      expect(wreck.put).not.toHaveBeenCalled()
+    })
   })
 
   it('stays editable when the project cannot be fetched', async () => {
