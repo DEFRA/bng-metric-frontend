@@ -26,12 +26,23 @@ const JITTER_STEPS_PER_SECOND = 1000
 const MAX_WAIT_SECONDS = 120
 const STATUS_READY = 'ready'
 const STATUS_REJECTED = 'rejected'
+const STATUS_ERROR = 'error'
+
+/**
+ * Status checks in a row that may fail before the wait ends. A failed check
+ * means the backend or the file uploader could not answer, not that the file
+ * is still being scanned, so waiting out MAX_WAIT_SECONDS would only keep the
+ * user on the holding page for two minutes to tell them the check "timed out".
+ * More than one, so a single blip, such as a deploy, does not end the wait.
+ */
+const MAX_STATUS_CHECK_FAILURES = 3
 
 const GPKG_FORMAT_ERROR_CODES = new Set([
   'GPKG_INVALID_FILE',
   'GPKG_NOT_A_GEOPACKAGE'
 ])
-// The forms.file rule of error-text.yaml each problem is worded by. The session
+// The rule of error-text.yaml each problem is worded by: forms.file's for a
+// problem with the file, fileCheck's for a check that could not finish. The session
 // carries its words to the upload page for now: an instance from before the
 // upload page could word a rule would show the rule's name during a rolling
 // deploy. Once every instance reads rules (uploadErrorText), it can carry the
@@ -51,6 +62,7 @@ const FILENAME_ERROR_RULES = Object.freeze({
  */
 const SERVICE_BUSY_RULE = 'serviceBusy'
 const TIMED_OUT_RULE = 'timedOut'
+const STATUS_UNAVAILABLE_RULE = 'statusUnavailable'
 
 function setUploadError(request, uploadType, rule) {
   request.yar.set(uploadType.uploadErrorSessionKey, FILE_ERROR_TEXT[rule])
@@ -104,6 +116,7 @@ function checkingFileView(h, uploadType, projectId, baseSeconds) {
 function clearUploadSession(request, uploadType) {
   request.yar.clear(uploadType.pendingUploadSessionKey)
   request.yar.clear(uploadType.uploadStartedAtSessionKey)
+  request.yar.clear(uploadType.statusFailuresSessionKey)
 }
 
 function uploadHref(uploadType, projectId) {
@@ -219,6 +232,43 @@ function handleWaitingUpload(request, h, uploadType, id, retryAfterSeconds) {
   return checkingFileView(h, uploadType, id, retryAfterSeconds ?? undefined)
 }
 
+/**
+ * Whether the status check itself failed. A rate limit's refusal is not a
+ * failure: the page waits at the backend's pace and asks again.
+ */
+function statusCheckFailed(response) {
+  return response.uploadStatus === STATUS_ERROR && !response.rateLimited
+}
+
+/**
+ * Count a failed status check, and end the wait once MAX_STATUS_CHECK_FAILURES
+ * have failed in a row. Until then the page waits as for an upload still being
+ * scanned, MAX_WAIT_SECONDS included.
+ */
+function handleFailedStatusCheck(request, h, uploadType, id, uploadId) {
+  const failures =
+    (request.yar.get(uploadType.statusFailuresSessionKey) ?? 0) + 1
+
+  if (failures >= MAX_STATUS_CHECK_FAILURES) {
+    logger.error(
+      `${uploadType.uploadReceivedRoute} - gave up after ${failures} failed status checks in a row - projectId: ${id}, uploadId: ${uploadId}`
+    )
+    clearUploadSession(request, uploadType)
+    setUploadError(request, uploadType, STATUS_UNAVAILABLE_RULE)
+    return h.redirect(uploadHref(uploadType, id))
+  }
+
+  request.yar.set(uploadType.statusFailuresSessionKey, failures)
+  return handleWaitingUpload(request, h, uploadType, id)
+}
+
+/** A check that answered ends a run of failed ones. */
+function resetStatusCheckFailures(request, uploadType) {
+  if (request.yar.get(uploadType.statusFailuresSessionKey)) {
+    request.yar.clear(uploadType.statusFailuresSessionKey)
+  }
+}
+
 function createUploadReceivedController(uploadType, validateUpload) {
   return {
     async handler(request, h) {
@@ -239,6 +289,16 @@ function createUploadReceivedController(uploadType, validateUpload) {
       logger.info(
         `${uploadType.uploadReceivedRoute} - uploadId: ${uploadId}, uploadStatus: ${uploadStatus}`
       )
+
+      if (statusCheckFailed(response)) {
+        return handleFailedStatusCheck(request, h, uploadType, id, uploadId)
+      }
+
+      // A check a rate limit refused did not answer either: it neither counts
+      // as a failure nor ends a run of them.
+      if (!response.rateLimited) {
+        resetStatusCheckFailures(request, uploadType)
+      }
 
       if (uploadStatus === STATUS_READY) {
         return handleReadyUpload(

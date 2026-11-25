@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   DEGRADE_NOT_VALID_CODE,
+  HABITAT_DEGRADE_NOT_VALID_CODE,
   invalidDegradeErrors,
   isInvalidDegradeError
 } from './invalid-degrade-refusal.js'
@@ -22,7 +23,6 @@ const refusal = (payload = {}, statusCode = UNPROCESSABLE) => ({
 describe('#invalidDegradeErrors', () => {
   // The rule names the backend sends (edit-degrade-rule.js, DEGRADE_RULE).
   test.each([
-    ['degrade-same-setting', 'habitatType'],
     ['degrade-worse-condition', 'condition'],
     ['degrade-advance-30-plus', 'advanceYears']
   ])('puts %s against %s', (rule, field) => {
@@ -33,14 +33,37 @@ describe('#invalidDegradeErrors', () => {
     expect(errors[field].inline).toEqual(expect.any(String))
   })
 
-  // A rule the backend adds later is not one this page can place, so the
-  // save fails as any other refused save does rather than blaming a field.
-  test.each(['degrade-new-rule', 'constructor', 'toString', undefined])(
-    'is null for a rule the page does not know (%s)',
-    (rule) => {
-      expect(invalidDegradeErrors(refusal({ rule }))).toBe(null)
+  // A tree planted in its place is Newly Planted; a habitat cleared and put
+  // back gives a delay instead, so each code is worded for its own remedy.
+  test.each([
+    ['degrade-worse-condition', 'condition'],
+    ['degrade-advance-30-plus', 'advanceYears']
+  ])(
+    'words a habitat’s %s against %s, with a delay as its remedy, not Newly Planted',
+    (rule, field) => {
+      const tree = invalidDegradeErrors(refusal({ rule }))
+      const habitat = invalidDegradeErrors(
+        refusal({ code: HABITAT_DEGRADE_NOT_VALID_CODE, rule })
+      )
+
+      expect(Object.keys(habitat)).toEqual([field])
+      expect(habitat[field].inline).toMatch(/cleared and put back/)
+      expect(habitat[field].inline).not.toMatch(/Newly Planted/)
+      expect(tree[field].inline).toMatch(/Newly Planted/)
     }
   )
+
+  // A rule the backend adds later is not one this page can place, so the
+  // save fails as any other refused save does rather than blaming a field.
+  test.each([
+    'degrade-same-setting',
+    'degrade-new-rule',
+    'constructor',
+    'toString',
+    undefined
+  ])('is null for a rule the page does not know (%s)', (rule) => {
+    expect(invalidDegradeErrors(refusal({ rule }))).toBe(null)
+  })
 
   test.each([
     [

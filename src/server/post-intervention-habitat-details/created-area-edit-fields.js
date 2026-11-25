@@ -1,5 +1,4 @@
 import {
-  UNCHANGED_VALUE,
   YEAR_OPTIONS,
   selectedHabitat
 } from '../../shared/created-area-details.js'
@@ -21,10 +20,6 @@ export const FIELD_ORDER = [
   'delayYears'
 ]
 
-export function keepImportedCondition(reference, values) {
-  return reference.importedCondition?.habitatType === values.habitatType
-}
-
 function selectItems(options, value, label) {
   return [
     {
@@ -39,19 +34,11 @@ function selectItems(options, value, label) {
   ]
 }
 
-function choiceHint(id, items, value, initialLoad) {
-  const hints = []
-  if (id === 'strategicSignificance') {
-    hints.push(
-      "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
-    )
-  }
-  if (initialLoad && value && !items.some((item) => item.value === value)) {
-    hints.push(
-      `The imported value "${value}" is not available. Choose a valid option; saving without a new selection will clear this value.`
-    )
-  }
-  return hints.join(' ') || null
+const SIGNIFICANCE_HINT =
+  "Habitats are always of 'Low' strategic significance unless designated as otherwise in a Local Nature Recovery Strategy (LNRS)."
+
+function choiceHint(id) {
+  return id === 'strategicSignificance' ? SIGNIFICANCE_HINT : null
 }
 
 function createdFieldChoices(reference, values, type, kind) {
@@ -107,7 +94,8 @@ function createdFieldChoices(reference, values, type, kind) {
   ]
 }
 
-function createdAreaFields(reference, values, type, initialLoad, kind) {
+function createdAreaFields(reference, values, kind) {
+  const type = selectedHabitat(reference, values)
   const fields = createdFieldChoices(reference, values, type, kind)
   if (kind.hasEncroachments) {
     fields.push(
@@ -134,34 +122,15 @@ function createdAreaFields(reference, values, type, initialLoad, kind) {
         id !== 'broadHabitat' ||
         (kind.hasBroadHabitat && !kind.fixedBroadHabitat)
     )
-    .map(([id, label, items]) => {
-      const imported =
-        id === 'condition' && keepImportedCondition(reference, values)
-          ? reference.importedCondition.condition
-          : (reference.importedChoices?.[id] ?? reference.importedYears?.[id])
-      if (imported !== undefined) {
-        items = [
-          ...items,
-          { value: UNCHANGED_VALUE, text: `${imported} (imported value)` }
-        ]
-      }
-      return {
-        id,
-        label,
-        hint:
-          imported !== undefined
-            ? `The imported value is ${imported}. Keep it unchanged, choose a new value, or choose the default option to clear it.`
-            : choiceHint(id, items, values[id], initialLoad),
-        items: withoutRequiredBlank(
-          selectItems(
-            items,
-            values[id],
-            placeholders[id] ?? label.toLowerCase()
-          ),
-          { id, items, value: values[id], kind }
-        )
-      }
-    })
+    .map(([id, label, items]) => ({
+      id,
+      label,
+      hint: choiceHint(id),
+      items: withoutRequiredBlank(
+        selectItems(items, values[id], placeholders[id] ?? label.toLowerCase()),
+        { id, items, value: values[id], kind }
+      )
+    }))
 }
 
 // A tree with a habitat type has no blank choice for it, as on the baseline
@@ -178,45 +147,8 @@ function withoutRequiredBlank(selectItemList, { id, items, value, kind }) {
   return selectItemList.filter((item) => item.value !== '')
 }
 
-export function buildCreatedEditFields(
-  reference,
-  values,
-  originalValues,
-  kind
-) {
-  const originalFields = new Map(
-    createdAreaFields(
-      reference,
-      originalValues,
-      selectedHabitat(reference, originalValues),
-      true,
-      kind
-    ).map((field) => [field.id, field])
-  )
-  const fields = createdAreaFields(
-    reference,
-    values,
-    selectedHabitat(reference, values),
-    false,
-    kind
-  )
+export function buildCreatedEditFields(reference, values, kind) {
   return Object.fromEntries(
-    fields.map((field) => {
-      const importedValue = originalValues[field.id]
-      const pendingClear =
-        importedValue &&
-        (!values[field.id] || values[field.id] === importedValue)
-      const importedField = originalFields.get(field.id)
-      const unavailable = !importedField.items.some(
-        (item) => item.value === importedValue
-      )
-      return [
-        field.id,
-        {
-          ...field,
-          hint: pendingClear && unavailable ? importedField.hint : field.hint
-        }
-      ]
-    })
+    createdAreaFields(reference, values, kind).map((field) => [field.id, field])
   )
 }

@@ -102,6 +102,14 @@ function editableFieldNames($) {
     .sort()
 }
 
+// The value of a field shown read-only, or the option chosen in its dropdown.
+function shownOrChosen($, heading, name) {
+  return (
+    fieldValue($, heading) ??
+    $(`[name="${name}"] option[selected]`).attr('value')
+  )
+}
+
 function headings($) {
   return $('h2')
     .map((_, h2) => normalise($(h2).text()))
@@ -122,8 +130,14 @@ function baselineIds(body) {
 
 // A Created feature of those layers opens on the edit form, and so does an
 // Enhanced tree, whose condition is all it enhances, an Enhanced area habitat
-// (BMD-1045) and an Enhanced hedgerow (BMD-1046).
-const EDITABLE_ENHANCED_LAYERS = new Set(['trees', 'habitats', 'hedgerows'])
+// (BMD-1045), an Enhanced hedgerow (BMD-1046) and an Enhanced watercourse
+// (BMD-1047).
+const EDITABLE_ENHANCED_LAYERS = new Set([
+  'trees',
+  'habitats',
+  'hedgerows',
+  'watercourses'
+])
 const isEditable = (layer, feature) =>
   (feature.retentionCategory === 'Created' &&
     EDITABLE_CREATED_LAYERS.has(layer)) ||
@@ -173,14 +187,35 @@ describe('details pages of a BNG Service template project', () => {
     )
   })
 
-  test('baseline details of a tree show its size class and number of trees', async () => {
+  // A baseline-only project: once post-intervention data is uploaded the
+  // baseline is locked (BMD-1194) and nothing is offered to edit.
+  test('baseline details of a tree offer its size class to edit, and no number of trees', async () => {
+    const body = serviceTemplateProject('baselineOnly')
+    const [tree] = body.project.baseline.trees
+
+    const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
+
+    // Its size class is a dropdown of the Metric's, with its own chosen.
+    expect(fieldValue($, 'Tree size')).toBeUndefined()
+    expect(
+      $('[name="treeSize"] option')
+        .map((_, option) => $(option).attr('value'))
+        .get()
+    ).toEqual(['Small', 'Medium', 'Large', 'Very large'])
+    expect(shownOrChosen($, 'Tree size', 'treeSize')).toBe(tree.treeSize)
+    // A BNG Service template tree is one tree: it has no Count to show.
+    expect(fieldValue($, 'Number of trees')).toBeUndefined()
+  })
+
+  test('locked baseline details of a tree show its size class as text, and no number of trees', async () => {
     const body = serviceTemplateProject('twoStages')
     const [tree] = body.project.baseline.trees
 
     const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
 
-    expect(fieldValue($, 'Tree size')).toBe(tree.treeSize)
-    expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
+    expect($('[name="treeSize"]')).toHaveLength(0)
+    expect(fieldValue($, 'Tree size')).toContain(tree.treeSize)
+    expect(fieldValue($, 'Number of trees')).toBeUndefined()
   })
 
   // A Created or Enhanced area habitat opens on its edit form; a Created
@@ -316,11 +351,21 @@ describe('details pages of a BNG Service template project', () => {
       }
     )
 
+    // A Retained or Enhanced feature's page links to the baseline feature it
+    // names as its parent, a tree's included; a Created one's, a degraded
+    // one's included, to none.
+    const linksToParent = (retentionCategory, parentFeatureId, body) =>
+      retentionCategory !== 'Created' && baselineIds(body).has(parentFeatureId)
+
     test.each(cases)(
-      'links %s to the baseline feature it names as its parent, or shows no link',
-      async (_label, _layer, { featureId, parentFeatureId }) => {
+      'links %s to the baseline feature it names as its parent unless it is Created, or shows no link',
+      async (
+        _label,
+        _layer,
+        { featureId, parentFeatureId, retentionCategory }
+      ) => {
         const body = serviceTemplateProject('twoStages')
-        const expected = baselineIds(body).has(parentFeatureId)
+        const expected = linksToParent(retentionCategory, parentFeatureId, body)
           ? baselineDetailsUrl(body, parentFeatureId)
           : undefined
 
@@ -332,6 +377,49 @@ describe('details pages of a BNG Service template project', () => {
         expect(viewBaselineHref($)).toBe(expected)
       }
     )
+
+    test.each(['Retained', 'Enhanced'])(
+      'a %s feature that names a baseline parent links to it, and a tree is among them',
+      async (retentionCategory) => {
+        const body = serviceTemplateProject('twoStages')
+        const linked = cases.filter(
+          ([, , f]) =>
+            f.retentionCategory === retentionCategory &&
+            baselineIds(body).has(f.parentFeatureId)
+        )
+        expect(new Set(linked.map(([, layer]) => layer))).toContain('trees')
+        const [, , feature] = linked[0]
+
+        const $ = await render(
+          body,
+          postInterventionDetailsUrl(body, feature.featureId)
+        )
+
+        expect(viewBaselineHref($)).toBe(
+          baselineDetailsUrl(body, feature.parentFeatureId)
+        )
+        expect($('main').text()).toContain(VIEW_BASELINE_LINK)
+      }
+    )
+
+    test('a Created feature that names a baseline parent shows no link, and there is one', async () => {
+      const body = serviceTemplateProject('twoStages')
+      const created = cases.filter(
+        ([, , f]) =>
+          f.retentionCategory === 'Created' &&
+          baselineIds(body).has(f.parentFeatureId)
+      )
+      expect(created.length).toBeGreaterThan(0)
+      const [, , feature] = created[0]
+
+      const $ = await render(
+        body,
+        postInterventionDetailsUrl(body, feature.featureId)
+      )
+
+      expect(viewBaselineHref($)).toBeUndefined()
+      expect($('main').text()).not.toContain(VIEW_BASELINE_LINK)
+    })
 
     test('a feature with no parent shows no link, and there is one', async () => {
       const unlinked = cases.filter(([, , f]) => !f.parentFeatureId)
@@ -347,7 +435,9 @@ describe('details pages of a BNG Service template project', () => {
       expect(viewBaselineHref($)).toBeUndefined()
     })
 
-    test('the degraded hedgerow HG017 renders in the Created layout and links to its parent', async () => {
+    // A degraded habitat is recorded as Created, so it links to no baseline,
+    // though it names the one it degrades as its parent.
+    test('the degraded hedgerow HG017 renders in the Created layout, with no link to its parent', async () => {
       const body = serviceTemplateProject('twoStages')
       const hedgerow = body.project.postIntervention.hedgerows.find(
         (f) => f.ref === 'HG017'
@@ -359,27 +449,29 @@ describe('details pages of a BNG Service template project', () => {
       )
 
       expect(hedgerow.retentionCategory).toBe('Created')
+      expect(baselineIds(body).has(hedgerow.parentFeatureId)).toBe(true)
       expect(fieldNames($)).toContain('strategicSignificance')
-      expect(viewBaselineHref($)).toBe(
-        baselineDetailsUrl(body, hedgerow.parentFeatureId)
-      )
+      expect(viewBaselineHref($)).toBeUndefined()
     })
 
     // A Retained tree takes the reference form, and a Created or an Enhanced
-    // one the edit form. Only a Created one has supporting information
-    // (BMD-1153; an Enhanced one's is BMD-1190).
+    // one the edit form, with its supporting information (BMD-1153,
+    // BMD-1190).
     const TREE_EDIT_FIELDS = [
       'ref',
       'habitatType',
       'strategicSignificance',
       'condition',
       'advanceYears',
-      'delayYears'
+      'delayYears',
+      'comment'
     ]
     test.each([
       ['Retained', ['habitatRef']],
       ['Enhanced', TREE_EDIT_FIELDS],
-      ['Created', [...TREE_EDIT_FIELDS, 'comment']]
+      // A Created tree's planted size class can be edited; an Enhanced one's
+      // is its baseline tree's.
+      ['Created', [...TREE_EDIT_FIELDS, 'treeSize']]
     ])(
       'a %s individual tree renders in the area layout, sized in hectares',
       async (retentionCategory, editableFields) => {
@@ -396,15 +488,18 @@ describe('details pages of a BNG Service template project', () => {
         expect(normalise($('h1').text())).toContain(tree.ref)
         expect(normalise($('main').text())).not.toContain('not yet supported')
         expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
-        expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
-        expect(fieldValue($, 'Number of trees')).toBe(String(tree.count ?? 1))
+        expect(shownOrChosen($, 'Tree size', 'treeSize')).toBe(
+          tree.proposed.treeSize
+        )
+        // A BNG Service template tree is one tree: it has no Count to show.
+        expect(fieldValue($, 'Number of trees')).toBeUndefined()
         expect(
           fieldValue($, 'Habitat type') ??
             $('[name="habitatType"] option[selected]').attr('value')
         ).toBe(tree.proposed.type)
         expect(editableFieldNames($)).toEqual([...editableFields].sort())
         expect(viewBaselineHref($)).toBe(
-          tree.parentFeatureId
+          linksToParent(retentionCategory, tree.parentFeatureId, body)
             ? baselineDetailsUrl(body, tree.parentFeatureId)
             : undefined
         )
@@ -445,9 +540,8 @@ describe('details pages of a BNG Service template project', () => {
 
     expect(watercourse.proposed.advanceYears).toBeNull()
     expect(normalise($('h1').text())).toContain(watercourse.ref)
-    expect(viewBaselineHref($)).toBe(
-      baselineDetailsUrl(body, watercourse.parentFeatureId)
-    )
+    // Recorded as Created, it links to no baseline watercourse.
+    expect(viewBaselineHref($)).toBeUndefined()
   })
 
   test.each([

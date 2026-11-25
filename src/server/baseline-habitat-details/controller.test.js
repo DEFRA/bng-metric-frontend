@@ -2511,6 +2511,173 @@ describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
       condition: 'Good'
     })
   })
+
+  // A BNG Service template tree's size class can be edited; a legacy tree's,
+  // whose point can stand for several trees, cannot.
+  function serveTemplateTree(tree) {
+    serveTree(tree)
+    const served = vi.mocked(wreck.get).getMockImplementation()
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      u.endsWith(`/projects/${projectId}`)
+        ? Promise.resolve({
+            res: { statusCode: 200 },
+            payload: {
+              project: {
+                name: 'Test Project',
+                baseline: { template: { name: 'bng-service' } }
+              }
+            }
+          })
+        : served(u)
+    )
+  }
+
+  async function renderTemplateTree(tree = mockTree) {
+    serveTemplateTree(tree)
+    const { result, statusCode } = await server.inject({
+      method: 'GET',
+      url: treeUrl,
+      auth: authedAuth
+    })
+    expect(statusCode).toBe(statusCodes.ok)
+    return load(result)
+  }
+
+  const postTreeSize = (treeSize) =>
+    server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: treeId,
+        broadHabitat: 'Individual trees',
+        habitatType: 'Urban tree',
+        condition: 'Good',
+        treeSize,
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+  test('offers a BNG Service template tree the Metric’s size classes, with its own chosen', async () => {
+    const $ = await renderTemplateTree()
+
+    expect(optionValues($, 'treeSize')).toEqual([
+      'Small',
+      'Medium',
+      'Large',
+      'Very large'
+    ])
+    expect($('select[name="treeSize"] option[selected]').val()).toBe('Medium')
+    expect($('label[for="treeSize"]').text().trim()).toBe('Tree size')
+  })
+
+  test('chooses a stored size class whatever its case', async () => {
+    const $ = await renderTemplateTree({ ...mockTree, treeSize: 'very large' })
+
+    expect(optionValues($, 'treeSize')).toEqual([
+      'Small',
+      'Medium',
+      'Large',
+      'Very large'
+    ])
+    expect($('select[name="treeSize"] option[selected]').val()).toBe(
+      'Very large'
+    )
+  })
+
+  test('offers a blank size class first to a tree saved without one', async () => {
+    const $ = await renderTemplateTree({ ...mockTree, treeSize: null })
+
+    expect(optionValues($, 'treeSize')).toEqual([
+      '',
+      'Small',
+      'Medium',
+      'Large',
+      'Very large'
+    ])
+  })
+
+  test('shows a legacy tree’s size class, not as a choice', async () => {
+    const $ = await renderTree()
+
+    expect($('select[name="treeSize"]')).toHaveLength(0)
+    const sizeField = $('.app-stacked-fields__item').filter(
+      (_, el) => $(el).children('h3').text().trim() === 'Tree size'
+    )
+    expect(sizeField.children('p').text().trim()).toBe('Medium')
+  })
+
+  test('saves a new size class with the tree’s other choices', async () => {
+    serveTemplateTree(mockTree)
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'tree', feature: { ...mockTree, treeSize: 'Large' } }
+    })
+
+    const { statusCode, headers } = await postTreeSize('Large')
+
+    expect(statusCode).toBe(302)
+    expect(headers.location).toBe(`/projects/${projectId}/area-baseline`)
+    const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(payload)).toEqual({
+      broadType: 'Individual trees',
+      habitatType: 'Urban tree',
+      condition: 'Good',
+      treeSize: 'Large'
+    })
+  })
+
+  test('leaves a blank size class out of the save, so the stored one stays', async () => {
+    serveTemplateTree({ ...mockTree, treeSize: null })
+    vi.mocked(wreck.put).mockResolvedValue({
+      res: { statusCode: 200 },
+      payload: { type: 'tree', feature: mockTree }
+    })
+
+    await postTreeSize('')
+
+    const [, { payload }] = vi.mocked(wreck.put).mock.calls[0]
+    expect(JSON.parse(payload)).not.toHaveProperty('treeSize')
+  })
+
+  test('keeps the size class chosen when a refused save shows the page again', async () => {
+    serveTemplateTree(mockTree)
+
+    const { statusCode, result } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: treeId,
+        broadHabitat: 'Individual trees',
+        habitatType: 'Urban tree',
+        condition: 'Good',
+        treeSize: 'Very large',
+        comment: 'x'.repeat(1000),
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.put).not.toHaveBeenCalled()
+    const $ = load(result)
+    expect($('select[name="treeSize"] option[selected]').val()).toBe(
+      'Very large'
+    )
+  })
+
+  test('refuses a size class the Metric does not have without saving', async () => {
+    serveTemplateTree(mockTree)
+
+    const { statusCode } = await postTreeSize('Huge')
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
 })
 
 // An individual tree is an area habitat on this page, and takes supporting
@@ -2600,6 +2767,49 @@ describe('#baselineHabitatDetails - supporting information on a tree (BMD-1112)'
     expect(result).toContain('>Imported tree note</textarea>')
     // The rest of the tree's page is unchanged by this story.
     expect(result).toContain('Number of trees')
+  })
+
+  // A legacy tree point can stand for several trees, and its area is that
+  // many times its size class's, so the page says how many (BMD-1172).
+  test('Shows a legacy tree whose Count is 3 its number of trees', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(result).toContain('Tree size')
+    expect(result).toMatch(/Number of trees[\s\S]*?>\s*3\s*</)
+  })
+
+  // A BNG Service template tree has no Count: each point is one tree, so the
+  // page shows no number of trees, whatever the feature carries.
+  test('Shows a BNG Service template tree no number of trees', async () => {
+    vi.mocked(wreck.get).mockImplementation((u) =>
+      Promise.resolve(
+        u.endsWith(`/projects/${projectId}`)
+          ? {
+              res: { statusCode: 200 },
+              payload: {
+                project: {
+                  name: 'Test Project',
+                  baseline: { template: { name: 'bng-service' } }
+                }
+              }
+            }
+          : routeTreeWreck(u)
+      )
+    )
+
+    const { statusCode, result } = await server.inject({
+      method: 'GET',
+      url: `/baseline-habitat-details?featureId=${treeId}&projectId=${projectId}`,
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.ok)
+    expect(result).toContain('Tree size')
+    expect(result).not.toContain('Number of trees')
   })
 
   const postTree = (payload) =>

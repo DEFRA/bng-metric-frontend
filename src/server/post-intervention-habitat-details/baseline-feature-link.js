@@ -4,7 +4,7 @@
 
 import { isServiceTemplateDocument } from '../common/helpers/service-template.js'
 import { VERTICAL_HABITAT_TYPE } from '../common/helpers/vertical-habitats.js'
-import { CREATED_EDIT_KINDS } from './created-area-edit.js'
+import { featureRetentionCategory, RETENTION_CREATED } from './retention.js'
 
 const AREA_HABITAT_TYPE = 'habitat'
 const TREE_TYPE = 'tree'
@@ -86,51 +86,65 @@ const BASELINE_LAYERS = [
 
 /**
  * The baseline feature a BNG Service template post-intervention feature names
- * as its parent, whatever its Retention Category: the one it continues,
- * enhances, or degrades by being Created over it (BMD-1083). The backend links
- * it by the parent_uuid in the file, so refs play no part: a feature with no
+ * as its parent: the one it continues or enhances. The backend links it by the
+ * parent_uuid in the file, so refs play no part: a feature with no
  * parentFeatureId has no baseline link, and neither does one whose parent the
  * baseline no longer holds.
  */
-function parentBaselineFeatureId(project, feature, layers = BASELINE_LAYERS) {
+function parentBaselineFeatureId(project, feature) {
   const parentId = feature.parentFeatureId
   if (!parentId) {
     return null
   }
   const baseline = project?.project?.baseline
-  const exists = layers.some((layer) =>
+  const exists = BASELINE_LAYERS.some((layer) =>
     baseline?.[layer]?.some((f) => f.featureId === parentId)
   )
   return exists ? parentId : null
 }
 
-function isServiceTemplateProject(project) {
+/**
+ * Whether the project's post-intervention document was uploaded in the BNG
+ * Service template. Its features link to their parents by parentFeatureId,
+ * and its trees have no Count, so show no number of trees.
+ *
+ * @param {object|null} project
+ * @returns {boolean}
+ */
+export function isServiceTemplateProject(project) {
   return isServiceTemplateDocument(project?.project?.postIntervention)
 }
 
-// A feature renamed on its own page, such as an Enhanced area habitat
-// (BMD-1045), carries the parent it was renamed from, as its new ref may match
-// no baseline feature, or the wrong one.
-export function viewOnlyBaselineFeatureId(project, type, feature) {
+/**
+ * A Created feature's page links to no baseline feature, whatever its type:
+ * it is recorded as a creation of its own. That holds for one Created over a
+ * baseline feature it degrades, though it names that feature as its parent, as
+ * Natural England's template records a degraded habitat as Created.
+ */
+const isUnlinked = (feature) =>
+  featureRetentionCategory(feature) === RETENTION_CREATED
+
+/**
+ * The baseline feature a Retained or Enhanced post-intervention feature's
+ * "View baseline details" opens; null for a Created one. A feature renamed on
+ * its own page, such as an Enhanced area habitat (BMD-1045), carries the
+ * parent it was renamed from, as its new ref may match no baseline feature,
+ * or the wrong one.
+ *
+ * @param {object} project
+ * @param {string} type the feature type from the PI feature endpoint
+ * @param {object} feature the post-intervention feature, as fetched
+ * @returns {string|null}
+ */
+export function baselineFeatureIdFor(project, type, feature) {
+  if (isUnlinked(feature)) {
+    return null
+  }
   if (
     isServiceTemplateProject(project) ||
     Object.hasOwn(feature, 'parentFeatureId')
   ) {
     return parentBaselineFeatureId(project, feature)
-  }
-  return resolveBaselineFeatureId(project, type, feature)
-}
-
-// A Created feature's parent is looked for in its own layer only: the backend
-// links a template row's parent_uuid to a baseline feature of the same layer,
-// so a Created tree's parent is always a baseline tree.
-export function createdBaselineFeatureId(project, type, feature) {
-  if (
-    isServiceTemplateProject(project) ||
-    Object.hasOwn(feature, 'parentFeatureId')
-  ) {
-    const layer = CREATED_EDIT_KINDS[type].savePath
-    return parentBaselineFeatureId(project, feature, [layer])
   }
   return resolveBaselineFeatureId(project, type, feature)
 }

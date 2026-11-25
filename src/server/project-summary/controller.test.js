@@ -251,7 +251,7 @@ describe('project summary', () => {
     const navigation = $('nav[aria-label="Project summary"]')
 
     expect(navigation).toHaveLength(1)
-    expect(navigation.find('li')).toHaveLength(5)
+    expect(navigation.find('li')).toHaveLength(6)
     expect(navigation.find('[aria-current="page"]').text()).toBe('Summary')
     expect(
       navigation
@@ -269,18 +269,19 @@ describe('project summary', () => {
         href: `/projects/${PROJECT_ID}/watercourses-summary`
       },
       {
+        text: 'Project details',
+        href: `/project-details/${PROJECT_ID}?returnUrl=${encodeURIComponent(`/projects/${PROJECT_ID}/project-summary`)}`
+      },
+      {
         text: 'Reports',
         href: `/projects/${PROJECT_ID}/reports`
       }
     ])
     expect(result).toContain('View trading rules')
     expect(result).not.toContain('>View trading rules</a>')
-    expect(result).toContain('View project details')
-    expect(result).toContain('class="app-project-summary__actions"')
+    expect(result).not.toContain('View project details')
+    expect(result).not.toContain('app-project-summary__actions')
     expect(result).not.toContain('Submit metric')
-    expect(result).toContain(
-      'View and amend your project details, including project name and target percentage'
-    )
   })
 
   test('links only the area Trading Rules tile when PI is uploaded', async () => {
@@ -583,7 +584,7 @@ describe('project summary', () => {
       const navigation = $('nav[aria-label="Project summary"]')
 
       expect(statusCode).toBe(statusCodes.ok)
-      expect(navigation.find('li')).toHaveLength(3)
+      expect(navigation.find('li')).toHaveLength(4)
       expect(navigation.text()).toContain('Area habitats')
       expect(navigation.text()).not.toContain('Hedgerows')
       expect(navigation.text()).not.toContain('Watercourses')

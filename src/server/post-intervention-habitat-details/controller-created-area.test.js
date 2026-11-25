@@ -163,7 +163,8 @@ describe('Created area controller', () => {
     }
   })
 
-  test('keeps the baseline link and safe list anchor on GET and validation redisplay', async () => {
+  // A Created area habitat links to no baseline, though one shares its ref.
+  test('shows no baseline link, and keeps the safe list anchor, on GET and validation redisplay', async () => {
     mockFeature(
       { type: 'habitat', feature: structuredClone(createdAreaFeature) },
       projectWithBaselinePayload
@@ -177,7 +178,7 @@ describe('Created area controller', () => {
     await postController.handler(request({ returnUrl, ref: ' ' }), h)
     for (const [, vm] of h.view.mock.calls) {
       expect(vm).toMatchObject({
-        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
+        viewBaselineHref: null,
         backHref: returnUrl,
         cancelHref: returnUrl,
         returnUrl
@@ -225,7 +226,7 @@ describe('Created area controller', () => {
   })
 
   test.each([baselineFeatureId, null])(
-    'uses the stored Created parent link after reference editing (%s)',
+    'shows no baseline link for a Created area habitat that names a parent (%s)',
     async (parentFeatureId) => {
       mockFeature(
         {
@@ -242,11 +243,7 @@ describe('Created area controller', () => {
       await getController.handler({ query: { projectId, featureId } }, h)
       await postController.handler(request({ ref: ' ' }), h)
       for (const [, vm] of h.view.mock.calls) {
-        expect(vm.viewBaselineHref).toBe(
-          parentFeatureId
-            ? `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
-            : null
-        )
+        expect(vm.viewBaselineHref).toBeNull()
       }
     }
   )
@@ -309,8 +306,11 @@ describe('Created area controller', () => {
     }
   )
 
+  // The PO's ruling (BMD-1046 testing): a stored value the list does not
+  // offer is not shown or kept, so it shows the default option and a save
+  // clears it.
   test.each([2.5, 31])(
-    'preserves imported area timing %s on reference-only saves and clears only explicitly',
+    'shows imported area timing %s as the default option, and a rename clears it',
     async (advanceYears) => {
       mockFeature({
         type: 'habitat',
@@ -326,19 +326,19 @@ describe('Created area controller', () => {
       const h = createMockH()
       await getController.handler({ query: { projectId, featureId } }, h)
       const vm = h.view.mock.calls[0][1]
-      expect(vm.values.advanceYears).toBe('unchanged')
-      expect(vm.finalTimeToTargetDisplay).toBe('4.5 years (0.8519)')
+      expect(vm.values.advanceYears).toBe('')
+      expect(
+        vm.fields.advanceYears.items.find((item) => item.selected).value
+      ).toBe('')
+      expect(vm.fields.advanceYears.hint ?? '').not.toContain('imported')
+      expect(vm.finalTimeToTargetDisplay).toBe('')
       await postController.handler(
-        request({ ref: 'Renamed area', advanceYears: 'unchanged' }),
+        request({ ...vm.values, ref: 'Renamed area' }),
         h
       )
       const saved = JSON.parse(wreck.put.mock.calls[0][1].payload)
       expect(saved.ref).toBe('Renamed area')
-      expect(saved).not.toHaveProperty('advanceYears')
-      await postController.handler(request({ advanceYears: '' }), h)
-      expect(
-        JSON.parse(wreck.put.mock.calls[1][1].payload).advanceYears
-      ).toBeNull()
+      expect(saved.advanceYears).toBeNull()
     }
   )
 
@@ -489,7 +489,7 @@ describe('Created area controller', () => {
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
-  test('keeps warnings for original unavailable import values after a validation error', async () => {
+  test('shows an unavailable imported condition and timing as the default option with no imported-value hint, before and after a validation error', async () => {
     mockFeature({
       type: 'habitat',
       feature: {
@@ -502,29 +502,23 @@ describe('Created area controller', () => {
       }
     })
     const h = createMockH()
-    // The user explicitly clears timing and leaves the unavailable condition blank.
+    await getController.handler({ query: { projectId, featureId } }, h)
+    const loaded = h.view.mock.calls[0][1]
+    expect(loaded.values).toMatchObject({ condition: '', advanceYears: '' })
     await postController.handler(
       request({ ref: ' ', condition: '', advanceYears: '' }),
       h
     )
-    const fields = h.view.mock.calls[0][1].fields
-    expect(fields.condition.hint).toContain('"Fairly Poor" is not available')
-    expect(fields.advanceYears.hint).toContain(
-      'choose the default option to clear it'
-    )
-    expect(fields.condition.hint).toContain(
-      'saving without a new selection will clear this value'
-    )
-
-    await postController.handler(
-      request({ ref: ' ', condition: 'Good', advanceYears: '0' }),
-      h
-    )
-    const corrected = h.view.mock.calls[1][1].fields
-    expect(corrected.condition.hint ?? '').not.toContain('"Fairly Poor"')
-    expect(
-      corrected.advanceYears.items.find((item) => item.selected).value
-    ).toBe('0')
+    const redisplayed = h.view.mock.calls[1][1]
+    for (const vm of [loaded, redisplayed]) {
+      for (const field of ['condition', 'advanceYears']) {
+        expect(vm.fields[field].items.find((item) => item.selected).value).toBe(
+          ''
+        )
+        expect(vm.fields[field].hint ?? '').not.toContain('imported')
+        expect(vm.fields[field].hint ?? '').not.toContain('Fairly Poor')
+      }
+    }
     expect(wreck.put).not.toHaveBeenCalled()
   })
 
@@ -690,6 +684,54 @@ describe('Created area authenticated form', () => {
     expect(response.payload).not.toContain('govuk-input--error')
     expect(response.payload).toContain(`value="${values.ref}"`)
   })
+
+  // An area habitat Created in its parent's own type is held by the backend
+  // to the guide's steps for a habitat whose condition gets worse.
+  test.each([
+    [
+      'degrade-worse-condition',
+      'condition',
+      'Choose a target condition lower than the baseline habitat&#39;s condition'
+    ],
+    [
+      'degrade-advance-30-plus',
+      'advanceYears',
+      'Set the years in advance to 30+'
+    ]
+  ])(
+    'shows the field to blame when the backend refuses the edit of a habitat whose condition gets worse (%s)',
+    async (rule, field, wording) => {
+      const refused = Boom.badData('does not follow the guide')
+      refused.data = {
+        res: { statusCode: 422 },
+        payload: {
+          statusCode: 422,
+          error: 'Unprocessable Entity',
+          message: `The habitat is its baseline habitat created again in its own type, so it must be in a lower condition and created 30+ years in advance, or put back after a delay (rule ${rule})`,
+          code: 'HABITAT_DEGRADE_NOT_VALID',
+          rule
+        }
+      }
+      vi.mocked(wreck.put).mockRejectedValue(refused)
+      const { token, cookie } = await primeCrumb(server)
+
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: { ...request().payload, crumb: token }
+      })
+
+      expect(response.statusCode).toBe(422)
+      expect(response.payload).toMatch(/<title>\s*Error: /)
+      expect(response.payload).toContain(`href="#${field}"`)
+      expect(response.payload).toContain(wording)
+      expect(response.payload).toContain('cleared and put back')
+      expect(response.payload).not.toContain('Newly Planted')
+      expect(response.payload).toContain(`value="${values.ref}"`)
+    }
+  )
 
   test('renders the CSRF token and saves a protected form submission', async () => {
     const { token, cookie } = await primeCrumb(server)

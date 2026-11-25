@@ -21,8 +21,8 @@ import {
 } from './tree-view-only-view-model.js'
 import { buildWatercourseViewOnlyViewModel } from './watercourse-view-only-view-model.js'
 import {
-  createdBaselineFeatureId,
-  viewOnlyBaselineFeatureId
+  baselineFeatureIdFor,
+  isServiceTemplateProject
 } from './baseline-feature-link.js'
 import {
   HABITAT_REF_ERROR,
@@ -36,6 +36,7 @@ import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
+  createdTreePayloadSchema,
   CREATED_EDIT_KINDS,
   createdHedgerowPayloadSchema,
   createdWatercoursePayloadSchema,
@@ -69,15 +70,24 @@ const CREATED_EDIT_TYPES = new Set([
   HEDGEROW_TYPE,
   WATERCOURSE_TYPE
 ])
-// The CREATED_EDIT_KINDS entries an Enhanced tree and an Enhanced area
-// habitat (BMD-1045) are edited as.
+// The CREATED_EDIT_KINDS entries an Enhanced tree, area habitat (BMD-1045),
+// hedgerow (BMD-1046) and watercourse (BMD-1047) are edited as.
 const ENHANCED_TREE_KIND = 'enhancedTree'
 const ENHANCED_HABITAT_KIND = 'enhancedHabitat'
 const ENHANCED_HEDGEROW_KIND = 'enhancedHedgerow'
+const ENHANCED_WATERCOURSE_KIND = 'enhancedWatercourse'
+const ENHANCED_KINDS_BY_TYPE = new Map([
+  [TREE_TYPE, ENHANCED_TREE_KIND],
+  [AREA_HABITAT_TYPE, ENHANCED_HABITAT_KIND],
+  [HEDGEROW_TYPE, ENHANCED_HEDGEROW_KIND],
+  [WATERCOURSE_TYPE, ENHANCED_WATERCOURSE_KIND]
+])
 
 /**
  * The feature as its edit kind reads it: an Enhanced tree whose file left its
- * setting blank takes its baseline one, as the backend reads it.
+ * setting blank takes its baseline one, as the backend reads it, and a
+ * Created tree names no baseline condition. Its "View baseline details" link
+ * is found from the feature as fetched, before this.
  *
  * @param {string} kindKey
  * @param {object} feature
@@ -90,7 +100,7 @@ function editableFeature(kindKey, feature) {
 /**
  * The CREATED_EDIT_KINDS entry a post-intervention feature's details page
  * edits it as: a Created area habitat, tree, hedgerow or watercourse its own
- * type's, and an Enhanced tree or area habitat its Enhanced kind. Null for a
+ * type's, and an Enhanced one its Enhanced kind. Null for a
  * feature whose page is read-only or only renames it.
  *
  * @param {string} type
@@ -101,14 +111,8 @@ function editKindOf(type, retentionCategory) {
   if (CREATED_EDIT_TYPES.has(type) && retentionCategory === RETENTION_CREATED) {
     return type
   }
-  if (type === TREE_TYPE && retentionCategory === RETENTION_ENHANCED) {
-    return ENHANCED_TREE_KIND
-  }
-  if (type === AREA_HABITAT_TYPE && retentionCategory === RETENTION_ENHANCED) {
-    return ENHANCED_HABITAT_KIND
-  }
-  if (type === HEDGEROW_TYPE && retentionCategory === RETENTION_ENHANCED) {
-    return ENHANCED_HEDGEROW_KIND
+  if (retentionCategory === RETENTION_ENHANCED) {
+    return ENHANCED_KINDS_BY_TYPE.get(type) ?? null
   }
   return null
 }
@@ -250,22 +254,6 @@ function renderUnsupportedFeature(
   })
 }
 
-// The Enhanced kinds whose edit page links to the baseline as their read-only
-// page finds it: an area habitat (BMD-725) and a hedgerow (BMD-733).
-const VIEW_ONLY_BASELINE_KINDS = new Set([
-  ENHANCED_HABITAT_KIND,
-  ENHANCED_HEDGEROW_KIND
-])
-
-// The baseline an edit page's "View baseline details" opens: a Created
-// feature's parent, or an Enhanced area's or hedgerow's baseline as its
-// read-only page finds it.
-function editBaselineFeatureId(project, type, feature, kindKey) {
-  return VIEW_ONLY_BASELINE_KINDS.has(kindKey)
-    ? viewOnlyBaselineFeatureId(project, type, feature)
-    : createdBaselineFeatureId(project, type, feature)
-}
-
 async function loadCreationReferenceForFeature(kindKey, feature) {
   const kind = CREATED_EDIT_KINDS[kindKey]
   try {
@@ -290,14 +278,12 @@ async function loadCreationReferenceForFeature(kindKey, feature) {
  */
 async function renderCreatedFeature(
   h,
-  { type, kindKey, feature, project, projectId, projectName, returnUrl }
+  { type, kindKey, fetched, project, projectId, projectName, returnUrl }
 ) {
-  const baselineFeatureId = editBaselineFeatureId(
-    project,
-    type,
-    feature,
-    kindKey
-  )
+  // The link is found from the feature as fetched: a legacy one with no
+  // parent is matched on its baseline snapshot, which normalising can clear.
+  const baselineFeatureId = baselineFeatureIdFor(project, type, fetched)
+  const feature = editableFeature(kindKey, fetched)
   const kind = CREATED_EDIT_KINDS[kindKey]
   const reference = await loadCreationReferenceForFeature(kindKey, feature)
   if (!reference) {
@@ -307,7 +293,8 @@ async function renderCreatedFeature(
         {
           projectId,
           projectName,
-          baselineFeatureId
+          baselineFeatureId,
+          serviceTemplate: isServiceTemplateProject(project)
         }
       ),
       backHref: postInterventionBackHref(projectId, type, returnUrl)
@@ -319,6 +306,7 @@ async function renderCreatedFeature(
       projectId,
       projectName,
       baselineFeatureId,
+      serviceTemplate: isServiceTemplateProject(project),
       returnUrl
     })
   )
@@ -357,7 +345,7 @@ async function renderDetailsPage(
     return renderCreatedFeature(h, {
       type,
       kindKey,
-      feature: editableFeature(kindKey, feature),
+      fetched: feature,
       project,
       projectId,
       projectName,
@@ -379,7 +367,8 @@ async function renderDetailsPage(
     {
       projectId,
       projectName,
-      baselineFeatureId: viewOnlyBaselineFeatureId(project, type, feature),
+      baselineFeatureId: baselineFeatureIdFor(project, type, feature),
+      serviceTemplate: isServiceTemplateProject(project),
       baselineComment
     }
   )
@@ -419,12 +408,13 @@ const getController = {
 
 const CREATED_PAYLOAD_SCHEMAS = {
   habitat: createdAreaPayloadSchema,
-  tree: createdAreaPayloadSchema,
+  tree: createdTreePayloadSchema,
   [ENHANCED_TREE_KIND]: createdAreaPayloadSchema,
   [ENHANCED_HABITAT_KIND]: createdAreaPayloadSchema,
   hedgerow: createdHedgerowPayloadSchema,
   [ENHANCED_HEDGEROW_KIND]: createdHedgerowPayloadSchema,
-  watercourse: createdWatercoursePayloadSchema
+  watercourse: createdWatercoursePayloadSchema,
+  [ENHANCED_WATERCOURSE_KIND]: createdWatercoursePayloadSchema
 }
 
 /**
@@ -447,8 +437,9 @@ function validatedPayload(schema, payload) {
 async function saveCreatedDetails(
   request,
   h,
-  { type, kindKey, feature, payload }
+  { type, kindKey, fetched, payload }
 ) {
+  const feature = editableFeature(kindKey, fetched)
   const kind = CREATED_EDIT_KINDS[kindKey]
   if (kind.hasBroadHabitat && !Object.hasOwn(payload, 'broadHabitat')) {
     throw Boom.badRequest('Broad habitat field is required for area edits')
@@ -476,12 +467,8 @@ async function saveCreatedDetails(
         {
           projectId,
           projectName: project?.project?.name ?? DEFAULT_PROJECT_NAME,
-          baselineFeatureId: editBaselineFeatureId(
-            project,
-            type,
-            feature,
-            kindKey
-          ),
+          baselineFeatureId: baselineFeatureIdFor(project, type, fetched),
+          serviceTemplate: isServiceTemplateProject(project),
           returnUrl,
           refusal
         },
@@ -581,7 +568,7 @@ const postController = {
       return saveCreatedDetails(request, h, {
         type,
         kindKey,
-        feature: editableFeature(kindKey, feature),
+        fetched: feature,
         payload: request.payload
       })
     }

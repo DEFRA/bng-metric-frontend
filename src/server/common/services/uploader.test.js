@@ -212,12 +212,13 @@ describe('getUploadStatus', () => {
 
     const result = await getUploadStatus(makeRequest(), 'abc-123')
 
-    // The same answer as any failed check, so the checking page refreshes
-    // and asks again rather than ending on the "too many requests" page —
-    // at the backend's pace.
+    // A failed check that says it was refused, so the checking page
+    // refreshes and asks again rather than ending on the "too many requests"
+    // page or counting it as a failure — at the backend's pace.
     expect(result).toEqual({
       uploadStatus: 'error',
       error: 'Unable to check upload status',
+      rateLimited: true,
       retryAfterSeconds: 5
     })
     expect(mockLoggerError).not.toHaveBeenCalled()
@@ -306,6 +307,21 @@ describe('getUploadStatus', () => {
     expect(result).toEqual({
       uploadStatus: 'error',
       error: 'Unable to check upload status'
+    })
+  })
+
+  it('passes an expired sign-in on, so the user is sent to sign in again rather than kept waiting', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: 401 },
+      payload: {}
+    })
+    const request = makeRequest()
+    request.yar.reset = vi.fn()
+    request.yar.set = vi.fn()
+
+    await expect(getUploadStatus(request, 'abc-123')).rejects.toMatchObject({
+      output: { statusCode: 401 },
+      data: { sessionExpired: true }
     })
   })
 

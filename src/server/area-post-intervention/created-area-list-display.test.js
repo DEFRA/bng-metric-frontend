@@ -111,7 +111,7 @@ test('does not use a different broad habitat or unknown habitat type to supply d
 
 test('does not load reference data for complete saved fields or other intervention types', async () => {
   for (const row of [
-    { ...feature, retentionCategory: 'Enhanced' },
+    { ...feature, retentionCategory: 'Retained' },
     {
       ...feature,
       units: 1.5,
@@ -195,11 +195,34 @@ test('keeps calculated Created units unchanged', async () => {
   expect(displayed.units).toBe(2.25)
 })
 
-test('does not project units for Retained or Enhanced rows', async () => {
-  for (const retentionCategory of ['Retained', 'Enhanced']) {
-    const project = projectWith({ ...feature, retentionCategory })
-    expect(await prepareCreatedAreaListDisplay(project)).toBe(project)
+test('does not project units for a Retained row', async () => {
+  const project = projectWith({ ...feature, retentionCategory: 'Retained' })
+  expect(await prepareCreatedAreaListDisplay(project)).toBe(project)
+})
+
+// BMD-1045 AC2: an incomplete Enhanced area habitat shows zero units, as its
+// edit page does. Its other fields come from its own row, never the creation
+// reference.
+test.each(['Enhanced', '1. Enhanced'])(
+  'shows an incomplete %s row as zero units without loading reference data',
+  async (retentionCategory) => {
+    const row = { ...feature, retentionCategory }
+    const project = projectWith(row)
+    const displayed = (await prepareCreatedAreaListDisplay(project))
+      .postIntervention.habitats[0]
+    expect(displayed).toEqual({ ...row, units: 0 })
+    expect(project.postIntervention.habitats[0].units).toBeNull()
+    expect(loadCreatedAreaReference).not.toHaveBeenCalled()
   }
+)
+
+test('keeps calculated Enhanced units unchanged', async () => {
+  const project = projectWith({
+    ...feature,
+    retentionCategory: 'Enhanced',
+    units: 1.75
+  })
+  expect(await prepareCreatedAreaListDisplay(project)).toBe(project)
 })
 
 test('shows the stored row with zero units when the reference data cannot be loaded', async () => {

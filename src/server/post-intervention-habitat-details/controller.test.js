@@ -248,8 +248,14 @@ describe('#postInterventionHabitatDetailsController', () => {
     }
   )
 
-  // A Medium urban tree point standing for 2 trees.
-  function mockTree(retentionCategory, treeCreation, treeEnhancement) {
+  // A Medium urban tree point standing for 2 trees, in a legacy project
+  // unless another project is given.
+  function mockTree(
+    retentionCategory,
+    treeCreation,
+    treeEnhancement,
+    project = projectPayload
+  ) {
     _resetCreatedAreaReferenceCache()
     vi.mocked(wreck.get).mockImplementation((url) => {
       if (url.includes(`/post-intervention/features/${featureId}`)) {
@@ -283,7 +289,7 @@ describe('#postInterventionHabitatDetailsController', () => {
         return treeEnhancement()
       }
       if (isProjectUrl(url)) {
-        return Promise.resolve(projectPayload)
+        return Promise.resolve(project)
       }
       throw new Error(`Unexpected URL ${url}`)
     })
@@ -319,6 +325,7 @@ describe('#postInterventionHabitatDetailsController', () => {
     treeSizeDisplay: 'Medium',
     treeCountDisplay: '2',
     showTreeRows: true,
+    showTreeCountRow: true,
     backHref: `/projects/${projectId}/area-post-intervention`
   }
 
@@ -345,6 +352,44 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
     expect(h.view.mock.calls[0][1]).not.toHaveProperty('refForm')
   })
+
+  // A BNG Service template tree has no Count: each point is one tree, so its
+  // page shows no number of trees (BMD-1172). Its size is still the one the
+  // backend saved.
+  test.each([
+    ['Retained', 'habitat-details/pi-habitat-details'],
+    ['Enhanced', 'habitat-details/pi-habitat-details-enhanced']
+  ])(
+    'GET shows a %s BNG Service template tree no number of trees',
+    async (retentionCategory, template) => {
+      const notFound = () =>
+        Promise.reject(
+          Object.assign(new Error('Not Found'), {
+            output: { statusCode: 404 }
+          })
+        )
+      mockTree(retentionCategory, notFound, notFound, {
+        payload: {
+          project: {
+            name: 'Test Project',
+            postIntervention: { template: { name: 'bng-service' } }
+          }
+        }
+      })
+
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      expect(h.view).toHaveBeenCalledWith(
+        template,
+        expect.objectContaining({
+          treeSizeDisplay: 'Medium',
+          showTreeRows: true,
+          showTreeCountRow: false
+        })
+      )
+    }
+  )
 
   test('GET renders a Retained individual tree with its reference form, in the area layout', async () => {
     mockTree('Retained', treeCreationReference)
@@ -733,6 +778,21 @@ describe('#postInterventionHabitatDetailsController', () => {
       )
     })
 
+    test('links a Retained tree to the baseline tree, not an area habitat sharing its ref', async () => {
+      mockHedgerowWithBaseline(
+        {
+          habitats: [{ featureId: otherBaselineId, ref: 'H1' }],
+          trees: [{ featureId: baselineFeatureId, ref: 'H1' }]
+        },
+        {},
+        'tree'
+      )
+
+      expect(await linkedBaselineHref()).toBe(
+        `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`
+      )
+    })
+
     test('shows no link when only another layer carries the ref', async () => {
       mockHedgerowWithBaseline({
         habitats: [{ featureId: otherBaselineId, ref: 'H1' }]
@@ -967,11 +1027,11 @@ describe('#postInterventionHabitatDetailsController', () => {
     )
   })
 
-  // An Enhanced area habitat or hedgerow is edited (BMD-1045, BMD-1046); an
-  // Enhanced watercourse is still read-only.
+  // An Enhanced area habitat, hedgerow or watercourse is edited (BMD-1045,
+  // BMD-1046, BMD-1047); an Enhanced vertical area habitat is still read-only.
   test('POST refuses edits for read-only retention categories', async () => {
     mockFeature({
-      type: 'watercourse',
+      type: 'verticalHabitat',
       feature: { retentionCategory: 'Enhanced' }
     })
     await expect(
@@ -990,7 +1050,8 @@ test.each([
   ['hedgerow', 'Retained', 'habitat-details/pi-hedgerow-details'],
   // An Enhanced hedgerow is edited (BMD-1046).
   ['hedgerow', 'Enhanced', 'habitat-details/pi-habitat-details-created-edit'],
-  ['watercourse', 'Enhanced', 'habitat-details/pi-watercourse-details-enhanced']
+  // An Enhanced watercourse is edited (BMD-1047).
+  ['watercourse', 'Enhanced', 'habitat-details/pi-habitat-details-created-edit']
 ])(
   'keeps legacy %s %s routing consistent with the shared retention resolver',
   async (type, retentionCategory, template) => {

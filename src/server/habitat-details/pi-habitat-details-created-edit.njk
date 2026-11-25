@@ -67,9 +67,15 @@
         {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
         {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
-        {% if showTreeRows %}
+        {% if treeSizeField %}
+          {{ select(treeSizeField) }}
+        {% elif showTreeRows %}
           {{ derived("Tree size", "treeSizeDisplay", treeSizeDisplay) }}
-          {{ derived("Number of trees", "treeCountDisplay", treeCountDisplay) }}
+        {% endif %}
+        {% if showTreeRows %}
+          {% if showTreeCountRow %}
+            {{ derived("Number of trees", "treeCountDisplay", treeCountDisplay) }}
+          {% endif %}
         {% endif %}
         {% if fields.broadHabitat %}{{ select(fields.broadHabitat) }}{% endif %}
         {# An individual tree is always Individual trees: shown, and sent with
@@ -106,9 +112,11 @@
         {{ govukSummaryList({ classes: "app-units-delivered app-pi-edit-units govuk-!-margin-top-6", rows: [
           { key: { text: habitatUnitsLabel }, value: { text: habitatUnitsDisplay } }
         ] }) }}
-        {# A Created habitat's supporting information (BMD-1153). An Enhanced
-           tree's page leaves showCommentRow unset, submits no comment, and
-           keeps the stored one. #}
+        {# A Created habitat's supporting information (BMD-1153), or an
+           Enhanced area's, tree's or hedgerow's (BMD-1190). A kind without
+           hasComment leaves showCommentRow false, submits no comment, and
+           keeps the stored one. An Enhanced watercourse has no edit page
+           yet. #}
         {% if showCommentRow %}
           {{ govukTextarea({
             id: commentInput.id,

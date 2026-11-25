@@ -1,4 +1,7 @@
-import { watercourseCreationReference } from './created-watercourse-test-fixtures.js'
+import {
+  watercourseCreationReference,
+  watercourseEnhancementReference
+} from './created-watercourse-test-fixtures.js'
 import { vi } from 'vitest'
 
 import { wreck } from '../common/helpers/wreck-client.js'
@@ -34,6 +37,22 @@ export const projectWithBaselinePayload = {
 }
 
 /**
+ * Whether a backend URL asks for a reference. A creation reference's path ends
+ * the URL; an enhancement reference's is followed by its baseline as a query,
+ * so its path is given with a trailing "?" and matched anywhere in the URL.
+ *
+ * @param {string} url
+ * @param {string} referencePath e.g. '/reference/area-creation' or
+ *   '/reference/area-enhancement?'
+ * @returns {boolean}
+ */
+export function servesReference(url, referencePath) {
+  return referencePath.endsWith('?')
+    ? url.includes(referencePath)
+    : url.endsWith(referencePath)
+}
+
+/**
  * @param {string} url
  * @returns {boolean}
  */
@@ -57,6 +76,9 @@ export function mockFeature(featurePayload, projectResponse = projectPayload) {
     }
     if (url.endsWith('/reference/hedgerow-creation')) {
       return Promise.resolve({ payload: hedgerowCreationReference })
+    }
+    if (url.includes('/reference/watercourse-enhancement?')) {
+      return Promise.resolve({ payload: watercourseEnhancementReference })
     }
     if (url.includes('/reference/hedgerow-enhancement?')) {
       return Promise.resolve({ payload: hedgerowEnhancementReference })

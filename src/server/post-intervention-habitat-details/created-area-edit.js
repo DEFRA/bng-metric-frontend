@@ -1,6 +1,5 @@
 import {
   loadCreatedAreaReference,
-  loadCreatedWatercourseReference,
   loadEnhancedAreaReference
 } from './created-edit-reference.js'
 import {
@@ -8,6 +7,10 @@ import {
   ENHANCED_HEDGEROW_KIND
 } from './hedgerow-edit-kinds.js'
 import { CREATED_TREE_KIND, ENHANCED_TREE_KIND } from './tree-edit-kinds.js'
+import {
+  CREATED_WATERCOURSE_KIND,
+  ENHANCED_WATERCOURSE_KIND
+} from './watercourse-edit-kinds.js'
 export { enhancedTreeReference } from './tree-edit-kinds.js'
 export {
   loadCreatedAreaReference,
@@ -20,16 +23,12 @@ export {
 import {
   buildCreatedEditFields,
   ENCROACHMENT_FIELDS,
-  FIELD_ORDER,
-  keepImportedCondition
+  FIELD_ORDER
 } from './created-area-edit-fields.js'
 import { featureRetentionCategory } from './retention.js'
 import Joi from 'joi'
-import { buildCreatedWatercourseViewOnlyViewModel } from './created-watercourse-view-only-view-model.js'
 
 import {
-  UNCHANGED_VALUE,
-  resolveCreatedTiming,
   createdAreaDerived,
   createdDerivedInputsUnchanged,
   selectedHabitat,
@@ -38,11 +37,12 @@ import {
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
-import { createdUnitsDisplay, formatLengthDisplay } from './view-only-shared.js'
+import { TREE_SIZES, treeSizeItems } from '../common/helpers/tree-details.js'
+import { createdUnitsDisplay } from './view-only-shared.js'
 import {
   AREA_SECTIONS_TEMPLATE,
   AREA_SIZE_LABEL,
-  CREATED_SUPPORTING_INFORMATION_HINT,
+  EDIT_SUPPORTING_INFORMATION_HINT,
   MAX_REF_LENGTH
 } from './constants.js'
 import { postInterventionBackHref } from './navigation.js'
@@ -50,7 +50,7 @@ import { buildCreatedAreaViewOnlyViewModel } from './created-area-view-only-view
 import { buildEnhancedAreaViewOnlyViewModel } from './enhanced-area-view-only-view-model.js'
 import {
   createdAreaValues,
-  createdImportedChoices
+  supportedCreatedValues
 } from './created-choice-values.js'
 export { createdAreaValues } from './created-choice-values.js'
 export { saveCreatedArea } from './created-area-save.js'
@@ -69,7 +69,6 @@ const formError = (field, rule, values) =>
 const ERRORS = Object.freeze({
   refInvalid: HABITAT_REF_ERROR,
   refTooLong: formError('habitatRef', 'tooLong', { max: MAX_REF_LENGTH }),
-  timingInvalid: formError('advanceOrDelay', 'invalid'),
   timingBoth: formError('advanceOrDelay', 'both'),
   broadHabitat: formError('broadHabitat', 'invalid'),
   condition: formError('condition', 'notForHabitatType'),
@@ -96,8 +95,7 @@ const CREATED_AREA_KIND = {
 // BMD-1045: an Enhanced area is edited on the Created area form, with the
 // choices limited to the valid enhancements of its baseline. Its fields,
 // validation, derived values, timing labels and save are the Created area's;
-// a refused enhancement blames the condition, a
-// stored proposal the list no longer offers is kept, and it falls back to its
+// a refused enhancement blames the condition, and it falls back to its
 // read-only page while the backend does not serve the area enhancement
 // reference.
 const ENHANCED_AREA_KIND = Object.freeze({
@@ -106,13 +104,8 @@ const ENHANCED_AREA_KIND = Object.freeze({
   label: 'Enhanced area habitat',
   optionalReference: true,
   buildBase: buildEnhancedAreaViewOnlyViewModel,
-  conditionError: formError('condition', 'notValidEnhancement'),
-  // An Enhanced area's supporting information is not editable yet
-  // (BMD-1190): the backend refuses a comment on an Enhanced area.
-  hasComment: false,
-  // A stored proposal its baseline's valid enhancements no longer list is
-  // kept, not cleared, by a save that leaves it unchanged.
-  preservesStoredChoices: true
+  conditionError: formError('condition', 'notValidEnhancement')
+  // hasComment comes from the Created area kind (BMD-1190).
   // No timingLabels: BMD-1045 AC1 labels Advance and Delay as the Created
   // area does, "Habitat created in advance" and "Delay in starting habitat
   // creation", as per Figma.
@@ -120,29 +113,13 @@ const ENHANCED_AREA_KIND = Object.freeze({
 
 export const CREATED_EDIT_KINDS = {
   habitat: CREATED_AREA_KIND,
-  watercourse: {
-    loadReference: loadCreatedWatercourseReference,
-    label: 'Watercourse',
-    optionalReference: true,
-    readOnlyTemplate: 'habitat-details/pi-watercourse-details-created',
-    buildBase: buildCreatedWatercourseViewOnlyViewModel,
-    formatSize: (feature) => formatLengthDisplay(feature.sizeMetres),
-    sizeLabel: 'Length (km)',
-    backType: 'watercourse',
-    savePath: 'watercourses',
-    hasBroadHabitat: false,
-    hasComment: true,
-    hasEncroachments: true,
-    // Match the merged Created editors: imported choices are kept through omission.
-    preservesImportedType: true,
-    restoresLineageAdvance: true,
-    habitatTypeError: formError('habitatType', 'invalidWatercourse')
-  },
+  watercourse: CREATED_WATERCOURSE_KIND,
   hedgerow: CREATED_HEDGEROW_KIND,
   tree: CREATED_TREE_KIND,
   enhancedTree: ENHANCED_TREE_KIND,
   enhancedHabitat: ENHANCED_AREA_KIND,
-  enhancedHedgerow: ENHANCED_HEDGEROW_KIND
+  enhancedHedgerow: ENHANCED_HEDGEROW_KIND,
+  enhancedWatercourse: ENHANCED_WATERCOURSE_KIND
 }
 
 function createdKind(reference) {
@@ -163,16 +140,23 @@ export const createdAreaPayloadSchema = Joi.object({
   condition: Joi.string().allow('').required(),
   strategicSignificance: Joi.string().allow('').required(),
   advanceYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS, UNCHANGED_VALUE)
+    .valid('', ...YEAR_OPTIONS)
     .required(),
   delayYears: Joi.string()
-    .valid('', ...YEAR_OPTIONS, UNCHANGED_VALUE)
+    .valid('', ...YEAR_OPTIONS)
     .required(),
   // Supporting information (BMD-1153). No length limit here: a long comment
   // must reach the handler and be shown as a field error, not a 400.
   comment: Joi.string().allow('').optional(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
+})
+
+// A Created tree's form also sends its size class when it can be edited.
+export const createdTreePayloadSchema = createdAreaPayloadSchema.keys({
+  treeSize: Joi.string()
+    .valid('', ...TREE_SIZES)
+    .optional()
 })
 
 export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
@@ -192,57 +176,21 @@ export const createdWatercoursePayloadSchema =
 
 export function createdReferenceForFeature(reference, feature) {
   const kind = createdKind(reference)
-  reference = {
+  return {
     ...(kind.forFeature ? kind.forFeature(reference, feature) : reference),
     hasBroadHabitat: kind.hasBroadHabitat
   }
-  const saved = createdAreaValues(feature)
-  const importedYears = Object.fromEntries(
-    ['advanceYears', 'delayYears']
-      .filter(
-        (field) => saved[field] !== '' && !YEAR_OPTIONS.includes(saved[field])
-      )
-      .map((field) => [field, saved[field]])
-  )
-  const importedChoices = createdImportedChoices(feature, reference, kind)
-  const importedCondition = importedLinearCondition(reference, saved)
-  if (importedCondition && importedChoices.habitatType) {
-    importedCondition.habitatType = UNCHANGED_VALUE
-  }
-  return {
-    ...reference,
-    importedYears,
-    importedCondition,
-    importedChoices,
-    importedCalculation: {
-      values: {
-        ...saved,
-        ...Object.fromEntries(
-          Object.keys(importedChoices).map((field) => [field, UNCHANGED_VALUE])
-        ),
-        ...(importedCondition ? { condition: UNCHANGED_VALUE } : {}),
-        ...Object.fromEntries(
-          Object.keys(importedYears).map((field) => [field, UNCHANGED_VALUE])
-        )
-      },
-      finalTimeToTargetDisplay:
-        feature.proposed?.finalTimeToTargetCondition ?? ''
-    }
-  }
 }
 
+// The stored values as the page shows them: a choice its list does not offer
+// is blank (supportedCreatedValues).
 function createdEditValues(feature, reference) {
-  const saved = createdAreaValues(feature)
-  for (const field of [
-    ...Object.keys(reference.importedYears ?? {}),
-    ...Object.keys(reference.importedChoices ?? {})
-  ]) {
-    saved[field] = UNCHANGED_VALUE
-  }
-  if (reference.importedCondition) {
-    saved.condition = UNCHANGED_VALUE
-  }
-  return withFixedBroadHabitat(saved, createdKind(reference))
+  const kind = createdKind(reference)
+  return supportedCreatedValues(
+    withFixedBroadHabitat(createdAreaValues(feature), kind),
+    reference,
+    kind
+  )
 }
 
 /**
@@ -260,16 +208,6 @@ export function withFixedBroadHabitat(values, kind) {
     : values
 }
 
-function importedLinearCondition(reference, values) {
-  if (createdKind(reference).hasBroadHabitat || !values.condition) {
-    return null
-  }
-  const type = selectedHabitat(reference, values)
-  return !type?.conditions.some((c) => c.condition === values.condition)
-    ? { habitatType: values.habitatType, condition: values.condition }
-    : null
-}
-
 function validateReference(ref, errors) {
   if (!ref.trim() || !ref.isWellFormed() || ref.includes('\uFFFD')) {
     errors.ref = ERRORS.refInvalid
@@ -280,62 +218,25 @@ function validateReference(ref, errors) {
   }
 }
 
-function validateCreatedTiming(values, reference, errors) {
-  const timing = resolveCreatedTiming(values, reference)
-  for (const field of ['advanceYears', 'delayYears']) {
-    if (
-      values[field] === UNCHANGED_VALUE &&
-      !reference.importedYears?.[field]
-    ) {
-      errors[field] = ERRORS.timingInvalid
-    }
-  }
+function validateCreatedTiming(values, errors) {
   if (
-    Number.parseFloat(timing.advanceYears) > 0 &&
-    Number.parseFloat(timing.delayYears) > 0
+    Number.parseFloat(values.advanceYears) > 0 &&
+    Number.parseFloat(values.delayYears) > 0
   ) {
     errors.advanceYears = ERRORS.timingBoth
     errors.delayYears = errors.advanceYears
   }
 }
 
-// The choice each kept Enhanced area choice is listed under.
-const PARENT_CHOICE = Object.freeze({
-  habitatType: 'broadHabitat',
-  condition: 'habitatType'
-})
-
-// An Enhanced area's kept choice stands only under the stored choices above
-// it, as the backend accepts it (BMD-1045): a kept habitat type under a new
-// broad habitat is refused here, against the habitat type, not by the
-// backend against the condition.
-function keptUnderStoredParents(values, reference, field, kind) {
-  const parent = PARENT_CHOICE[field]
-  if (!kind.preservesStoredChoices || !parent) {
-    return true
-  }
-  const stored = reference.importedCalculation?.values ?? {}
-  return (
-    values[parent] === stored[parent] &&
-    keptUnderStoredParents(values, reference, parent, kind)
-  )
-}
-
-function invalidChoice(values, field, options, { reference, kind }) {
+function invalidChoice(values, field, options) {
   const value = values[field]
-  if (
-    value === UNCHANGED_VALUE &&
-    Object.hasOwn(reference.importedChoices ?? {}, field)
-  ) {
-    return !keptUnderStoredParents(values, reference, field, kind)
-  }
   return Boolean(value) && !options.includes(value)
 }
 
 export function validateCreatedArea(values, reference) {
   const errors = {}
   validateReference(values.ref, errors)
-  validateCreatedTiming(values, reference, errors)
+  validateCreatedTiming(values, errors)
   const kind = createdKind(reference)
   const type = selectedHabitat(reference, values)
   const choices = {
@@ -347,10 +248,7 @@ export function validateCreatedArea(values, reference) {
     habitatType: reference.habitatTypes
       .filter((t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat)
       .map((t) => t.name),
-    condition: [
-      ...(type?.conditions ?? []).map((c) => c.condition),
-      ...(keepImportedCondition(reference, values) ? [UNCHANGED_VALUE] : [])
-    ],
+    condition: (type?.conditions ?? []).map((c) => c.condition),
     strategicSignificance: reference.strategicSignificance.map((s) => s.value),
     ...(kind.hasEncroachments
       ? Object.fromEntries(
@@ -362,7 +260,7 @@ export function validateCreatedArea(values, reference) {
     errors.habitatType = kind.habitatTypeError
   }
   for (const [field, options] of Object.entries(choices)) {
-    if (invalidChoice(values, field, options, { reference, kind })) {
+    if (invalidChoice(values, field, options)) {
       const messages = {
         broadHabitat: ERRORS.broadHabitat,
         habitatType: kind.habitatTypeError,
@@ -419,7 +317,7 @@ function createdCommentFields(feature, kind, values, errors) {
   })
   return {
     showCommentRow: true,
-    commentHint: CREATED_SUPPORTING_INFORMATION_HINT,
+    commentHint: EDIT_SUPPORTING_INFORMATION_HINT,
     commentInput,
     commentErrors
   }
@@ -435,14 +333,6 @@ function createdAreaDisplayFields(feature, reference, values, base) {
   )
   const derived = createdAreaDerived(reference, values, baselineCondition)
   const originalValues = createdEditValues(feature, reference)
-  // A kept Enhanced area or hedgerow choice is not in the list, so nothing is
-  // derived from it: its stored display stands, as its save keeps it.
-  const kind = createdKind(reference)
-  const keepsStored =
-    (kind.preservesStoredChoices || kind.showsKeptDisplays) &&
-    Object.values(PARENT_CHOICE)
-      .concat('condition')
-      .some((field) => values[field] === UNCHANGED_VALUE)
   for (const field of Object.keys(derived)) {
     const sameInputs = createdDerivedInputsUnchanged(
       field,
@@ -451,7 +341,7 @@ function createdAreaDisplayFields(feature, reference, values, base) {
     )
     if (
       sameInputs &&
-      (derived[field] || keepsStored) &&
+      derived[field] &&
       derived[field] === originalDerived[field] &&
       base[field]
     ) {
@@ -471,6 +361,36 @@ function createdReferenceJson(reference, storedValues, storedDisplay, derived) {
       )
     }
   }).replaceAll('<', String.raw`\u003c`)
+}
+
+/**
+ * The hint for an imported reference too long to save, shown when the page
+ * first loads, or null.
+ *
+ * @param {boolean} initialLoad
+ * @param {string} ref
+ * @returns {string | null}
+ */
+function importedReferenceHint(initialLoad, ref) {
+  return initialLoad && Array.from(ref.trim()).length > MAX_REF_LENGTH
+    ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
+    : null
+}
+
+/**
+ * The Tree size dropdown, for a BNG Service template's Created tree: its
+ * planted size class, or the one the user chose when the page is shown again.
+ * Null for any other kind, which shows its size class read-only.
+ */
+function createdTreeSizeField(feature, kind, ctx, values) {
+  if (!kind.editsTreeSize || !ctx.serviceTemplate) {
+    return null
+  }
+  return {
+    id: 'treeSize',
+    label: 'Tree size',
+    items: treeSizeItems(values.treeSize || feature.proposed?.treeSize)
+  }
 }
 
 function createdUploadHref(ctx, feature, returnUrl) {
@@ -557,14 +477,12 @@ export function buildCreatedAreaEditViewModel(
     values,
     errors,
     baselineCondition,
-    referenceHint:
-      initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
-        ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
-        : null,
+    referenceHint: importedReferenceHint(initialLoad, values.ref),
     errorList: createdErrorList(errors, ctx.refusal, commentErrors),
     ...commentFields,
     fixedBroadHabitat: kind.fixedBroadHabitat ?? null,
-    fields: buildCreatedEditFields(reference, values, storedValues, kind),
+    fields: buildCreatedEditFields(reference, values, kind),
+    treeSizeField: createdTreeSizeField(feature, kind, ctx, values),
     referenceJson: createdReferenceJson(
       reference,
       storedValues,

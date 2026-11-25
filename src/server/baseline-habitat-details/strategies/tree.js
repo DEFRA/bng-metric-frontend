@@ -1,4 +1,7 @@
-import { treeDetailsFields } from '../../common/helpers/tree-details.js'
+import {
+  treeDetailsFields,
+  treeSizeItems
+} from '../../common/helpers/tree-details.js'
 import { areaStrategy } from './area.js'
 import { buildSelectItems } from './select-items.js'
 
@@ -25,10 +28,11 @@ function treeTypeItems(habitatTypes, savedType) {
 
 /**
  * An individual tree is an area habitat on the details page, with its size
- * class and the number of trees the point stands for besides: the values the
- * surveyor entered, from which its size in hectares comes. Its broad habitat
- * is always Individual trees, shown and sent with the form but not editable,
- * and its habitat type is Urban tree or Rural tree.
+ * class and, for a legacy tree, the number of trees the point stands for
+ * besides: the values the surveyor entered, from which its size in hectares
+ * comes. A BNG Service template tree's size class can be edited. Its broad
+ * habitat is always Individual trees, shown and sent with the form but not
+ * editable, and its habitat type is Urban tree or Rural tree.
  *
  * @type {import('./area.js').Strategy}
  */
@@ -37,16 +41,22 @@ export const treeStrategy = {
   buildViewModel(tree, reference, ctx) {
     return {
       ...areaStrategy.buildViewModel(tree, reference, ctx),
-      ...treeDetailsFields(tree.treeSize, tree.count),
+      ...treeDetailsFields(tree.treeSize, tree.count, ctx.serviceTemplate),
+      // A BNG Service template tree's size class is a dropdown (BMD-1172): a
+      // new one prices the tree at its area. A legacy tree's stays read-only,
+      // as its point can stand for several trees.
+      treeSizeOptions: ctx.serviceTemplate
+        ? treeSizeItems(tree.treeSize)
+        : null,
       showTreeRows: true,
       showBroadHabitatRow: false,
       fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
       habitatTypeOptions: treeTypeItems(reference.habitatTypes, tree.type),
       // Supporting information is editable on a tree as on any other area
-      // habitat (BMD-1112). Tree size and Number of trees stay read-only, so
-      // a save cannot move the tree's notional area, and Broad habitat is
-      // fixed while Habitat type offers only the two tree settings
-      // (BMD-1172), so a save cannot make the tree another habitat.
+      // habitat (BMD-1112). A legacy tree's Tree size and Number of trees stay
+      // read-only, and Broad habitat is fixed while Habitat type offers only
+      // the two tree settings (BMD-1172), so a save cannot make the tree
+      // another habitat.
       showCommentRow: true
     }
   }

@@ -25,8 +25,9 @@ import { toXlsx } from './xlsx.mjs'
 //   [--summary FILE] [--base REF] [--include GROUPS]
 //
 // Writes error-text.yaml's messages as .xlsx, .csv and .html, for product,
-// BAs and UCD to review: the backend's error codes and the shared pages they
-// show, and any other group of rows --include names. The file is checked as the server checks it
+// BAs and UCD to review: the backend's error codes, the shared pages they
+// show and the upload page's file check messages, and any other group of
+// rows --include names. The file is checked as the server checks it
 // at start-up, the upload section included, so a file the server would refuse
 // is not exported, and the message says which entry is wrong.
 //
@@ -41,8 +42,8 @@ import { toXlsx } from './xlsx.mjs'
 // prints: for a pull request, the commit its branch left main at, and for a
 // push to main, main as it was before the push.
 //
-// Only the backend's error codes and the shared pages they show are exported
-// unless --include names other groups of rows (rows.mjs's ROW_GROUPS), such
+// Only the backend's error codes, the shared pages they show and the file
+// check messages are exported unless --include names other groups of rows (rows.mjs's ROW_GROUPS), such
 // as forms or pages, or all.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')

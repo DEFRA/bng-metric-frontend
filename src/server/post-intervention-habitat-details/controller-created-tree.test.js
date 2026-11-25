@@ -29,7 +29,7 @@ vi.mock('../common/helpers/wreck-client.js', () => ({
   }
 }))
 
-function mockTree(feature = createdTree) {
+function mockTree(feature = createdTree, project = projectPayload) {
   vi.mocked(wreck.get).mockImplementation((url) => {
     if (url.endsWith('/reference/tree-creation')) {
       return Promise.resolve({
@@ -43,7 +43,7 @@ function mockTree(feature = createdTree) {
       })
     }
     if (isProjectUrl(url)) {
-      return Promise.resolve(projectPayload)
+      return Promise.resolve(project)
     }
     throw new Error(`Unexpected URL ${url}`)
   })
@@ -83,6 +83,136 @@ describe('Created tree controller', () => {
         cancelHref: `/projects/${projectId}/area-post-intervention`
       })
     )
+  })
+
+  // An Existing tree recorded as its baseline tree lost and a tree Created in
+  // Poor condition: its row still carries the baseline tree's Moderate.
+  const existingCreatedTree = (proposed = {}) => ({
+    ...createdTree,
+    properties: { Category: 'Existing' },
+    baseline: {
+      broadType: 'Individual trees',
+      type: 'Urban tree',
+      treeSize: 'Medium',
+      condition: 'Moderate'
+    },
+    proposed: { ...createdTree.proposed, advanceYears: 30, ...proposed }
+  })
+
+  test('shows an Existing tree Created in a lower condition as a creation, naming no baseline condition', async () => {
+    mockTree(existingCreatedTree({ standardTimeToTargetCondition: '10' }))
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view.baselineCondition).toBe('')
+    expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
+  })
+
+  test('names no baseline condition in the time to target it works out with no stored years', async () => {
+    mockTree(existingCreatedTree())
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    expect(h.view.mock.calls[0][1].standardTimeToTargetDisplay).toBe(
+      'Poor - 10 years'
+    )
+  })
+
+  test('names no baseline condition in the time to target it works out for a changed condition', async () => {
+    mockTree(existingCreatedTree({ standardTimeToTargetCondition: '10' }))
+    const h = createMockH()
+    // A blank reference shows the page again with the condition chosen.
+    await postController.handler(
+      request({ ref: ' ', condition: 'Moderate' }),
+      h
+    )
+
+    expect(h.view.mock.calls[0][1].standardTimeToTargetDisplay).toBe(
+      'Moderate - 27 years'
+    )
+  })
+
+  test('names no baseline condition on the read-only page shown until the backend serves the tree reference', async () => {
+    mockTree(existingCreatedTree({ standardTimeToTargetCondition: '10' }))
+    const get = vi.mocked(wreck.get).getMockImplementation()
+    vi.mocked(wreck.get).mockImplementation((url) =>
+      url.endsWith('/reference/tree-creation')
+        ? Promise.reject(Boom.notFound())
+        : get(url)
+    )
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+
+    const view = h.view.mock.calls[0][1]
+    expect(view).not.toHaveProperty('formAction')
+    expect(view.standardTimeToTargetDisplay).toBe('Poor - 10 years')
+  })
+
+  // A Created tree's page links to no baseline tree, even where one shares its
+  // ref and matches the baseline its row carries, as the second tree here does.
+  describe('no baseline link for a Created tree whose ref baseline trees share', () => {
+    const POOR_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+    const MODERATE_TREE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'
+    const baselineTree = (featureId, condition) => ({
+      featureId,
+      ref: 'T026',
+      type: 'Urban tree',
+      broadType: 'Individual trees',
+      condition
+    })
+    const legacyProject = {
+      payload: {
+        project: {
+          name: 'Test Project',
+          baseline: {
+            trees: [
+              baselineTree(POOR_TREE_ID, 'Poor'),
+              baselineTree(MODERATE_TREE_ID, 'Moderate')
+            ]
+          }
+        }
+      }
+    }
+    const unlinked = (view) => {
+      expect(view.viewBaselineHref).toBeFalsy()
+      expect(JSON.stringify(view)).not.toContain(POOR_TREE_ID)
+      expect(JSON.stringify(view)).not.toContain(MODERATE_TREE_ID)
+    }
+
+    beforeEach(() => {
+      mockTree(
+        existingCreatedTree({ standardTimeToTargetCondition: '10' }),
+        legacyProject
+      )
+    })
+
+    test('shows none on the edit page', async () => {
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      unlinked(h.view.mock.calls[0][1])
+    })
+
+    test('shows none when the page is shown again', async () => {
+      const h = createMockH()
+      await postController.handler(request({ ref: ' ' }), h)
+
+      unlinked(h.view.mock.calls[0][1])
+    })
+
+    test('shows none on the read-only page', async () => {
+      const get = vi.mocked(wreck.get).getMockImplementation()
+      vi.mocked(wreck.get).mockImplementation((url) =>
+        url.endsWith('/reference/tree-creation')
+          ? Promise.reject(Boom.notFound())
+          : get(url)
+      )
+      const h = createMockH()
+      await getController.handler({ query: { projectId, featureId } }, h)
+
+      unlinked(h.view.mock.calls[0][1])
+    })
   })
 
   test('saves the tree to the trees endpoint and redirects to the area list', async () => {
@@ -162,6 +292,98 @@ describe('Created tree controller', () => {
   )
 })
 
+// A BNG Service template's Created tree can be planted at another size class
+// (BMD-1172); a legacy one's size class is shown, not edited.
+describe('Created tree size class', () => {
+  const templateProject = {
+    payload: {
+      project: {
+        name: 'Test Project',
+        postIntervention: { template: { name: 'bng-service' } }
+      }
+    }
+  }
+
+  async function editPage(project) {
+    mockTree(createdTree, project)
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    return h.view.mock.calls[0][1]
+  }
+
+  test('offers a template tree the Metric’s size classes, with its planted one chosen', async () => {
+    const vm = await editPage(templateProject)
+
+    expect(vm.treeSizeField).toMatchObject({
+      id: 'treeSize',
+      label: 'Tree size'
+    })
+    expect(vm.treeSizeField.items.map((item) => item.value)).toEqual([
+      'Small',
+      'Medium',
+      'Large',
+      'Very large'
+    ])
+    expect(vm.treeSizeField.items.find((item) => item.selected)?.value).toBe(
+      createdTree.proposed.treeSize
+    )
+  })
+
+  test('shows a legacy tree’s size class read-only', async () => {
+    const vm = await editPage(projectPayload)
+
+    expect(vm.treeSizeField).toBeNull()
+    expect(vm.treeSizeDisplay).toBe(createdTree.proposed.treeSize)
+  })
+
+  test('saves a new size class with the tree’s other choices', async () => {
+    mockTree(createdTree, templateProject)
+    const h = createMockH()
+    await postController.handler(request({ treeSize: 'Large' }), h)
+
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+      ref: 'T026',
+      habitatType: 'Urban tree',
+      treeSize: 'Large'
+    })
+    expect(h.redirect).toHaveBeenCalled()
+  })
+
+  test('leaves a blank size class out of the save', async () => {
+    mockTree(createdTree, templateProject)
+    const h = createMockH()
+    await postController.handler(request({ treeSize: '' }), h)
+
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).not.toHaveProperty(
+      'treeSize'
+    )
+  })
+
+  test('keeps the size class chosen when the page is shown again with an error', async () => {
+    mockTree(createdTree, templateProject)
+    const h = createMockH()
+    await postController.handler(
+      request({ treeSize: 'Very large', habitatType: '' }),
+      h
+    )
+
+    expect(wreck.put).not.toHaveBeenCalled()
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.treeSizeField.items.find((item) => item.selected)?.value).toBe(
+      'Very large'
+    )
+  })
+
+  test('refuses a size class the Metric does not have', async () => {
+    mockTree(createdTree, templateProject)
+
+    await expect(
+      postController.handler(request({ treeSize: 'Huge' }), createMockH())
+    ).rejects.toMatchObject({ output: { statusCode: 400 } })
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+})
+
 describe('Created tree authenticated form', () => {
   let server
   const auth = {
@@ -230,14 +452,9 @@ describe('Created tree authenticated form', () => {
     expect(response.payload).toContain(`value="${values.ref}"`)
   })
 
-  // A degraded tree, an Existing tree Created as its baseline tree lost and
-  // created again, is held by the backend to staying one.
+  // An Existing tree Created over its baseline tree is held by the backend to
+  // the guide's steps for a tree whose condition gets worse.
   test.each([
-    [
-      'degrade-same-setting',
-      'habitatType',
-      'Choose the same Urban or Rural setting as the baseline tree'
-    ],
     [
       'degrade-worse-condition',
       'condition',
@@ -249,16 +466,16 @@ describe('Created tree authenticated form', () => {
       'Set the years in advance to 30+'
     ]
   ])(
-    'shows the field to blame when the backend refuses the edit of a degraded tree (%s)',
+    'shows the field to blame when the backend refuses the edit of an Existing tree Created over its baseline tree (%s)',
     async (rule, field, wording) => {
-      const refused = Boom.badData('not a degrade')
+      const refused = Boom.badData('does not follow the guide')
       refused.data = {
         res: { statusCode: 422 },
         payload: {
           statusCode: 422,
           error: 'Unprocessable Entity',
-          message: `The tree is no longer its baseline tree recorded as lost and created again in a lower condition (rule ${rule})`,
-          code: 'DEGRADE_NOT_VALID',
+          message: `The tree is its baseline tree created again, so it must be in a lower condition and created 30+ years in advance, or put back after a delay (rule ${rule})`,
+          code: 'TREE_DEGRADE_NOT_VALID',
           rule
         }
       }
@@ -277,6 +494,7 @@ describe('Created tree authenticated form', () => {
       expect(response.payload).toMatch(/<title>\s*Error: /)
       expect(response.payload).toContain(`href="#${field}"`)
       expect(response.payload).toContain(wording)
+      expect(response.payload).toContain('Newly Planted')
       expect(response.payload).toContain(`value="${values.ref}"`)
     }
   )

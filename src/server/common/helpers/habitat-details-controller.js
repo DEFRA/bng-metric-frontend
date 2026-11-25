@@ -11,7 +11,9 @@ import { backendSaveError } from './backend-save-error.js'
 import { isInvalidEnhancementError } from './invalid-enhancement-refusal.js'
 import { isInvalidDegradeError } from './invalid-degrade-refusal.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
+import { isServiceTemplateDocument } from './service-template.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
+import { TREE_SIZES } from './tree-details.js'
 import {
   cleanComment,
   commentFormFields,
@@ -37,23 +39,10 @@ import {
 
 const backendUrl = config.get('backend').url.replace(/\/$/, '')
 
-async function fetchProjectName(request, projectId) {
-  try {
-    const { payload } = await backendRequest(
-      request,
-      'get',
-      `${backendUrl}/projects/${projectId}`
-    )
-    return payload?.project?.name ?? 'Project'
-  } catch {
-    return 'Project'
-  }
-}
-
 /**
- * Fetch the full project payload, or null when the request fails. Callers that
- * only need the name should use fetchProjectName; this is for callers that also
- * need the stored feature lists (e.g. resolving a baseline feature by ref).
+ * Fetch the full project payload, or null when the request fails: its name,
+ * the template its documents were uploaded in, and the stored feature lists
+ * (e.g. for resolving a baseline feature by ref).
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {string} projectId
@@ -127,6 +116,7 @@ function buildSaveBody({
   condition,
   watercourseEncroachment,
   riparianEncroachment,
+  treeSize,
   comment
 }) {
   // The backend keeps the stored ref when none is sent, so a form without the
@@ -143,6 +133,11 @@ function buildSaveBody({
   }
   if (riparianEncroachment !== undefined) {
     body.riparianEncroachment = orNull(riparianEncroachment)
+  }
+  // Only a BNG Service template tree's form submits a size class. A blank one
+  // is left out: the backend keeps the stored size, which cannot be cleared.
+  if (treeSize) {
+    body.treeSize = treeSize
   }
   // A form without the comment field must not clear a stored comment.
   // Whitespace-only is stored as no value.
@@ -225,7 +220,8 @@ function returnedPostInterventionHref(returnUrl, projectId) {
 const OPTIONAL_CHOICE_FIELDS = Object.freeze([
   { field: 'broadHabitat', featureKey: 'broadType' },
   { field: 'watercourseEncroachment', featureKey: 'watercourseEncroachment' },
-  { field: 'riparianEncroachment', featureKey: 'riparianEncroachment' }
+  { field: 'riparianEncroachment', featureKey: 'riparianEncroachment' },
+  { field: 'treeSize', featureKey: 'treeSize' }
 ])
 
 /**
@@ -297,6 +293,7 @@ async function renderDetailsPage(
   ])
   const project = projectPayload?.project
   const projectName = project?.name ?? DEFAULT_PROJECT_NAME
+  const stage = uploadType.isPostIntervention ? 'postIntervention' : 'baseline'
 
   const storedFeature = uploadType.isPostIntervention
     ? normalizePostInterventionFeatureForDisplay(rawFeature)
@@ -311,7 +308,8 @@ async function renderDetailsPage(
   }
   const viewModel = strategy.buildViewModel(feature, reference, {
     projectId,
-    projectName
+    projectName,
+    serviceTemplate: isServiceTemplateDocument(project?.[stage])
   })
   // The heading names the habitat by its saved reference, not by an unsaved
   // (possibly blank) one in the input.
@@ -463,8 +461,8 @@ export async function saveHabitat(request, path, body, featureId) {
   } catch (err) {
     // A reference another habitat already carries, an older stored value, an
     // edit this feature does not take, an enhancement its baseline does not
-    // allow, or a degraded tree's edit that would stop it being one, is for
-    // the form to show. Each is thrown as it is:
+    // allow, or an Existing tree Created over its baseline tree that does not
+    // follow the guide's steps, is for the form to show. Each is thrown as it is:
     // backendSaveError would rebuild it and drop the code the form tells them
     // apart by.
     if (
@@ -492,6 +490,9 @@ const habitatDetailsPayload = Joi.object({
   condition: Joi.string().allow('').optional(),
   watercourseEncroachment: Joi.string().allow('').optional(),
   riparianEncroachment: Joi.string().allow('').optional(),
+  treeSize: Joi.string()
+    .valid('', ...TREE_SIZES)
+    .optional(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
 })
@@ -623,6 +624,7 @@ function createPostController(uploadType) {
         condition,
         watercourseEncroachment,
         riparianEncroachment,
+        treeSize,
         comment
       } = request.payload
 
@@ -654,6 +656,7 @@ function createPostController(uploadType) {
         condition,
         watercourseEncroachment,
         riparianEncroachment,
+        treeSize,
         comment
       })
 
@@ -687,9 +690,4 @@ function createHabitatDetailsControllers(uploadType) {
   }
 }
 
-export {
-  createHabitatDetailsControllers,
-  fetchFeature,
-  fetchProjectName,
-  fetchProject
-}
+export { createHabitatDetailsControllers, fetchFeature, fetchProject }

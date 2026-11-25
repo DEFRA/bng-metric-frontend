@@ -37,11 +37,14 @@ describe.each([
     })
   })
 
+  // PO ruling (BMD-1046 testing): a significance the list does not offer, or
+  // one the import rejected, is not shown or kept. The dropdown shows its
+  // default option and a save clears it.
   test.each([
     { strategicSignificance: 'Medium' },
     { strategicSignificance: null, rejectedStrategicSignificance: 'Medium' }
   ])(
-    'allows rename without clearing the imported significance: %j',
+    'shows the default option and a rename clears the significance: %j',
     async (stored) => {
       const original = {
         ...structuredClone(feature),
@@ -57,15 +60,15 @@ describe.each([
       const page = await server.inject({ method: 'GET', url, auth })
       expect(page.statusCode).toBe(200)
       const $ = load(page.payload)
-      expect($('#strategicSignificance').val()).toBe('unchanged')
-      expect($('#strategicSignificance option:selected').text()).toBe(
-        'Medium (imported value)'
-      )
+      expect($('#strategicSignificance').val()).toBe('')
+      expect($('#strategicSignificance option:selected').val()).toBe('')
+      expect(page.payload).not.toContain('(imported value)')
+      expect($('#strategicSignificance-hint').text()).not.toContain('Medium')
       expect($('button[type="submit"]').text()).toContain('Save')
       const form = Object.fromEntries(
         $('input[name],select[name]')
           .toArray()
-          .map((el) => [$(el).attr('name'), $(el).val()])
+          .map((el) => [$(el).attr('name'), $(el).val() ?? ''])
       )
       const { token: crumb, cookie } = await primeCrumb(server)
       const renamed = await server.inject({
@@ -76,19 +79,8 @@ describe.each([
         payload: { ...form, ref: 'Renamed', crumb }
       })
       expect(renamed.statusCode).toBe(302)
-      expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).not.toHaveProperty(
-        'strategicSignificance'
-      )
-      const cleared = await server.inject({
-        method: 'POST',
-        url: '/post-intervention-habitat-details',
-        auth,
-        headers: { cookie },
-        payload: { ...form, ref: 'Renamed', strategicSignificance: '', crumb }
-      })
-      expect(cleared.statusCode).toBe(302)
       expect(
-        JSON.parse(wreck.put.mock.calls[1][1].payload).strategicSignificance
+        JSON.parse(wreck.put.mock.calls[0][1].payload).strategicSignificance
       ).toBeNull()
     }
   )

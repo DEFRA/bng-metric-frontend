@@ -8,6 +8,7 @@ import {
   pageErrorText,
   editErrorText,
   errorText,
+  fileCheckErrorText,
   fillErrorText,
   formErrorText,
   parseErrorText
@@ -45,9 +46,10 @@ function withEntries(section, entries, check) {
 }
 
 describe('error-text.yaml', () => {
-  test('holds the common, upload, edit, forms and pages sections', () => {
+  test('holds the common, fileCheck, upload, edit, forms and pages sections', () => {
     expect(Object.keys(errorText)).toEqual([
       'common',
+      'fileCheck',
       'upload',
       'edit',
       'forms',
@@ -55,8 +57,8 @@ describe('error-text.yaml', () => {
     ])
   })
 
-  test("words the upload page's busy message as the drop-out page's", () => {
-    expect(errorText.forms.file.serviceBusy).toBe(
+  test("words the drop-out page's busy heading as the upload page's busy message", () => {
+    expect(errorText.fileCheck.serviceBusy).toBe(
       errorText.upload.errors.VALIDATION_BUSY.problemsList.heading
     )
   })
@@ -238,8 +240,10 @@ describe("error-text.yaml's wording field", () => {
     })
     withEntries(errorText.forms.applicant, parsed.forms.applicant, () => {
       expect(formErrorText('applicant', 'tooLong', { max: 5 })).toEqual({
-        summary: 'Applicant must be 5 characters or fewer',
-        inline: 'Applicant must be 5 characters or fewer'
+        summary:
+          'Planning permission applicant name must be 5 characters or fewer',
+        inline:
+          'Planning permission applicant name must be 5 characters or fewer'
       })
     })
     withEntries(errorText.pages, parsed.pages, () => {
@@ -301,6 +305,14 @@ describe("error-text.yaml's wording field", () => {
     text.common.unworded = { wording: 'none' }
     expect(() => parseErrorText(JSON.stringify(text))).toThrow(
       /unworded\.text.*required/
+    )
+  })
+
+  test('refuses a file check message with no words, as the upload page has no other', () => {
+    const text = parseErrorText(SOURCE)
+    text.fileCheck.timedOut = { wording: 'none' }
+    expect(() => parseErrorText(JSON.stringify(text))).toThrow(
+      /timedOut\.text.*required/
     )
   })
 })
@@ -371,8 +383,9 @@ describe('formErrorText', () => {
 
   test('gives a rule worded as text beside its wording field as both messages', () => {
     expect(formErrorText('applicant', 'tooLong', { max: 5 })).toEqual({
-      summary: 'Applicant must be 5 characters or fewer',
-      inline: 'Applicant must be 5 characters or fewer'
+      summary:
+        'Planning permission applicant name must be 5 characters or fewer',
+      inline: 'Planning permission applicant name must be 5 characters or fewer'
     })
   })
 
@@ -392,6 +405,28 @@ describe('formErrorText', () => {
   test('throws for a rule the file does not word', () => {
     expect(() => formErrorText('habitatRef', 'notARule')).toThrow(
       /no forms\.habitatRef\.notARule/
+    )
+  })
+})
+
+describe('fileCheckErrorText', () => {
+  test('gives the words for a check the service could not finish', () => {
+    expect(fileCheckErrorText('timedOut')).toBe(
+      'The file check timed out. Please try again.'
+    )
+  })
+
+  test('gives the words of a message with a wording field', () => {
+    withEntries(
+      errorText.fileCheck,
+      { timedOut: { wording: 'interim', text: 'Try again' } },
+      () => expect(fileCheckErrorText('timedOut')).toBe('Try again')
+    )
+  })
+
+  test('throws for a rule the file does not word', () => {
+    expect(() => fileCheckErrorText('notARule')).toThrow(
+      /no fileCheck\.notARule/
     )
   })
 })

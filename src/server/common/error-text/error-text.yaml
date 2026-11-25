@@ -17,21 +17,23 @@
 #
 # Sections
 #
-#   common   words every page shares, such as the error summary's title.
-#   upload   the drop-out page (/error-file), shown when an uploaded
-#            GeoPackage is refused. Keyed by the backend's error code.
-#            A code met only on an edit has no entry here.
-#   edit     refusals of a change made to a habitat on screen, after the file
-#            was accepted. Keyed by the backend's error code.
-#   forms    a form field's own validation, before anything reaches the
-#            backend. Keyed by field, then by rule.
-#   pages    a whole page shown in place of the one asked for, such as
-#            "Page not found". Keyed by page.
+#   common     words every page shares, such as the error summary's title.
+#   fileCheck  the upload page, when the service could not start or finish
+#              checking an uploaded file. Keyed by what went wrong.
+#   upload     the drop-out page (/error-file), shown when an uploaded
+#              GeoPackage is refused. Keyed by the backend's error code.
+#              A code met only on an edit has no entry here.
+#   edit       refusals of a change made to a habitat on screen, after the
+#              file was accepted. Keyed by the backend's error code.
+#   forms      a form field's own validation, before anything reaches the
+#              backend. Keyed by field, then by rule.
+#   pages      a whole page shown in place of the one asked for, such as
+#              "Page not found". Keyed by page.
 #
 # Wording rules, which the file's checks (error-text.js) hold it to
 #
-# - Plain text only in common, forms, edit and pages: no HTML. A page shows
-#   the words as typed.
+# - Plain text only in common, fileCheck, forms, edit and pages: no HTML. A
+#   page shows the words as typed.
 # - {braces} are filled in by the page: a limit from the code, or a value from
 #   the customer's file or answer. Only the sentence around a value is
 #   wording; the value itself is not.
@@ -58,8 +60,9 @@
 #                      upload error whose singleProblemPage names a shared
 #                      page. On an upload error it means its single-problem
 #                      page: its problemsList heading is still shown when the
-#                      page lists it with others. A common text, a page or a
-#                      shared page is always shown, so can only be interim
+#                      page lists it with others. A common text, a file
+#                      check message, a page or a shared page is always
+#                      shown, so can only be interim
 #
 # An entry with no "wording" field is final. Search for "wording:" to find
 # everything UCD still has to word. A "none" where the page would show words
@@ -84,6 +87,34 @@ common:
   unworded:
     wording: interim
     text: There is a problem with this answer
+
+# --------------------------------------------------------------- fileCheck
+#
+# The upload page, when the service could not start or finish checking an
+# uploaded file. Nothing is wrong with the file and there is nothing for the
+# customer to change, so none of these may suggest changing it: each says to
+# try again. Shown in the error summary and against the file input alike.
+# Like common, every entry is shown, so its wording can be interim but never
+# none.
+
+fileCheck:
+  # The file uploader gave the upload page nowhere to send the file, so the
+  # page shows this in place of the form.
+  cannotStart: Unable to start file upload. Please try again later.
+  # The checks gave up waiting for a busy validator, after two minutes on
+  # the "Checking your file" page. The drop-out page's
+  # upload.errors.VALIDATION_BUSY heading repeats these words with
+  # *serviceBusy.
+  serviceBusy: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
+  # The file uploader had not said the file was ready, after two minutes on
+  # the "Checking your file" page.
+  timedOut: The file check timed out. Please try again.
+  # The service could not say how the check was going, several times in a
+  # row: the backend or the file uploader is failing, not slow. GOV.UK's
+  # wording for a service problem.
+  statusUnavailable:
+    wording: interim
+    text: Sorry, there is a problem with the service. Please try again later.
 
 # ------------------------------------------------------------------ upload
 #
@@ -1086,6 +1117,19 @@ upload:
           - ' — {habitatType}'
           - ', copied to {childRefs}'
 
+    STAGED_OUTSIDE_PARENT:
+      wording: interim
+      problemsList:
+        heading: >-
+          One or more post-intervention area habitats do not lie within the
+          baseline habitat they name as their parent. Name the baseline habitat
+          each one was copied from
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', named by {childRefs}'
+
     STAGED_HEDGEROW_CHILDREN_TOO_LONG:
       wording: interim
       problemsList:
@@ -1117,10 +1161,25 @@ upload:
       wording: interim
       problemsList:
         heading: >-
-          One or more baseline trees have more than one kept tree linked to
-          them. A post-intervention tree is kept if it is Retained or Enhanced,
-          or Created with Category Existing in the same Urban or Rural setting.
-          A baseline tree is one tree, so only one kept tree can be linked to it
+          One or more baseline trees have more than one Retained or Enhanced
+          tree linked to them. A baseline tree is one tree, so only one Retained
+          or Enhanced tree can be linked to it
+        item:
+          - '{table} '
+          - '{name}'
+          - ' — {habitatType}'
+          - ', copied to {childRefs}'
+
+    STAGED_TREE_RECORDED_TWICE:
+      wording: interim
+      problemsList:
+        heading: >-
+          One or more baseline trees have an Existing tree Created over them
+          and another Retained, Enhanced or Existing tree linked to them, so
+          the same tree is scored twice. A baseline tree is one tree: either
+          kept, as one Retained or Enhanced tree, or lost and created again, as
+          one Existing tree Created. Record a new tree planted beside it as
+          Newly Planted
         item:
           - '{table} '
           - '{name}'
@@ -1154,41 +1213,31 @@ upload:
           - ' — {habitatType}'
           - ', copied to {childRefs}'
 
-    STAGED_DEGRADE_NOT_WORSE:
+    STAGED_TREE_DEGRADE_NOT_VALID:
       wording: interim
       problemsList:
         heading: >-
-          One or more habitats are Created in their baseline habitat type without
-          a lower condition. A habitat that is kept should be Retained or
-          Enhanced; one lost for a time and put back should give its delay in
-          starting habitat creation
+          One or more Existing trees are Created over their baseline tree, but
+          not in a lower condition or not created 30+ years in advance, as the
+          Metric guide asks for a tree whose condition gets worse. Lower its
+          condition and set its years created in advance to 30+, or, if it is a
+          new tree planted in its place, set its Category to Newly Planted
         item:
           - '{table} '
           - '{name}'
           - ' — {habitatType}'
           - ', copied from {parentRef}'
 
-    STAGED_DEGRADE_ADVANCE_NOT_30_PLUS:
+    STAGED_HABITAT_DEGRADE_NOT_VALID:
       wording: interim
       problemsList:
         heading: >-
-          One or more habitats recorded as lost and created again in a lower
-          condition are not created 30+ years in advance, as the Metric guide
-          asks
-        item:
-          - '{table} '
-          - '{name}'
-          - ' — {habitatType}'
-          - ', copied from {parentRef}'
-
-    STAGED_WATERCOURSE_NO_INTERVENTION:
-      wording: interim
-      problemsList:
-        heading: >-
-          One or more watercourses are Created in their baseline River Type with
-          no lower condition, more encroachment or shorter length. A watercourse
-          with no intervention should be Retained; one lost for a time and put
-          back should give its delay in starting habitat creation
+          One or more habitats are Created in the habitat type of the baseline
+          habitat they are linked to, but not in a lower condition or not
+          created 30+ years in advance, as the Metric guide asks for a habitat
+          whose condition gets worse. Lower its condition and set its years
+          created in advance to 30+, or, if it is cleared and put back, enter
+          its delay in starting habitat creation
         item:
           - '{table} '
           - '{name}'
@@ -1209,7 +1258,8 @@ upload:
     VALIDATION_BUSY:
       singleProblemPage: service-problem
       problemsList:
-        heading: &serviceBusy 'The service is busy checking other files. Please try again in a few moments.'
+        # The same words as fileCheck.serviceBusy: change them there.
+        heading: *serviceBusy
 
     VALIDATION_UNAVAILABLE:
       singleProblemPage: service-problem
@@ -1242,11 +1292,19 @@ edit:
   ENHANCEMENT_NOT_VALID:
     wording: none
 
-  # An edit that would leave a degraded tree, its baseline tree recorded as
-  # lost and created again in a lower condition, no longer a degrade of it.
-  # Shown against the field to blame, with forms' habitatType.degradeSameSetting,
+  # An edit that would leave an Existing tree Created over its baseline tree,
+  # with no delay, not in a lower condition or not created 30+ years in
+  # advance. Shown against the field to blame, with forms'
   # condition.degradeNotWorse or advanceOrDelay.degradeNot30Plus.
-  DEGRADE_NOT_VALID:
+  TREE_DEGRADE_NOT_VALID:
+    wording: none
+
+  # An edit that would leave an area habitat or hedgerow Created in its
+  # parent's own habitat type, with no delay, not in a lower condition or not
+  # created 30+ years in advance. Shown against the field to blame, with
+  # forms' condition.habitatDegradeNotWorse or
+  # advanceOrDelay.habitatDegradeNot30Plus.
+  HABITAT_DEGRADE_NOT_VALID:
     wording: none
 
   HABITAT_DISTINCTIVENESS_NOT_IN_SCOPE:
@@ -1291,36 +1349,77 @@ forms:
     # A control character or half of a UTF-16 pair.
     invalidCharacters: Project name must only contain valid characters
 
+  # The project details page's fields (BMD-849). The ticket leaves the words
+  # for invalid characters and each survey date problem "tbc", so those are
+  # interim.
   localPlanningAuthorityReference:
     # Not one of the list's options, or one the backend does not know.
-    notInList: Select a Local Planning Authority from the list
+    notInList: Select a local planning authority from the list
 
+  # "Survey completed by"
   surveyCompleters:
     tooLong:
       wording: interim
-      text: Survey completer(s) must be {max} characters or fewer
+      text: Survey completed by must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Survey completed by must only contain valid characters
 
+  # "Planning permission applicant name"
   applicant:
     tooLong:
       wording: interim
-      text: Applicant must be {max} characters or fewer
+      text: Planning permission applicant name must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Planning permission applicant name must only contain valid characters
 
+  planningApplicationReference:
+    tooLong:
+      wording: interim
+      text: Planning application reference must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Planning application reference must only contain valid characters
+
+  planningApplicationType:
+    tooLong:
+      wording: interim
+      text: Planning application type must be {max} characters or fewer
+    invalidCharacters:
+      wording: interim
+      text: Planning application type must only contain valid characters
+
+  # "Survey date"
   surveyCompletionDate:
     # Some of the day, month and year are blank, but not all three. {part} is
     # the one that is blank: day, month or year. {parts} are the two that
     # are, as "day and month".
-    missingOne: Survey completion date must include a {part}
-    missingSeveral: Survey completion date must include {parts}
-    notReal: Survey completion date must be a real date
+    missingOne:
+      wording: interim
+      text: Survey date must include a {part}
+    missingSeveral:
+      wording: interim
+      text: Survey date must include {parts}
+    # Any of the day, month and year holds something other than digits.
+    notNumeric:
+      wording: interim
+      text: Survey date must only include numbers
+    # Not a date in the calendar, such as 31 2 2026, or a year that is not
+    # four digits.
+    notReal:
+      wording: interim
+      text: Survey date must be a real date
+    # Later than today, in the UK.
+    inFuture:
+      wording: interim
+      text: Survey date must be today or in the past
 
   uploadType:
     # The "What would you like to upload?" page, with no choice made.
     required: Select the type of file you want to upload
 
   file:
-    # The upload page, shown in place of the form when the file uploader
-    # gave the page nowhere to send the file.
-    cannotStart: Unable to start file upload. Please try again later.
     # Checked in the browser before the file is sent, and again by the
     # service once it has it.
     noFile: Select a GeoPackage (.gpkg) file
@@ -1330,13 +1429,6 @@ forms:
     tooLarge: The selected file must be smaller than {max}
     invalidName: The file name can only include letters, numbers, spaces, hyphens, underscores, full stops or brackets
     nameTooLong: The file name must be {max} characters or fewer
-    # The upload page, once the service has looked at the uploaded file.
-    # The checks gave up waiting for a busy validator. There is nothing wrong
-    # with the file, so this must not suggest changing it.
-    # The same words as the drop-out page's upload.errors.VALIDATION_BUSY
-    # heading, which this repeats with *serviceBusy: change them there.
-    serviceBusy: *serviceBusy
-    timedOut: The file check timed out. Please try again.
 
   habitatRef:
     # Blank, whitespace only or not UTF-8, on the baseline details page, the
@@ -1383,13 +1475,6 @@ forms:
     invalidHedgerow: Choose a valid hedgerow habitat type
     invalidWatercourse: Choose a valid watercourse habitat type
     invalidTree: Choose Urban tree or Rural tree
-    # A degraded tree moved out of its baseline tree's setting, refused by the
-    # service (DEGRADE_NOT_VALID).
-    degradeSameSetting:
-      wording: interim
-      text: >-
-        Choose the same Urban or Rural setting as the baseline tree, as this
-        is the baseline tree recorded as lost and created again
   condition:
     notForHabitatType: Choose a target condition for the selected habitat type
     # An Enhanced tree's target condition no better than its baseline one,
@@ -1399,15 +1484,26 @@ forms:
     # enhancement of its baseline, on the page or refused by the service
     # (ENHANCEMENT_NOT_VALID).
     notValidEnhancement: Choose a target condition that is a valid enhancement of the baseline habitat
-    # A degraded tree given its baseline condition or a better one, with no
-    # delay, refused by the service (DEGRADE_NOT_VALID). A delay also makes
-    # the edit valid, as the tree is then put back after a temporary loss.
+    # An Existing tree Created over its baseline tree in its condition or a
+    # better one, with no delay, refused by the service
+    # (TREE_DEGRADE_NOT_VALID). A delay also makes the edit valid, as the tree
+    # is then put back after a temporary loss.
     degradeNotWorse:
       wording: interim
       text: >-
-        Choose a target condition lower than the baseline tree's condition,
-        enter a delay if the tree is put back after a time, or record the tree
-        as Retained or Enhanced
+        Choose a target condition lower than the baseline tree's condition, or
+        enter a delay if the tree is put back after a time. If this is a new
+        tree planted in its place, set its Category to Newly Planted in your
+        file and upload it again
+    # An area habitat or hedgerow Created in its parent's own type in its
+    # condition or a better one, with no delay, refused by the service
+    # (HABITAT_DEGRADE_NOT_VALID). A delay also makes the edit valid, as the
+    # habitat is then cleared and put back.
+    habitatDegradeNotWorse:
+      wording: interim
+      text: >-
+        Choose a target condition lower than the baseline habitat's condition,
+        or enter a delay if the habitat is cleared and put back
   strategicSignificance:
     invalid: Choose a valid strategic significance
   watercourseEncroachment:
@@ -1420,14 +1516,26 @@ forms:
     both:
       summary: A habitat cannot be created both in advance and with a delay.
       inline: Either the advance or delay field must be set at zero.
-    # A degraded tree, with no delay, not created 30+ years in advance,
-    # refused by the service (DEGRADE_NOT_VALID).
+    # An Existing tree Created over its baseline tree, with no delay, not
+    # created 30+ years in advance, refused by the service
+    # (TREE_DEGRADE_NOT_VALID).
     degradeNot30Plus:
       wording: interim
       text: >-
         Set the years in advance to 30+, as a tree whose condition gets worse
         is recorded as created 30+ years in advance, or enter a delay if the
-        tree is put back after a time
+        tree is put back after a time. If this is a new tree planted in its
+        place, set its Category to Newly Planted in your file and upload it
+        again
+    # An area habitat or hedgerow Created in its parent's own type, with no
+    # delay, not created 30+ years in advance, refused by the service
+    # (HABITAT_DEGRADE_NOT_VALID).
+    habitatDegradeNot30Plus:
+      wording: interim
+      text: >-
+        Set the years in advance to 30+, as a habitat whose condition gets
+        worse is recorded as created 30+ years in advance, or enter a delay if
+        the habitat is cleared and put back
 
 # ------------------------------------------------------------------- pages
 #
@@ -1486,6 +1594,16 @@ pages:
     body:
       - You do not have permission to view this page.
       - Access is limited to users with an approved BNG completer role. If your role is still awaiting approval, or you think this is wrong, contact your Defra administrator.
+      - '[Return to the home page](home)'
+
+  # Signed in with an approved role, but not on the Private Beta list
+  # (PRIVATE_BETA_ALLOWED_EMAILS). BMD-1104 leaves the words "TBC".
+  privateBeta:
+    wording: interim
+    title: You cannot use this service yet
+    body:
+      - This service is in Private Beta. Only invited users can use it at the moment.
+      - Continue to use the Statutory Biodiversity Metric Excel tool to calculate biodiversity net gain.
       - '[Return to the home page](home)'
 
   # A habitat on the post-intervention details page that has no details

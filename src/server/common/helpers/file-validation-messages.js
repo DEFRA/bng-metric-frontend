@@ -1,12 +1,14 @@
-import { formErrorText } from '../error-text/error-text.js'
+import { fileCheckErrorText, formErrorText } from '../error-text/error-text.js'
 import {
   FILE_CHECK_CODES,
   MAX_FILENAME_LENGTH,
   MAX_FILE_SIZE_LABEL
 } from '../../../shared/file-checks.js'
 
-// The upload page's messages about the file, from error-text.yaml's forms.file.
-// Each shows the same words in the error summary and against the file input.
+// The upload page's messages about the file, from error-text.yaml's
+// forms.file, and about a check the service could not finish, from its
+// fileCheck. Each shows the same words in the error summary and against the
+// file input.
 const message = (rule, values) => formErrorText('file', rule, values).inline
 
 /** By rule: what the session stores, between the check and the upload page. */
@@ -16,8 +18,9 @@ export const FILE_ERROR_TEXT = Object.freeze({
   tooLarge: message('tooLarge', { max: MAX_FILE_SIZE_LABEL }),
   invalidName: message('invalidName'),
   nameTooLong: message('nameTooLong', { max: MAX_FILENAME_LENGTH }),
-  serviceBusy: message('serviceBusy'),
-  timedOut: message('timedOut')
+  serviceBusy: fileCheckErrorText('serviceBusy'),
+  timedOut: fileCheckErrorText('timedOut'),
+  statusUnavailable: fileCheckErrorText('statusUnavailable')
 })
 
 /**

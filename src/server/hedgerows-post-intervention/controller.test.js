@@ -464,7 +464,7 @@ describe('hedgerows post intervention', () => {
     expect(footer).toContain('0.6km')
   })
 
-  test('shows an incomplete Created hedgerow as 0.00 units, leaving other incomplete rows blank', async () => {
+  test('shows an incomplete Created or Enhanced hedgerow as 0.00 units (BMD-1046 AC2), leaving a Retained row blank', async () => {
     const project = structuredClone(populatedProject)
     const created = project.project.postIntervention.hedgerows.find(
       (h) => h.ref === 'P-A1'
@@ -474,6 +474,10 @@ describe('hedgerows post intervention', () => {
       (h) => h.ref === 'P-A3'
     )
     Object.assign(enhanced, { units: null, status: 'Incomplete' })
+    const retained = project.project.postIntervention.hedgerows.find((h) =>
+      String(h.retentionCategory).includes('Retained')
+    )
+    Object.assign(retained, { units: null })
     const snapshot = structuredClone(project)
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: statusCodes.ok },
@@ -500,7 +504,11 @@ describe('hedgerows post intervention', () => {
     }
     expect(unitsCell('#created', 'P-A1').text().trim()).toBe('0.00')
     expect(unitsCell('#created', 'P-A1').attr('data-sort-value')).toBe('0')
-    expect(unitsCell('#enhanced', enhanced.ref).text().trim()).toBe('')
+    expect(unitsCell('#enhanced', enhanced.ref).text().trim()).toBe('0.00')
+    expect(unitsCell('#enhanced', enhanced.ref).attr('data-sort-value')).toBe(
+      '0'
+    )
+    expect(unitsCell('#retained', retained.ref).text().trim()).toBe('')
     expect(project).toEqual(snapshot)
   })
 

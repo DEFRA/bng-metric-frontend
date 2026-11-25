@@ -1841,11 +1841,11 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each tree with more than one kept tree linked to it, and the trees linked, without the counts the backend sends', async () => {
+  test('lists each tree with more than one Retained or Enhanced tree linked to it, and the trees linked, without the counts the backend sends', async () => {
     const view = await viewFor([
       lineageError(
         'STAGED_TREE_CHILDREN_TOO_MANY',
-        'One or more baseline trees have fewer trees than the post-intervention trees that are still them, linked to them together: Retained, Enhanced, or Existing and Created in its setting',
+        'One or more baseline trees have more than one Retained or Enhanced tree linked to them. A baseline tree is one tree, so only one Retained or Enhanced tree can be linked to it',
         [
           {
             layer: 'trees',
@@ -1865,8 +1865,36 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
       view.errorBlocks.map(({ heading, items }) => [heading, items])
     ).toEqual([
       [
-        'One or more baseline trees have more than one kept tree linked to them. A post-intervention tree is kept if it is Retained or Enhanced, or Created with Category Existing in the same Urban or Rural setting. A baseline tree is one tree, so only one kept tree can be linked to it',
+        'One or more baseline trees have more than one Retained or Enhanced tree linked to them. A baseline tree is one tree, so only one Retained or Enhanced tree can be linked to it',
         ['Individual Trees Baseline T004 — Rural tree, copied to T004a, T004b']
+      ]
+    ])
+  })
+
+  test('lists each tree recorded both as an Existing tree Created and as another tree that is it, and the trees linked, under the error text’s heading', async () => {
+    // The page words the heading from error-text.yaml by code, so the
+    // backend's message is not it.
+    const heading =
+      'One or more baseline trees have an Existing tree Created over them and another Retained, Enhanced or Existing tree linked to them, so the same tree is scored twice. A baseline tree is one tree: either kept, as one Retained or Enhanced tree, or lost and created again, as one Existing tree Created. Record a new tree planted beside it as Newly Planted'
+    const view = await viewFor([
+      lineageError('STAGED_TREE_RECORDED_TWICE', 'The backend’s message', [
+        {
+          layer: 'trees',
+          table: 'Individual Trees Baseline',
+          fid: 4,
+          ref: 'T004',
+          habitatType: 'Urban tree',
+          childRefs: ['T004', 'T004A']
+        }
+      ])
+    ])
+
+    expect(
+      view.errorBlocks.map(({ heading, items }) => [heading, items])
+    ).toEqual([
+      [
+        heading,
+        ['Individual Trees Baseline T004 — Urban tree, copied to T004, T004A']
       ]
     ])
   })
@@ -1908,38 +1936,52 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
     ])
   })
 
-  test('lists each degraded row with the parent it was copied from', async () => {
-    const row = (code, ref, habitatType, parentRef) =>
-      lineageError(code, `Heading for ${code}`, [
+  test('lists each habitat Created in its baseline habitat’s own type with the habitat it was copied from', async () => {
+    const view = await viewFor([
+      lineageError('STAGED_HABITAT_DEGRADE_NOT_VALID', 'Heading', [
         {
           layer: 'hedgerows',
           table: 'Hedgerows Post-Intervention',
-          fid: 9,
-          ref,
-          habitatType,
-          parentRef
+          fid: 17,
+          ref: 'HG017',
+          habitatType: 'Native hedgerow',
+          parentRef: 'HG017'
         }
       ])
+    ])
 
+    expect(view.errorBlocks.map(({ items }) => items)).toEqual([
+      ['Hedgerows Post-Intervention HG017 — Native hedgerow, copied from HG017']
+    ])
+  })
+
+  test('lists each Existing tree Created over its baseline tree with the tree it was copied from', async () => {
     const view = await viewFor([
-      row('STAGED_DEGRADE_NOT_WORSE', 'HG009', 'Native hedgerow', 'HG002'),
-      row(
-        'STAGED_DEGRADE_ADVANCE_NOT_30_PLUS',
-        'HG010',
-        'Native hedgerow with trees',
-        'HG003'
-      ),
-      row('STAGED_WATERCOURSE_NO_INTERVENTION', 'R004', 'Ditches', null)
+      lineageError('STAGED_TREE_DEGRADE_NOT_VALID', 'Heading', [
+        {
+          layer: 'trees',
+          table: 'Individual Trees Post-Intervention',
+          fid: 2,
+          ref: 'T002',
+          habitatType: 'Rural tree',
+          parentRef: 'T001'
+        },
+        {
+          layer: 'trees',
+          table: 'Individual Trees Post-Intervention',
+          fid: 5,
+          ref: 'T005',
+          habitatType: 'Urban tree',
+          parentRef: null
+        }
+      ])
     ])
 
     expect(view.errorBlocks.map(({ items }) => items)).toEqual([
       [
-        'Hedgerows Post-Intervention HG009 — Native hedgerow, copied from HG002'
-      ],
-      [
-        'Hedgerows Post-Intervention HG010 — Native hedgerow with trees, copied from HG003'
-      ],
-      ['Hedgerows Post-Intervention R004 — Ditches']
+        'Individual Trees Post-Intervention T002 — Rural tree, copied from T001',
+        'Individual Trees Post-Intervention T005 — Urban tree'
+      ]
     ])
   })
 
@@ -1954,32 +1996,27 @@ describe('invalidFileController.handler — BMD-1086 BNG Service template lineag
   })
 
   test('shows a lone lineage error as its list of habitats, not as single-error copy', async () => {
+    const heading =
+      'One or more baseline watercourses have both a Retained or Enhanced part and a Created part, so their length cannot be split between what continues and what is lost. Draw each as two baseline watercourses, one for each part'
     const view = await viewFor([
-      lineageError(
-        'STAGED_DEGRADE_ADVANCE_NOT_30_PLUS',
-        'One or more habitats recorded as lost and created again in a lower condition are not created 30+ years in advance, as the Metric guide asks',
-        [
-          {
-            layer: 'areas',
-            table: POST_INTERVENTION_AREAS,
-            fid: 12,
-            ref: 'H012',
-            habitatType: 'Grassland - Other neutral grassland',
-            parentRef: 'H012'
-          }
-        ]
-      )
+      lineageError('STAGED_WATERCOURSE_RETAINED_AND_CREATED', heading, [
+        {
+          layer: 'watercourses',
+          table: 'Watercourses Baseline',
+          fid: 4,
+          ref: 'R004',
+          habitatType: 'Ditches',
+          childRefs: ['R004a', 'R004b']
+        }
+      ])
     ])
 
     expect(view.singleError).toBeNull()
     expect(view.pageTitle).toBe('There is a problem with your file')
     expect(view.errorBlocks).toEqual([
       {
-        heading:
-          'One or more habitats recorded as lost and created again in a lower condition are not created 30+ years in advance, as the Metric guide asks',
-        items: [
-          'Area Habitats Post-Intervention H012 — Grassland - Other neutral grassland, copied from H012'
-        ],
+        heading,
+        items: ['Watercourses Baseline R004 — Ditches, copied to R004a, R004b'],
         more: 0
       }
     ])

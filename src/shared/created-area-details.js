@@ -1,6 +1,5 @@
 // Shared by the server render and browser preview. Units are only recalculated
 // by the backend on Save, using the metric engine.
-export const UNCHANGED_VALUE = 'unchanged'
 export const MAX_YEARS = 30
 export const YEAR_OPTIONS = [
   ...Array.from({ length: MAX_YEARS + 1 }, (_, year) => String(year)),
@@ -23,17 +22,6 @@ export function createdDerivedInputsUnchanged(display, values, originalValues) {
   )
 }
 
-export function resolveCreatedTiming(values, reference) {
-  return Object.fromEntries(
-    ['advanceYears', 'delayYears'].map((field) => [
-      field,
-      values[field] === UNCHANGED_VALUE
-        ? (reference.importedYears?.[field] ?? '')
-        : values[field]
-    ])
-  )
-}
-
 export function selectedHabitat(reference, values) {
   return reference.habitatTypes.find(
     (type) =>
@@ -50,9 +38,7 @@ export function createdAreaDerived(reference, values, baselineCondition = '') {
   )
   return {
     ...standardFields(type, condition, baselineCondition),
-    finalTimeToTargetDisplay:
-      finalTimeDisplay(reference, condition, values) ||
-      unchangedImportedFinalTime(reference, values)
+    finalTimeToTargetDisplay: finalTimeDisplay(reference, condition, values)
   }
 }
 
@@ -105,35 +91,4 @@ function finalTimeDisplay(reference, condition, values) {
     return `${key} years (${multiplier})`
   }
   return ''
-}
-
-function unchangedImportedFinalTime(reference, values) {
-  const timing = resolveCreatedTiming(values, reference)
-  if (
-    Number.parseFloat(timing.advanceYears) > 0 &&
-    Number.parseFloat(timing.delayYears) > 0
-  ) {
-    return ''
-  }
-  const saved = reference.importedCalculation
-  const fields = [
-    'broadHabitat',
-    'habitatType',
-    'condition',
-    'advanceYears',
-    'delayYears'
-  ]
-  if (
-    values.habitatType === UNCHANGED_VALUE ||
-    (!Object.keys(reference.importedYears ?? {}).length &&
-      !reference.importedCondition) ||
-    !saved
-  ) {
-    return ''
-  }
-  return fields.every(
-    (field) => (values[field] ?? '') === (saved.values[field] ?? '')
-  )
-    ? saved.finalTimeToTargetDisplay
-    : ''
 }

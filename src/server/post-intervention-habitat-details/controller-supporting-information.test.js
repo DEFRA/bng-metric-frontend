@@ -12,16 +12,21 @@ import {
   createMockH,
   featureId,
   isProjectUrl,
+  servesReference,
   projectId,
   projectPayload
 } from './controller-test-helpers.js'
 import {
   createdAreaFeature,
-  creationReference
+  creationReference,
+  enhancedAreaFeature,
+  enhancementReference
 } from './created-area-test-fixtures.js'
 import {
   createdHedgerowFeature,
-  hedgerowCreationReference
+  enhancedHedgerowFeature,
+  hedgerowCreationReference,
+  hedgerowEnhancementReference
 } from './created-hedgerow-test-fixtures.js'
 import {
   createdWatercourseFeature,
@@ -29,17 +34,20 @@ import {
 } from './created-watercourse-test-fixtures.js'
 import {
   createdTree,
-  treeCreationReference
+  enhancedTree,
+  treeCreationReference,
+  treeEnhancementReference
 } from './created-tree-test-fixtures.js'
 import {
   createdAreaValues,
   _resetCreatedAreaReferenceCache
 } from './created-area-edit.js'
-import { CREATED_SUPPORTING_INFORMATION_HINT } from './constants.js'
+import { EDIT_SUPPORTING_INFORMATION_HINT } from './constants.js'
 import { getController, postController } from './controller.js'
 
-// BMD-1153: a Created area habitat, tree, hedgerow and watercourse's edit page
-// has a "Supporting information" box, with the baseline page's rules
+// The edit page of a Created area habitat, tree, hedgerow or watercourse
+// (BMD-1153), and of an Enhanced area habitat, tree or hedgerow (BMD-1190),
+// has a "Supporting information" box with the baseline page's rules
 // (BMD-1112).
 
 vi.mock('../common/helpers/wreck-client.js', () => ({
@@ -54,7 +62,10 @@ const REFERENCES = {
   '/reference/area-creation': creationReference,
   '/reference/tree-creation': treeCreationReference,
   '/reference/hedgerow-creation': hedgerowCreationReference,
-  '/reference/watercourse-creation': watercourseCreationReference
+  '/reference/watercourse-creation': watercourseCreationReference,
+  '/reference/tree-enhancement': treeEnhancementReference,
+  '/reference/area-enhancement?': enhancementReference,
+  '/reference/hedgerow-enhancement?': hedgerowEnhancementReference
 }
 
 const withoutBroadHabitat = (feature) => {
@@ -63,40 +74,61 @@ const withoutBroadHabitat = (feature) => {
 }
 
 const KINDS = {
-  habitat: {
+  'Created habitat': {
     type: 'habitat',
     feature: createdAreaFeature,
     values: createdAreaValues(createdAreaFeature),
     savePath: 'habitats',
     listPath: 'area-post-intervention'
   },
-  tree: {
+  'Created tree': {
     type: 'tree',
     feature: createdTree,
     values: createdAreaValues(createdTree),
     savePath: 'trees',
     listPath: 'area-post-intervention'
   },
-  hedgerow: {
+  'Created hedgerow': {
     type: 'hedgerow',
     feature: createdHedgerowFeature,
     values: withoutBroadHabitat(createdHedgerowFeature),
     savePath: 'hedgerows',
     listPath: 'hedgerows-post-intervention'
   },
-  watercourse: {
+  'Created watercourse': {
     type: 'watercourse',
     feature: createdWatercourseFeature,
     values: withoutBroadHabitat(createdWatercourseFeature),
     savePath: 'watercourses',
     listPath: 'watercourses-post-intervention'
+  },
+  'Enhanced habitat': {
+    type: 'habitat',
+    feature: enhancedAreaFeature,
+    values: createdAreaValues(enhancedAreaFeature),
+    savePath: 'habitats',
+    listPath: 'area-post-intervention'
+  },
+  'Enhanced tree': {
+    type: 'tree',
+    feature: enhancedTree,
+    values: createdAreaValues(enhancedTree),
+    savePath: 'trees',
+    listPath: 'area-post-intervention'
+  },
+  'Enhanced hedgerow': {
+    type: 'hedgerow',
+    feature: enhancedHedgerowFeature,
+    values: withoutBroadHabitat(enhancedHedgerowFeature),
+    savePath: 'hedgerows',
+    listPath: 'hedgerows-post-intervention'
   }
 }
 
-function mockCreated({ type, feature }, comment = SAVED_COMMENT) {
+function mockEditable({ type, feature }, comment = SAVED_COMMENT) {
   vi.mocked(wreck.get).mockImplementation((url) => {
     const referencePath = Object.keys(REFERENCES).find((path) =>
-      url.endsWith(path)
+      servesReference(url, path)
     )
     if (referencePath) {
       return Promise.resolve({
@@ -129,7 +161,7 @@ beforeEach(() => {
   })
 })
 
-describe.each(Object.keys(KINDS))('a Created %s', (kindName) => {
+describe.each(Object.keys(KINDS))('supporting information: %s', (kindName) => {
   const kind = KINDS[kindName]
   const post = (overrides = {}) => {
     const h = createMockH()
@@ -143,7 +175,7 @@ describe.each(Object.keys(KINDS))('a Created %s', (kindName) => {
       .then(() => h)
   }
 
-  beforeEach(() => mockCreated(kind))
+  beforeEach(() => mockEditable(kind))
 
   test('shows the box filled from the saved comment, keeping its line breaks', async () => {
     const h = createMockH()
@@ -152,14 +184,14 @@ describe.each(Object.keys(KINDS))('a Created %s', (kindName) => {
       EDIT_TEMPLATE,
       expect.objectContaining({
         showCommentRow: true,
-        commentHint: CREATED_SUPPORTING_INFORMATION_HINT,
+        commentHint: EDIT_SUPPORTING_INFORMATION_HINT,
         commentInput: { id: 'comment', value: SAVED_COMMENT, error: undefined }
       })
     )
   })
 
   test('shows an empty box when no comment is saved', async () => {
-    mockCreated(kind, null)
+    mockEditable(kind, null)
     const h = createMockH()
     await getController.handler({ query: { projectId, featureId } }, h)
     expect(h.view.mock.calls[0][1].commentInput.value).toBe('')
@@ -257,86 +289,92 @@ describe.each(Object.keys(KINDS))('a Created %s', (kindName) => {
   })
 })
 
-describe('the rendered Created edit page', () => {
-  let server
-  const auth = {
-    strategy: 'session',
-    credentials: {
-      sub: 'test-user',
-      email: 'test@example.com',
-      roles: ['aaa-bbb:bng completer:3']
+// One Created and one Enhanced page, rendered (BMD-1153, BMD-1190).
+describe.each(['Created hedgerow', 'Enhanced habitat'])(
+  'the rendered %s edit page',
+  (kindName) => {
+    let server
+    const auth = {
+      strategy: 'session',
+      credentials: {
+        sub: 'test-user',
+        email: 'test@example.com',
+        roles: ['aaa-bbb:bng completer:3']
+      }
     }
+
+    beforeAll(async () => {
+      server = await createServer()
+      await server.initialize()
+    })
+    afterAll(async () => server.stop({ timeout: 0 }))
+    beforeEach(() => mockEditable(KINDS[kindName]))
+
+    test('has the labelled box with its hint below the units and above Save', async () => {
+      const response = await server.inject({
+        method: 'GET',
+        url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
+        auth
+      })
+      expect(response.statusCode).toBe(200)
+      const $ = load(response.payload)
+      expect($('label[for="comment"]').text().trim()).toBe(
+        'Supporting information'
+      )
+      expect($('#comment-hint').text().trim()).toBe(
+        'Add any information that will help support your submission.'
+      )
+      expect($('textarea#comment').val()).toBe(SAVED_COMMENT)
+      expect($('textarea#comment').attr('rows')).toBe('5')
+      expect($('.govuk-character-count')).toHaveLength(0)
+      const order = $(
+        '.app-pi-edit-units, textarea#comment, .govuk-button-group'
+      )
+        .toArray()
+        .map((element) => $(element).attr('id') ?? element.attribs.class)
+      expect(order).toEqual([
+        expect.stringContaining('app-pi-edit-units'),
+        'comment',
+        'govuk-button-group'
+      ])
+    })
+
+    test('links the error summary to the box', async () => {
+      const { token: crumb, cookie } = await primeCrumb(server)
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        headers: { cookie },
+        payload: {
+          projectId,
+          featureId,
+          ...KINDS[kindName].values,
+          comment: OVER_LIMIT,
+          crumb
+        }
+      })
+      expect(response.payload).toContain(
+        `<a href="#comment">${COMMENT_TOO_LONG_ERROR.summary}</a>`
+      )
+      expect(response.payload).toContain(`>${OVER_LIMIT}</textarea>`)
+      expect(wreck.put).not.toHaveBeenCalled()
+    })
+
+    test('refuses a save with a comment but without a CSRF token', async () => {
+      const response = await server.inject({
+        method: 'POST',
+        url: '/post-intervention-habitat-details',
+        auth,
+        payload: {
+          projectId,
+          featureId,
+          ...KINDS[kindName].values,
+          comment: 'A note'
+        }
+      })
+      expect(response.statusCode).toBe(403)
+      expect(wreck.put).not.toHaveBeenCalled()
+    })
   }
-
-  beforeAll(async () => {
-    server = await createServer()
-    await server.initialize()
-  })
-  afterAll(async () => server.stop({ timeout: 0 }))
-  beforeEach(() => mockCreated(KINDS.hedgerow))
-
-  test('has the labelled box with its hint below the units and above Save', async () => {
-    const response = await server.inject({
-      method: 'GET',
-      url: `/post-intervention-habitat-details?projectId=${projectId}&featureId=${featureId}`,
-      auth
-    })
-    expect(response.statusCode).toBe(200)
-    const $ = load(response.payload)
-    expect($('label[for="comment"]').text().trim()).toBe(
-      'Supporting information'
-    )
-    expect($('#comment-hint').text().trim()).toBe(
-      'Add any information that will help support your submission.'
-    )
-    expect($('textarea#comment').val()).toBe(SAVED_COMMENT)
-    expect($('textarea#comment').attr('rows')).toBe('5')
-    expect($('.govuk-character-count')).toHaveLength(0)
-    const order = $('.app-pi-edit-units, textarea#comment, .govuk-button-group')
-      .toArray()
-      .map((element) => $(element).attr('id') ?? element.attribs.class)
-    expect(order).toEqual([
-      expect.stringContaining('app-pi-edit-units'),
-      'comment',
-      'govuk-button-group'
-    ])
-  })
-
-  test('links the error summary to the box', async () => {
-    const { token: crumb, cookie } = await primeCrumb(server)
-    const response = await server.inject({
-      method: 'POST',
-      url: '/post-intervention-habitat-details',
-      auth,
-      headers: { cookie },
-      payload: {
-        projectId,
-        featureId,
-        ...KINDS.hedgerow.values,
-        comment: OVER_LIMIT,
-        crumb
-      }
-    })
-    expect(response.payload).toContain(
-      `<a href="#comment">${COMMENT_TOO_LONG_ERROR.summary}</a>`
-    )
-    expect(response.payload).toContain(`>${OVER_LIMIT}</textarea>`)
-    expect(wreck.put).not.toHaveBeenCalled()
-  })
-
-  test('refuses a save with a comment but without a CSRF token', async () => {
-    const response = await server.inject({
-      method: 'POST',
-      url: '/post-intervention-habitat-details',
-      auth,
-      payload: {
-        projectId,
-        featureId,
-        ...KINDS.hedgerow.values,
-        comment: 'A note'
-      }
-    })
-    expect(response.statusCode).toBe(403)
-    expect(wreck.put).not.toHaveBeenCalled()
-  })
-})
+)

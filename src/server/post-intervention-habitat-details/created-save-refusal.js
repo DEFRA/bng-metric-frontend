@@ -47,9 +47,9 @@ export function shownSaveRefusal(err, kind) {
       statusCode: statusCodes.unprocessableEntity
     }
   }
-  // A degraded tree, its baseline tree recorded as lost and created again,
-  // given a setting, condition or timing that would stop it being one: the
-  // field the backend's rule names is to blame.
+  // An Existing tree Created over its baseline tree given a condition or
+  // timing the guide's steps for a tree whose condition gets worse refuse:
+  // the field the backend's rule names is to blame.
   const degradeErrors = invalidDegradeErrors(err)
   return degradeErrors
     ? {

@@ -3,7 +3,6 @@ import { wreck } from '../common/helpers/wreck-client.js'
 import { _resetCreatedAreaReferenceCache } from './created-area-edit.js'
 import { STANDARD_TIME_TO_TARGET_SUFFIX } from './constants.js'
 import {
-  baselineFeatureId,
   createMockH,
   featureId,
   mockSectionWatercourseFeature,
@@ -87,7 +86,7 @@ describe('#postInterventionHabitatDetailsController created watercourse', () => 
         advanceOrDelayDisplay: 'Neither',
         finalTimeToTargetDisplay: '0 years (1)',
         appliedDifficultyMultiplierDisplay: '1',
-        viewBaselineHref: `/baseline-habitat-details?featureId=${baselineFeatureId}&projectId=${projectId}`,
+        viewBaselineHref: null,
         backHref: `/projects/${projectId}/watercourses-post-intervention`
       })
     )

@@ -342,12 +342,12 @@ describe('shared habitat save errors', () => {
 
   // As the not-editable refusal: rebuilt, it would lose the code and rule
   // that name the field to blame.
-  it('throws a degraded tree refusal as it is, for the form to show', async () => {
+  it('throws a refusal of a tree that does not follow the guide’s steps as it is, for the form to show', async () => {
     const error = {
       data: {
         res: { statusCode: 422 },
         payload: {
-          code: 'DEGRADE_NOT_VALID',
+          code: 'TREE_DEGRADE_NOT_VALID',
           rule: 'degrade-worse-condition'
         }
       }

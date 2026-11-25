@@ -15,9 +15,10 @@ import { AREA_SECTIONS_TEMPLATE, AREA_SIZE_LABEL } from './constants.js'
 
 // What a Created and an Enhanced tree are edited with alike. A tree stays a
 // tree: its broad habitat is always Individual trees, shown and sent but not
-// editable, and its habitat type must be Urban tree or Rural tree. Its size
-// class and number of trees are shown, not edited. Until the backend serves
-// its reference, it keeps its read-only page.
+// editable, and its habitat type must be Urban tree or Rural tree. A legacy
+// tree's number of trees is shown, not edited. Until the backend serves its
+// reference, it keeps its read-only page. Both have the supporting
+// information box (BMD-1153, BMD-1190).
 const TREE_KIND_BASE = Object.freeze({
   label: 'Tree',
   optionalReference: true,
@@ -30,18 +31,35 @@ const TREE_KIND_BASE = Object.freeze({
   hasBroadHabitat: true,
   fixedBroadHabitat: INDIVIDUAL_TREES_BROAD_HABITAT,
   habitatTypeRequired: true,
-  habitatTypeError: Object.freeze(formErrorText('habitatType', 'invalidTree'))
+  habitatTypeError: Object.freeze(formErrorText('habitatType', 'invalidTree')),
+  hasComment: true
+})
+
+/**
+ * A Created tree is a creation, whatever its row says it was at baseline. An
+ * Existing tree whose condition gets worse is recorded as its baseline tree
+ * lost and a tree created, so its page shows the standard Created fields and
+ * names no baseline condition in its time to target.
+ *
+ * @param {object} feature the post-intervention tree
+ * @returns {object}
+ */
+const withoutBaselineCondition = (feature) => ({
+  ...feature,
+  baseline: { ...feature.baseline, condition: null }
 })
 
 /**
  * A Created individual tree, edited as a Created area habitat is, with its
- * supporting information (BMD-1153). An Enhanced tree's is not editable yet
- * (BMD-1190).
+ * supporting information (BMD-1153). A BNG Service template tree's planted
+ * size class can be edited too (BMD-1172); an Enhanced tree's is its
+ * baseline tree's, so is shown, not edited.
  */
 export const CREATED_TREE_KIND = Object.freeze({
   ...TREE_KIND_BASE,
+  editsTreeSize: true,
   loadReference: loadCreatedTreeReference,
-  hasComment: true
+  normaliseFeature: withoutBaselineCondition
 })
 
 /**

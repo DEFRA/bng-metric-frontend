@@ -1,6 +1,6 @@
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { createdStrategicSignificance } from './created-strategic-significance.js'
-import { MAX_YEARS } from '../../shared/created-area-details.js'
+import { MAX_YEARS, YEAR_OPTIONS } from '../../shared/created-area-details.js'
 import { ENCROACHMENT_FIELDS } from './created-area-edit-fields.js'
 
 function yearValue(value, is30Plus) {
@@ -31,56 +31,56 @@ export function createdAreaValues(feature) {
   }
 }
 
-// Preserve unsupported imports; they are not offered as newly selectable valid values.
-export function createdImportedChoices(feature, reference, kind) {
-  const values = createdAreaValues(feature)
-  const choices = {
-    strategicSignificance: reference.strategicSignificance.map((s) => s.value),
-    ...(kind.preservesImportedType
-      ? { habitatType: reference.habitatTypes.map((t) => t.name) }
-      : {}),
-    ...(kind.preservesStoredChoices
-      ? storedAreaChoices(reference, values)
-      : {}),
-    ...(kind.hasEncroachments
-      ? {
-          ...Object.fromEntries(
-            ENCROACHMENT_FIELDS.map((field) => [field, reference[field]])
-          )
-        }
-      : {})
+// The PO's ruling (BMD-1046 testing, across every edit page): a stored choice
+// its list does not offer is not shown or kept. It reads as no value, so its
+// dropdown shows the default option and a save clears it. That covers a value
+// the list no longer offers and one the import rejected (which the backend
+// nulls on import).
+export function supportedCreatedValues(values, reference, kind) {
+  const supported = { ...values }
+  for (const [field, options] of createdChoiceLists(
+    reference,
+    supported,
+    kind
+  )) {
+    if (supported[field] && !options.includes(supported[field])) {
+      supported[field] = ''
+    }
   }
-  return Object.fromEntries(
-    Object.entries(choices)
-      .filter(
-        ([field, options]) => values[field] && !options.includes(values[field])
-      )
-      .map(([field]) => [field, values[field]])
-  )
+  return supported
 }
 
-// BMD-1045: an Enhanced area's broad habitat, habitat type and condition, each
-// as the list offers it under the choices above it. A stored one the list
-// does not offer is kept unchanged rather than shown blank and cleared.
-function storedAreaChoices(reference, values) {
-  const inBroad = reference.habitatTypes.filter(
-    (t) => t.broad === values.broadHabitat
+// Each choice's options, in page order, so a cleared broad habitat or habitat
+// type clears the choices listed under it. `values` is read as it is cleared.
+function* createdChoiceLists(reference, values, kind) {
+  const types = reference.habitatTypes
+  if (kind.hasBroadHabitat) {
+    yield ['broadHabitat', [...new Set(types.map((t) => t.broad))]]
+  }
+  const inBroad = types.filter(
+    (t) => !kind.hasBroadHabitat || t.broad === values.broadHabitat
   )
+  yield ['habitatType', inBroad.map((t) => t.name)]
   const type = inBroad.find((t) => t.name === values.habitatType)
-  return {
-    broadHabitat: [...new Set(reference.habitatTypes.map((t) => t.broad))],
-    habitatType: inBroad.map((t) => t.name),
-    condition: (type?.conditions ?? []).map((c) => c.condition)
+  yield ['condition', (type?.conditions ?? []).map((c) => c.condition)]
+  yield [
+    'strategicSignificance',
+    reference.strategicSignificance.map((s) => s.value)
+  ]
+  yield ['advanceYears', YEAR_OPTIONS]
+  yield ['delayYears', YEAR_OPTIONS]
+  if (kind.hasEncroachments) {
+    for (const field of ENCROACHMENT_FIELDS) {
+      yield [field, reference[field] ?? []]
+    }
   }
 }
 
 function significanceValue(proposed) {
   // Keep the merged editors' category precedence, including an explicit clear.
-  // Historical rejection metadata must never override a current saved choice.
   return createdStrategicSignificance(
     proposed.strategicSignificanceCategory ??
       proposed.strategicSignificance ??
-      proposed.rejectedStrategicSignificance ??
       ''
   )
 }

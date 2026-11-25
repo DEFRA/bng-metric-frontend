@@ -99,6 +99,7 @@ export const SHARED_KEYS = Object.freeze([
 /** Where a customer meets an entry, as the Where it is shown column says. */
 export const SHOWN = Object.freeze({
   COMMON: 'Every page',
+  FILE_CHECK: 'Upload page, when the file check could not start or finish',
   UPLOAD: 'Drop-out page',
   FALLBACK: 'Drop-out page, in place of an error’s own words',
   EDIT: 'Edit made on screen',
@@ -116,6 +117,8 @@ export const ROW_GROUPS = Object.freeze({
   CODES: 'codes',
   /** The drop-out page's shared fallbacks, such as upload.catchAll. */
   FALLBACKS: 'fallbacks',
+  /** fileCheck.*: the upload page's words for a check that could not finish. */
+  FILE_CHECK: 'file-check',
   /** The drop-out page's other words, such as upload.page.title. */
   UPLOAD_TEXT: 'upload-text',
   /** common.*: what every page falls back to. */
@@ -130,13 +133,16 @@ export const ROW_GROUPS = Object.freeze({
 export const ALL_GROUPS = Object.freeze(Object.values(ROW_GROUPS))
 
 /**
- * What the export gives unless told otherwise: the error codes, and the
- * shared pages they show, each a row of its own words and the codes that use
- * it. The rest made the export too long to review.
+ * What the export gives unless told otherwise: the error codes, the shared
+ * pages they show, each a row of its own words and the codes that use it,
+ * and the upload page's words for a file check that could not finish, which
+ * are siblings of codes such as VALIDATION_BUSY but have none. The rest made
+ * the export too long to review.
  */
 export const DEFAULT_GROUPS = Object.freeze([
   ROW_GROUPS.CODES,
-  ROW_GROUPS.FALLBACKS
+  ROW_GROUPS.FALLBACKS,
+  ROW_GROUPS.FILE_CHECK
 ])
 
 /** Said of a {name} or link target that placeholders.mjs does not explain. */
@@ -575,6 +581,21 @@ function uploadAndEditRows(value) {
   }
 }
 
+function fileCheckRows({ fileCheck }) {
+  // A file from before the section, such as a base commit compared with, has
+  // none.
+  return Object.entries(fileCheck ?? {}).map(([rule, entry]) => {
+    const row = newRow(`fileCheck.${rule}`, SHOWN.FILE_CHECK, entry, [
+      'fileCheck',
+      rule
+    ])
+    // The same words in the error summary and against the file input.
+    row.cells.summary = wordsOf(entry)
+    row.cells.inline = wordsOf(entry)
+    return row
+  })
+}
+
 function formRows({ forms, common }) {
   return Object.entries(forms).flatMap(([field, rules]) =>
     Object.entries(rules).map(([rule, entry]) => {
@@ -704,6 +725,7 @@ function rowsByGroup(value) {
   return {
     [ROW_GROUPS.CODES]: codes,
     [ROW_GROUPS.FALLBACKS]: fallbacks,
+    [ROW_GROUPS.FILE_CHECK]: fileCheckRows(value),
     [ROW_GROUPS.UPLOAD_TEXT]: uploadTextRows(value),
     [ROW_GROUPS.COMMON]: commonRows(value),
     [ROW_GROUPS.FORMS]: formRows(value),

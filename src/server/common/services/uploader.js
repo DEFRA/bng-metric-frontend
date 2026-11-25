@@ -105,7 +105,7 @@ export async function initiateUpload(
  * Get the upload status from the backend
  * @param {import('@hapi/hapi').Request} request - forwards the user's bearer token
  * @param {string} uploadId - The upload ID to check status for
- * @returns {Promise<{uploadStatus: string, error?: string, retryAfterSeconds?: number | null}>}
+ * @returns {Promise<{uploadStatus: string, error?: string, rateLimited?: boolean, retryAfterSeconds?: number | null}>}
  */
 export async function getUploadStatus(request, uploadId) {
   const url = `${backendUrl}/upload/${uploadId}/status`
@@ -130,10 +130,17 @@ export async function getUploadStatus(request, uploadId) {
       uploadStatus: payload.uploadStatus ?? 'unknown'
     }
   } catch (error) {
+    // The sign-in has ended: the error page sends the user to sign in again.
+    // Answered as a failed check, it would keep them on the holding page.
+    if (error?.data?.sessionExpired) {
+      throw error
+    }
+
     // A rate limit refused the status check: not a backend failure, and not a
-    // reason to end the poll. It answers as any failed check does, below, so
-    // the page refreshes and checks again — at the backend's pace, so it does
-    // not send more checks into the same limit.
+    // reason to end the poll. It answers as a failed check does, below, but
+    // says it was refused, so the page refreshes and checks again rather than
+    // counting it as a failure — at the backend's pace, so it does not send
+    // more checks into the same limit.
     if (isRateLimited(error)) {
       const retryAfterSeconds = pollWaitSeconds(error)
       logger.info(
@@ -142,6 +149,7 @@ export async function getUploadStatus(request, uploadId) {
       return {
         uploadStatus: 'error',
         error: 'Unable to check upload status',
+        rateLimited: true,
         retryAfterSeconds
       }
     }
@@ -158,7 +166,7 @@ export async function getUploadStatus(request, uploadId) {
     )
 
     // Return an error status rather than throwing Boom — the caller retries
-    // via meta-refresh and the timeout mechanism will handle persistent failures
+    // via meta-refresh, and gives up after a few failures in a row
     return {
       uploadStatus: 'error',
       error: 'Unable to check upload status'

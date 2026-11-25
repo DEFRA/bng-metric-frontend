@@ -12,6 +12,9 @@ const HEDGEROWS_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/hedgerows-post
 const HEDGEROWS_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/hedgerows-trading-summary`
 const WATERCOURSES_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-summary`
 const REPORTS_HREF = `/projects/${PROJECT_ID}/reports`
+const PROJECT_DETAILS_PATH = `/project-details/${PROJECT_ID}`
+const projectDetailsFrom = (returnUrl) =>
+  `${PROJECT_DETAILS_PATH}?returnUrl=${encodeURIComponent(returnUrl)}`
 const WATERCOURSES_BASELINE_HREF = `/projects/${PROJECT_ID}/watercourses-baseline-summary`
 const WATERCOURSES_POST_INTERVENTION_HREF = `/projects/${PROJECT_ID}/watercourses-post-intervention`
 const WATERCOURSES_TRADING_SUMMARY_HREF = `/projects/${PROJECT_ID}/watercourses-trading-summary`
@@ -22,6 +25,10 @@ describe('buildUnitTypeNavigation', () => {
 
     expect(items).toEqual([
       { text: 'Summary', current: true },
+      {
+        text: 'Project details',
+        href: projectDetailsFrom(PROJECT_SUMMARY_HREF)
+      },
       { text: 'Reports', href: REPORTS_HREF }
     ])
   })
@@ -40,6 +47,7 @@ describe('buildUnitTypeNavigation', () => {
         current: true,
         children: [{ text: 'Baseline', href: AREA_BASELINE_HREF }]
       },
+      { text: 'Project details', href: projectDetailsFrom(AREA_SUMMARY_HREF) },
       { text: 'Reports', href: REPORTS_HREF }
     ])
 
@@ -97,6 +105,34 @@ describe('buildUnitTypeNavigation', () => {
 
     const reportsPage = buildUnitTypeNavigation({}, PROJECT_ID, REPORTS_HREF)
     expect(reportsPage.at(-1)).toEqual({ text: 'Reports', current: true })
+  })
+
+  test('BMD-849 links Project details, just before Reports, from every page', () => {
+    for (const currentHref of [
+      PROJECT_SUMMARY_HREF,
+      AREA_BASELINE_HREF,
+      HEDGEROWS_TRADING_SUMMARY_HREF
+    ]) {
+      const items = buildUnitTypeNavigation(
+        { baseline: { hedgerows: [{}] }, postIntervention: {} },
+        PROJECT_ID,
+        currentHref
+      )
+      expect(items.at(-2)).toEqual({
+        text: 'Project details',
+        href: projectDetailsFrom(currentHref)
+      })
+    }
+  })
+
+  test('BMD-849 marks Project details current on its own page', () => {
+    const items = buildUnitTypeNavigation(
+      { baseline: {} },
+      PROJECT_ID,
+      PROJECT_DETAILS_PATH
+    )
+    expect(items.at(-2)).toEqual({ text: 'Project details', current: true })
+    expect(items[0]).toEqual({ text: 'Summary', href: PROJECT_SUMMARY_HREF })
   })
 
   test('includes Hedgerows as a collapsed link when the project has hedgerows', () => {
@@ -378,6 +414,10 @@ describe('buildUnitTypeNavigation', () => {
       { text: 'Area habitats', href: AREA_SUMMARY_HREF },
       { text: 'Hedgerows', href: HEDGEROWS_SUMMARY_HREF },
       { text: 'Watercourses', href: WATERCOURSES_SUMMARY_HREF },
+      {
+        text: 'Project details',
+        href: projectDetailsFrom(PROJECT_SUMMARY_HREF)
+      },
       { text: 'Reports', href: REPORTS_HREF }
     ])
   })

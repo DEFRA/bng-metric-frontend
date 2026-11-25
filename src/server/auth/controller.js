@@ -19,6 +19,10 @@ import { persistBackendSession } from '../common/helpers/auth/persist-session.js
 import { clearStateOnOrganisationSwitch } from '../common/helpers/auth/organisation-switch.js'
 import { clearSessionEnded } from '../common/helpers/auth/session-expiry.js'
 import { hasBngCompleterRole } from '../common/helpers/auth/verify-role.js'
+import {
+  isOnPrivateBetaList,
+  PRIVATE_BETA_PATH
+} from '../common/helpers/auth/private-beta.js'
 import { statusCodes } from '../common/constants.js'
 import { pageErrorText } from '../common/error-text/error-text.js'
 
@@ -35,6 +39,7 @@ const scope = useStub
 const FORBIDDEN_PATH = '/auth/forbidden'
 const SIGNED_OUT_HEADING = 'You have been signed out'
 const ACCESS_DENIED = pageErrorText('accessDenied')
+const PRIVATE_BETA = pageErrorText('privateBeta')
 
 function describeOidcError(error) {
   const cause = error.cause
@@ -193,11 +198,22 @@ async function exchangeCodeForSession(request, h, pending) {
     // Record the login outcome once, here at the callback: an approved role
     // means they can use the service (LoginSucceeded); otherwise the per-route
     // role gate bounces them to /auth/forbidden (LoginFailed / RBAC denial).
-    if (hasBngCompleterRole(claims)) {
-      await recordLoginSuccess(request)
-    } else {
+    // The role check comes first, so a user who fails both is counted as an
+    // RBAC denial and sees /auth/forbidden, not the Private Beta page.
+    if (!hasBngCompleterRole(claims)) {
       await recordLoginFailure(request, LOGIN_FAILURE_REASON.rbac)
+      return h.redirect('/manage-projects')
     }
+    if (!isOnPrivateBetaList(claims)) {
+      // Never log the email address: sub identifies the user well enough.
+      request.logger.warn(
+        { sub: claims?.sub, hasEmail: Boolean(claims?.email) },
+        `OIDC callback: user is not on the Private Beta list, redirecting to ${PRIVATE_BETA_PATH}`
+      )
+      await recordLoginFailure(request, LOGIN_FAILURE_REASON.privateBeta)
+      return h.redirect(PRIVATE_BETA_PATH)
+    }
+    await recordLoginSuccess(request)
     return h.redirect('/manage-projects')
   } catch (error) {
     logOidcError(request, error, 'OIDC callback failed')
@@ -306,6 +322,19 @@ export const forbiddenController = {
         pageTitle: ACCESS_DENIED.title,
         heading: ACCESS_DENIED.title,
         body: ACCESS_DENIED.body,
+        navigation: []
+      })
+      .code(statusCodes.forbidden)
+  }
+}
+
+export const privateBetaController = {
+  handler(_request, h) {
+    return h
+      .view('auth/private-beta', {
+        pageTitle: PRIVATE_BETA.title,
+        heading: PRIVATE_BETA.title,
+        body: PRIVATE_BETA.body,
         navigation: []
       })
       .code(statusCodes.forbidden)

@@ -3,6 +3,7 @@ import {
   forbiddenController,
   loginController,
   logoutController,
+  privateBetaController,
   sessionExpiredController,
   signedOutController
 } from './controller.js'
@@ -49,6 +50,14 @@ import {
  *     responses:
  *       403:
  *         description: Renders the forbidden page
+ * /auth/private-beta:
+ *   get:
+ *     tags:
+ *       - Auth
+ *     summary: Private Beta drop-out
+ *     responses:
+ *       403:
+ *         description: Renders the page for a user who is not on the Private Beta list
  * /auth/session-expired:
  *   get:
  *     tags:
@@ -87,6 +96,11 @@ export const auth = {
           method: 'GET',
           path: '/auth/forbidden',
           ...forbiddenController
+        },
+        {
+          method: 'GET',
+          path: '/auth/private-beta',
+          ...privateBetaController
         },
         {
           method: 'GET',

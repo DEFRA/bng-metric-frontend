@@ -80,11 +80,25 @@
 
       {{ stackedField(sizeLabel, sizeDisplay) }}
 
-      {# An individual tree's size class and number of trees, from which
-         its size in hectares comes. #}
+      {# An individual tree's size class and, for a legacy tree, its number
+         of trees, from which its size in hectares comes. A BNG Service
+         template tree is always one tree, so shows no number, and its
+         size class can be edited (BMD-1172) unless the page is locked. #}
       {% if showTreeRows %}
-        {{ stackedField("Tree size", treeSizeDisplay) }}
-        {{ stackedField("Number of trees", treeCountDisplay) }}
+        {% if treeSizeOptions and not locked %}
+          {{ govukSelect({
+            id: "treeSize",
+            name: "treeSize",
+            label: { text: "Tree size", classes: "govuk-label--s" },
+            items: treeSizeOptions,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+        {% else %}
+          {{ stackedField("Tree size", treeSizeDisplay) }}
+        {% endif %}
+        {% if showTreeCountRow %}
+          {{ stackedField("Number of trees", treeCountDisplay) }}
+        {% endif %}
       {% endif %}
 
       {% if showBroadHabitatRow %}

@@ -330,6 +330,15 @@ export const config = convict({
       env: 'OIDC_USE_STUB'
     }
   },
+  privateBeta: {
+    allowedEmails: {
+      doc: 'Comma-separated email addresses allowed to use the service during Private Beta. Unset or empty turns the filter off, so every approved BNG Completer can use the service.',
+      format: String,
+      default: '',
+      sensitive: true,
+      env: 'PRIVATE_BETA_ALLOWED_EMAILS'
+    }
+  },
   useSwagger: {
     doc: 'Enable Swagger API documentation at /docs',
     format: Boolean,

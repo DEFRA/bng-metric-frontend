@@ -12,7 +12,6 @@ import {
   enhancedAreaFeature,
   enhancementReference
 } from '../../server/post-intervention-habitat-details/created-area-test-fixtures.js'
-import { UNCHANGED_VALUE } from '../../shared/created-area-details.js'
 import { renderTemplateIntoDocument } from '../../server/test-helpers/render-template.js'
 import { runAxeChecks } from '../../server/test-helpers/axe-helper.js'
 
@@ -200,7 +199,9 @@ describe('Created area editing', () => {
     ).toBe(returnUrl)
   })
 
-  test('explains clearing unavailable choices while preserving imported timing', () => {
+  // PO ruling (BMD-1046 testing): a stored choice its list does not offer is
+  // not shown or kept; its dropdown shows the default option.
+  test('shows an unavailable condition and fractional timing as their default options, without an imported-value hint', () => {
     const imported = {
       ...createdAreaFeature,
       proposed: {
@@ -217,14 +218,14 @@ describe('Created area editing', () => {
       }
     )
     expect(value('condition')).toBe('')
-    expect(value('advanceYears')).toBe('unchanged')
-    expect(text('condition-hint')).toContain('"Fairly Poor" is not available')
-    expect(text('condition-hint')).toContain(
-      'saving without a new selection will clear this value'
-    )
-    expect(text('advanceYears-hint')).toContain(
-      'The imported value is 2.5. Keep it unchanged'
-    )
+    expect(value('advanceYears')).toBe('')
+    expect(document.getElementById('condition-hint')).toBeNull()
+    expect(document.getElementById('advanceYears-hint')).toBeNull()
+    expect(document.body.textContent).not.toContain('imported value')
+    expect(document.body.textContent).not.toContain('Fairly Poor')
+    expect(
+      [...document.querySelectorAll('option')].map((o) => o.value)
+    ).not.toContain('unchanged')
   })
 
   test('retains 30+ selections while reading numeric stored years', () => {
@@ -413,7 +414,7 @@ describe('Created area editing', () => {
     await runAxeChecks(document.documentElement)
   })
 
-  test('associates a timing select with both its imported-value hint and shared error', async () => {
+  test('associates a timing select with its shared error', async () => {
     const imported = {
       ...createdAreaFeature,
       proposed: { ...createdAreaFeature.proposed, advanceYears: 2.5 }
@@ -442,9 +443,7 @@ describe('Created area editing', () => {
       .getElementById('advanceYears')
       .getAttribute('aria-describedby')
       .split(/\s+/)
-    expect(descriptions).toEqual(
-      expect.arrayContaining(['advanceYears-hint', 'timing-error'])
-    )
+    expect(descriptions).toContain('timing-error')
     for (const id of descriptions) {
       expect(document.getElementById(id)).not.toBeNull()
     }
@@ -498,10 +497,11 @@ describe('Created area editing', () => {
   })
 })
 
-// BMD-1045: an Enhanced area whose stored proposal its baseline's valid
-// enhancements no longer list keeps it as its unchanged choices.
-describe('Enhanced area editing with a kept proposal', () => {
-  const kept = {
+// BMD-1045, under the PO ruling (BMD-1046 testing): an Enhanced area whose
+// stored proposal its baseline's valid enhancements no longer list shows its
+// choices as the default options, and offers only the listed choices.
+describe('Enhanced area editing with a stored proposal the list no longer offers', () => {
+  const unlisted = {
     ...enhancedAreaFeature,
     proposed: {
       ...enhancedAreaFeature.proposed,
@@ -510,9 +510,9 @@ describe('Enhanced area editing with a kept proposal', () => {
       condition: 'N/A - Other'
     }
   }
-  const keptOptions = (id) =>
-    [...document.querySelectorAll(`#${id} option`)].filter(
-      (option) => option.value === UNCHANGED_VALUE
+  const optionValues = (id) =>
+    [...document.querySelectorAll(`#${id} option`)].map(
+      (option) => option.value
     )
 
   beforeEach(() => {
@@ -520,7 +520,7 @@ describe('Enhanced area editing with a kept proposal', () => {
       'habitat-details/pi-habitat-details-created-edit.njk',
       {
         ...buildCreatedAreaEditViewModel(
-          kept,
+          unlisted,
           { ...enhancementReference, featureType: 'enhancedHabitat' },
           ctx
         ),
@@ -530,16 +530,32 @@ describe('Enhanced area editing with a kept proposal', () => {
     initCreatedAreaDetails()
   })
 
-  test('offers the kept habitat type and condition again once the broad habitat is back to its kept choice', () => {
+  test('shows the default options, with no kept choice', () => {
+    expect(value('broadHabitat')).toBe('')
+    expect(value('habitatType')).toBe('')
+    expect(value('condition')).toBe('')
+    expect(optionValues('condition')).toEqual([''])
+    expect(document.body.textContent).not.toContain('imported value')
+    for (const id of ['broadHabitat', 'habitatType', 'condition']) {
+      expect(optionValues(id)).not.toContain('unchanged')
+    }
+  })
+
+  test('offers only the listed habitat types and conditions as the choices change', () => {
     change('broadHabitat', 'Grassland')
-    expect(keptOptions('habitatType')).toHaveLength(0)
-
-    change('broadHabitat', UNCHANGED_VALUE)
-    expect(keptOptions('habitatType')).toHaveLength(1)
-    expect(keptOptions('condition')).toHaveLength(0)
-
-    change('habitatType', UNCHANGED_VALUE)
-    expect(keptOptions('condition')).toHaveLength(1)
-    expect(keptOptions('condition')[0].textContent).toContain('N/A - Other')
+    expect(optionValues('habitatType')).toEqual([
+      '',
+      ...enhancementReference.habitatTypes
+        .filter((t) => t.broad === 'Grassland')
+        .map((t) => t.name)
+    ])
+    const [type] = enhancementReference.habitatTypes.filter(
+      (t) => t.broad === 'Grassland'
+    )
+    change('habitatType', type.name)
+    expect(optionValues('condition')).toEqual([
+      '',
+      ...type.conditions.map((c) => c.condition)
+    ])
   })
 })

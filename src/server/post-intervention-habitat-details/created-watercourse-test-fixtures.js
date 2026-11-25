@@ -1,3 +1,5 @@
+const MINOR_RIPARIAN = 'Minor/No Encroachment'
+
 export const watercourseCreationReference = {
   featureType: 'watercourse',
   hasBroadHabitat: false,
@@ -145,7 +147,7 @@ export const watercourseCreationReference = {
     'Moderate/Minor',
     'Moderate/No Encroachment',
     'Minor/Minor',
-    'Minor/No Encroachment',
+    MINOR_RIPARIAN,
     'No Encroachment/No Encroachment',
     'N/A - Culvert'
   ]
@@ -168,12 +170,59 @@ export const createdWatercourseFeature = {
     advanceYears: 0,
     delayYears: 0,
     watercourseEncroachment: 'Minor',
-    riparianEncroachment: 'Minor/No Encroachment',
+    riparianEncroachment: MINOR_RIPARIAN,
     distinctiveness: 'Medium',
     distinctivenessScore: 4,
     difficulty: 'Medium',
     difficultyMultiplier: 0.67,
     standardTimeToTargetCondition: '5',
     finalTimeToTargetCondition: '5 years (0.8368287006)'
+  }
+}
+
+// BMD-1047: the backend's watercourse enhancement reference for a Culvert in
+// Poor condition, which may move to any Medium distinctiveness watercourse at
+// a fixed 10 years (BMD-820 AC10). Culvert itself is never offered.
+const UPLIFT_YEARS = 10
+const UPLIFT_CONDITIONS =
+  watercourseCreationReference.habitatTypes[0].conditions.map(
+    ({ condition, score }) => ({ condition, score, years: UPLIFT_YEARS })
+  )
+
+export const watercourseEnhancementReference = {
+  ...watercourseCreationReference,
+  habitatTypes: ['Canals', 'Ditches'].map((name) => ({
+    name,
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    difficulty: 'Low',
+    difficultyMultiplier: 1,
+    conditions: UPLIFT_CONDITIONS
+  }))
+}
+
+export const enhancedWatercourseFeature = {
+  featureId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  ref: 'WC-E',
+  retentionCategory: 'Enhanced',
+  sizeMetres: 1250,
+  units: 3.1,
+  status: 'Complete',
+  baseline: { type: 'Culvert', condition: 'Poor' },
+  proposed: {
+    type: 'Ditches',
+    condition: 'Moderate',
+    strategicSignificance: 'Low',
+    strategicSignificanceCategory: 'Low',
+    advanceYears: 0,
+    delayYears: 0,
+    watercourseEncroachment: 'Minor',
+    riparianEncroachment: MINOR_RIPARIAN,
+    distinctiveness: 'Medium',
+    distinctivenessScore: 4,
+    difficulty: 'Low',
+    difficultyMultiplier: 1,
+    standardTimeToTargetCondition: '10',
+    finalTimeToTargetCondition: '10 years (0.7002822742)'
   }
 }

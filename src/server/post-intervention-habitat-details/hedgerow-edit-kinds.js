@@ -34,10 +34,9 @@ export const CREATED_HEDGEROW_KIND = Object.freeze({
 // BMD-1046: an Enhanced hedgerow is edited on the Created hedgerow form, with
 // the choices limited to the valid enhancements of its baseline. Its size row
 // is "Size (kilometres)", the unit on the label, as AC1 and Figma give it. A
-// refused enhancement blames the condition, a stored habitat type the list no
-// longer offers is kept unchanged (sent as omitted, as a Created watercourse's
-// is), and it falls back to BMD-733's read-only page while the backend does
-// not serve the hedgerow enhancement reference.
+// refused enhancement blames the condition, and it falls back to BMD-733's
+// read-only page while the backend does not serve the hedgerow enhancement
+// reference.
 export const ENHANCED_HEDGEROW_KIND = Object.freeze({
   ...CREATED_HEDGEROW_KIND,
   loadReference: (feature) => loadEnhancedHedgerowReference(feature?.baseline),
@@ -45,12 +44,6 @@ export const ENHANCED_HEDGEROW_KIND = Object.freeze({
   buildBase: buildEnhancedHedgerowViewOnlyViewModel,
   formatSize: (feature) => formatLengthKm(feature.sizeMetres),
   sizeLabel: 'Size (kilometres)',
-  conditionError: formError('condition', 'notValidEnhancement'),
-  // Its supporting information is not editable yet (BMD-1190), as an
-  // Enhanced area's is not.
-  hasComment: false,
-  preservesImportedType: true,
-  // A kept habitat type shows its stored distinctiveness, difficulty and
-  // times, as an Enhanced area's kept choices do.
-  showsKeptDisplays: true
+  conditionError: formError('condition', 'notValidEnhancement')
+  // hasComment comes from the Created hedgerow kind (BMD-1190).
 })
