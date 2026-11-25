@@ -10,6 +10,8 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import { load } from 'js-yaml'
+
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
 import { ATTACHMENTS, pageBody } from './confluence.mjs'
 import {
@@ -303,6 +305,17 @@ describe('contentFingerprint', () => {
     )
   })
 
+  test('is the same for two commits’ sheet comparisons that say the same', () => {
+    const sheet = readSheet(SHEET)
+    const check = (commit) => ({ results: compareWithSheet(sheet, at(commit)) })
+    expect(check('aaa').results[0].source).not.toBe(
+      check('bbb').results[0].source
+    )
+    expect(contentFingerprint(at('aaa'), check('aaa'))).toBe(
+      contentFingerprint(at('bbb'), check('bbb'))
+    )
+  })
+
   test('differs when a message changes', () => {
     const reworded = at('aaa').map((row) => ({ ...row, body: 'Gone' }))
     expect(contentFingerprint(reworded, {})).not.toBe(
@@ -542,6 +555,25 @@ describe('run', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+
+  test('refuses a commit whose error-text.yaml the service would refuse, and sends nothing', async () => {
+    // A JSON document is YAML: a form message with a summary and no inline
+    // message, which the service refuses at start-up.
+    const value = load(WORKING_TREE)
+    const [field] = Object.keys(value.forms)
+    const [rule] = Object.keys(value.forms[field])
+    value.forms[field][rule] = { summary: 'Only a summary' }
+    await expect(
+      run(['--branch', 'main', '--sha', SHA], {
+        env: SETTINGS,
+        fetchImpl: noRequests,
+        isOnMain: () => true,
+        readCommit: () => JSON.stringify(value)
+      })
+    ).rejects.toThrow(
+      `error-text.yaml is not valid: "forms.${field}.${rule}" contains [summary] without its required peers [inline]`
+    )
   })
 
   test('with --dry-run, writes the page and its files and sends nothing, on any branch', async () => {
