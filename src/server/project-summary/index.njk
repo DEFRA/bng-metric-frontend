@@ -1,6 +1,7 @@
 {% extends 'layouts/page.njk' %}
 
 {% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/table/macro.njk" import govukTable %}
 {% from "project-navigation/macro.njk" import appProjectNavigation %}
 {% from "unit-type-summary/macro.njk" import appUnitTypeSummary %}
 
@@ -27,6 +28,30 @@
           classes: "govuk-!-margin-bottom-0"
         }) }}
       </div>
+
+      {#- No download attribute: the workbook's content-disposition already
+          makes the browser save it, and without the attribute an error, such
+          as "too many requests", shows as a page, not a failed download. #}
+      {% set metricLinks %}
+        <a class="govuk-link" href="{{ metricDownloads.xlsmHref }}" data-testid="metric-xlsm-link">Macro enabled (.xlsm)<span class="govuk-visually-hidden"> metric calculation spreadsheet</span></a>
+        /
+        <a class="govuk-link" href="{{ metricDownloads.xlsxHref }}" data-testid="metric-xlsx-link">Macro disabled (.xlsx)<span class="govuk-visually-hidden"> metric calculation spreadsheet</span></a>
+      {% endset %}
+      {{ govukTable({
+        caption: "Actions",
+        captionClasses: "govuk-table__caption--m",
+        attributes: { "data-testid": "project-actions" },
+        head: [
+          { text: "Description" },
+          { text: "Link" }
+        ],
+        rows: [
+          [
+            { text: "Download metric calculation spreadsheet" },
+            { html: metricLinks }
+          ]
+        ]
+      }) }}
 
       {% for summary in unitSummaries %}
         {{ appUnitTypeSummary(summary) }}
