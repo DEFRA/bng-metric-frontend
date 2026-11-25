@@ -11,6 +11,7 @@ import path from 'node:path'
 import { parseArgs } from 'node:util'
 
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
+import { escapeData } from './annotations.mjs'
 import { toCsv } from './csv.mjs'
 import {
   CHECK_COLUMNS,
@@ -437,7 +438,9 @@ export async function run(
     // In GitHub Actions, a warning on the run as well, so a sheet that stays
     // unreadable is seen, not only in the summary.
     if (env.GITHUB_ACTIONS === 'true') {
-      console.log(`::warning title=Confluence page not published::${skipped}`)
+      console.log(
+        `::warning title=Confluence page not published::${escapeData(skipped)}`
+      )
     }
     if (values.summary) {
       appendFileSync(values.summary, `## Confluence\n\n${skipped}\n`)

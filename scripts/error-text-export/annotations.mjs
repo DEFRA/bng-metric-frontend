@@ -26,7 +26,7 @@ const WHAT_IT_NEEDS = Object.freeze({
 
 // A workflow command ends at a line break, and its properties at a comma or
 // a colon, so those are written as their percent codes.
-function escapeData(text) {
+export function escapeData(text) {
   return text
     .replaceAll('%', '%25')
     .replaceAll('\r', '%0D')

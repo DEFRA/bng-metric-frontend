@@ -665,8 +665,10 @@ describe('run', () => {
       lines.push(line)
     })
     try {
-      const unreadable = async () =>
-        new Response('<html>', { headers: { 'content-type': 'text/html' } })
+      // A failure whose message has a line break and a percent sign.
+      const unreadable = async () => {
+        throw new Error('socket closed\n100% gone')
+      }
       const options = {
         fetchImpl: unreadable,
         isOnMain: () => true,
@@ -683,11 +685,12 @@ describe('run', () => {
         ...options,
         env: { ...env, GITHUB_ACTIONS: 'true' }
       })
-      expect(lines).toContainEqual(
-        expect.stringMatching(
-          /^::warning title=Confluence page not published::The Confluence page was left as it is/
-        )
+      const warning = lines.find((line) => line.startsWith('::warning'))
+      expect(warning).toMatch(
+        /^::warning title=Confluence page not published::The Confluence page was left as it is/
       )
+      expect(warning).toContain('socket closed%0A100%25 gone')
+      expect(warning).not.toContain('\n')
     } finally {
       log.mockRestore()
     }
