@@ -382,6 +382,35 @@ describe('details pages of a BNG Service template project', () => {
       }
     )
 
+    // On the edit form an Enhanced feature opens on, the link sits straight
+    // below the Strategic significance drop-down.
+    test('an Enhanced feature on the edit form shows the link below Strategic significance', async () => {
+      const body = serviceTemplateProject('twoStages')
+      const enhanced = cases.filter(
+        ([, , f]) =>
+          f.retentionCategory === 'Enhanced' &&
+          baselineIds(body).has(f.parentFeatureId)
+      )
+      let onEditForm = 0
+
+      for (const [, , feature] of enhanced) {
+        const $ = await render(
+          body,
+          postInterventionDetailsUrl(body, feature.featureId)
+        )
+        if (!fieldNames($).includes('strategicSignificance')) {
+          continue
+        }
+        onEditForm += 1
+        const next = $('#strategicSignificance')
+          .closest('.govuk-form-group')
+          .next()
+
+        expect(normalise(next.find('a').text())).toBe(VIEW_BASELINE_LINK)
+      }
+      expect(onEditForm).toBeGreaterThan(0)
+    })
+
     test('a Created feature that names a baseline parent shows no link, and there is one', async () => {
       const body = serviceTemplateProject('twoStages')
       const created = cases.filter(
