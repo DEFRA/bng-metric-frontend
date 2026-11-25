@@ -434,6 +434,11 @@ export async function run(
     // a forced one, publishes it.
     const skipped = `The Confluence page was left as it is: the content design sheet was not read (${check.error}). A later run, or a run on demand with publish ticked, will publish it.`
     console.log(skipped)
+    // In GitHub Actions, a warning on the run as well, so a sheet that stays
+    // unreadable is seen, not only in the summary.
+    if (env.GITHUB_ACTIONS === 'true') {
+      console.log(`::warning title=Confluence page not published::${skipped}`)
+    }
     if (values.summary) {
       appendFileSync(values.summary, `## Confluence\n\n${skipped}\n`)
     }

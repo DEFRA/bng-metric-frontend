@@ -659,6 +659,40 @@ describe('run', () => {
     }
   })
 
+  test('warns on the GitHub Actions run when it leaves the page alone', async () => {
+    const lines = []
+    const log = vi.spyOn(console, 'log').mockImplementation((line) => {
+      lines.push(line)
+    })
+    try {
+      const unreadable = async () =>
+        new Response('<html>', { headers: { 'content-type': 'text/html' } })
+      const options = {
+        fetchImpl: unreadable,
+        isOnMain: () => true,
+        readCommit: () => WORKING_TREE
+      }
+      const env = {
+        ...SETTINGS,
+        CONTENT_DESIGN_SHEET_URL:
+          'https://docs.google.com/spreadsheets/d/a/edit'
+      }
+      await run(['--branch', 'main', '--sha', SHA], { ...options, env })
+      expect(lines.some((line) => line.startsWith('::warning'))).toBe(false)
+      await run(['--branch', 'main', '--sha', SHA], {
+        ...options,
+        env: { ...env, GITHUB_ACTIONS: 'true' }
+      })
+      expect(lines).toContainEqual(
+        expect.stringMatching(
+          /^::warning title=Confluence page not published::The Confluence page was left as it is/
+        )
+      )
+    } finally {
+      log.mockRestore()
+    }
+  })
+
   test('publishes without the sheet’s comparison when forced', async () => {
     const requests = []
     const fetchImpl = async (url, init = {}) => {
