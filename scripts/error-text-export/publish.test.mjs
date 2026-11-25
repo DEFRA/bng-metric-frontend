@@ -365,6 +365,18 @@ describe('contentFingerprint', () => {
     )
   })
 
+  test('differs when the export’s own code changes, though no message does', () => {
+    expect(contentFingerprint(ROWS, {}, 'one layout')).not.toBe(
+      contentFingerprint(ROWS, {}, 'another layout')
+    )
+  })
+
+  test('takes in the export’s code as it is on disk by default', () => {
+    expect(contentFingerprint(ROWS, {})).not.toBe(
+      contentFingerprint(ROWS, {}, '')
+    )
+  })
+
   test('differs when a message changes', () => {
     const reworded = at('aaa').map((row) => ({ ...row, body: 'Gone' }))
     expect(contentFingerprint(reworded, {})).not.toBe(

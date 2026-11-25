@@ -1,6 +1,12 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync
+} from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -158,17 +164,34 @@ function withoutSource(items) {
 }
 
 /**
+ * The export's own code, as text: what builds the page and its files. A change
+ * to how either is laid out, such as a column added to the .xlsx or a new
+ * escape in the .csv, changes the fingerprint, though no message changed.
+ *
+ * @returns {string}
+ */
+function exportCode() {
+  return readdirSync(import.meta.dirname)
+    .filter((name) => name.endsWith('.mjs') && !name.endsWith('.test.mjs'))
+    .sort()
+    .map((name) => readFileSync(path.join(import.meta.dirname, name), 'utf8'))
+    .join('\n')
+}
+
+/**
  * A fingerprint of what the page and its files show, apart from the date and
  * commit they were generated at: the same for two commits whose rows (every
  * column, as the attachments have them), sheet comparison and page layout are
- * the same, whichever files changed between them. It is kept
+ * the same, and whose export code is the same, whichever other files changed
+ * between them. It is kept
  * on the page, so a run that would change nothing leaves the page alone.
  *
  * @param {Array<Record<string, string>>} rows
  * @param {Awaited<ReturnType<typeof contentDesignCheck>>} check
+ * @param {string} [code] - the export's code, by default as it is on disk
  * @returns {string}
  */
-export function contentFingerprint(rows, check) {
+export function contentFingerprint(rows, check, code = exportCode()) {
   const stable = {
     date: '',
     branch: '',
@@ -179,6 +202,7 @@ export function contentFingerprint(rows, check) {
   const results = withoutSource(check.results)
   const body = pageBody(withoutSource(rows), stable, { ...check, results })
   return createHash('sha256')
+    .update(code)
     .update(JSON.stringify(PAGE_PROPERTIES))
     .update(JSON.stringify(withoutSource(rows)))
     .update(JSON.stringify(results ?? check.error ?? null))
