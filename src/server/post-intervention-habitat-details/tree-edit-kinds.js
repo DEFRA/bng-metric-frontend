@@ -15,9 +15,9 @@ import { AREA_SECTIONS_TEMPLATE, AREA_SIZE_LABEL } from './constants.js'
 
 // What a Created and an Enhanced tree are edited with alike. A tree stays a
 // tree: its broad habitat is always Individual trees, shown and sent but not
-// editable, and its habitat type must be Urban tree or Rural tree. Its size
-// class and a legacy tree's number of trees are shown, not edited. Until the backend serves
-// its reference, it keeps its read-only page. Both have the supporting
+// editable, and its habitat type must be Urban tree or Rural tree. A legacy
+// tree's number of trees is shown, not edited. Until the backend serves its
+// reference, it keeps its read-only page. Both have the supporting
 // information box (BMD-1153, BMD-1190).
 const TREE_KIND_BASE = Object.freeze({
   label: 'Tree',
@@ -51,10 +51,13 @@ const withoutBaselineCondition = (feature) => ({
 
 /**
  * A Created individual tree, edited as a Created area habitat is, with its
- * supporting information (BMD-1153).
+ * supporting information (BMD-1153). A BNG Service template tree's planted
+ * size class can be edited too (BMD-1172); an Enhanced tree's is its
+ * baseline tree's, so is shown, not edited.
  */
 export const CREATED_TREE_KIND = Object.freeze({
   ...TREE_KIND_BASE,
+  editsTreeSize: true,
   loadReference: loadCreatedTreeReference,
   normaliseFeature: withoutBaselineCondition
 })

@@ -292,6 +292,98 @@ describe('Created tree controller', () => {
   )
 })
 
+// A BNG Service template's Created tree can be planted at another size class
+// (BMD-1172); a legacy one's size class is shown, not edited.
+describe('Created tree size class', () => {
+  const templateProject = {
+    payload: {
+      project: {
+        name: 'Test Project',
+        postIntervention: { template: { name: 'bng-service' } }
+      }
+    }
+  }
+
+  async function editPage(project) {
+    mockTree(createdTree, project)
+    const h = createMockH()
+    await getController.handler({ query: { projectId, featureId } }, h)
+    return h.view.mock.calls[0][1]
+  }
+
+  test('offers a template tree the Metric’s size classes, with its planted one chosen', async () => {
+    const vm = await editPage(templateProject)
+
+    expect(vm.treeSizeField).toMatchObject({
+      id: 'treeSize',
+      label: 'Tree size'
+    })
+    expect(vm.treeSizeField.items.map((item) => item.value)).toEqual([
+      'Small',
+      'Medium',
+      'Large',
+      'Very large'
+    ])
+    expect(vm.treeSizeField.items.find((item) => item.selected)?.value).toBe(
+      createdTree.proposed.treeSize
+    )
+  })
+
+  test('shows a legacy tree’s size class read-only', async () => {
+    const vm = await editPage(projectPayload)
+
+    expect(vm.treeSizeField).toBeNull()
+    expect(vm.treeSizeDisplay).toBe(createdTree.proposed.treeSize)
+  })
+
+  test('saves a new size class with the tree’s other choices', async () => {
+    mockTree(createdTree, templateProject)
+    const h = createMockH()
+    await postController.handler(request({ treeSize: 'Large' }), h)
+
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).toMatchObject({
+      ref: 'T026',
+      habitatType: 'Urban tree',
+      treeSize: 'Large'
+    })
+    expect(h.redirect).toHaveBeenCalled()
+  })
+
+  test('leaves a blank size class out of the save', async () => {
+    mockTree(createdTree, templateProject)
+    const h = createMockH()
+    await postController.handler(request({ treeSize: '' }), h)
+
+    expect(JSON.parse(wreck.put.mock.calls[0][1].payload)).not.toHaveProperty(
+      'treeSize'
+    )
+  })
+
+  test('keeps the size class chosen when the page is shown again with an error', async () => {
+    mockTree(createdTree, templateProject)
+    const h = createMockH()
+    await postController.handler(
+      request({ treeSize: 'Very large', habitatType: '' }),
+      h
+    )
+
+    expect(wreck.put).not.toHaveBeenCalled()
+    const vm = h.view.mock.calls[0][1]
+    expect(vm.treeSizeField.items.find((item) => item.selected)?.value).toBe(
+      'Very large'
+    )
+  })
+
+  test('refuses a size class the Metric does not have', async () => {
+    mockTree(createdTree, templateProject)
+
+    await expect(
+      postController.handler(request({ treeSize: 'Huge' }), createMockH())
+    ).rejects.toMatchObject({ output: { statusCode: 400 } })
+    expect(wreck.put).not.toHaveBeenCalled()
+  })
+})
+
 describe('Created tree authenticated form', () => {
   let server
   const auth = {
