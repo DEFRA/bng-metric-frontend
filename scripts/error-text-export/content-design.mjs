@@ -8,7 +8,7 @@ import { COLUMNS, SHOWN, STATUS, WORDING_KEYS } from './rows.mjs'
 // The sheet has a row for each problem, a "Code" column naming the backend
 // error code or codes it is for, and its words in the parts of the drop-out
 // page: H1, H2, body, and body for several habitats. Its layout is the
-// problems list's: the H1 is the drop-out page's own title, the H2 the
+// problems list's: the H1 is the problems list's own heading, the H2 the
 // layer's subheading and the body the problem's line. The service still
 // shows most errors on a single-problem page of their own, so each of the
 // sheet's parts is compared with the service's words for either.
@@ -55,7 +55,7 @@ export const CHECK_ORDER = Object.freeze([
 /**
  * Each part of the sheet's wording, and the export's columns that can hold
  * the service's words for it, its own page's first. The sheet's H1 also
- * matches the drop-out page's own title, which heads the problems list.
+ * matches the problems list's own heading, its H1.
  */
 export const PARTS = Object.freeze([
   {
@@ -69,8 +69,9 @@ export const PARTS = Object.freeze([
   { key: 'plural', label: 'Plural', service: ['bodySeveral', 'listHeading'] }
 ])
 
-// The rows whose words are the drop-out page's own title.
-const LIST_PAGE_TITLE_IDS = Object.freeze(['upload.page.title'])
+// The rows whose words are the problems list's H1. upload.page.title is the
+// browser's title alone, so is not compared.
+const LIST_PAGE_TITLE_IDS = Object.freeze(['upload.page.listHeading'])
 
 // What the sheet writes in a part that has no words.
 const NO_WORDS = new Set(['', 'n/a', 'na', '-', 'none'])
@@ -79,13 +80,17 @@ const NO_SERVICE_WORDS = '(none)'
 
 // An error code, as the backend names them, or a YAML key the sheet names a
 // shared page by. A code ending "_*" stands for every code it begins.
-const CODE = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+(?:_\*)?|\bupload\.[a-zA-Z]+/g
+const CODE =
+  /\b[A-Z][A-Z0-9]*(?:(?:_[A-Z0-9]+)+(?:_\*)?|_\*)|\bupload\.[a-zA-Z]+/g
 const WILDCARD = '_*'
 const ERROR_CODE = /^[A-Z][A-Z0-9_]+$/
 
 // The words a cell's line begins with when the service shows it only in some
 // cases, as rows.mjs writes them: "If {ref} is not known: …".
 const CONDITION = /^\s*(?:If |For |Otherwise|With )[^:]*:\s*/
+// The words a variant's line begins with, as rows.mjs writes them:
+// "bng-service variant: …". The page shows the variant's words alone.
+const VARIANT = /^\s*[\w-]+ variant:\s*/
 const LINK_TEXT = /\[([^\]]+)\]\([^)]+\)/g
 const PLACEHOLDER = /\{[^}]*\}/g
 const QUOTES = [
@@ -237,7 +242,7 @@ export function normalise(text) {
 function alternatives(cell) {
   return String(cell ?? '')
     .split('\n')
-    .map((line) => normalise(line.replace(CONDITION, '')))
+    .map((line) => normalise(line.replace(CONDITION, '').replace(VARIANT, '')))
     .filter(Boolean)
 }
 

@@ -183,7 +183,7 @@ function aboutSection(rows, meta) {
 }
 
 const CHECK_INTRO =
-  '<p>Every message in error-text.yaml. Each row of the content design sheet is compared with what the service shows for its error code, and only the parts that differ are shown. Error codes and shared pages the sheet does not have follow it, then the messages the sheet does not cover, such as form and whole-page errors, each with its words. The sheet describes the problems list: its H1 matches the drop-out page title, and its body matches either the single-problem page or the problems list heading. Capitals, spelling and punctuation count; a full stop at the end, the names of {values} and how links are written do not.</p>'
+  '<p>Every message in error-text.yaml. Each row of the content design sheet is compared with what the service shows for its error code, and only the parts that differ are shown. Error codes and shared pages the sheet does not have follow it, then the messages the sheet does not cover, such as form and whole-page errors, each with its words. The sheet describes the problems list: its H1 matches the problems list’s heading, and its body matches either the single-problem page or the problems list heading. Capitals, spelling and punctuation count; a full stop at the end, the names of {values} and how links are written do not.</p>'
 
 const CHECK_HEADERS = Object.freeze([
   'Ref',

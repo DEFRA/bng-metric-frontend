@@ -40,6 +40,9 @@ function row(id, cells = {}) {
 
 const ROWS = [
   row('upload.page.title', { body: 'There is a problem with your file' }),
+  row('upload.page.listHeading', {
+    body: 'We couldn’t accept your {fileLabel} file'
+  }),
   row('upload.fileProblem', {
     shown: SHOWN.FALLBACK,
     status: STATUS.AWAITING_UCD,
@@ -200,6 +203,13 @@ describe('codesIn', () => {
     ])
   })
 
+  test('finds a wildcard whose prefix is one word', () => {
+    expect(codesIn('GPKG_*', ['GPKG_B', 'GPKG_A', 'NO_REDLINE'])).toEqual([
+      'GPKG_A',
+      'GPKG_B'
+    ])
+  })
+
   test('finds a shared page by its key, and nothing in a note', () => {
     expect(codesIn('upload.fileProblem', known)).toEqual(['upload.fileProblem'])
     expect(codesIn('BMD-1099 will implement this', known)).toEqual([])
@@ -209,7 +219,7 @@ describe('codesIn', () => {
 describe('compareWithSheet', () => {
   const sheet = readSheet(
     sheetCsv(
-      'C,1,Missing ref,HABITAT_REF_MISSING,x,There is a problem with your file,Habitat parcels,Your file contains a habitat with no habitat reference. ,n/a,N,',
+      'C,1,Missing ref,HABITAT_REF_MISSING,x,We couldn’t accept your {file} file,Habitat parcels,Your file contains a habitat with no habitat reference. ,n/a,N,',
       'C,2,No boundary,NO_REDLINE,x,There is a problem with your file,Red line boundary,The red line boundary is missing. ,n/a,N,',
       'C,3,Trees,TREES_OUTSIDE_REDLINE,x,,,{Habitat ref} is outside the red line boundary.,These trees are outside.,N,',
       'C,4,Overlap,PARCEL_OVERLAPS,x,,,These parcels are overlapping.,,N,',
@@ -224,7 +234,7 @@ describe('compareWithSheet', () => {
   const byRefAndId = (ref, id) =>
     results.find((result) => result.ref === ref && result.id === id)
 
-  test('matches the sheet’s H1 to the drop-out page’s own title', () => {
+  test('matches the sheet’s H1 to the problems list’s heading', () => {
     expect(byRefAndId('1', 'HABITAT_REF_MISSING')).toMatchObject({
       check: CHECK.MATCHES,
       parts: []
@@ -236,6 +246,11 @@ describe('compareWithSheet', () => {
       check: CHECK.DIFFERS_FROM_FINAL,
       status: STATUS.FINAL,
       parts: [
+        {
+          label: 'H1',
+          sheet: 'There is a problem with your file',
+          service: 'Your Geopackage (.gpkg) file contains an error'
+        },
         { label: 'H2', sheet: 'Red line boundary', service: '(none)' },
         {
           label: 'Body',
@@ -323,7 +338,7 @@ describe('compareWithSheet', () => {
       [CHECK.DUPLICATE, 1],
       [CHECK.NO_WORDING, 1],
       [CHECK.MATCHES, 3],
-      [CHECK.OUTSIDE_SHEET, 2]
+      [CHECK.OUTSIDE_SHEET, 3]
     ])
   })
 })
@@ -363,5 +378,73 @@ describe('checkRecord', () => {
         parts: []
       }).check
     ).toBe('Duplicate row of Ref 2')
+  })
+})
+
+describe('compareWithSheet, part by part', () => {
+  const VARIANT_ROW = row('GPKG_LAYER_MISMATCH', {
+    listHeading:
+      'Layer "{layer}" baseline mismatch\nbng-service variant: Layer "{layer}" does not match the BNG Service template'
+  })
+  const SEVERAL_ROW = row('PARCELS_SEVERAL', {
+    pageHeading: 'This parcel {ref} contains an error',
+    pageHeadingSeveral: 'These parcels contain an error',
+    subheading: 'Habitat parcels',
+    subheadingSeveral: 'Your habitat parcels',
+    body: 'This parcel is too small.',
+    bodySeveral: 'These parcels are too small.',
+    listHeading: 'Parcels are smaller than 1 square metre'
+  })
+  const rows = [VARIANT_ROW, SEVERAL_ROW]
+  const compare = (line) => compareWithSheet(readSheet(sheetCsv(line)), rows)[0]
+
+  test('matches a variant’s words without its label', () => {
+    expect(
+      compare(
+        'C,1,Layer,GPKG_LAYER_MISMATCH,x,,,"Layer ""{name}"" does not match the BNG Service template",,N,'
+      ).check
+    ).toBe(CHECK.MATCHES)
+  })
+
+  test('matches the wording for several habitats in each of its columns', () => {
+    expect(
+      compare(
+        'C,1,Small,PARCELS_SEVERAL,x,These parcels contain an error,Your habitat parcels,This parcel is too small.,These parcels are too small.,N,'
+      ).check
+    ).toBe(CHECK.MATCHES)
+  })
+
+  test('matches the Plural part to the problems list heading', () => {
+    expect(
+      compare(
+        'C,1,Small,PARCELS_SEVERAL,x,,,,Parcels are smaller than 1 square metre,N,'
+      ).check
+    ).toBe(CHECK.MATCHES)
+  })
+
+  test('gives the service’s words for several habitats when they differ', () => {
+    const result = compare(
+      'C,1,Small,PARCELS_SEVERAL,x,Those parcels have errors,Parcels,,Those parcels are tiny.,N,'
+    )
+    expect(result.check).toBe(CHECK.DIFFERS_FROM_FINAL)
+    expect(result.parts).toEqual([
+      {
+        label: 'H1',
+        sheet: 'Those parcels have errors',
+        service:
+          'This parcel {ref} contains an error\nPage heading (several): These parcels contain an error'
+      },
+      {
+        label: 'H2',
+        sheet: 'Parcels',
+        service: 'Habitat parcels\nSubheading (several): Your habitat parcels'
+      },
+      {
+        label: 'Plural',
+        sheet: 'Those parcels are tiny.',
+        service:
+          'These parcels are too small.\nList heading: Parcels are smaller than 1 square metre'
+      }
+    ])
   })
 })

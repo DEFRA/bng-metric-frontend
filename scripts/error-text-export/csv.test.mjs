@@ -97,4 +97,18 @@ describe('toCsv', () => {
       'A,x,2026-11-10,main,39a95e5,"codes, forms"'
     )
   })
+
+  test('keeps a value a spreadsheet would read as a formula as text', () => {
+    const csv = toCsv(
+      [
+        { id: '=WEBSERVICE("https://x")', text: '+1' },
+        { id: '-2', text: '@a' }
+      ],
+      meta,
+      columns
+    )
+    const [, first, second] = csv.split('\r\n')
+    expect(first).toBe(`"'=WEBSERVICE(""https://x"")",'+1,${metaValues}`)
+    expect(second).toBe(`'-2,'@a,${metaValues}`)
+  })
 })

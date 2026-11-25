@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
@@ -46,8 +47,10 @@ import { toXlsx } from './xlsx.mjs'
 // --dry-run DIR publishes nothing and needs no Confluence settings: it writes
 // the page's body and its files into DIR, to see what a fix changes before it
 // is merged. Only main is published: the page is the current record of the
-// service's messages.
+// service's messages. --branch main alone is not enough: the commit must be on
+// origin/main too.
 
+const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 const PUBLISHED_BRANCH = 'main'
 const SHORT_SHA_LENGTH = 7
 const CSV_TYPE = 'text/csv'
@@ -181,8 +184,65 @@ function writeDryRun(dir, contents) {
   console.log(`Wrote the page and its files into ${dir}: nothing was published`)
 }
 
-async function main() {
+/**
+ * Whether `commit` is on main as origin has it: the page must only ever show
+ * wording that reached main, whatever --branch says.
+ *
+ * @param {string} commit
+ * @returns {boolean}
+ */
+export function commitIsOnMain(commit) {
+  try {
+    execFileSync(
+      'git',
+      ['merge-base', '--is-ancestor', commit, `origin/${PUBLISHED_BRANCH}`],
+      { cwd: REPO_ROOT, stdio: 'ignore' }
+    )
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Refuse to publish anything but main, or without the settings to. */
+function checkPublishable(meta, env, isOnMain) {
+  if (meta.branch !== PUBLISHED_BRANCH) {
+    throw new Error(
+      `Only ${PUBLISHED_BRANCH} is published, not ${meta.branch}: use --dry-run DIR to see the page`
+    )
+  }
+  if (!isOnMain(meta.commit)) {
+    throw new Error(
+      `Only ${PUBLISHED_BRANCH} is published, and ${meta.commit.slice(0, SHORT_SHA_LENGTH)} is not on origin/${PUBLISHED_BRANCH}: use --dry-run DIR to see the page`
+    )
+  }
+  const missing = missingEnv(env)
+  if (missing.length > 0) {
+    throw new Error(`Set ${missing.join(', ')} to publish`)
+  }
+}
+
+function publishedLine(rows, meta, { version, url }) {
+  const where = url ? `[version ${version}](${url})` : `version ${version}`
+  return `Published ${rows.length} error IDs from \`${meta.branch}\` at ${meta.commit.slice(0, SHORT_SHA_LENGTH)} to Confluence (${where}).`
+}
+
+/**
+ * The command: publish the page, or with --dry-run write it into a folder.
+ *
+ * @param {string[]} args - the command's arguments
+ * @param {{
+ *   env?: NodeJS.ProcessEnv,
+ *   fetchImpl?: typeof fetch,
+ *   isOnMain?: (commit: string) => boolean
+ * }} [options]
+ */
+export async function run(
+  args,
+  { env = process.env, fetchImpl = fetch, isOnMain = commitIsOnMain } = {}
+) {
   const { values } = parseArgs({
+    args,
     options: {
       'dry-run': { type: 'string' },
       sha: { type: 'string' },
@@ -195,17 +255,10 @@ async function main() {
     console.log(USAGE)
     return
   }
-  const env = process.env
   const dryRun = values['dry-run']
-  const meta = exportMeta(values)
-  if (!dryRun && meta.branch !== PUBLISHED_BRANCH) {
-    throw new Error(
-      `Only ${PUBLISHED_BRANCH} is published, not ${meta.branch}: use --dry-run DIR to see the page`
-    )
-  }
-  const missing = dryRun ? [] : missingEnv(env)
-  if (missing.length > 0) {
-    throw new Error(`Set ${missing.join(', ')} to publish`)
+  const meta = exportMeta(values, env)
+  if (!dryRun) {
+    checkPublishable(meta, env, isOnMain)
   }
 
   const source = readFileSync(ERROR_TEXT_FILE, 'utf8')
@@ -214,7 +267,11 @@ async function main() {
     sourceUrl: (line) => `${meta.fileUrl}#L${line}`,
     groups: DEFAULT_GROUPS
   })
-  const check = await contentDesignCheck(env.CONTENT_DESIGN_SHEET_URL, rows)
+  const check = await contentDesignCheck(
+    env.CONTENT_DESIGN_SHEET_URL,
+    rows,
+    fetchImpl
+  )
   console.log(checkLine(check))
   const contents = await pageContents(meta, check, rows)
 
@@ -225,15 +282,14 @@ async function main() {
   const client = confluenceClient({
     baseUrl: env.CONFLUENCE_BASE_URL,
     email: env.CONFLUENCE_EMAIL,
-    token: env.CONFLUENCE_API_TOKEN
+    token: env.CONFLUENCE_API_TOKEN,
+    fetchImpl
   })
-  const { version, url } = await publishPage(
-    client,
-    env.CONFLUENCE_PAGE_ID,
-    contents,
-    meta
+  const published = publishedLine(
+    rows,
+    meta,
+    await publishPage(client, env.CONFLUENCE_PAGE_ID, contents, meta)
   )
-  const published = `Published ${rows.length} error IDs from \`${meta.branch}\` at ${meta.commit.slice(0, SHORT_SHA_LENGTH)} to Confluence${url ? ` ([version ${version}](${url}))` : ` (version ${version})`}.`
   console.log(published)
   if (values.summary) {
     // The counts only: the sheet's words stay off GitHub.
@@ -246,7 +302,7 @@ async function main() {
 
 if (import.meta.main) {
   try {
-    await main()
+    await run(process.argv.slice(2))
   } catch (error) {
     console.error(error.message)
     process.exit(1)

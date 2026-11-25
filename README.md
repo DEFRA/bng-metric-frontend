@@ -214,15 +214,19 @@ overwritten. It shows:
   | No wording in sheet    | the sheet's row gives no words                                           |
   | Duplicate row          | the sheet has the code on an earlier row                                 |
   | No error code in sheet | the sheet's Code column names no code                                    |
+  | Not covered by sheet   | a message the sheet does not cover, such as a form or whole-page error   |
+  | Sheet not read         | the sheet could not be read, so nothing was compared                     |
 
   Only the parts that differ are shown, the sheet's words beside the
   service's. The sheet describes the problems list: its H1 matches the
-  drop-out page's own title, and its body matches either the single-problem
+  problems list's heading, and its body matches either the single-problem
   page or the problems list heading. Capitals, spelling and punctuation count;
   a full stop at the end, the names of `{values}` and how links are written do
   not;
 
-- every message, as the export has them;
+- every message in `error-text.yaml` is in that one table: the sheet's rows
+  first, then the error codes and shared pages it lacks, then the messages it
+  does not cover, each with its words;
 - the `.xlsx` and `.csv` files, and the check as `content-design-check.csv`,
   attached, each replacing the last run's.
 
