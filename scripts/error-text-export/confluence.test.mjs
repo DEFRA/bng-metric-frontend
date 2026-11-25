@@ -193,6 +193,12 @@ describe('confluenceClient', () => {
       contentType: 'text/csv',
       comment: 'c'
     })
+    expect(calls[0].method).toBe('PUT')
+    const file = calls[0].body.get('file')
+    expect(await file.text()).toBe('a,b')
+    expect(file.type).toBe('text/csv')
+    expect(calls[0].body.get('comment')).toBe('c')
+    expect(calls[0].body.get('minorEdit')).toBe('true')
     expect(calls[0].url).toBe(
       'https://s/wiki/rest/api/content/12/child/attachment'
     )

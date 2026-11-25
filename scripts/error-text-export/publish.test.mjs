@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -12,8 +13,10 @@ import {
   checkLine,
   contentDesignCheck,
   pageContents,
+  commitIsOnMain,
   publishPage,
-  run
+  run,
+  sourceAt
 } from './publish.mjs'
 import { STATUS } from './rows.mjs'
 
@@ -127,6 +130,88 @@ describe('publishPage', () => {
   })
 })
 
+/** A client whose calls are recorded, each as it starts and ends. */
+function recordingClient({ attachment } = {}) {
+  const calls = []
+  const client = {
+    getPage: () => Promise.resolve({ title: 'T', version: { number: 1 } }),
+    putAttachment: async (id, file) => {
+      calls.push(`attach ${file.name}`)
+      await (attachment ? attachment(file) : Promise.resolve())
+      calls.push(`attached ${file.name}`)
+    },
+    setPageProperty: () => Promise.resolve(false),
+    updatePage: () => {
+      calls.push('update')
+      return Promise.resolve({ version: { number: 2 } })
+    }
+  }
+  return { calls, client }
+}
+
+describe('publishPage, as its uploads finish', () => {
+  test('puts the page only once every file has been attached', async () => {
+    let release
+    const pending = new Promise((resolve) => {
+      release = resolve
+    })
+    const { calls, client } = recordingClient({
+      attachment: (file) =>
+        file.name === ATTACHMENTS.CHECK_CSV ? pending : Promise.resolve()
+    })
+    const contents = await pageContents(META, { results: [] }, ROWS)
+    const publishing = publishPage(client, '1', contents, META)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(calls).not.toContain('update')
+    release()
+    await publishing
+    expect(calls.at(-1)).toBe('update')
+    expect(calls.indexOf('update')).toBeGreaterThan(
+      calls.indexOf(`attached ${ATTACHMENTS.CHECK_CSV}`)
+    )
+  })
+
+  test('never puts the page when an upload fails', async () => {
+    const { calls, client } = recordingClient({
+      attachment: (file) =>
+        file.name === ATTACHMENTS.CSV
+          ? Promise.reject(new Error('upload failed'))
+          : Promise.resolve()
+    })
+    const contents = await pageContents(META, { results: [] }, ROWS)
+    await expect(publishPage(client, '1', contents, META)).rejects.toThrow(
+      'upload failed'
+    )
+    expect(calls).not.toContain('update')
+  })
+})
+
+describe('commitIsOnMain', () => {
+  const HEAD = execFileSync('git', ['rev-parse', 'HEAD'], {
+    encoding: 'utf8'
+  }).trim()
+
+  test('is true for a commit on the branch', () => {
+    expect(commitIsOnMain(HEAD, 'HEAD')).toBe(true)
+  })
+
+  test('is false for a commit git does not have on it', () => {
+    expect(
+      commitIsOnMain('0000000000000000000000000000000000000000', 'HEAD')
+    ).toBe(false)
+  })
+})
+
+describe('sourceAt', () => {
+  test('reads error-text.yaml as it is at a commit', () => {
+    expect(sourceAt('HEAD')).toContain('upload:')
+  })
+
+  test('fails for a commit git does not have', () => {
+    expect(() => sourceAt('0000000000000000000000000000000000000000')).toThrow()
+  })
+})
+
 describe('run', () => {
   const SHA = '39a95e5bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
   const SETTINGS = {
@@ -169,6 +254,76 @@ describe('run', () => {
     ).rejects.toThrow(
       'Set CONFLUENCE_PAGE_ID, CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN to publish'
     )
+  })
+
+  test('publishes the page, and summarises it with counts but none of the sheet’s words', async () => {
+    const head = execFileSync('git', ['rev-parse', 'HEAD'], {
+      encoding: 'utf8'
+    }).trim()
+    const requests = []
+    const fetchImpl = async (url, init = {}) => {
+      requests.push(`${init.method ?? 'GET'} ${url}`)
+      if (url.startsWith('https://docs.google.com/')) {
+        return new Response(
+          `${SHEET}\n2,Secret,UNKNOWN_CODE_X,,,Wording only UCD has,,`,
+          { headers: { 'content-type': 'text/csv' } }
+        )
+      }
+      if (url.includes('/properties')) {
+        return Response.json({
+          results: [
+            {
+              id: '9',
+              value: url.endsWith('editor') ? 'v2' : 'max',
+              version: { number: 1 }
+            }
+          ]
+        })
+      }
+      if (url.endsWith('/wiki/api/v2/pages/1') && init.method === 'PUT') {
+        return Response.json({
+          version: { number: 6 },
+          _links: { base: 'https://s/wiki', webui: '/p/1' }
+        })
+      }
+      if (url.endsWith('/wiki/api/v2/pages/1')) {
+        return Response.json({ title: 'T', version: { number: 5 } })
+      }
+      return Response.json({ results: [] })
+    }
+    const dir = mkdtempSync(path.join(tmpdir(), 'publish-'))
+    const summary = path.join(dir, 'summary.md')
+    try {
+      await run(['--branch', 'main', '--sha', head, '--summary', summary], {
+        env: {
+          ...SETTINGS,
+          CONTENT_DESIGN_SHEET_URL:
+            'https://docs.google.com/spreadsheets/d/abc/edit#gid=1'
+        },
+        fetchImpl,
+        isOnMain: () => true
+      })
+      expect(requests).toEqual([
+        'GET https://docs.google.com/spreadsheets/d/abc/export?format=csv&gid=1',
+        'GET https://s/wiki/api/v2/pages/1',
+        'PUT https://s/wiki/rest/api/content/1/child/attachment',
+        'PUT https://s/wiki/rest/api/content/1/child/attachment',
+        'PUT https://s/wiki/rest/api/content/1/child/attachment',
+        'GET https://s/wiki/api/v2/pages/1/properties?key=content-appearance-published',
+        'GET https://s/wiki/api/v2/pages/1/properties?key=content-appearance-draft',
+        'GET https://s/wiki/api/v2/pages/1/properties?key=editor',
+        'PUT https://s/wiki/api/v2/pages/1'
+      ])
+      const written = readFileSync(summary, 'utf8')
+      expect(written).toContain(
+        'to Confluence ([version 6](https://s/wiki/p/1)).'
+      )
+      expect(written).toMatch(/Content design check: .*1 Not in service/)
+      expect(written).not.toContain('Wording only UCD has')
+      expect(written).not.toContain('UNKNOWN_CODE_X')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   test('with --dry-run, writes the page and its files and sends nothing, on any branch', async () => {

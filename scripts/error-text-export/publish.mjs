@@ -48,7 +48,8 @@ import { toXlsx } from './xlsx.mjs'
 // the page's body and its files into DIR, to see what a fix changes before it
 // is merged. Only main is published: the page is the current record of the
 // service's messages. --branch main alone is not enough: the commit must be on
-// origin/main too.
+// origin/main too, and error-text.yaml is read from that commit, not from the
+// working tree.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 const PUBLISHED_BRANCH = 'main'
@@ -189,19 +190,40 @@ function writeDryRun(dir, contents) {
  * wording that reached main, whatever --branch says.
  *
  * @param {string} commit
+ * @param {string} [main] - the branch it must be on
  * @returns {boolean}
  */
-export function commitIsOnMain(commit) {
+export function commitIsOnMain(commit, main = `origin/${PUBLISHED_BRANCH}`) {
   try {
-    execFileSync(
-      'git',
-      ['merge-base', '--is-ancestor', commit, `origin/${PUBLISHED_BRANCH}`],
-      { cwd: REPO_ROOT, stdio: 'ignore' }
-    )
+    execFileSync('git', ['merge-base', '--is-ancestor', commit, main], {
+      cwd: REPO_ROOT,
+      stdio: 'ignore'
+    })
     return true
   } catch {
     return false
   }
+}
+
+// error-text.yaml's path from the repository's root, as git names it.
+const ERROR_TEXT_PATH = path
+  .relative(REPO_ROOT, ERROR_TEXT_FILE)
+  .split(path.sep)
+  .join('/')
+
+/**
+ * error-text.yaml as it is at `commit`: what a publish shows, so the page
+ * never shows wording a working tree has that the commit it names does not.
+ *
+ * @param {string} commit
+ * @returns {string}
+ */
+export function sourceAt(commit) {
+  return execFileSync('git', ['show', `${commit}:${ERROR_TEXT_PATH}`], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
 }
 
 /** Refuse to publish anything but main, or without the settings to. */
@@ -261,7 +283,11 @@ export async function run(
     checkPublishable(meta, env, isOnMain)
   }
 
-  const source = readFileSync(ERROR_TEXT_FILE, 'utf8')
+  // A dry run shows the working tree, to see a change before it is
+  // committed; a publish shows the commit it names.
+  const source = dryRun
+    ? readFileSync(ERROR_TEXT_FILE, 'utf8')
+    : sourceAt(meta.commit)
   checkErrorText(source)
   const rows = buildRows(source, {
     sourceUrl: (line) => `${meta.fileUrl}#L${line}`,
