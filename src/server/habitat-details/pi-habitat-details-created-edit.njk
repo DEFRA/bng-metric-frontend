@@ -62,9 +62,6 @@
           hint: { text: referenceHint } if referenceHint else null,
           errorMessage: { text: errors.ref.inline } if errors.ref else null
         }) }}
-        {% if viewBaselineHref %}
-          <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
-        {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
         {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
         {% if treeSizeField %}
@@ -87,6 +84,12 @@
         {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
         {{ select(fields.strategicSignificance) }}
+        {# Only an Enhanced feature has a baseline to link to. A Created
+           feature never has one, and this includes a degraded Created
+           feature. #}
+        {% if viewBaselineHref %}
+          <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
+        {% endif %}
         {% if fields.watercourseEncroachment %}{{ select(fields.watercourseEncroachment) }}{% endif %}
         {% if fields.riparianEncroachment %}{{ select(fields.riparianEncroachment) }}{% endif %}
         <h2 class="govuk-heading-m">{{ timeDifficultySectionHeading }}</h2>
