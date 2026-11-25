@@ -228,7 +228,11 @@ overwritten. It shows:
   first, then the error codes and shared pages it lacks, then the messages it
   does not cover, each with its words;
 - the `.xlsx` and `.csv` files, and the check as `content-design-check.csv`,
-  attached, each replacing the last run's.
+  attached, each replacing the last run's;
+- `content-design-sheet-layout.csv`: the page's table laid out in the content
+  design sheet's own columns, in its order, holding the service's current
+  wording in full, then the check, the status, where each message is shown and
+  a link to its entry. Its rows can be copied into a working copy of the sheet.
 
 The Error Messages Export workflow publishes it on each push to `main`. The
 page keeps a fingerprint of what it shows, and a run that would show the same

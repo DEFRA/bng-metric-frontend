@@ -9,7 +9,10 @@ import {
   normalise,
   parseCsv,
   readSheet,
-  sheetCsvUrl
+  SHEET_HEADERS,
+  SHEET_LAYOUT_COLUMNS,
+  sheetCsvUrl,
+  sheetLayoutRecords
 } from './content-design.mjs'
 import { SHOWN, STATUS } from './rows.mjs'
 
@@ -102,9 +105,25 @@ describe('readSheet', () => {
         h1: 'H1',
         h2: 'H2',
         body: 'Body',
-        plural: 'n/a'
+        plural: 'n/a',
+        category: 'Cat',
+        whenChecked: 'x',
+        candidate: 'N',
+        jira: 'BMD-1'
       }
     ])
+  })
+
+  test('leaves the sheet’s other columns blank when it has none', () => {
+    const [row] = readSheet(
+      'Ref,Problem,Code,Dropout page title (H1),Dropout error subheading (H2),Bodytext,Bodytext (Plural)\n1,P,A_B,,,Words,'
+    )
+    expect(row).toMatchObject({
+      category: '',
+      whenChecked: '',
+      candidate: '',
+      jira: ''
+    })
   })
 
   test('refuses a sheet without a column it reads', () => {
@@ -446,5 +465,72 @@ describe('compareWithSheet, part by part', () => {
           'These parcels are too small.\nList heading: Parcels are smaller than 1 square metre'
       }
     ])
+  })
+})
+
+describe('sheetLayoutRecords', () => {
+  const sheet = readSheet(
+    sheetCsv(
+      'Area,2,No boundary,NO_REDLINE,On upload,There is a problem with your file,Red line boundary,The red line boundary is missing.,n/a,Y,BMD-9',
+      'Area,7,Gone,OLD_CODE,On upload,,,Old words,Old plural,N,BMD-8'
+    )
+  )
+  const results = compareWithSheet(sheet, ROWS)
+  const records = sheetLayoutRecords(results, ROWS)
+  const byCode = (code) => records.find((record) => record.code === code)
+
+  test('puts the sheet’s own columns first, in its order, then the check', () => {
+    expect(
+      SHEET_LAYOUT_COLUMNS.slice(0, 11).map(({ header }) => header)
+    ).toEqual(HEADER.split(','))
+    expect(SHEET_LAYOUT_COLUMNS.slice(11).map(({ header }) => header)).toEqual([
+      'Check',
+      'Status in service',
+      'Where it is shown',
+      'Source'
+    ])
+    expect(SHEET_HEADERS.h1).toBe('Dropout page title (H1)')
+  })
+
+  test('gives the service’s current wording in full, with the sheet’s other columns', () => {
+    expect(byCode('NO_REDLINE')).toEqual({
+      category: 'Area',
+      ref: '2',
+      problem: 'No boundary',
+      code: 'NO_REDLINE',
+      whenChecked: 'On upload',
+      h1: 'Your Geopackage (.gpkg) file contains an error',
+      h2: '',
+      body: 'The redline boundary is missing. Draw it and [upload a new file](upload).',
+      plural: '',
+      candidate: 'Y',
+      jira: 'BMD-9',
+      check: CHECK.DIFFERS_FROM_FINAL,
+      status: STATUS.FINAL,
+      shown: SHOWN.UPLOAD,
+      source: ROWS.find((row) => row.id === 'NO_REDLINE').source
+    })
+  })
+
+  test('keeps the sheet’s words for a code the service does not have', () => {
+    expect(byCode('OLD_CODE')).toMatchObject({
+      ref: '7',
+      body: 'Old words',
+      plural: 'Old plural',
+      check: CHECK.NOT_IN_SERVICE,
+      status: ''
+    })
+  })
+
+  test('lists every message, the sheet’s rows first, each with the service’s words', () => {
+    expect(records.map((record) => record.code)).toEqual(
+      results.map((result) => result.id)
+    )
+    expect(byCode('forms.projectName.required')).toMatchObject({
+      ref: '',
+      body: 'Enter a name',
+      check: CHECK.OUTSIDE_SHEET,
+      shown: SHOWN.FORM
+    })
   })
 })

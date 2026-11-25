@@ -24,6 +24,17 @@ export const SHEET_HEADERS = Object.freeze({
   plural: 'Bodytext (Plural)'
 })
 
+/**
+ * The sheet's other columns, by their header: carried into the CSV laid out
+ * like the sheet, and blank when the sheet has no such column.
+ */
+export const SHEET_OTHER_HEADERS = Object.freeze({
+  category: 'Error category',
+  whenChecked: 'When checked',
+  candidate: 'Candidate for user testing?',
+  jira: 'Original Jira'
+})
+
 /** What the comparison says of a row, as the Check column says it. */
 export const CHECK = Object.freeze({
   MATCHES: 'Matches',
@@ -170,11 +181,17 @@ export function readSheet(csv) {
     const names = missing.map(([key]) => `"${SHEET_HEADERS[key]}"`).join(', ')
     throw new Error(`The content design sheet has no ${names} column`)
   }
+  for (const [key, header] of Object.entries(SHEET_OTHER_HEADERS)) {
+    indexes.push([key, trimmed.indexOf(header)])
+  }
   return records
     .filter((record) => record.some((value) => value.trim() !== ''))
     .map((record) =>
       Object.fromEntries(
-        indexes.map(([key, index]) => [key, (record[index] ?? '').trim()])
+        indexes.map(([key, index]) => [
+          key,
+          index < 0 ? '' : (record[index] ?? '').trim()
+        ])
       )
     )
 }
@@ -337,7 +354,13 @@ function sheetCovers(row) {
  */
 function compareSheetRow(sheetRow, context) {
   const { byId, firstRef, listPageTitles } = context
-  const base = { ref: sheetRow.ref, problem: sheetRow.problem }
+  const base = {
+    ref: sheetRow.ref,
+    problem: sheetRow.problem,
+    sheetColumns: Object.fromEntries(
+      Object.keys(SHEET_OTHER_HEADERS).map((key) => [key, sheetRow[key] ?? ''])
+    )
+  }
   const ids = codesIn(sheetRow.code, [...byId.keys()])
   if (ids.length === 0) {
     return [
@@ -510,4 +533,93 @@ export function checkRecord(result) {
       : (result.serviceWords ?? ''),
     source: result.source
   }
+}
+
+// --- The CSV laid out like the sheet ---
+
+/**
+ * The columns of the CSV laid out like the content design sheet: the sheet's
+ * own columns in its order, so its rows can be pasted into it, then what the
+ * comparison found.
+ */
+export const SHEET_LAYOUT_COLUMNS = Object.freeze([
+  { key: 'category', header: SHEET_OTHER_HEADERS.category },
+  { key: 'ref', header: SHEET_HEADERS.ref },
+  { key: 'problem', header: SHEET_HEADERS.problem },
+  { key: 'code', header: SHEET_HEADERS.code },
+  { key: 'whenChecked', header: SHEET_OTHER_HEADERS.whenChecked },
+  { key: 'h1', header: SHEET_HEADERS.h1 },
+  { key: 'h2', header: SHEET_HEADERS.h2 },
+  { key: 'body', header: SHEET_HEADERS.body },
+  { key: 'plural', header: SHEET_HEADERS.plural },
+  { key: 'candidate', header: SHEET_OTHER_HEADERS.candidate },
+  { key: 'jira', header: SHEET_OTHER_HEADERS.jira },
+  { key: 'check', header: 'Check' },
+  { key: 'status', header: 'Status in service' },
+  { key: 'shown', header: 'Where it is shown' },
+  { key: 'source', header: 'Source' }
+])
+
+/** The first of a row's cells that has words, or blank. */
+function firstWords(row, keys) {
+  const key = keys.find((name) => hasWords(row?.[name]))
+  return key ? row[key] : ''
+}
+
+/**
+ * The service's words for each of the sheet's parts, in full: what a row of
+ * the sheet would hold for the service as it is.
+ */
+function serviceParts(row) {
+  return {
+    h1: firstWords(row, ['pageHeading', 'pageHeadingSeveral']),
+    h2: firstWords(row, ['subheading', 'subheadingSeveral']),
+    body: firstWords(row, ['body', 'inline', 'listHeading', 'summary']),
+    plural: firstWords(row, ['bodySeveral'])
+  }
+}
+
+/**
+ * Each result as a row laid out like the content design sheet, holding the
+ * service's current wording in full, in the order the page lists them: for
+ * the content design team to copy into their working copy of the sheet.
+ * A row the service has no code for keeps the sheet's own words.
+ *
+ * @param {ReturnType<typeof compareWithSheet>} results
+ * @param {Array<Record<string, string>>} rows - from buildRows, every group
+ * @returns {Array<Record<string, string>>}
+ */
+export function sheetLayoutRecords(results, rows) {
+  const byId = new Map(rows.map((row) => [row.id, row]))
+  return results.map((result) => {
+    const row = byId.get(result.id)
+    const own = row
+      ? serviceParts(row)
+      : Object.fromEntries(
+          result.parts.map((part) => [
+            PARTS.find(({ label }) => label === part.label).key,
+            part.sheet
+          ])
+        )
+    return {
+      category: '',
+      whenChecked: '',
+      candidate: '',
+      jira: '',
+      ...result.sheetColumns,
+      ref: result.ref,
+      problem: result.problem,
+      code: result.id,
+      h1: own.h1 ?? '',
+      h2: own.h2 ?? '',
+      body: own.body ?? '',
+      plural: own.plural ?? '',
+      check: result.duplicateOf
+        ? `${result.check} of Ref ${result.duplicateOf}`
+        : result.check,
+      status: result.status,
+      shown: row ? [row.shown].flat().join('; ') : '',
+      source: result.source
+    }
+  })
 }

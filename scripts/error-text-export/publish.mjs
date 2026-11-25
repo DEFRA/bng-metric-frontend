@@ -14,11 +14,14 @@ import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.j
 import { toCsv } from './csv.mjs'
 import {
   CHECK_COLUMNS,
+  SHEET_LAYOUT_COLUMNS,
   checkCounts,
   checkRecord,
   compareWithSheet,
   fetchSheet,
-  readSheet
+  notCompared,
+  readSheet,
+  sheetLayoutRecords
 } from './content-design.mjs'
 import {
   ATTACHMENTS,
@@ -133,6 +136,16 @@ export async function pageContents(meta, check, rows) {
       {
         name: ATTACHMENTS.CHECK_CSV,
         content: toCsv(records, meta, CHECK_COLUMNS),
+        contentType: CSV_TYPE
+      },
+      {
+        // As the page's table: every message, compared when the sheet was read.
+        name: ATTACHMENTS.SHEET_LAYOUT_CSV,
+        content: toCsv(
+          sheetLayoutRecords(check.results ?? notCompared(rows), rows),
+          meta,
+          SHEET_LAYOUT_COLUMNS
+        ),
         contentType: CSV_TYPE
       }
     ]

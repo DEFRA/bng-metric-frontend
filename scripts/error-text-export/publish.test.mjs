@@ -117,6 +117,7 @@ describe('publishPage', () => {
       ['putAttachment', ATTACHMENTS.XLSX],
       ['putAttachment', ATTACHMENTS.CSV],
       ['putAttachment', ATTACHMENTS.CHECK_CSV],
+      ['putAttachment', ATTACHMENTS.SHEET_LAYOUT_CSV],
       ['setPageProperty', 'content-appearance-published'],
       ['setPageProperty', 'content-appearance-draft'],
       ['setPageProperty', 'editor'],
@@ -127,6 +128,13 @@ describe('publishPage', () => {
     expect(files.every(([, , file]) => file.comment === message)).toBe(true)
     expect(files[0][2].content.length).toBeGreaterThan(0)
     expect(files[1][2].content).toContain('NO_REDLINE')
+    const sheetLayout = files[3][2].content.split('\r\n')
+    expect(sheetLayout[0]).toContain(
+      'Error category,Ref,Problem,Code,When checked,Dropout page title (H1)'
+    )
+    expect(sheetLayout[1]).toMatch(
+      /,1,No boundary,NO_REDLINE,.*,Missing,.*,Matches,Final,/
+    )
     const checkCsv = files[2][2].content.split('\r\n')
     expect(checkCsv[0]).toContain(
       CHECK_COLUMNS.map(({ header }) => header).join(',')
@@ -596,6 +604,7 @@ describe('run', () => {
         'GET https://s/wiki/api/v2/pages/1/properties?key=bng-error-text-fingerprint',
         'GET https://s/wiki/api/v2/pages/1/properties?key=bng-error-text-fingerprint',
         'PUT https://s/wiki/api/v2/pages/1/properties/9',
+        'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',

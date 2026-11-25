@@ -18,7 +18,8 @@ import { statusCounts } from './rows.mjs'
 export const ATTACHMENTS = Object.freeze({
   XLSX: 'error-messages.xlsx',
   CSV: 'error-messages.csv',
-  CHECK_CSV: 'content-design-check.csv'
+  CHECK_CSV: 'content-design-check.csv',
+  SHEET_LAYOUT_CSV: 'content-design-sheet-layout.csv'
 })
 
 // A status lozenge's colour for each check: red for what must be fixed or
@@ -178,7 +179,10 @@ function aboutSection(rows, meta) {
     ].join('')
   )
   const generated = `<p>Generated ${text(meta.date)} from branch <code>${text(meta.branch)}</code> at commit ${link(meta.commitUrl, commit)}. ${rows.length} error IDs: ${text(counts)}.</p>`
-  const files = `<p>Files: ${attachmentLink(ATTACHMENTS.XLSX)}, ${attachmentLink(ATTACHMENTS.CSV)} and ${attachmentLink(ATTACHMENTS.CHECK_CSV)} (the content design check).</p>`
+  const files = [
+    `<p>Files: ${attachmentLink(ATTACHMENTS.XLSX)}, ${attachmentLink(ATTACHMENTS.CSV)} and ${attachmentLink(ATTACHMENTS.CHECK_CSV)} (the content design check).</p>`,
+    `<p>For the content design sheet: ${attachmentLink(ATTACHMENTS.SHEET_LAYOUT_CSV)} has the table below laid out in the sheet’s own columns, holding the service’s current wording in full, to copy rows into a working copy of the sheet.</p>`
+  ].join('')
   return [notice, generated, files].join('')
 }
 
