@@ -276,6 +276,55 @@ describe('publishPage, when the page already shows the same', () => {
     expect(stored.value).toBe('abc')
   })
 
+  test('keeps the page incomplete while its update is pending or fails, and retries it', async () => {
+    const stored = { value: 'old' }
+    const updates = []
+    const flaky = {
+      getPage: () => Promise.resolve({ title: 'T', version: { number: 4 } }),
+      getPageProperty: () => Promise.resolve({ ...stored }),
+      setPageProperty: (id, key, value) => {
+        if (key === 'bng-error-text-fingerprint') {
+          stored.value = value
+        }
+        return Promise.resolve(true)
+      },
+      putAttachment: () => Promise.resolve(),
+      updatePage: () => {
+        let settle
+        const pending = new Promise((resolve, reject) => {
+          settle = { resolve, reject }
+        })
+        updates.push(settle)
+        return pending
+      }
+    }
+    const contents = await pageContents(META, { results: [] }, ROWS)
+    const settled = () => new Promise((resolve) => setTimeout(resolve, 10))
+
+    // The update is pending: the page is not yet marked as showing 'new'.
+    const failing = publishPage(flaky, '1', contents, META, {
+      fingerprint: 'new'
+    })
+    await settled()
+    expect(updates).toHaveLength(1)
+    expect(stored.value).toBe('incomplete')
+
+    // The update fails: the page stays incomplete.
+    updates[0].reject(new Error('update failed'))
+    await expect(failing).rejects.toThrow('update failed')
+    expect(stored.value).toBe('incomplete')
+
+    // The next run with the same content is not skipped, and retries it.
+    const retry = publishPage(flaky, '1', contents, META, {
+      fingerprint: 'new'
+    })
+    await settled()
+    expect(updates).toHaveLength(2)
+    updates[1].resolve({ version: { number: 5 } })
+    await retry
+    expect(stored.value).toBe('new')
+  })
+
   test('publishes it anyway when forced, and keeps the new fingerprint', async () => {
     const same = client('abc')
     const contents = await pageContents(META, { results: [] }, ROWS)
