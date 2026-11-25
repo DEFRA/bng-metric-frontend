@@ -84,8 +84,9 @@
         {{ select(fields.habitatType) }}
         {{ derived("Distinctiveness (multiplier)", "distinctivenessDisplay", distinctivenessDisplay) }}
         {{ select(fields.strategicSignificance) }}
-        {# Only an Enhanced feature has a baseline to link to: a Created one,
-           a degraded one included, never does. #}
+        {# Only an Enhanced feature has a baseline to link to. A Created
+           feature never has one, and this includes a degraded Created
+           feature. #}
         {% if viewBaselineHref %}
           <p class="govuk-body"><a class="govuk-link" href="{{ viewBaselineHref }}">View baseline details</a></p>
         {% endif %}
