@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
 import { ATTACHMENTS } from './confluence.mjs'
 import {
   CHECK_COLUMNS,
@@ -14,6 +15,7 @@ import {
   contentDesignCheck,
   pageContents,
   commitIsOnMain,
+  contentFingerprint,
   publishPage,
   run,
   sourceAt
@@ -186,6 +188,84 @@ describe('publishPage, as its uploads finish', () => {
   })
 })
 
+describe('publishPage, when the page already shows the same', () => {
+  function client(fingerprint) {
+    const calls = []
+    return {
+      calls,
+      getPage: () => Promise.resolve({ title: 'T', version: { number: 4 } }),
+      getPageProperty: (id, key) => {
+        calls.push(`get ${key}`)
+        return Promise.resolve({ value: fingerprint })
+      },
+      putAttachment: () => {
+        calls.push('attach')
+        return Promise.resolve()
+      },
+      setPageProperty: (id, key) => {
+        calls.push(`set ${key}`)
+        return Promise.resolve(true)
+      },
+      updatePage: () => {
+        calls.push('update')
+        return Promise.resolve({ version: { number: 5 } })
+      }
+    }
+  }
+
+  test('leaves the page alone', async () => {
+    const same = client('abc')
+    const contents = await pageContents(META, { results: [] }, ROWS)
+    await expect(
+      publishPage(same, '1', contents, META, { fingerprint: 'abc' })
+    ).resolves.toEqual({ version: 4, url: '', unchanged: true })
+    expect(same.calls).toEqual(['get bng-error-text-fingerprint'])
+  })
+
+  test('publishes it anyway when forced, and keeps the new fingerprint', async () => {
+    const same = client('abc')
+    const contents = await pageContents(META, { results: [] }, ROWS)
+    await publishPage(same, '1', contents, META, {
+      fingerprint: 'abc',
+      force: true
+    })
+    expect(same.calls).toContain('update')
+    expect(same.calls.at(-1)).toBe('set bng-error-text-fingerprint')
+  })
+
+  test('publishes it when the fingerprint differs', async () => {
+    const other = client('old')
+    const contents = await pageContents(META, { results: [] }, ROWS)
+    await publishPage(other, '1', contents, META, { fingerprint: 'new' })
+    expect(other.calls).toContain('update')
+  })
+})
+
+describe('contentFingerprint', () => {
+  const at = (commit) =>
+    ROWS.map((row) => ({ ...row, source: `https://x/blob/${commit}#L1` }))
+
+  test('is the same for two commits that show the same', () => {
+    expect(contentFingerprint(at('aaa'), {})).toBe(
+      contentFingerprint(at('bbb'), {})
+    )
+  })
+
+  test('differs when a message changes', () => {
+    const reworded = at('aaa').map((row) => ({ ...row, body: 'Gone' }))
+    expect(contentFingerprint(reworded, {})).not.toBe(
+      contentFingerprint(at('aaa'), {})
+    )
+  })
+
+  test('differs when the sheet’s comparison changes', () => {
+    const results = compareWithSheet(readSheet(SHEET), ROWS)
+    expect(contentFingerprint(ROWS, { results })).not.toBe(
+      contentFingerprint(ROWS, { error: 'HTTP 404' })
+    )
+  })
+})
+
 describe('commitIsOnMain', () => {
   const HEAD = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8'
@@ -256,13 +336,21 @@ describe('run', () => {
     )
   })
 
-  test('publishes the page, and summarises it with counts but none of the sheet’s words', async () => {
-    const head = execFileSync('git', ['rev-parse', 'HEAD'], {
-      encoding: 'utf8'
-    }).trim()
+  // error-text.yaml as a commit has it, worded unlike the working tree.
+  const WORKING_TREE = readFileSync(ERROR_TEXT_FILE, 'utf8')
+  const WORKING_TITLE = 'There is a problem with your file'
+  const COMMITTED_TITLE = 'Committed wording only'
+  const COMMITTED = WORKING_TREE.replaceAll(WORKING_TITLE, COMMITTED_TITLE)
+
+  test('publishes the commit’s wording, and summarises it with counts but none of the sheet’s words', async () => {
+    expect(WORKING_TREE).toContain(WORKING_TITLE)
     const requests = []
+    let pageBody
     const fetchImpl = async (url, init = {}) => {
       requests.push(`${init.method ?? 'GET'} ${url}`)
+      if (url.endsWith('/wiki/api/v2/pages/1') && init.method === 'PUT') {
+        pageBody = JSON.parse(init.body).body.value
+      }
       if (url.startsWith('https://docs.google.com/')) {
         return new Response(
           `${SHEET}\n2,Secret,UNKNOWN_CODE_X,,,Wording only UCD has,,`,
@@ -294,25 +382,36 @@ describe('run', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'publish-'))
     const summary = path.join(dir, 'summary.md')
     try {
-      await run(['--branch', 'main', '--sha', head, '--summary', summary], {
+      const read = []
+      await run(['--branch', 'main', '--sha', SHA, '--summary', summary], {
         env: {
           ...SETTINGS,
           CONTENT_DESIGN_SHEET_URL:
             'https://docs.google.com/spreadsheets/d/abc/edit#gid=1'
         },
         fetchImpl,
-        isOnMain: () => true
+        isOnMain: () => true,
+        readCommit: (commit) => {
+          read.push(commit)
+          return COMMITTED
+        }
       })
+      expect(read).toEqual([SHA])
+      expect(pageBody).toContain(COMMITTED_TITLE)
+      expect(pageBody).not.toContain(WORKING_TITLE)
       expect(requests).toEqual([
         'GET https://docs.google.com/spreadsheets/d/abc/export?format=csv&gid=1',
         'GET https://s/wiki/api/v2/pages/1',
+        'GET https://s/wiki/api/v2/pages/1/properties?key=bng-error-text-fingerprint',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'GET https://s/wiki/api/v2/pages/1/properties?key=content-appearance-published',
         'GET https://s/wiki/api/v2/pages/1/properties?key=content-appearance-draft',
         'GET https://s/wiki/api/v2/pages/1/properties?key=editor',
-        'PUT https://s/wiki/api/v2/pages/1'
+        'PUT https://s/wiki/api/v2/pages/1',
+        'GET https://s/wiki/api/v2/pages/1/properties?key=bng-error-text-fingerprint',
+        'PUT https://s/wiki/api/v2/pages/1/properties/9'
       ])
       const written = readFileSync(summary, 'utf8')
       expect(written).toContain(
@@ -332,7 +431,10 @@ describe('run', () => {
       await run(['--dry-run', dir, '--branch', 'feature', '--sha', SHA], {
         env: {},
         fetchImpl: noRequests,
-        isOnMain: () => false
+        isOnMain: () => false,
+        readCommit: () => {
+          throw new Error('read a commit')
+        }
       })
       expect(readdirSync(dir).sort()).toEqual(
         [...Object.values(ATTACHMENTS), 'confluence-page.xml'].sort()

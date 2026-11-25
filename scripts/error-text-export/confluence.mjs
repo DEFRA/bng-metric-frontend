@@ -338,6 +338,21 @@ export function confluenceClient({ baseUrl, email, token, fetchImpl = fetch }) {
     },
 
     /**
+     * A property of the page, or undefined when it has none of that key.
+     *
+     * @param {string} pageId
+     * @param {string} key
+     * @returns {Promise<{ id: string, value: unknown, version: { number: number } } | undefined>}
+     */
+    async getPageProperty(pageId, key) {
+      const { results = [] } = await request(
+        'GET',
+        `/wiki/api/v2/pages/${pageId}/properties?key=${encodeURIComponent(key)}`
+      )
+      return results[0]
+    },
+
+    /**
      * Set a property of the page, such as its width, when it is not set to
      * `value` already.
      *
@@ -348,11 +363,7 @@ export function confluenceClient({ baseUrl, email, token, fetchImpl = fetch }) {
      */
     async setPageProperty(pageId, key, value) {
       const path = `/wiki/api/v2/pages/${pageId}/properties`
-      const { results = [] } = await request(
-        'GET',
-        `${path}?key=${encodeURIComponent(key)}`
-      )
-      const [property] = results
+      const property = await this.getPageProperty(pageId, key)
       if (!property) {
         await request('POST', path, { json: { key, value } })
         return true

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
@@ -24,13 +25,18 @@ import { DEFAULT_GROUPS, buildRows } from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
 
 // npm run publish:error-text [-- --dry-run DIR] [--sha SHA] [--branch NAME]
-//   [--summary FILE]
+//   [--summary FILE] [--force]
 //
 // Publishes error-text.yaml's messages to the error messages Confluence page:
 // the content design sheet compared with the service's wording, every
 // message as a table, and the .xlsx and .csv files, with the comparison as a
-// CSV of its own. The Error Messages Export workflow runs it when a push
-// changes the wording on main, or on demand.
+// CSV of its own. The Error Messages Export workflow runs it on each push to
+// main, and on demand.
+//
+// The page keeps a fingerprint of what it shows. A run that would show the
+// same (the same messages, sheet comparison and layout, whatever else the
+// commit changed) leaves the page alone, so its history has a version only
+// for a change. --force publishes anyway.
 //
 // It reads, from the environment:
 //   CONFLUENCE_BASE_URL       the site, as https://eaflood.atlassian.net
@@ -72,6 +78,7 @@ const USAGE = `Usage: npm run publish:error-text [-- options]
   --sha SHA        the commit the source links name (default: GITHUB_SHA, or HEAD)
   --branch NAME    the branch it is read from (default: the GitHub ref, or the current branch)
   --summary FILE   append what was published, as Markdown, to FILE
+  --force          publish even when the page already shows the same
   --help           show this message`
 
 /**
@@ -140,18 +147,68 @@ export function checkLine(check) {
   return `Content design check: ${counts}.`
 }
 
+// The page property that holds the fingerprint of what the page shows.
+const FINGERPRINT_PROPERTY = 'bng-error-text-fingerprint'
+
+/** Rows or results without the links that name the commit they came from. */
+function withoutSource(items) {
+  return items?.map(({ source, ...rest }) => rest)
+}
+
 /**
- * Publish the page: its files first, so its links to them work as soon as it
+ * A fingerprint of what the page shows, apart from the date and commit it was
+ * generated at: the same for two commits whose messages, sheet comparison and
+ * page layout are the same, whichever files changed between them. It is kept
+ * on the page, so a run that would change nothing leaves the page alone.
+ *
+ * @param {Array<Record<string, string>>} rows
+ * @param {Awaited<ReturnType<typeof contentDesignCheck>>} check
+ * @returns {string}
+ */
+export function contentFingerprint(rows, check) {
+  const stable = {
+    date: '',
+    branch: '',
+    commit: '',
+    commitUrl: '',
+    fileUrl: ''
+  }
+  const body = pageBody(withoutSource(rows), stable, {
+    ...check,
+    results: withoutSource(check.results)
+  })
+  return createHash('sha256')
+    .update(JSON.stringify(PAGE_PROPERTIES))
+    .update(body)
+    .digest('hex')
+}
+
+/**
+ * Publish the page, unless it already shows what it would (its fingerprint is
+ * the same) and `force` is not set: its files first, so its links to them work as soon as it
  * shows, its properties, then its body as a new version.
  *
  * @param {ReturnType<typeof confluenceClient>} client
  * @param {string} pageId
  * @param {Awaited<ReturnType<typeof pageContents>>} contents
  * @param {ReturnType<typeof exportMeta>} meta
- * @returns {Promise<{ version: number, url: string }>}
+ * @param {{ fingerprint?: string, force?: boolean }} [options]
+ * @returns {Promise<{ version: number, url: string, unchanged?: boolean }>}
  */
-export async function publishPage(client, pageId, contents, meta) {
+export async function publishPage(
+  client,
+  pageId,
+  contents,
+  meta,
+  { fingerprint, force = false } = {}
+) {
   const page = await client.getPage(pageId)
+  if (fingerprint && !force) {
+    const published = await client.getPageProperty(pageId, FINGERPRINT_PROPERTY)
+    if (published?.value === fingerprint) {
+      return { version: page.version.number, url: '', unchanged: true }
+    }
+  }
   const message = `Generated from ${meta.branch} at ${meta.commit.slice(0, SHORT_SHA_LENGTH)}`
   for (const file of contents.files) {
     await client.putAttachment(pageId, { ...file, comment: message })
@@ -166,6 +223,9 @@ export async function publishPage(client, pageId, contents, meta) {
     version: page.version.number,
     message
   })
+  if (fingerprint) {
+    await client.setPageProperty(pageId, FINGERPRINT_PROPERTY, fingerprint)
+  }
   return {
     version: updated.version?.number ?? page.version.number + 1,
     url: updated._links ? `${updated._links.base}${updated._links.webui}` : ''
@@ -244,7 +304,10 @@ function checkPublishable(meta, env, isOnMain) {
   }
 }
 
-function publishedLine(rows, meta, { version, url }) {
+function publishedLine(rows, meta, { version, url, unchanged }) {
+  if (unchanged) {
+    return `The Confluence page (version ${version}) already shows these ${rows.length} error IDs, so it was left as it is.`
+  }
   const where = url ? `[version ${version}](${url})` : `version ${version}`
   return `Published ${rows.length} error IDs from \`${meta.branch}\` at ${meta.commit.slice(0, SHORT_SHA_LENGTH)} to Confluence (${where}).`
 }
@@ -256,12 +319,18 @@ function publishedLine(rows, meta, { version, url }) {
  * @param {{
  *   env?: NodeJS.ProcessEnv,
  *   fetchImpl?: typeof fetch,
- *   isOnMain?: (commit: string) => boolean
- * }} [options]
+ *   isOnMain?: (commit: string) => boolean,
+ *   readCommit?: (commit: string) => string
+ * }} [options] - readCommit gives error-text.yaml at a commit
  */
 export async function run(
   args,
-  { env = process.env, fetchImpl = fetch, isOnMain = commitIsOnMain } = {}
+  {
+    env = process.env,
+    fetchImpl = fetch,
+    isOnMain = commitIsOnMain,
+    readCommit = sourceAt
+  } = {}
 ) {
   const { values } = parseArgs({
     args,
@@ -270,6 +339,7 @@ export async function run(
       sha: { type: 'string' },
       branch: { type: 'string' },
       summary: { type: 'string' },
+      force: { type: 'boolean', default: false },
       help: { type: 'boolean', default: false }
     }
   })
@@ -287,7 +357,7 @@ export async function run(
   // committed; a publish shows the commit it names.
   const source = dryRun
     ? readFileSync(ERROR_TEXT_FILE, 'utf8')
-    : sourceAt(meta.commit)
+    : readCommit(meta.commit)
   checkErrorText(source)
   const rows = buildRows(source, {
     sourceUrl: (line) => `${meta.fileUrl}#L${line}`,
@@ -314,7 +384,10 @@ export async function run(
   const published = publishedLine(
     rows,
     meta,
-    await publishPage(client, env.CONFLUENCE_PAGE_ID, contents, meta)
+    await publishPage(client, env.CONFLUENCE_PAGE_ID, contents, meta, {
+      fingerprint: contentFingerprint(rows, check),
+      force: values.force
+    })
   )
   console.log(published)
   if (values.summary) {

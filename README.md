@@ -230,11 +230,13 @@ overwritten. It shows:
 - the `.xlsx` and `.csv` files, and the check as `content-design-check.csv`,
   attached, each replacing the last run's.
 
-The Error Messages Export workflow publishes it when a push to `main` changes
-`error-text.yaml` or the export's code. To publish it at any other time, such
-as the first time or after the sheet changes, run the workflow from the
-Actions tab on `main` with **publish** ticked. Any other branch leaves the
-page as it is.
+The Error Messages Export workflow publishes it on each push to `main`. The
+page keeps a fingerprint of what it shows, and a run that would show the same
+leaves it alone, so the page gets a new version only when the wording, the
+sheet's comparison or the page itself changes. To publish it at any other
+time, such as after the sheet changes, run the workflow from the Actions tab
+on `main` with **publish** ticked: that publishes whatever the page shows. Any
+other branch leaves the page as it is.
 
 The workflow needs these repository secrets:
 

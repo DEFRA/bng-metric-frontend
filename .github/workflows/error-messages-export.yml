@@ -7,11 +7,11 @@ name: Error Messages Export
 # and warn, beside the line, of any error it adds that is not Final or moves
 # back from Final.
 #
-# A push to main that changes the wording, or the code that exports it, also
-# publishes it to the error messages Confluence page (npm run
-# publish:error-text), with UCD's content design sheet compared with it. A run
-# on demand on main publishes it when "publish" is ticked, as the first run
-# must, or to refresh the page after the sheet changes.
+# A push to main also publishes it to the error messages Confluence page (npm
+# run publish:error-text), with UCD's content design sheet compared with it.
+# The page is left alone when it already shows the same, so it gets a new
+# version only when the wording, the sheet or the page itself changes. A run
+# on demand on main publishes it whatever it shows when "publish" is ticked.
 #
 # It reports and never gates: it is not a required check, and is kept apart
 # from check-pull-request.yml, so an artifact outage cannot hold up a merge.
@@ -53,16 +53,11 @@ env:
   ARTIFACT_NAME: error-messages-export
   EXPORT_DIR: export
   RETENTION_DAYS: 90
-  # What the Confluence page is generated from: a change to any of them
-  # changes the page.
-  PAGE_SOURCES: src/server/common/error-text/error-text.yaml scripts/error-text-export
 
 jobs:
   export:
     name: Export the error messages
     runs-on: ubuntu-latest
-    outputs:
-      page-sources-changed: ${{ steps.changed.outputs.changed }}
     steps:
       # A pull request's run exports its head commit, not the merge commit
       # checked out by default: each row links to its line of the file, and
@@ -110,24 +105,6 @@ jobs:
             echo "::warning::Could not find $what, so the summary does not say what the wording changes"
           fi
 
-      # Whether a push to main changes what the Confluence page is generated
-      # from. Not finding the commit before the push counts as a change, so
-      # the page is never left behind.
-      - name: Find whether the push changes the Confluence page
-        id: changed
-        if: github.event_name == 'push'
-        env:
-          BASE_SHA: ${{ steps.base.outputs.sha }}
-        run: |
-          # PAGE_SOURCES is a list of paths, split into words on purpose.
-          # shellcheck disable=SC2086
-          if [ -n "$BASE_SHA" ] && git diff --quiet "$BASE_SHA" HEAD -- $PAGE_SOURCES; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "The push does not change the error wording, so the Confluence page is left as it is."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
         with:
           node-version-file: .nvmrc
@@ -167,14 +144,15 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The Confluence page is the current record of the service's messages, so
-  # only main is published: a push that changes them, or a run on demand that
-  # asks to. It reports and never gates, as the export does.
+  # only main is published: each push, which leaves the page alone when it
+  # would show the same, or a run on demand that asks to. It reports and never
+  # gates, as the export does.
   publish:
     name: Publish to Confluence
     needs: export
     if: >-
       github.ref == 'refs/heads/main' && (
-        (github.event_name == 'push' && needs.export.outputs.page-sources-changed == 'true') ||
+        github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.publish)
       )
     runs-on: ubuntu-latest
@@ -211,5 +189,11 @@ jobs:
           CONFLUENCE_EMAIL: ${{ secrets.CONFLUENCE_EMAIL }}
           CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
           CONTENT_DESIGN_SHEET_URL: ${{ secrets.CONTENT_DESIGN_SHEET_URL }}
+          # A run on demand publishes whatever the page shows.
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          npm run publish:error-text -- --sha "$(git rev-parse HEAD)" --branch main --summary "$GITHUB_STEP_SUMMARY"
+          args=(--sha "$(git rev-parse HEAD)" --branch main --summary "$GITHUB_STEP_SUMMARY")
+          if [ "$FORCE" = true ]; then
+            args+=(--force)
+          fi
+          npm run publish:error-text -- "${args[@]}"
