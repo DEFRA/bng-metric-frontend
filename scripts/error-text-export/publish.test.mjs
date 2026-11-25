@@ -627,6 +627,65 @@ describe('run', () => {
     }
   })
 
+  test('leaves the page alone when the sheet cannot be read, and says so in the summary', async () => {
+    const requests = []
+    const fetchImpl = async (url) => {
+      requests.push(url)
+      return new Response('<html>', {
+        headers: { 'content-type': 'text/html' }
+      })
+    }
+    const dir = mkdtempSync(path.join(tmpdir(), 'publish-'))
+    const summary = path.join(dir, 'summary.md')
+    try {
+      await run(['--branch', 'main', '--sha', SHA, '--summary', summary], {
+        env: {
+          ...SETTINGS,
+          CONTENT_DESIGN_SHEET_URL:
+            'https://docs.google.com/spreadsheets/d/a/edit'
+        },
+        fetchImpl,
+        isOnMain: () => true,
+        readCommit: () => WORKING_TREE
+      })
+      expect(requests).toEqual([
+        'https://docs.google.com/spreadsheets/d/a/export?format=csv&gid=0'
+      ])
+      expect(readFileSync(summary, 'utf8')).toContain(
+        'The Confluence page was left as it is: the content design sheet was not read'
+      )
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('publishes without the sheet’s comparison when forced', async () => {
+    const requests = []
+    const fetchImpl = async (url, init = {}) => {
+      requests.push(`${init.method ?? 'GET'} ${url}`)
+      if (url.startsWith('https://docs.google.com/')) {
+        return new Response('<html>', {
+          headers: { 'content-type': 'text/html' }
+        })
+      }
+      if (url.endsWith('/wiki/api/v2/pages/1') && !init.method) {
+        return Response.json({ title: 'T', version: { number: 5 } })
+      }
+      return Response.json({ results: [], version: { number: 6 } })
+    }
+    await run(['--branch', 'main', '--sha', SHA, '--force'], {
+      env: {
+        ...SETTINGS,
+        CONTENT_DESIGN_SHEET_URL:
+          'https://docs.google.com/spreadsheets/d/a/edit'
+      },
+      fetchImpl,
+      isOnMain: () => true,
+      readCommit: () => WORKING_TREE
+    })
+    expect(requests).toContain('PUT https://s/wiki/api/v2/pages/1')
+  })
+
   test('refuses a commit whose error-text.yaml the service would refuse, and sends nothing', async () => {
     // A JSON document is YAML: a form message with a summary and no inline
     // message, which the service refuses at start-up.

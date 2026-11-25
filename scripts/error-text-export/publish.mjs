@@ -45,7 +45,8 @@ import { toXlsx } from './xlsx.mjs'
 // The page keeps a fingerprint of what it shows. A run that would show the
 // same (the same messages, sheet comparison and layout, whatever else the
 // commit changed) leaves the page alone, so its history has a version only
-// for a change. --force publishes anyway.
+// for a change. When the sheet is given but cannot be read, the page is left
+// as it is rather than lose its comparison. --force publishes anyway.
 //
 // It reads, from the environment:
 //   CONFLUENCE_BASE_URL       the site, as https://eaflood.atlassian.net
@@ -425,6 +426,17 @@ export async function run(
 
   if (dryRun) {
     writeDryRun(path.resolve(dryRun), contents)
+    return
+  }
+  if (check.error && !values.force) {
+    // A sheet that could not be read, perhaps for a moment, must not replace
+    // the page's comparison: the page is left as it is, and the next run, or
+    // a forced one, publishes it.
+    const skipped = `The Confluence page was left as it is: the content design sheet was not read (${check.error}). A later run, or a run on demand with publish ticked, will publish it.`
+    console.log(skipped)
+    if (values.summary) {
+      appendFileSync(values.summary, `## Confluence\n\n${skipped}\n`)
+    }
     return
   }
   const client = confluenceClient({

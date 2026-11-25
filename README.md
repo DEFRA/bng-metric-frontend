@@ -252,8 +252,10 @@ The workflow needs these repository secrets:
 
 The sheet's URL is a secret because this repository is public. For the same
 reason the sheet's words go to Confluence alone, never to the run's log,
-summary or artifacts. Without the sheet, or when it cannot be read, the page
-is still published and says why the sheet was not compared.
+summary or artifacts. Without the sheet the page is still published, and says the sheet was not
+compared. When the sheet is given but cannot be read, the page is left as it
+is, so a moment's outage does not lose its comparison, and the run's summary
+says why; a run on demand with **publish** ticked publishes it anyway.
 
 To see the page, and the check, before a fix is merged:
 
