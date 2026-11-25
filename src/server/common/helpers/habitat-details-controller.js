@@ -224,7 +224,7 @@ async function renderDetailsPage(
   uploadType,
   { projectId, featureId, piBackHref = null, submitted = null, refusals }
 ) {
-  const { project, projectName, storedFeature, viewModel } =
+  const { locked, projectName, storedFeature, viewModel } =
     await loadDetailsViewModel(request, uploadType, {
       projectId,
       featureId,
@@ -239,7 +239,7 @@ async function renderDetailsPage(
   }
   // Once post-intervention data is uploaded the baseline is locked (BMD-1194):
   // every value is shown as text and there is nothing to save.
-  if (!uploadType.isPostIntervention && hasPostInterventionData(project)) {
+  if (locked) {
     return h.view('habitat-details/habitat-details', {
       heading,
       caption: projectName,
@@ -282,7 +282,7 @@ async function renderDetailsPage(
  * @param {import('@hapi/hapi').Request} request
  * @param {object} uploadType
  * @param {{ projectId: string, featureId: string, submitted: object | null }} params
- * @returns {Promise<{ project: object | undefined, projectName: string, storedFeature: object, viewModel: object }>}
+ * @returns {Promise<{ locked: boolean, projectName: string, storedFeature: object, viewModel: object }>}
  */
 async function loadDetailsViewModel(
   request,
@@ -300,10 +300,15 @@ async function loadDetailsViewModel(
   const storedFeature = uploadType.isPostIntervention
     ? normalizePostInterventionFeatureForDisplay(rawFeature)
     : rawFeature
+  // Decided before any submitted choices are laid over the stored ones: a
+  // locked page shows only what is stored, even when the lock arrived while
+  // a refused submission was on its way back to the form.
+  const locked =
+    !uploadType.isPostIntervention && hasPostInterventionData(project)
   const strategy = getStrategy(type)
   let feature = storedFeature
   let reference = await strategy.loadReference(storedFeature)
-  if (submitted) {
+  if (submitted && !locked) {
     feature = withSubmittedChoices(storedFeature, submitted, reference)
     // Conditions depend on the chosen habitat type, so reload for it.
     reference = await strategy.loadReference(feature)
@@ -313,7 +318,7 @@ async function loadDetailsViewModel(
     projectName,
     serviceTemplate: isServiceTemplateDocument(project?.[stage])
   })
-  return { project, projectName, storedFeature, viewModel }
+  return { locked, projectName, storedFeature, viewModel }
 }
 
 /**
@@ -567,8 +572,9 @@ function submittedFieldRefusals({ refusal, comment }) {
  * Whether this baseline habitat is locked because post-intervention data is
  * uploaded (BMD-1194). The page hides the form, but a page left open from
  * before the upload, or a direct POST, still reaches the save, so the save
- * checks too. A project that cannot be fetched is treated as unlocked, as the
- * page treats it.
+ * checks too. A project that cannot be fetched refuses the save (502): the
+ * lock cannot be checked, so the save must not go ahead. The page, which
+ * saves nothing, still shows the form then.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {object} uploadType
@@ -579,8 +585,11 @@ async function isBaselineLocked(request, uploadType, projectId) {
   if (uploadType.isPostIntervention) {
     return false
   }
-  const projectPayload = await fetchProject(request, projectId)
-  return hasPostInterventionData(projectPayload?.project)
+  const project = (await fetchProject(request, projectId))?.project
+  if (!project) {
+    throw Boom.badGateway('Could not check whether the baseline is locked')
+  }
+  return hasPostInterventionData(project)
 }
 
 /**

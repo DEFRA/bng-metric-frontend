@@ -405,6 +405,50 @@ describe('#baselineHabitatDetails - locked once post-intervention data is upload
       expect(cancel.attr('href')).toBe(returnUrl)
     })
 
+    it('refuses the save when the project cannot be fetched to check the lock', async () => {
+      const routed = vi.mocked(wreck.get).getMockImplementation()
+      vi.mocked(wreck.get).mockImplementation((u) =>
+        u.endsWith(`/projects/${projectId}`)
+          ? Promise.reject(new Error('backend down'))
+          : routed(u)
+      )
+      const { statusCode } = await post()
+
+      expect(wreck.put).not.toHaveBeenCalled()
+      expect(statusCode).toBe(statusCodes.badGateway)
+    })
+
+    it('shows only stored values when the lock arrives while a refused submission is shown again', async () => {
+      // Unlocked when the save checks, locked by the time the page is drawn.
+      serve(projectWithoutPostIntervention)
+      const routed = vi.mocked(wreck.get).getMockImplementation()
+      let projectFetches = 0
+      vi.mocked(wreck.get).mockImplementation((u) => {
+        if (u.endsWith(`/projects/${projectId}`)) {
+          projectFetches += 1
+          const project =
+            projectFetches === 1
+              ? projectWithoutPostIntervention
+              : projectWithPostIntervention
+          return Promise.resolve({
+            res: { statusCode: statusCodes.ok },
+            payload: project
+          })
+        }
+        return routed(u)
+      })
+
+      // A blank reference where one is saved is refused; the condition
+      // chosen with it was never saved.
+      const { result } = await post({ habitatRef: '', condition: 'Poor' })
+      const $ = load(result)
+
+      expect(wreck.put).not.toHaveBeenCalled()
+      expect($('form')).toHaveLength(0)
+      expect(stackedValue($, 'Condition')).toBe('Good (3)')
+      expect(stackedValue($, 'Habitat reference')).toBe('A1')
+    })
+
     it('still saves when no post-intervention data is uploaded', async () => {
       serve(projectWithoutPostIntervention)
       vi.mocked(wreck.put).mockResolvedValue({
