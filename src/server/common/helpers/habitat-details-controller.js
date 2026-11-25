@@ -287,6 +287,71 @@ async function renderDetailsPage(
   uploadType,
   { projectId, featureId, piBackHref = null, submitted = null, refusals }
 ) {
+  const { project, projectName, storedFeature, viewModel } =
+    await loadDetailsViewModel(request, uploadType, {
+      projectId,
+      featureId,
+      submitted
+    })
+  // The heading names the habitat by its saved reference, not by an unsaved
+  // (possibly blank) one in the input.
+  const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
+  const backLinks = {
+    backHref: piBackHref ?? viewModel.backHref,
+    cancelHref: piBackHref ?? viewModel.cancelHref
+  }
+  // Once post-intervention data is uploaded the baseline is locked (BMD-1194):
+  // every value is shown as text and there is nothing to save.
+  if (!uploadType.isPostIntervention && hasPostInterventionData(project)) {
+    return h.view('habitat-details/habitat-details', {
+      heading,
+      caption: projectName,
+      ...viewModel,
+      ...lockedFieldDisplays(viewModel),
+      locked: true,
+      commentDisplay: supportingInformationDisplay(storedFeature.comment),
+      pageTitle: heading,
+      detailsSectionHeading: uploadType.detailsSectionHeading,
+      ...backLinks
+    })
+  }
+  const { habitatRefInput, commentInput, errors } = editableFieldInputs({
+    heading,
+    viewModel,
+    storedFeature,
+    submitted,
+    refusals
+  })
+  return h.view('habitat-details/habitat-details', {
+    heading,
+    caption: projectName,
+    ...viewModel,
+    habitatRefInput,
+    commentInput,
+    errors,
+    pageTitle: errors.length > 0 ? `Error: ${heading}` : heading,
+    formAction: `/${uploadType.detailsRoute}`,
+    detailsSectionHeading: uploadType.detailsSectionHeading,
+    // Carried through the form so a refused save keeps Back and Cancel.
+    returnUrl: piBackHref ?? '',
+    ...backLinks
+  })
+}
+
+/**
+ * The project and the habitat's view model for its details page, with any
+ * submitted choices laid over the stored ones.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {object} uploadType
+ * @param {{ projectId: string, featureId: string, submitted: object | null }} params
+ * @returns {Promise<{ project: object | undefined, projectName: string, storedFeature: object, viewModel: object }>}
+ */
+async function loadDetailsViewModel(
+  request,
+  uploadType,
+  { projectId, featureId, submitted }
+) {
   const [{ type, feature: rawFeature }, projectPayload] = await Promise.all([
     fetchFeature(request, uploadType, projectId, featureId),
     fetchProject(request, projectId)
@@ -311,28 +376,22 @@ async function renderDetailsPage(
     projectName,
     serviceTemplate: isServiceTemplateDocument(project?.[stage])
   })
-  // The heading names the habitat by its saved reference, not by an unsaved
-  // (possibly blank) one in the input.
-  const heading = `${viewModel.headingPrefix} ${viewModel.habitatRef}`.trimEnd()
-  const backLinks = {
-    backHref: piBackHref ?? viewModel.backHref,
-    cancelHref: piBackHref ?? viewModel.cancelHref
-  }
-  // Once post-intervention data is uploaded the baseline is locked (BMD-1194):
-  // every value is shown as text and there is nothing to save.
-  if (!uploadType.isPostIntervention && hasPostInterventionData(project)) {
-    return h.view('habitat-details/habitat-details', {
-      heading,
-      caption: projectName,
-      ...viewModel,
-      ...lockedFieldDisplays(viewModel),
-      locked: true,
-      commentDisplay: supportingInformationDisplay(storedFeature.comment),
-      pageTitle: heading,
-      detailsSectionHeading: uploadType.detailsSectionHeading,
-      ...backLinks
-    })
-  }
+  return { project, projectName, storedFeature, viewModel }
+}
+
+/**
+ * The reference and comment inputs of the editable page, and their errors.
+ *
+ * @param {{ heading: string, viewModel: object, storedFeature: object, submitted: object | null, refusals: object | undefined }} params
+ * @returns {{ habitatRefInput: object, commentInput: object, errors: object[] }}
+ */
+function editableFieldInputs({
+  heading,
+  viewModel,
+  storedFeature,
+  submitted,
+  refusals
+}) {
   const refFields = habitatRefFormFields({
     heading,
     savedRef: viewModel.habitatRef,
@@ -347,21 +406,11 @@ async function renderDetailsPage(
   // Page order: the reference sits above the comment. Each field's own
   // fields are named rather than spread, so neither can overwrite the page's
   // error summary or title.
-  const errors = [...refFields.errors, ...commentFields.commentErrors]
-  return h.view('habitat-details/habitat-details', {
-    heading,
-    caption: projectName,
-    ...viewModel,
+  return {
     habitatRefInput: refFields.habitatRefInput,
     commentInput: commentFields.commentInput,
-    errors,
-    pageTitle: errors.length > 0 ? `Error: ${heading}` : heading,
-    formAction: `/${uploadType.detailsRoute}`,
-    detailsSectionHeading: uploadType.detailsSectionHeading,
-    // Carried through the form so a refused save keeps Back and Cancel.
-    returnUrl: piBackHref ?? '',
-    ...backLinks
-  })
+    errors: [...refFields.errors, ...commentFields.commentErrors]
+  }
 }
 
 /**
@@ -597,22 +646,33 @@ async function isBaselineLocked(request, uploadType, projectId) {
   return hasPostInterventionData(projectPayload?.project)
 }
 
+/**
+ * The locked page, for a save refused because the baseline is locked: nothing
+ * is saved and the locked values are shown instead. It is rendered here, not
+ * redirected to, so Back keeps the post-intervention page the form carried in
+ * returnUrl; the GET page only has the referrer.
+ *
+ * @param {import('@hapi/hapi').Request} request
+ * @param {import('@hapi/hapi').ResponseToolkit} h
+ * @param {object} uploadType
+ */
+function showLockedDetailsPage(request, h, uploadType) {
+  const { projectId, featureId, returnUrl } = request.payload
+  return renderDetailsPage(request, h, uploadType, {
+    projectId,
+    featureId,
+    piBackHref: returnedPostInterventionHref(returnUrl, projectId)
+  })
+}
+
 function createPostController(uploadType) {
   return {
     options: { validate: { payload: habitatDetailsPayload } },
     async handler(request, h) {
-      // Nothing is saved: the locked values are shown instead. It is rendered
-      // here, not redirected to, so Back keeps the post-intervention page the
-      // form carried in returnUrl; the GET page only has the referrer.
       if (
         await isBaselineLocked(request, uploadType, request.payload.projectId)
       ) {
-        const { projectId, featureId, returnUrl } = request.payload
-        return renderDetailsPage(request, h, uploadType, {
-          projectId,
-          featureId,
-          piBackHref: returnedPostInterventionHref(returnUrl, projectId)
-        })
+        return showLockedDetailsPage(request, h, uploadType)
       }
 
       const {
