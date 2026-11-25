@@ -149,6 +149,8 @@ export function checkLine(check) {
 
 // The page property that holds the fingerprint of what the page shows.
 const FINGERPRINT_PROPERTY = 'bng-error-text-fingerprint'
+// The fingerprint while a publish is under way, which no content has.
+const INCOMPLETE = 'incomplete'
 
 /** Rows or results without the links that name the commit they came from. */
 function withoutSource(items) {
@@ -211,6 +213,12 @@ export async function publishPage(
     }
   }
   const message = `Generated from ${meta.branch} at ${meta.commit.slice(0, SHORT_SHA_LENGTH)}`
+  if (fingerprint) {
+    // Until every change has been made, the page matches no fingerprint: a
+    // publish that fails part way is redone by the next run, whatever it
+    // would show.
+    await client.setPageProperty(pageId, FINGERPRINT_PROPERTY, INCOMPLETE)
+  }
   for (const file of contents.files) {
     await client.putAttachment(pageId, { ...file, comment: message })
     console.log(`Attached ${file.name}`)
@@ -252,12 +260,17 @@ function writeDryRun(dir, contents) {
  *
  * @param {string} commit
  * @param {string} [main] - the branch it must be on
+ * @param {string} [repository] - the repository's folder
  * @returns {boolean}
  */
-export function commitIsOnMain(commit, main = `origin/${PUBLISHED_BRANCH}`) {
+export function commitIsOnMain(
+  commit,
+  main = `origin/${PUBLISHED_BRANCH}`,
+  repository = REPO_ROOT
+) {
   try {
     execFileSync('git', ['merge-base', '--is-ancestor', commit, main], {
-      cwd: REPO_ROOT,
+      cwd: repository,
       stdio: 'ignore'
     })
     return true
@@ -277,11 +290,12 @@ const ERROR_TEXT_PATH = path
  * never shows wording a working tree has that the commit it names does not.
  *
  * @param {string} commit
+ * @param {string} [repository] - the repository's folder
  * @returns {string}
  */
-export function sourceAt(commit) {
+export function sourceAt(commit, repository = REPO_ROOT) {
   return execFileSync('git', ['show', `${commit}:${ERROR_TEXT_PATH}`], {
-    cwd: REPO_ROOT,
+    cwd: repository,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   })

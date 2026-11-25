@@ -1,10 +1,17 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
-import { ATTACHMENTS } from './confluence.mjs'
+import { ATTACHMENTS, pageBody } from './confluence.mjs'
 import {
   CHECK_COLUMNS,
   compareWithSheet,
@@ -222,6 +229,51 @@ describe('publishPage, when the page already shows the same', () => {
     expect(same.calls).toEqual(['get bng-error-text-fingerprint'])
   })
 
+  test('marks the page incomplete until every change is made, so a failed publish is redone', async () => {
+    const stored = { value: 'abc' }
+    const calls = []
+    let failUpload = true
+    const flaky = {
+      getPage: () => Promise.resolve({ title: 'T', version: { number: 4 } }),
+      getPageProperty: () => Promise.resolve({ ...stored }),
+      setPageProperty: (id, key, value) => {
+        calls.push(`set ${value}`)
+        stored.value = value
+        return Promise.resolve(true)
+      },
+      putAttachment: () =>
+        failUpload
+          ? Promise.reject(new Error('upload failed'))
+          : Promise.resolve(),
+      updatePage: () => {
+        calls.push('update')
+        return Promise.resolve({ version: { number: 5 } })
+      }
+    }
+    const contents = await pageContents(META, { results: [] }, ROWS)
+
+    // A run with new content fails part way through its uploads.
+    await expect(
+      publishPage(flaky, '1', contents, META, { fingerprint: 'new' })
+    ).rejects.toThrow('upload failed')
+    expect(stored.value).toBe('incomplete')
+
+    // The next run, back to the original content, is not skipped.
+    failUpload = false
+    await publishPage(flaky, '1', contents, META, { fingerprint: 'abc' })
+    // The page's own properties aside: only the fingerprint is followed here.
+    const fingerprintCalls = calls.filter(
+      (call) => call === 'update' || /^set (incomplete|abc|new)$/.test(call)
+    )
+    expect(fingerprintCalls).toEqual([
+      'set incomplete',
+      'set incomplete',
+      'update',
+      'set abc'
+    ])
+    expect(stored.value).toBe('abc')
+  })
+
   test('publishes it anyway when forced, and keeps the new fingerprint', async () => {
     const same = client('abc')
     const contents = await pageContents(META, { results: [] }, ROWS)
@@ -273,6 +325,20 @@ describe('contentFingerprint', () => {
     expect(changed({ inline: 'Enter a shorter comment' })).not.toBe(before)
   })
 
+  test('differs when only a comparison field the check CSV alone has changes', () => {
+    const results = compareWithSheet(readSheet(SHEET), ROWS)
+    const reworded = results.map((result) => ({
+      ...result,
+      problem: 'Another problem'
+    }))
+    expect(pageBody(ROWS, META, { results: reworded })).toBe(
+      pageBody(ROWS, META, { results })
+    )
+    expect(contentFingerprint(ROWS, { results: reworded })).not.toBe(
+      contentFingerprint(ROWS, { results })
+    )
+  })
+
   test('differs when the sheet’s comparison changes', () => {
     const results = compareWithSheet(readSheet(SHEET), ROWS)
     expect(contentFingerprint(ROWS, { results })).not.toBe(
@@ -281,29 +347,65 @@ describe('contentFingerprint', () => {
   })
 })
 
-describe('commitIsOnMain', () => {
-  const HEAD = execFileSync('git', ['rev-parse', 'HEAD'], {
-    encoding: 'utf8'
-  }).trim()
+describe('the git helpers, in a repository of their own', () => {
+  const YAML_PATH = 'src/server/common/error-text/error-text.yaml'
+  let repository
+  let first
+  let second
+  let divergent
 
-  test('is true for a commit on the branch', () => {
-    expect(commitIsOnMain(HEAD, 'HEAD')).toBe(true)
+  function git(...args) {
+    return execFileSync(
+      'git',
+      ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+      { cwd: repository, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+    ).trim()
+  }
+
+  function commit(words) {
+    writeFileSync(path.join(repository, YAML_PATH), words)
+    git('add', '.')
+    git('commit', '-q', '--no-gpg-sign', '--no-verify', '-m', words)
+    return git('rev-parse', 'HEAD')
+  }
+
+  beforeAll(() => {
+    repository = mkdtempSync(path.join(tmpdir(), 'publish-git-'))
+    mkdirSync(path.join(repository, path.dirname(YAML_PATH)), {
+      recursive: true
+    })
+    git('init', '-q', '-b', 'main')
+    first = commit('first: words\n')
+    second = commit('second: words\n')
+    git('checkout', '-q', '-b', 'feature', first)
+    divergent = commit('feature: words\n')
   })
 
-  test('is false for a commit git does not have on it', () => {
+  afterAll(() => {
+    rmSync(repository, { recursive: true, force: true })
+  })
+
+  test('commitIsOnMain accepts a commit on main, and refuses one after it or off it', () => {
+    expect(commitIsOnMain(first, second, repository)).toBe(true)
+    expect(commitIsOnMain(second, second, repository)).toBe(true)
+    expect(commitIsOnMain(second, first, repository)).toBe(false)
+    expect(commitIsOnMain(divergent, second, repository)).toBe(false)
     expect(
-      commitIsOnMain('0000000000000000000000000000000000000000', 'HEAD')
+      commitIsOnMain(
+        '0000000000000000000000000000000000000000',
+        second,
+        repository
+      )
     ).toBe(false)
   })
-})
 
-describe('sourceAt', () => {
-  test('reads error-text.yaml as it is at a commit', () => {
-    expect(sourceAt('HEAD')).toContain('upload:')
-  })
-
-  test('fails for a commit git does not have', () => {
-    expect(() => sourceAt('0000000000000000000000000000000000000000')).toThrow()
+  test('sourceAt gives each commit’s own error-text.yaml', () => {
+    expect(sourceAt(first, repository)).toBe('first: words\n')
+    expect(sourceAt(second, repository)).toBe('second: words\n')
+    expect(sourceAt(divergent, repository)).toBe('feature: words\n')
+    expect(() =>
+      sourceAt('0000000000000000000000000000000000000000', repository)
+    ).toThrow()
   })
 })
 
@@ -418,6 +520,8 @@ describe('run', () => {
         'GET https://docs.google.com/spreadsheets/d/abc/export?format=csv&gid=1',
         'GET https://s/wiki/api/v2/pages/1',
         'GET https://s/wiki/api/v2/pages/1/properties?key=bng-error-text-fingerprint',
+        'GET https://s/wiki/api/v2/pages/1/properties?key=bng-error-text-fingerprint',
+        'PUT https://s/wiki/api/v2/pages/1/properties/9',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
         'PUT https://s/wiki/rest/api/content/1/child/attachment',
