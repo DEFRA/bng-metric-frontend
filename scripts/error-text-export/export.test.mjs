@@ -16,11 +16,10 @@ import {
   checkErrorText,
   exportMeta,
   fileStem,
-  groupsToExport,
   summaryMarkdown,
   writeExport
 } from './export.mjs'
-import { ALL_GROUPS, ROW_GROUPS, STATUS } from './rows.mjs'
+import { ALL_GROUPS, STATUS } from './rows.mjs'
 
 const NOW = new Date('2026-11-10T09:05:07.250Z')
 const SHA = '39a95e5bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
@@ -57,34 +56,6 @@ describe('fileStem', () => {
   })
 })
 
-describe('groupsToExport', () => {
-  test('gives the error codes, the shared pages and the file check messages by default', () => {
-    expect(groupsToExport()).toEqual([
-      ROW_GROUPS.CODES,
-      ROW_GROUPS.FALLBACKS,
-      ROW_GROUPS.FILE_CHECK
-    ])
-  })
-
-  test('adds the groups --include names, in the usual order, each once', () => {
-    expect(groupsToExport('pages, forms,codes')).toEqual([
-      ROW_GROUPS.CODES,
-      ROW_GROUPS.FALLBACKS,
-      ROW_GROUPS.FILE_CHECK,
-      ROW_GROUPS.FORMS,
-      ROW_GROUPS.PAGES
-    ])
-  })
-
-  test('gives every group for "all"', () => {
-    expect(groupsToExport('all')).toEqual(ALL_GROUPS)
-  })
-
-  test('refuses a group it does not know', () => {
-    expect(() => groupsToExport('codes,form')).toThrow('Unknown row group form')
-  })
-})
-
 describe('exportMeta', () => {
   test('reads the commit, branch and repository from GitHub Actions', () => {
     const env = {
@@ -96,7 +67,7 @@ describe('exportMeta', () => {
     }
     expect(exportMeta({}, env, NOW)).toEqual({
       repository: 'https://github.com/DEFRA/bng-metric-frontend',
-      groups: [ROW_GROUPS.CODES, ROW_GROUPS.FALLBACKS, ROW_GROUPS.FILE_CHECK],
+      groups: ALL_GROUPS,
       date: '2026-11-10',
       time: '090507',
       runId: '43044358011',
@@ -205,7 +176,7 @@ describe('summaryMarkdown', () => {
     expect(summaryMarkdown(rows, meta, files).split('\n')).toEqual([
       '## Error messages export',
       '',
-      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10. Rows: codes, fallbacks, file-check.`,
+      `3 error IDs from \`main\` at [39a95e5](${meta.commitUrl}), exported 2026-11-10. Rows: ${ALL_GROUPS.join(', ')}.`,
       '',
       '| Status | Error IDs |',
       '| --- | ---: |',
@@ -281,13 +252,11 @@ describe('npm run export:error-text -- --summary', () => {
 
       const printed = run(summary, '--base', 'HEAD')
 
-      expect(printed).toMatch(
-        /\nWording changes in codes, fallbacks, file-check from [0-9a-f]{7}\b/
-      )
+      expect(printed).toMatch(/\nWording changes from [0-9a-f]{7}\b/)
       expect(readFileSync(summary, 'utf8')).toMatch(
         // What follows depends on any edit to the file not yet committed.
         // The repository's URL comes from GitHub Actions when it runs there.
-        /\n### Wording changes in codes, fallbacks, file-check from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
+        /\n### Wording changes from \[[0-9a-f]{7}\]\(https:\/\/[^)]+\/commit\/[0-9a-f]{40}\)\n/
       )
     },
     TWO_RUNS_TIMEOUT_MS
@@ -304,7 +273,7 @@ describe('npm run export:error-text -- --summary', () => {
         readdirSync(dir).filter((name) => name.endsWith('.xlsx'))
       ).toHaveLength(1)
       expect(readFileSync(summary, 'utf8')).toContain(
-        '### Wording changes in codes, fallbacks, file-check from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
+        '### Wording changes from `no-such-ref`\n\nThe changes are not shown: git cannot find that commit.\n'
       )
     },
     TWO_RUNS_TIMEOUT_MS

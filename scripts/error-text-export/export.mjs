@@ -12,22 +12,14 @@ import { toCsv } from './csv.mjs'
 import { warningAnnotations } from './annotations.mjs'
 import { compareWithBase, notCompared } from './diff.mjs'
 import { toHtml } from './html.mjs'
-import {
-  ALL_GROUPS,
-  DEFAULT_GROUPS,
-  buildRows,
-  checkGroups,
-  statusCounts
-} from './rows.mjs'
+import { DEFAULT_GROUPS, buildRows, statusCounts } from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
 
 // npm run export:error-text [-- --out DIR] [--sha SHA] [--branch NAME]
-//   [--summary FILE] [--base REF] [--include GROUPS]
+//   [--summary FILE] [--base REF]
 //
-// Writes error-text.yaml's messages as .xlsx, .csv and .html, for product,
-// BAs and UCD to review: the backend's error codes, the shared pages they
-// show and the upload page's file check messages, and any other group of
-// rows --include names. The file is checked as the server checks it
+// Writes every message in error-text.yaml as .xlsx, .csv and .html, for
+// product, BAs and UCD to review. The file is checked as the server checks it
 // at start-up, the upload section included, so a file the server would refuse
 // is not exported, and the message says which entry is wrong.
 //
@@ -41,10 +33,6 @@ import { toXlsx } from './xlsx.mjs'
 // changes from the file at another commit, in the summary and in what it
 // prints: for a pull request, the commit its branch left main at, and for a
 // push to main, main as it was before the push.
-//
-// Only the backend's error codes, the shared pages they show and the file
-// check messages are exported unless --include names other groups of rows (rows.mjs's ROW_GROUPS), such
-// as forms or pages, or all.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 // error-text.yaml's path from the repository's root, as git names it.
@@ -69,8 +57,6 @@ const USAGE = `Usage: npm run export:error-text [-- options]
   --branch NAME    the branch the files are named for (default: the GitHub ref, or the current branch)
   --summary FILE   append what was exported, as Markdown, to FILE
   --base REF       also say what the wording changes from the file at REF
-  --include GROUPS also export these groups of rows, separated by commas, or
-                   "all": ${ALL_GROUPS.filter((group) => !DEFAULT_GROUPS.includes(group)).join(', ')}
   --help           show this message`
 
 function git(...args) {
@@ -108,38 +94,11 @@ export function fileStem({ date, time, branch, commit, runId }) {
     .join('-')
 }
 
-/** Value of --include that gives every group of rows. */
-const INCLUDE_ALL = 'all'
-
-/**
- * The groups of rows to export: DEFAULT_GROUPS, and those --include names.
- *
- * @param {string} [include] - group names separated by commas, or "all"
- * @returns {string[]}
- */
-export function groupsToExport(include) {
-  if (!include) {
-    return [...DEFAULT_GROUPS]
-  }
-  if (include.trim() === INCLUDE_ALL) {
-    return [...ALL_GROUPS]
-  }
-  const named = include
-    .split(',')
-    .map((group) => group.trim())
-    .filter(Boolean)
-  checkGroups(named)
-  // In ALL_GROUPS' order, each once.
-  return ALL_GROUPS.filter(
-    (group) => DEFAULT_GROUPS.includes(group) || named.includes(group)
-  )
-}
-
 /**
  * Which commit and branch the export is read from, when, in which GitHub
  * Actions run, if any, and the groups of rows it gives.
  *
- * @param {{ sha?: string, branch?: string, include?: string }} options
+ * @param {{ sha?: string, branch?: string }} options
  * @param {NodeJS.ProcessEnv} [env]
  * @param {Date} [now]
  */
@@ -156,7 +115,7 @@ export function exportMeta(options, env = process.env, now = new Date()) {
     git('rev-parse', '--abbrev-ref', 'HEAD')
   return {
     repository,
-    groups: groupsToExport(options.include),
+    groups: [...DEFAULT_GROUPS],
     date: now.toISOString().slice(0, DATE_LENGTH),
     time: now.toISOString().slice(TIME_START, TIME_END).replaceAll(':', ''),
     runId: RUN_ID.test(env.GITHUB_RUN_ID ?? '') ? env.GITHUB_RUN_ID : undefined,
@@ -286,7 +245,6 @@ async function main() {
       branch: { type: 'string' },
       summary: { type: 'string' },
       base: { type: 'string' },
-      include: { type: 'string' },
       help: { type: 'boolean', default: false }
     }
   })

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { ERROR_TEXT_FILE } from '../../src/server/common/error-text/error-text.js'
 import { META_COLUMNS, toCsv } from './csv.mjs'
-import { COLUMNS, buildRows } from './rows.mjs'
+import { ALL_GROUPS, COLUMNS, buildRows } from './rows.mjs'
 
 /** A CSV's records, read as RFC 4180 says, for checking the writer. */
 function parseCsv(text) {
@@ -46,7 +46,7 @@ const columns = [
 
 const meta = { date: '2026-11-10', branch: 'main', commit: '39a95e5' }
 const metaHeaders = 'Generated,Branch,Commit,Rows'
-const metaValues = '2026-11-10,main,39a95e5,"codes, fallbacks, file-check"'
+const metaValues = `2026-11-10,main,39a95e5,"${ALL_GROUPS.join(', ')}"`
 
 describe('toCsv', () => {
   test('starts with a byte-order mark and ends each record with CRLF', () => {
@@ -79,7 +79,7 @@ describe('toCsv', () => {
         meta.date,
         meta.branch,
         meta.commit,
-        'codes, fallbacks, file-check'
+        ALL_GROUPS.join(', ')
       ])
     )
   })
