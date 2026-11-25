@@ -2642,6 +2642,34 @@ describe('#baselineHabitatDetails - individual tree (BMD-1172)', () => {
     expect(JSON.parse(payload)).not.toHaveProperty('treeSize')
   })
 
+  test('keeps the size class chosen when a refused save shows the page again', async () => {
+    serveTemplateTree(mockTree)
+
+    const { statusCode, result } = await server.inject({
+      method: 'POST',
+      url: '/baseline-habitat-details',
+      payload: {
+        projectId,
+        featureId: treeId,
+        broadHabitat: 'Individual trees',
+        habitatType: 'Urban tree',
+        condition: 'Good',
+        treeSize: 'Very large',
+        comment: 'x'.repeat(1000),
+        crumb: crumb.token
+      },
+      headers: { cookie: crumb.cookie },
+      auth: authedAuth
+    })
+
+    expect(statusCode).toBe(statusCodes.badRequest)
+    expect(wreck.put).not.toHaveBeenCalled()
+    const $ = load(result)
+    expect($('select[name="treeSize"] option[selected]').val()).toBe(
+      'Very large'
+    )
+  })
+
   test('refuses a size class the Metric does not have without saving', async () => {
     serveTemplateTree(mockTree)
 
