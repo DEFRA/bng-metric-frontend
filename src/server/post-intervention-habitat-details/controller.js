@@ -36,6 +36,7 @@ import { postInterventionBackHref } from './navigation.js'
 import {
   buildCreatedAreaEditViewModel,
   createdAreaPayloadSchema,
+  createdTreePayloadSchema,
   CREATED_EDIT_KINDS,
   createdHedgerowPayloadSchema,
   createdWatercoursePayloadSchema,
@@ -407,7 +408,7 @@ const getController = {
 
 const CREATED_PAYLOAD_SCHEMAS = {
   habitat: createdAreaPayloadSchema,
-  tree: createdAreaPayloadSchema,
+  tree: createdTreePayloadSchema,
   [ENHANCED_TREE_KIND]: createdAreaPayloadSchema,
   [ENHANCED_HABITAT_KIND]: createdAreaPayloadSchema,
   hedgerow: createdHedgerowPayloadSchema,

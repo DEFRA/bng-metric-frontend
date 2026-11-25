@@ -102,6 +102,14 @@ function editableFieldNames($) {
     .sort()
 }
 
+// The value of a field shown read-only, or the option chosen in its dropdown.
+function shownOrChosen($, heading, name) {
+  return (
+    fieldValue($, heading) ??
+    $(`[name="${name}"] option[selected]`).attr('value')
+  )
+}
+
 function headings($) {
   return $('h2')
     .map((_, h2) => normalise($(h2).text()))
@@ -172,13 +180,20 @@ describe('details pages of a BNG Service template project', () => {
     )
   })
 
-  test('baseline details of a tree show its size class and no number of trees', async () => {
+  test('baseline details of a tree offer its size class to edit, and no number of trees', async () => {
     const body = serviceTemplateProject('twoStages')
     const [tree] = body.project.baseline.trees
 
     const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
 
-    expect(fieldValue($, 'Tree size')).toBe(tree.treeSize)
+    // Its size class is a dropdown of the Metric's, with its own chosen.
+    expect(fieldValue($, 'Tree size')).toBeUndefined()
+    expect(
+      $('[name="treeSize"] option')
+        .map((_, option) => $(option).attr('value'))
+        .get()
+    ).toEqual(['Small', 'Medium', 'Large', 'Very large'])
+    expect(shownOrChosen($, 'Tree size', 'treeSize')).toBe(tree.treeSize)
     // A BNG Service template tree is one tree: it has no Count to show.
     expect(fieldValue($, 'Number of trees')).toBeUndefined()
   })
@@ -434,7 +449,9 @@ describe('details pages of a BNG Service template project', () => {
     test.each([
       ['Retained', ['habitatRef']],
       ['Enhanced', TREE_EDIT_FIELDS],
-      ['Created', TREE_EDIT_FIELDS]
+      // A Created tree's planted size class can be edited; an Enhanced one's
+      // is its baseline tree's.
+      ['Created', [...TREE_EDIT_FIELDS, 'treeSize']]
     ])(
       'a %s individual tree renders in the area layout, sized in hectares',
       async (retentionCategory, editableFields) => {
@@ -451,7 +468,9 @@ describe('details pages of a BNG Service template project', () => {
         expect(normalise($('h1').text())).toContain(tree.ref)
         expect(normalise($('main').text())).not.toContain('not yet supported')
         expect(fieldValue($, 'Broad habitat')).toBe('Individual trees')
-        expect(fieldValue($, 'Tree size')).toBe(tree.proposed.treeSize)
+        expect(shownOrChosen($, 'Tree size', 'treeSize')).toBe(
+          tree.proposed.treeSize
+        )
         // A BNG Service template tree is one tree: it has no Count to show.
         expect(fieldValue($, 'Number of trees')).toBeUndefined()
         expect(

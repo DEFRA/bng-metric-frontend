@@ -32,3 +32,33 @@ export function treeDetailsFields(treeSize, count, serviceTemplate) {
     showTreeCountRow: !serviceTemplate
   }
 }
+
+/** The Metric's size classes for an individual tree (guide, Table 15). */
+export const TREE_SIZES = Object.freeze([
+  'Small',
+  'Medium',
+  'Large',
+  'Very large'
+])
+
+/**
+ * The Tree size dropdown for a BNG Service template tree whose size class can
+ * be edited (BMD-1172): the Metric's size classes, with the saved one chosen
+ * whatever its case. A tree saved without a recognisable size class has a
+ * blank choice first, which the save leaves out, so the stored size stays.
+ *
+ * @param {unknown} savedSize
+ * @returns {Array<{ value: string, text: string, selected?: boolean }>}
+ */
+export function treeSizeItems(savedSize) {
+  const saved = typeof savedSize === 'string' ? savedSize.trim() : ''
+  const chosen = TREE_SIZES.find(
+    (size) => size.toLowerCase() === saved.toLowerCase()
+  )
+  const items = TREE_SIZES.map((size) => ({
+    value: size,
+    text: size,
+    ...(size === chosen ? { selected: true } : {})
+  }))
+  return chosen ? items : [{ value: '', text: 'Choose tree size' }, ...items]
+}

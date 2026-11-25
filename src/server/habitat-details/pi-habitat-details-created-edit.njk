@@ -67,8 +67,12 @@
         {% endif %}
         {{ derived("Intervention", "interventionDisplay", interventionDisplay) }}
         {{ derived(sizeLabel, "sizeDisplay", sizeDisplay) }}
-        {% if showTreeRows %}
+        {% if treeSizeField %}
+          {{ select(treeSizeField) }}
+        {% elif showTreeRows %}
           {{ derived("Tree size", "treeSizeDisplay", treeSizeDisplay) }}
+        {% endif %}
+        {% if showTreeRows %}
           {% if showTreeCountRow %}
             {{ derived("Number of trees", "treeCountDisplay", treeCountDisplay) }}
           {% endif %}

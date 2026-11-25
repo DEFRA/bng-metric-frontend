@@ -37,6 +37,7 @@ import {
 import { uploadFileHref } from '../common/helpers/upload-file-navigation.js'
 import { stripConditionPrefix } from '../common/helpers/strip-condition-prefix.js'
 import { formatAreaHectaresValue } from '../common/helpers/format-habitat-values.js'
+import { TREE_SIZES, treeSizeItems } from '../common/helpers/tree-details.js'
 import { createdUnitsDisplay } from './view-only-shared.js'
 import {
   AREA_SECTIONS_TEMPLATE,
@@ -149,6 +150,13 @@ export const createdAreaPayloadSchema = Joi.object({
   comment: Joi.string().allow('').optional(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
+})
+
+// A Created tree's form also sends its size class when it can be edited.
+export const createdTreePayloadSchema = createdAreaPayloadSchema.keys({
+  treeSize: Joi.string()
+    .valid('', ...TREE_SIZES)
+    .optional()
 })
 
 export const createdHedgerowPayloadSchema = createdAreaPayloadSchema.fork(
@@ -355,6 +363,36 @@ function createdReferenceJson(reference, storedValues, storedDisplay, derived) {
   }).replaceAll('<', String.raw`\u003c`)
 }
 
+/**
+ * The hint for an imported reference too long to save, shown when the page
+ * first loads, or null.
+ *
+ * @param {boolean} initialLoad
+ * @param {string} ref
+ * @returns {string | null}
+ */
+function importedReferenceHint(initialLoad, ref) {
+  return initialLoad && Array.from(ref.trim()).length > MAX_REF_LENGTH
+    ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
+    : null
+}
+
+/**
+ * The Tree size dropdown, for a BNG Service template's Created tree: its
+ * planted size class, or the one the user chose when the page is shown again.
+ * Null for any other kind, which shows its size class read-only.
+ */
+function createdTreeSizeField(feature, kind, ctx, values) {
+  if (!kind.editsTreeSize || !ctx.serviceTemplate) {
+    return null
+  }
+  return {
+    id: 'treeSize',
+    label: 'Tree size',
+    items: treeSizeItems(values.treeSize || feature.proposed?.treeSize)
+  }
+}
+
 function createdUploadHref(ctx, feature, returnUrl) {
   return uploadFileHref(
     ctx.projectId,
@@ -439,14 +477,12 @@ export function buildCreatedAreaEditViewModel(
     values,
     errors,
     baselineCondition,
-    referenceHint:
-      initialLoad && Array.from(values.ref.trim()).length > MAX_REF_LENGTH
-        ? `This imported reference exceeds ${MAX_REF_LENGTH} characters. Shorten it to ${MAX_REF_LENGTH} characters or fewer before saving.`
-        : null,
+    referenceHint: importedReferenceHint(initialLoad, values.ref),
     errorList: createdErrorList(errors, ctx.refusal, commentErrors),
     ...commentFields,
     fixedBroadHabitat: kind.fixedBroadHabitat ?? null,
     fields: buildCreatedEditFields(reference, values, kind),
+    treeSizeField: createdTreeSizeField(feature, kind, ctx, values),
     referenceJson: createdReferenceJson(
       reference,
       storedValues,

@@ -10,6 +10,7 @@ import { isInvalidDegradeError } from './invalid-degrade-refusal.js'
 import { getStrategy } from '../../baseline-habitat-details/strategies/index.js'
 import { isServiceTemplateDocument } from './service-template.js'
 import { habitatDetailsDestination } from './habitat-details-destination.js'
+import { TREE_SIZES } from './tree-details.js'
 import {
   cleanComment,
   commentFormFields,
@@ -112,6 +113,7 @@ function buildSaveBody({
   condition,
   watercourseEncroachment,
   riparianEncroachment,
+  treeSize,
   comment
 }) {
   // The backend keeps the stored ref when none is sent, so a form without the
@@ -128,6 +130,11 @@ function buildSaveBody({
   }
   if (riparianEncroachment !== undefined) {
     body.riparianEncroachment = orNull(riparianEncroachment)
+  }
+  // Only a BNG Service template tree's form submits a size class. A blank one
+  // is left out: the backend keeps the stored size, which cannot be cleared.
+  if (treeSize) {
+    body.treeSize = treeSize
   }
   // A form without the comment field must not clear a stored comment.
   // Whitespace-only is stored as no value.
@@ -210,7 +217,8 @@ function returnedPostInterventionHref(returnUrl, projectId) {
 const OPTIONAL_CHOICE_FIELDS = Object.freeze([
   { field: 'broadHabitat', featureKey: 'broadType' },
   { field: 'watercourseEncroachment', featureKey: 'watercourseEncroachment' },
-  { field: 'riparianEncroachment', featureKey: 'riparianEncroachment' }
+  { field: 'riparianEncroachment', featureKey: 'riparianEncroachment' },
+  { field: 'treeSize', featureKey: 'treeSize' }
 ])
 
 /**
@@ -460,6 +468,9 @@ const habitatDetailsPayload = Joi.object({
   condition: Joi.string().allow('').optional(),
   watercourseEncroachment: Joi.string().allow('').optional(),
   riparianEncroachment: Joi.string().allow('').optional(),
+  treeSize: Joi.string()
+    .valid('', ...TREE_SIZES)
+    .optional(),
   returnUrl: Joi.string().allow('').optional(),
   crumb: Joi.string().optional()
 })
@@ -557,6 +568,7 @@ function createPostController(uploadType) {
         condition,
         watercourseEncroachment,
         riparianEncroachment,
+        treeSize,
         comment
       } = request.payload
 
@@ -588,6 +600,7 @@ function createPostController(uploadType) {
         condition,
         watercourseEncroachment,
         riparianEncroachment,
+        treeSize,
         comment
       })
 

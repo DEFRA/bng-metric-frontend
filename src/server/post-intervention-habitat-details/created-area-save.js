@@ -44,6 +44,10 @@ function createdAreaSavePayload(values, kind, feature) {
     ...choicePayload(values, 'strategicSignificance'),
     ...advancePayload(values, kind, feature),
     ...choicePayload(values, 'delayYears'),
+    // A blank size class is left out, so the stored one stays.
+    ...(kind.editsTreeSize && values.treeSize
+      ? { treeSize: values.treeSize }
+      : {}),
     ...(kind.hasEncroachments
       ? Object.assign(
           {},
