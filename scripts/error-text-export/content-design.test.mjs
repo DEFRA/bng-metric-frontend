@@ -222,6 +222,20 @@ describe('codesIn', () => {
     ])
   })
 
+  test('keeps a wildcard that begins no known code, as a code the service lacks', () => {
+    expect(codesIn('VALIDATION_FOO_*', ['NO_REDLINE'])).toEqual([
+      'VALIDATION_FOO_*'
+    ])
+    const [result] = compareWithSheet(
+      readSheet(sheetCsv('C,1,Gone,VALIDATION_FOO_*,x,,,Words,,N,')),
+      ROWS
+    )
+    expect(result).toMatchObject({
+      id: 'VALIDATION_FOO_*',
+      check: CHECK.NOT_IN_SERVICE
+    })
+  })
+
   test('finds a wildcard whose prefix is one word', () => {
     expect(codesIn('GPKG_*', ['GPKG_B', 'GPKG_A', 'NO_REDLINE'])).toEqual([
       'GPKG_A',

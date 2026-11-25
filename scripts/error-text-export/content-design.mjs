@@ -286,7 +286,9 @@ export function codesIn(cell, knownIds) {
       return [code]
     }
     const prefix = code.slice(0, -1)
-    return knownIds.filter((id) => id.startsWith(prefix)).sort()
+    const matched = knownIds.filter((id) => id.startsWith(prefix)).sort()
+    // One that begins none is still a code the sheet names: the service lacks it.
+    return matched.length > 0 ? matched : [code]
   })
   return [...new Set(ids)]
 }
