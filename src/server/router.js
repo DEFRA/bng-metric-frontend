@@ -17,6 +17,7 @@ import { postInterventionHabitatDetails } from './post-intervention-habitat-deta
 import { invalidFile } from './error-file/index.js'
 import { projectDetails } from './project-details/index.js'
 import { projectSummary } from './project-summary/index.js'
+import { projectMetric } from './project-metric/index.js'
 import { projectReport } from './project-report/index.js'
 import { projectReports } from './project-reports/index.js'
 import { areaSummary } from './area-summary/index.js'
@@ -65,6 +66,7 @@ export const router = {
         invalidFile,
         projectDetails,
         projectSummary,
+        projectMetric,
         projectReport,
         projectReports,
         areaSummary,
