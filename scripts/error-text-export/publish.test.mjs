@@ -258,6 +258,21 @@ describe('contentFingerprint', () => {
     )
   })
 
+  test('differs when only a column the attachments alone have changes', () => {
+    const results = compareWithSheet(readSheet(SHEET), ROWS)
+    const changed = (cells) =>
+      contentFingerprint(
+        ROWS.map((row) => ({ ...row, ...cells })),
+        { results }
+      )
+    const before = contentFingerprint(ROWS, { results })
+    expect(results[0].check).toBe('Matches')
+    expect(
+      changed({ values: '{max}: the most characters allowed (2000)' })
+    ).not.toBe(before)
+    expect(changed({ inline: 'Enter a shorter comment' })).not.toBe(before)
+  })
+
   test('differs when the sheet’s comparison changes', () => {
     const results = compareWithSheet(readSheet(SHEET), ROWS)
     expect(contentFingerprint(ROWS, { results })).not.toBe(

@@ -156,9 +156,10 @@ function withoutSource(items) {
 }
 
 /**
- * A fingerprint of what the page shows, apart from the date and commit it was
- * generated at: the same for two commits whose messages, sheet comparison and
- * page layout are the same, whichever files changed between them. It is kept
+ * A fingerprint of what the page and its files show, apart from the date and
+ * commit they were generated at: the same for two commits whose rows (every
+ * column, as the attachments have them), sheet comparison and page layout are
+ * the same, whichever files changed between them. It is kept
  * on the page, so a run that would change nothing leaves the page alone.
  *
  * @param {Array<Record<string, string>>} rows
@@ -173,20 +174,20 @@ export function contentFingerprint(rows, check) {
     commitUrl: '',
     fileUrl: ''
   }
-  const body = pageBody(withoutSource(rows), stable, {
-    ...check,
-    results: withoutSource(check.results)
-  })
+  const results = withoutSource(check.results)
+  const body = pageBody(withoutSource(rows), stable, { ...check, results })
   return createHash('sha256')
     .update(JSON.stringify(PAGE_PROPERTIES))
+    .update(JSON.stringify(withoutSource(rows)))
+    .update(JSON.stringify(results ?? check.error ?? null))
     .update(body)
     .digest('hex')
 }
 
 /**
  * Publish the page, unless it already shows what it would (its fingerprint is
- * the same) and `force` is not set: its files first, so its links to them work as soon as it
- * shows, its properties, then its body as a new version.
+ * the same) and `force` is not set: its files first, so its links to them work
+ * as soon as it shows, its properties, then its body as a new version.
  *
  * @param {ReturnType<typeof confluenceClient>} client
  * @param {string} pageId
