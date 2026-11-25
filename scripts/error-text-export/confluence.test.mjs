@@ -23,6 +23,13 @@ const ROWS = [
     status: STATUS.FINAL,
     body: 'The boundary is <missing> & "gone".\nDraw it again.',
     source: `${META.fileUrl}#L561\n${META.fileUrl}#L1300`
+  },
+  {
+    ...Object.fromEntries(COLUMNS.map(({ key }) => [key, ''])),
+    id: 'upload.unknown.blank',
+    status: STATUS.FINAL,
+    body: 'blank',
+    source: `${META.fileUrl}#L320`
   }
 ]
 
@@ -96,8 +103,37 @@ describe('pageBody', () => {
     expect(body).toContain(`<a href="${META.fileUrl}#L561">NO_REDLINE</a>`)
   })
 
-  test('has no table but the one', () => {
-    expect(body.match(/<table/g)).toHaveLength(1)
+  test('has the errors’ table, then the building blocks’ table', () => {
+    expect(body.match(/<table/g)).toHaveLength(2)
+    expect(
+      body.indexOf('Wording the drop-out page is built from')
+    ).toBeGreaterThan(body.indexOf('Error messages and content design check'))
+  })
+
+  test('explains the building blocks above their table, and lists each with its link', () => {
+    const section = body.slice(
+      body.indexOf('Wording the drop-out page is built from')
+    )
+    expect(section).toMatch(
+      /^Wording the drop-out page is built from<\/h2><p>These are not errors\./
+    )
+    expect(section.indexOf('These are not errors')).toBeLessThan(
+      section.indexOf('<table')
+    )
+    expect(section).toContain(
+      `<code>upload.unknown.blank</code></td><td>blank</td><td>Final</td><td><a href="${META.fileUrl}#L320">Line 320</a>`
+    )
+  })
+
+  test('leaves the building blocks out of the errors’ table', () => {
+    const errors = body.slice(0, body.indexOf('Wording the drop-out page'))
+    expect(errors).not.toContain('upload.unknown.blank')
+    const unread = pageBody(ROWS, META, { error: 'HTTP 404' })
+    const unreadErrors = unread.slice(
+      0,
+      unread.indexOf('Wording the drop-out page')
+    )
+    expect(unreadErrors).not.toContain('upload.unknown.blank')
   })
 
   test('lists every message, escaped, when the sheet was not read', () => {

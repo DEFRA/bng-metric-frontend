@@ -1,4 +1,4 @@
-import { COLUMNS, SHOWN, STATUS, WORDING_KEYS } from './rows.mjs'
+import { COLUMNS, SHOWN, STATUS, WORDING_KEYS, isUploadText } from './rows.mjs'
 
 // UCD's content design sheet, a Google Sheet that is the master copy of the
 // error wording they have checked, compared with the export's rows: for each
@@ -412,7 +412,9 @@ function compareSheetRow(sheetRow, context) {
 /**
  * The sheet compared with the export: a result for each code each sheet row
  * names, in the sheet's order, then one for each error code or shared page
- * the service has and the sheet does not.
+ * the service has and the sheet does not, then one for each other error the
+ * sheet does not cover, such as a form's. The drop-out page's building
+ * blocks, such as upload.unknown.blank, are not errors and have none.
  *
  * @param {ReturnType<typeof readSheet>} sheetRows
  * @param {Array<Record<string, string>>} rows - from buildRows, every group
@@ -434,8 +436,9 @@ export function compareWithSheet(sheetRows, rows) {
   const missing = rows
     .filter((row) => sheetCovers(row) && !context.firstRef.has(row.id))
     .map((row) => unmatched(row, CHECK.NOT_IN_SHEET))
+  // The drop-out page's building blocks are not errors, so are left out.
   const outside = rows
-    .filter((row) => !sheetCovers(row))
+    .filter((row) => !sheetCovers(row) && !isUploadText(row))
     .map((row) => unmatched(row, CHECK.OUTSIDE_SHEET))
   return [...results, ...missing, ...outside]
 }
@@ -466,14 +469,17 @@ function unmatched(row, check) {
 }
 
 /**
- * Every row, each with its own words, for when the sheet could not be read:
- * the page still lists every message.
+ * Every error's row, each with its own words, for when the sheet could not be
+ * read: the page still lists every error. The drop-out page's building blocks
+ * are left out, as compareWithSheet leaves them out.
  *
  * @param {Array<Record<string, string>>} rows - from buildRows, every group
  * @returns {ReturnType<typeof compareWithSheet>}
  */
 export function notCompared(rows) {
-  return rows.map((row) => unmatched(row, CHECK.NOT_COMPARED))
+  return rows
+    .filter((row) => !isUploadText(row))
+    .map((row) => unmatched(row, CHECK.NOT_COMPARED))
 }
 
 /**

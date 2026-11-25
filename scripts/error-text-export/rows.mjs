@@ -343,19 +343,41 @@ function commonRows({ common }) {
   })
 }
 
+/**
+ * The upload section's groups of words that are not an error's own: the
+ * pieces the drop-out page builds an error's message from.
+ */
+export const UPLOAD_TEXT_GROUPS = Object.freeze([
+  'page',
+  'names',
+  'unknown',
+  'distinctiveness',
+  'layers'
+])
+
+/**
+ * Whether a row is one of the drop-out page's building blocks, such as
+ * upload.page.opensInNewTab or upload.unknown.blank, rather than an error.
+ *
+ * @param {{ id: string }} row
+ * @returns {boolean}
+ */
+export function isUploadText({ id }) {
+  return UPLOAD_TEXT_GROUPS.some((group) => id.startsWith(`upload.${group}.`))
+}
+
 /** The upload section's strings that are not an error's: page, names and so on. */
 function uploadTextRows({ upload }) {
-  return ['page', 'names', 'unknown', 'distinctiveness', 'layers'].flatMap(
-    (group) =>
-      Object.entries(upload[group] ?? {}).map(([key, text]) => {
-        const row = newRow(`upload.${group}.${key}`, SHOWN.UPLOAD, text, [
-          'upload',
-          group,
-          key
-        ])
-        row.cells.body = optionsText(text)
-        return row
-      })
+  return UPLOAD_TEXT_GROUPS.flatMap((group) =>
+    Object.entries(upload[group] ?? {}).map(([key, text]) => {
+      const row = newRow(`upload.${group}.${key}`, SHOWN.UPLOAD, text, [
+        'upload',
+        group,
+        key
+      ])
+      row.cells.body = optionsText(text)
+      return row
+    })
   )
 }
 

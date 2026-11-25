@@ -224,9 +224,16 @@ overwritten. It shows:
   a full stop at the end, the names of `{values}` and how links are written do
   not;
 
-- every message in `error-text.yaml` is in that one table: the sheet's rows
-  first, then the error codes and shared pages it lacks, then the messages it
-  does not cover, each with its words;
+- every error message in `error-text.yaml` is in that one table: the sheet's
+  rows first, then the error codes and shared pages it lacks, then the
+  messages it does not cover, each with its words;
+- below it, the wording the drop-out page is built from, in a table of its
+  own with an explanation: `upload.page`, `upload.names`, `upload.unknown`,
+  `upload.distinctiveness` and `upload.layers`. These are not errors but the
+  pieces the drop-out page puts an error's message together from, such as its
+  buttons or "blank" for a value a file leaves out. They are not compared with
+  the sheet, and are left out of both CSV files made for it, but are in the
+  `.xlsx` and `.csv` of every message;
 - the `.xlsx` and `.csv` files, and the check as `content-design-check.csv`,
   attached, each replacing the last run's;
 - `content-design-sheet-layout.csv`: the page's table laid out in the content

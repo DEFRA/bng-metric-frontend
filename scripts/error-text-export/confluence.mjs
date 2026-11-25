@@ -4,7 +4,7 @@ import {
   checkRecord,
   notCompared
 } from './content-design.mjs'
-import { statusCounts } from './rows.mjs'
+import { isUploadText, statusCounts } from './rows.mjs'
 
 // The export as a Confluence page, in Confluence's storage format (XHTML with
 // its own macros), and a client that publishes it: the page's body, and its
@@ -187,7 +187,7 @@ function aboutSection(rows, meta) {
 }
 
 const CHECK_INTRO =
-  '<p>Every message in error-text.yaml. Each row of the content design sheet is compared with what the service shows for its error code, and only the parts that differ are shown. Error codes and shared pages the sheet does not have follow it, then the messages the sheet does not cover, such as form and whole-page errors, each with its words. The sheet describes the problems list: its H1 matches the problems list’s heading, and its body matches either the single-problem page or the problems list heading. Capitals, spelling and punctuation count; a full stop at the end, the names of {values} and how links are written do not.</p>'
+  '<p>Every error message in error-text.yaml. Each row of the content design sheet is compared with what the service shows for its error code, and only the parts that differ are shown. Error codes and shared pages the sheet does not have follow it, then the messages the sheet does not cover, such as form and whole-page errors, each with its words. The sheet describes the problems list: its H1 matches the problems list’s heading, and its body matches either the single-problem page or the problems list heading. Capitals, spelling and punctuation count; a full stop at the end, the names of {values} and how links are written do not.</p>'
 
 const CHECK_HEADERS = Object.freeze([
   'Ref',
@@ -265,6 +265,53 @@ function checkSection(check, rows) {
   ].join('')
 }
 
+const BUILDING_BLOCKS_INTRO = [
+  '<p>These are not errors. They are the pieces the drop-out page builds an error’s message from, so they are kept in error-text.yaml with the errors, as the page is only ever shown when a file is refused:</p>',
+  '<ul>',
+  '<li><strong>upload.page</strong>: the drop-out page’s own words, such as its title, the heading over its list of problems, and its buttons.</li>',
+  '<li><strong>upload.names</strong>: how a problem names a habitat, such as “Feature Ref {featureRef}”, each falling back to the next when a value is not known.</li>',
+  '<li><strong>upload.unknown</strong>: what is shown in place of a value the file leaves out, such as “blank” or “unknown habitat”.</li>',
+  '<li><strong>upload.distinctiveness</strong>: the distinctiveness bands as the user reads them, such as “Very high” for V.High.</li>',
+  '<li><strong>upload.layers</strong>: the subheading over the problems about each layer, such as “Habitat parcels”.</li>',
+  '</ul>',
+  '<p>They are not in the content design sheet, are not compared with it, and are not in the CSV files laid out for it. They are in the .xlsx and .csv of every message.</p>'
+].join('')
+
+const BUILDING_BLOCKS_HEADERS = Object.freeze([
+  'Key',
+  'Words',
+  'Status',
+  'Source'
+])
+
+/** The drop-out page's building blocks, in a table of their own. */
+function buildingBlocksSection(rows) {
+  const blocks = rows.filter(isUploadText)
+  if (blocks.length === 0) {
+    return ''
+  }
+  const texts = blocks.map((row) => [row.id, row.body, row.status, 'Line'])
+  const cells = blocks.map((row) => {
+    const [url] = sourceUrls(row.source)
+    const line = /#L(\d+)$/.exec(url ?? '')?.[1]
+    return [
+      `<code>${text(row.id)}</code>`,
+      text(row.body),
+      text(row.status),
+      url ? link(url, line ? `Line ${line}` : url) : ''
+    ]
+  })
+  return [
+    '<h2>Wording the drop-out page is built from</h2>',
+    BUILDING_BLOCKS_INTRO,
+    table(
+      BUILDING_BLOCKS_HEADERS,
+      cells,
+      columnWidths(BUILDING_BLOCKS_HEADERS, texts)
+    )
+  ].join('')
+}
+
 /**
  * The page's body, in storage format.
  *
@@ -275,7 +322,11 @@ function checkSection(check, rows) {
  * @returns {string}
  */
 export function pageBody(rows, meta, check) {
-  return [aboutSection(rows, meta), checkSection(check, rows)].join('')
+  return [
+    aboutSection(rows, meta),
+    checkSection(check, rows),
+    buildingBlocksSection(rows)
+  ].join('')
 }
 
 // --- The client ---

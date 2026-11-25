@@ -7,6 +7,7 @@ import {
   compareWithSheet,
   fetchSheet,
   normalise,
+  notCompared,
   parseCsv,
   readSheet,
   SHEET_HEADERS,
@@ -14,7 +15,7 @@ import {
   sheetCsvUrl,
   sheetLayoutRecords
 } from './content-design.mjs'
-import { SHOWN, STATUS } from './rows.mjs'
+import { SHOWN, STATUS, isUploadText } from './rows.mjs'
 
 const HEADER =
   'Error category,Ref,Problem,Code,When checked,Dropout page title (H1),Dropout error subheading (H2),Bodytext,Bodytext (Plural),Candidate for user testing?,Original Jira'
@@ -356,9 +357,20 @@ describe('compareWithSheet', () => {
     )
   })
 
-  test('has a result for every row', () => {
+  test('has a result for every error, and none for the drop-out page’s building blocks', () => {
     const ids = new Set(results.map((result) => result.id))
-    expect(ROWS.filter((row) => !ids.has(row.id))).toEqual([])
+    expect(ROWS.filter((row) => !ids.has(row.id)).map((row) => row.id)).toEqual(
+      ['upload.page.title', 'upload.page.listHeading']
+    )
+  })
+
+  test('leaves the building blocks out when the sheet was not read too', () => {
+    const ids = notCompared(ROWS).map((result) => result.id)
+    expect(ids).not.toContain('upload.page.title')
+    expect(ids).toContain('NO_REDLINE')
+    expect(
+      sheetLayoutRecords(notCompared(ROWS), ROWS).map(({ code }) => code)
+    ).toEqual(ids)
   })
 
   test('counts each check, most in need of a fix first', () => {
@@ -371,7 +383,7 @@ describe('compareWithSheet', () => {
       [CHECK.DUPLICATE, 1],
       [CHECK.NO_WORDING, 1],
       [CHECK.MATCHES, 3],
-      [CHECK.OUTSIDE_SHEET, 3]
+      [CHECK.OUTSIDE_SHEET, 1]
     ])
   })
 })
@@ -546,5 +558,28 @@ describe('sheetLayoutRecords', () => {
       check: CHECK.OUTSIDE_SHEET,
       shown: SHOWN.FORM
     })
+  })
+})
+
+describe('isUploadText', () => {
+  test('is true for the drop-out page’s building blocks alone', () => {
+    for (const id of [
+      'upload.page.opensInNewTab',
+      'upload.names.feature',
+      'upload.unknown.blank',
+      'upload.distinctiveness.High',
+      'upload.layers.habitats'
+    ]) {
+      expect(isUploadText({ id })).toBe(true)
+    }
+    for (const id of [
+      'upload.catchAll',
+      'upload.fileProblem',
+      'NO_REDLINE',
+      'forms.projectName.required',
+      'pages.notFound'
+    ]) {
+      expect(isUploadText({ id })).toBe(false)
+    }
   })
 })
