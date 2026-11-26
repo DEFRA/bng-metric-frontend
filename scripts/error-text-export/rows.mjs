@@ -19,7 +19,7 @@ import { readErrorTextSource } from './read.mjs'
 //
 // An ID is the backend's code for a drop-out page or edit error, so a code
 // met in both is one row, and the entry's dotted place in the file for
-// anything else. By default only the codes are given: see ROW_GROUPS. An
+// anything else. Every group is given by default: see ROW_GROUPS. An
 // error with no words of its own shows a shared fallback's, so its row
 // repeats them and names the fallback, which can have a row of its own.
 
@@ -109,8 +109,8 @@ export const SHOWN = Object.freeze({
 
 /**
  * The kinds of row the file gives, by the part of it they come from. The
- * export gives DEFAULT_GROUPS; any other can be given back, with --include
- * or buildRows' `groups`, without changing how its rows are built.
+ * export gives every one; buildRows' `groups` can ask for fewer, without
+ * changing how their rows are built.
  */
 export const ROW_GROUPS = Object.freeze({
   /** The backend's error codes, such as VALIDATION_UNAVAILABLE: upload.errors and edit. */
@@ -133,17 +133,10 @@ export const ROW_GROUPS = Object.freeze({
 export const ALL_GROUPS = Object.freeze(Object.values(ROW_GROUPS))
 
 /**
- * What the export gives unless told otherwise: the error codes, the shared
- * pages they show, each a row of its own words and the codes that use it,
- * and the upload page's words for a file check that could not finish, which
- * are siblings of codes such as VALIDATION_BUSY but have none. The rest made
- * the export too long to review.
+ * What the export gives: every group, so that it holds every message a
+ * customer can see (BMD-1204 AC1).
  */
-export const DEFAULT_GROUPS = Object.freeze([
-  ROW_GROUPS.CODES,
-  ROW_GROUPS.FALLBACKS,
-  ROW_GROUPS.FILE_CHECK
-])
+export const DEFAULT_GROUPS = ALL_GROUPS
 
 /** Said of a {name} or link target that placeholders.mjs does not explain. */
 export const NOT_EXPLAINED = 'not explained yet'
@@ -350,19 +343,41 @@ function commonRows({ common }) {
   })
 }
 
+/**
+ * The upload section's groups of words that are not an error's own: the
+ * pieces the drop-out page builds an error's message from.
+ */
+export const UPLOAD_TEXT_GROUPS = Object.freeze([
+  'page',
+  'names',
+  'unknown',
+  'distinctiveness',
+  'layers'
+])
+
+/**
+ * Whether a row is one of the drop-out page's building blocks, such as
+ * upload.page.opensInNewTab or upload.unknown.blank, rather than an error.
+ *
+ * @param {{ id: string }} row
+ * @returns {boolean}
+ */
+export function isUploadText({ id }) {
+  return UPLOAD_TEXT_GROUPS.some((group) => id.startsWith(`upload.${group}.`))
+}
+
 /** The upload section's strings that are not an error's: page, names and so on. */
 function uploadTextRows({ upload }) {
-  return ['page', 'names', 'unknown', 'distinctiveness', 'layers'].flatMap(
-    (group) =>
-      Object.entries(upload[group] ?? {}).map(([key, text]) => {
-        const row = newRow(`upload.${group}.${key}`, SHOWN.UPLOAD, text, [
-          'upload',
-          group,
-          key
-        ])
-        row.cells.body = optionsText(text)
-        return row
-      })
+  return UPLOAD_TEXT_GROUPS.flatMap((group) =>
+    Object.entries(upload[group] ?? {}).map(([key, text]) => {
+      const row = newRow(`upload.${group}.${key}`, SHOWN.UPLOAD, text, [
+        'upload',
+        group,
+        key
+      ])
+      row.cells.body = optionsText(text)
+      return row
+    })
   )
 }
 

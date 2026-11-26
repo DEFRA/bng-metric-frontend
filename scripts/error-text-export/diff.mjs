@@ -1,4 +1,5 @@
 import {
+  ALL_GROUPS,
   COLUMNS,
   DEFAULT_GROUPS,
   SHARED_KEYS,
@@ -241,12 +242,16 @@ function sectionText(title, count, lines) {
 // --- Both ---
 
 /**
- * What the changes are of, and from where, as a heading: "Wording changes in
- * codes from abc1234". The groups are named, as a group left out of the
- * export is left out of the comparison too: a "none" is only for them.
+ * What the changes are of, and from where, as a heading: "Wording changes
+ * from abc1234", or "Wording changes in codes from abc1234" when some groups
+ * were left out. Those are named, as a group left out of the export is left
+ * out of the comparison too: a "none" is only for the groups named.
  */
 function headings(base, groups) {
-  const scope = `Wording changes in ${groups.join(', ')}`
+  const every = ALL_GROUPS.every((group) => groups.includes(group))
+  const scope = every
+    ? 'Wording changes'
+    : `Wording changes in ${groups.join(', ')}`
   return {
     markdown: `### ${scope} from ${base.markdown}`,
     text: `${scope} from ${base.text}`

@@ -1,12 +1,17 @@
 name: Error Messages Export
 
-# Writes error-text.yaml's error codes, shared pages and file check messages,
-# or more with a run on demand's include, as .xlsx, .csv and .html for
+# Writes every message in error-text.yaml as .xlsx, .csv and .html for
 # product, BAs and UCD to review (npm run export:error-text), keeps them as
 # one artifact, and counts each status in the run's summary. A pull request's
 # summary, and a push to main's, also say what it changes in the wording,
 # and warn, beside the line, of any error it adds that is not Final or moves
 # back from Final.
+#
+# A push to main also publishes it to the error messages Confluence page (npm
+# run publish:error-text), with UCD's content design sheet compared with it.
+# The page is left alone when it already shows the same, so it gets a new
+# version only when the wording, the sheet or the page itself changes. A run
+# on demand on main publishes it whatever it shows when "publish" is ticked.
 #
 # It reports and never gates: it is not a required check, and is kept apart
 # from check-pull-request.yml, so an artifact outage cannot hold up a merge.
@@ -27,13 +32,11 @@ on:
   # On demand: "Use workflow from" picks the branch to export.
   workflow_dispatch:
     inputs:
-      include:
-        description: >-
-          Groups of rows to add to the error codes, shared pages and file
-          check messages, separated by commas
-          (upload-text, common, forms, pages), or "all"
+      publish:
+        description: Also publish to the Confluence page (main only)
+        type: boolean
         required: false
-        default: ''
+        default: false
 
 permissions:
   contents: read
@@ -114,15 +117,10 @@ jobs:
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           BASE_SHA: ${{ steps.base.outputs.sha }}
-          # Empty but for a run on demand that asks for more groups of rows.
-          INCLUDE: ${{ inputs.include }}
         run: |
           args=(--out "$EXPORT_DIR" --sha "$SOURCE_SHA" --summary "$RUNNER_TEMP/summary.md")
           if [ -n "$BASE_SHA" ]; then
             args+=(--base "$BASE_SHA")
-          fi
-          if [ -n "$INCLUDE" ]; then
-            args+=(--include "$INCLUDE")
           fi
           npm run export:error-text -- "${args[@]}"
 
@@ -144,3 +142,62 @@ jobs:
             echo
             echo "[Download the .xlsx, .csv and .html]($ARTIFACT_URL), kept for $RETENTION_DAYS days."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The Confluence page is the current record of the service's messages, so
+  # only main is published: each push, which leaves the page alone when it
+  # would show the same, or a run on demand that asks to. It reports and never
+  # gates, as the export does.
+  publish:
+    name: Publish to Confluence
+    needs: export
+    if: >-
+      github.ref == 'refs/heads/main' && (
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' && inputs.publish)
+      )
+    runs-on: ubuntu-latest
+    # The Confluence and sheet secrets belong to this environment, not to the
+    # repository, and only main may deploy to it: a branch with a changed
+    # workflow cannot read them.
+    environment: confluence
+    # One publish at a time, as each page version is numbered after the last.
+    # A newer run waiting replaces an older one waiting, and each publishes
+    # main as it is when it starts, so the page always ends on main's latest
+    # wording, whichever order the runs finish in.
+    concurrency:
+      group: error-messages-confluence
+      cancel-in-progress: false
+    env:
+      CONFLUENCE_BASE_URL: https://eaflood.atlassian.net
+      CONFLUENCE_PAGE_ID: '6649710070'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The sheet's URL is a secret: the repository is public, and the sheet
+      # is shared with anyone with its link. Its words go to Confluence alone,
+      # never to the run's log, summary or artifacts.
+      - name: Publish the error messages
+        env:
+          CONFLUENCE_EMAIL: ${{ secrets.CONFLUENCE_EMAIL }}
+          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+          CONTENT_DESIGN_SHEET_URL: ${{ secrets.CONTENT_DESIGN_SHEET_URL }}
+          # A run on demand publishes whatever the page shows.
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          args=(--sha "$(git rev-parse HEAD)" --branch main --summary "$GITHUB_STEP_SUMMARY")
+          if [ "$FORCE" = true ]; then
+            args+=(--force)
+          fi
+          npm run publish:error-text -- "${args[@]}"

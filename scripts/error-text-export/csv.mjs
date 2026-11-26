@@ -11,6 +11,10 @@ import { COLUMNS, DEFAULT_GROUPS } from './rows.mjs'
 const BYTE_ORDER_MARK = '﻿'
 const LINE_END = '\r\n'
 const NEEDS_QUOTES = /[",\r\n]/
+// A value a spreadsheet would read as a formula, such as "=WEBSERVICE(…)":
+// the content design check carries words from a sheet anyone with its link
+// can edit, so each is kept as text with a leading apostrophe.
+const FORMULA_START = /^[=+\-@\t\r]/
 
 /** The columns every row ends with, from the export's meta. */
 export const META_COLUMNS = Object.freeze([
@@ -25,7 +29,8 @@ export const META_COLUMNS = Object.freeze([
 ])
 
 function field(value) {
-  const text = String(value ?? '')
+  const raw = String(value ?? '')
+  const text = FORMULA_START.test(raw) ? `'${raw}` : raw
   return NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 

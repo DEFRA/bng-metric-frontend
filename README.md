@@ -132,16 +132,14 @@ This writes `export/error-messages-<date>-<HHmmss>-<branch>-<commit>` as
 `-run<run ID>`, as in
 `error-messages-2026-11-11-143005-main-ab640af-run43044358011.xlsx`.
 
-Each file has a row for each of the backend's error codes, such as
-`VALIDATION_UNAVAILABLE`: the `upload.errors` and `edit` entries, a code met in
-both as one row. It also has a row for each shared page those codes show, such
-as `upload.catchAll`, with its words and the codes that use it, and one for
-each of the upload page's `fileCheck` messages, such as `fileCheck.timedOut`,
-shown when the service could not start or finish checking a file. The file's
-other entries are left out by default, to keep the export short enough to
-review. `-- --include GROUPS` adds them back, by group, separated by commas:
-`upload-text` (the drop-out page's other words, such as `upload.page.title`),
-`common`, `forms` and `pages`, or `all` for every one.
+Each file has a row for every entry in the file. Each of the backend's error
+codes, such as `VALIDATION_UNAVAILABLE`, is one row: the `upload.errors` and
+`edit` entries, a code met in both as one row. Each shared page those codes
+show, such as `upload.catchAll`, has a row with its words and the codes that
+use it. Every other entry has a row by its place in the file: the upload
+page's `fileCheck` messages, such as `fileCheck.timedOut`, the drop-out page's
+other words, such as `upload.page.title`, and the `common`, `forms` and
+`pages` entries.
 
 A row gives:
 
@@ -174,8 +172,7 @@ The Error Messages Export workflow runs the export on every pull request to
 `main`, on every push to `main`, and on demand from the Actions tab for the
 branch picked there. Each run keeps the three files as one
 `error-messages-export` artifact for 90 days, and its summary counts the error
-IDs with each status and links to the artifact. A run on demand can add groups
-of rows, as `--include` does, in its `include` field. A pull request's run exports
+IDs with each status and links to the artifact. A pull request's run exports
 the wording on the pull request's branch, and links each row to its line at
 the branch's head commit. It is not a required check, so it never holds up a
 merge.
@@ -187,9 +184,7 @@ run on demand has nothing to compare with. The comparison gives the error IDs
 added and removed, with their
 words, a before and after for each part of a message it changes, and each
 status it moves. Errors changed alike, such as every error showing a reworded
-shared fallback, share one table. Only the groups of rows exported are
-compared, and the heading names them, as in "Wording changes in codes": a
-change to a `forms.*` entry, say, shows only when `forms` is exported. The
+shared fallback, share one table. The
 Export the error messages step's log
 gives the same as plain text, so the changes show without opening the
 summary. To see the same locally, add `-- --base REF`, naming the
@@ -197,6 +192,92 @@ commit your branch left `main` at:
 `npm run export:error-text -- --base "$(git merge-base origin/main HEAD)"`.
 Naming `origin/main` itself would show a change merged to `main` since as your
 branch undoing it.
+
+#### The error messages Confluence page
+
+The [BNG Metric Service Error Codes](https://eaflood.atlassian.net/wiki/spaces/BMD/pages/6649710070/BNG+Metric+Service+Error+Codes)
+page in Confluence is generated from `error-text.yaml`: edits made there are
+overwritten. It shows:
+
+- the date, branch and commit it was generated from;
+- the **content design check**: each row of UCD's content design sheet (a
+  Google Sheet, their master copy of the checked wording) compared with the
+  service's words for its error code, with a coloured check:
+
+  | Check                  | Means                                                                    |
+  | ---------------------- | ------------------------------------------------------------------------ |
+  | Matches                | the service shows the sheet's words                                      |
+  | Differs                | the service's words differ, and are not yet Final                        |
+  | Differs from Final     | the words differ, but the entry is Final: the YAML or the sheet is wrong |
+  | Not in service         | the sheet names a code the backend does not have                         |
+  | Not in sheet           | the service has an error code or shared page the sheet does not          |
+  | No wording in sheet    | the sheet's row gives no words                                           |
+  | Duplicate row          | the sheet has the code on an earlier row                                 |
+  | No error code in sheet | the sheet's Code column names no code                                    |
+  | Not covered by sheet   | a message the sheet does not cover, such as a form or whole-page error   |
+  | Sheet not read         | the sheet could not be read, so nothing was compared                     |
+
+  Only the parts that differ are shown, the sheet's words beside the
+  service's. The sheet describes the problems list: its H1 matches the
+  problems list's heading, and its body matches either the single-problem
+  page or the problems list heading. Capitals, spelling and punctuation count;
+  a full stop at the end, the names of `{values}` and how links are written do
+  not;
+
+- every error message in `error-text.yaml` is in that one table: the sheet's
+  rows first, then the error codes and shared pages it lacks, then the
+  messages it does not cover, each with its words;
+- below it, the wording the drop-out page is built from, in a table of its
+  own with an explanation: `upload.page`, `upload.names`, `upload.unknown`,
+  `upload.distinctiveness` and `upload.layers`. These are not errors but the
+  pieces the drop-out page puts an error's message together from, such as its
+  buttons or "blank" for a value a file leaves out. They are not compared with
+  the sheet, and are left out of both CSV files made for it, but are in the
+  `.xlsx` and `.csv` of every message;
+- the `.xlsx` and `.csv` files, and the check as `content-design-check.csv`,
+  attached, each replacing the last run's;
+- `content-design-sheet-layout.csv`: the page's table laid out in the content
+  design sheet's own columns, in its order, holding the service's current
+  wording in full, then the check, the status, where each message is shown and
+  a link to its entry. Its rows can be copied into a working copy of the sheet.
+
+The Error Messages Export workflow publishes it on each push to `main`. The
+page keeps a fingerprint of what it shows, and a run that would show the same
+leaves it alone, so the page gets a new version only when the wording, the
+sheet's comparison or the page itself changes. To publish it at any other
+time, such as after the sheet changes, run the workflow from the Actions tab
+on `main` with **publish** ticked: that publishes whatever the page shows. Any
+other branch leaves the page as it is.
+
+The publish job runs in the `confluence` GitHub environment, so a branch with
+a changed workflow cannot read its secrets. In the repository's settings:
+
+1. Create a `confluence` environment.
+2. Set its deployment branches to `main` only.
+3. Add these as secrets of that environment, not as repository secrets:
+
+| Secret                     | What it is                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| `CONFLUENCE_EMAIL`         | the Atlassian account the page is published as                                           |
+| `CONFLUENCE_API_TOKEN`     | that account's [API token](https://id.atlassian.com/manage-profile/security/api-tokens)  |
+| `CONTENT_DESIGN_SHEET_URL` | the content design sheet's URL, as opened in a browser, shared with anyone with the link |
+
+The sheet's URL is a secret because this repository is public. For the same
+reason the sheet's words go to Confluence alone, never to the run's log,
+summary or artifacts. Without the sheet the page is still published, and says the sheet was not
+compared. When the sheet is given but cannot be read, the page is left as it
+is, so a moment's outage does not lose its comparison, and the run's summary
+says why; a run on demand with **publish** ticked publishes it anyway.
+
+To see the page, and the check, before a fix is merged:
+
+```bash
+CONTENT_DESIGN_SHEET_URL='<the sheet URL>' npm run publish:error-text -- --dry-run out
+```
+
+This writes the page's body (`confluence-page.xml`) and its files into `out`,
+and publishes nothing. `content-design-check.csv` lists each difference, a row
+each, with a link to its entry in `error-text.yaml`: a list to work through.
 
 When the comparison finds a change that leaves wording unfinished, an error
 added that is not Final, or one whose status moves back, as from Final to

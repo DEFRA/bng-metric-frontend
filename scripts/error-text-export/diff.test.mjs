@@ -165,7 +165,6 @@ const base = {
   text: 'abc1234'
 }
 const described = describeDiff(diff, base, ALL_GROUPS)
-const EVERY = ALL_GROUPS.join(', ')
 const empty = diffRows(all(after), all(after))
 
 describe('describeDiff, as Markdown for the run summary', () => {
@@ -174,7 +173,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
   test('heads each kind of change with its count', () => {
     expect(markdown.split('\n').filter((line) => line.startsWith('#'))).toEqual(
       [
-        `### Wording changes in ${EVERY} from [abc1234](https://x/commit/abc1234)`,
+        `### Wording changes from [abc1234](https://x/commit/abc1234)`,
         '#### Added (1)',
         '#### Removed (1)',
         '#### Changed (5)',
@@ -203,7 +202,7 @@ describe('describeDiff, as Markdown for the run summary', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).markdown).toBe(
-      '### Wording changes in codes, fallbacks, file-check from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
+      '### Wording changes from [abc1234](https://x/commit/abc1234)\n\nNo wording changes.\n'
     )
   })
 })
@@ -213,7 +212,7 @@ describe('describeDiff, as plain text for the run log', () => {
 
   test('heads each kind of change with its count', () => {
     expect(lines.filter((line) => /^\S/.test(line))).toEqual([
-      `Wording changes in ${EVERY} from abc1234`,
+      `Wording changes from abc1234`,
       'Added (1)',
       'Removed (1)',
       'Changed (5)',
@@ -269,7 +268,7 @@ describe('describeDiff, as plain text for the run log', () => {
 
   test('says when there is nothing to show', () => {
     expect(describeDiff(empty, base).text).toBe(
-      'Wording changes in codes, fallbacks, file-check from abc1234: none.\n'
+      'Wording changes from abc1234: none.\n'
     )
   })
 
@@ -291,8 +290,20 @@ describe('compareWithBase', () => {
     })
   })
 
-  test('reads the base as the default groups unless told otherwise', () => {
+  test('reads the base as every group unless told otherwise', () => {
     const { text } = compareWithBase(buildRows(after), before, base)
+    expect(text).toContain('forms.applicant.tooLong')
+    expect(text).toContain('  ADDED (')
+  })
+
+  test('compares only the groups it is told', () => {
+    const groups = [ROW_GROUPS.CODES]
+    const { text } = compareWithBase(
+      buildRows(after, { groups }),
+      before,
+      base,
+      groups
+    )
     expect(text).not.toContain('forms.applicant.tooLong')
     expect(text).toContain('  ADDED (')
   })
@@ -302,13 +313,13 @@ describe('compareWithBase', () => {
     expect(unfinished).toEqual([])
     expect(markdown).toContain('error-text.yaml is not on the base commit')
     expect(text).toBe(
-      'Wording changes in codes, fallbacks, file-check from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
+      'Wording changes from abc1234 are not shown: error-text.yaml is not on the base commit.\n'
     )
   })
 
   test('says so, rather than failing, when the base file cannot be read', () => {
     expect(compareWithBase(rows, 'upload: [', base).markdown).toMatch(
-      /^### Wording changes in codes, fallbacks, file-check from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
+      /^### Wording changes from \[abc1234\]\(https:\/\/x\/commit\/abc1234\)\n\nThe changes are not shown: the base commit's error-text\.yaml could not be compared: /
     )
   })
 

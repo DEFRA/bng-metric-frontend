@@ -469,26 +469,9 @@ describe('buildRows, from error-text.yaml', () => {
 describe('buildRows, by group', () => {
   const ids = (groups) => buildRows(FIXTURE, { groups }).map(({ id }) => id)
 
-  test('gives the error codes, the shared pages and the file check messages by default', () => {
-    expect(DEFAULT_GROUPS).toEqual([
-      ROW_GROUPS.CODES,
-      ROW_GROUPS.FALLBACKS,
-      ROW_GROUPS.FILE_CHECK
-    ])
-    expect(buildRows(FIXTURE).map(({ id }) => id)).toEqual([
-      'a_parcel',
-      'B_LAYER',
-      'BOTH',
-      'C_ALONE',
-      'D_LISTED',
-      'EDIT_ONLY',
-      'fileCheck.serviceBusy',
-      'fileCheck.timedOut',
-      'UNKNOWN_WORDING',
-      'upload.catchAll',
-      'upload.fileProblem',
-      'upload.serviceProblem'
-    ])
+  test('gives every group by default', () => {
+    expect(DEFAULT_GROUPS).toEqual(ALL_GROUPS)
+    expect(buildRows(FIXTURE).map(({ id }) => id)).toEqual(ids(ALL_GROUPS))
   })
 
   test('gives each group asked for, and only those', () => {
