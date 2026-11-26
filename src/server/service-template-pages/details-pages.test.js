@@ -162,10 +162,12 @@ describe('details pages of a BNG Service template project', () => {
     return $
   }
 
+  // Once post-intervention data is uploaded the baseline is locked
+  // (BMD-1194): the ref is shown as text, not in an input.
   describe.each([
-    ['a project with both stages', 'twoStages'],
-    ['a baseline-only project', 'baselineOnly']
-  ])('baseline details on %s', (_, fixture) => {
+    ['a project with both stages', 'twoStages', true],
+    ['a baseline-only project', 'baselineOnly', false]
+  ])('baseline details on %s', (_, fixture, locked) => {
     test.each(casesOf(serviceTemplateProject(fixture), 'baseline'))(
       'renders %s with its ref, at Low (1) strategic significance',
       async (_label, layer, { featureId, ref }) => {
@@ -174,14 +176,21 @@ describe('details pages of a BNG Service template project', () => {
         const $ = await render(body, baselineDetailsUrl(body, featureId))
 
         expect(normalise($('h1').text())).toContain(ref)
-        expect($('[name="habitatRef"]').attr('value')).toBe(ref)
+        if (locked) {
+          expect(fieldValue($, 'Habitat reference')).toBe(ref)
+          expect($('form')).toHaveLength(0)
+        } else {
+          expect($('[name="habitatRef"]').attr('value')).toBe(ref)
+        }
         expect(fieldValue($, SIGNIFICANCE_KEY)).toBe(LOW)
       }
     )
   })
 
+  // A baseline-only project: once post-intervention data is uploaded the
+  // baseline is locked (BMD-1194) and nothing is offered to edit.
   test('baseline details of a tree offer its size class to edit, and no number of trees', async () => {
-    const body = serviceTemplateProject('twoStages')
+    const body = serviceTemplateProject('baselineOnly')
     const [tree] = body.project.baseline.trees
 
     const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
@@ -195,6 +204,17 @@ describe('details pages of a BNG Service template project', () => {
     ).toEqual(['Small', 'Medium', 'Large', 'Very large'])
     expect(shownOrChosen($, 'Tree size', 'treeSize')).toBe(tree.treeSize)
     // A BNG Service template tree is one tree: it has no Count to show.
+    expect(fieldValue($, 'Number of trees')).toBeUndefined()
+  })
+
+  test('locked baseline details of a tree show its size class as text, and no number of trees', async () => {
+    const body = serviceTemplateProject('twoStages')
+    const [tree] = body.project.baseline.trees
+
+    const $ = await render(body, baselineDetailsUrl(body, tree.featureId))
+
+    expect($('[name="treeSize"]')).toHaveLength(0)
+    expect(fieldValue($, 'Tree size')).toContain(tree.treeSize)
     expect(fieldValue($, 'Number of trees')).toBeUndefined()
   })
 

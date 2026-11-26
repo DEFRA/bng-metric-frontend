@@ -1,8 +1,24 @@
 import {
   hasBaselineData,
   hasHabitatData,
+  hasPostInterventionData,
   projectHasHabitatData
 } from './project-state.js'
+
+describe('hasPostInterventionData', () => {
+  test.each([
+    [{ baseline: {}, postIntervention: {} }, true],
+    [{ baseline: {} }, false],
+    [{ baseline: {}, postIntervention: null }, false],
+    [null, false],
+    [undefined, false]
+  ])(
+    'identifies whether %j has post-intervention data: %s',
+    (project, expected) => {
+      expect(hasPostInterventionData(project)).toBe(expected)
+    }
+  )
+})
 
 describe('hasBaselineData', () => {
   test.each([

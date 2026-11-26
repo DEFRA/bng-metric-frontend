@@ -27,6 +27,11 @@
    distinctiveness / trading-rule / condition values as the user changes
    dropdowns, without mutating saved data.
 
+   Once post-intervention data is uploaded the page is `locked` (BMD-1194):
+   every value shows as text under its usual label, the comment in full with
+   its line breaks (or "No data"), and there is no form, Save button or
+   reference data for the client JS.
+
    The "Broad habitat" field only renders for area habitats; hedgerows and
    watercourses have no broad habitat dimension. The size field swaps label +
    value between "Size (hectares)" and "Length (km)" via the strategy view
@@ -57,150 +62,195 @@
     caption: caption
   }) }}
 
+  {% set details %}
+    {% if not locked %}
+      <input type="hidden" name="projectId" value="{{ projectId }}">
+      <input type="hidden" name="featureId" value="{{ featureId }}">
+      <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
+
+      <script type="application/json" id="bhd-reference-data">{{ referenceJson | safe }}</script>
+    {% endif %}
+
+    <div class="app-stacked-fields">
+      {% if locked %}
+        {{ stackedField("Habitat reference", habitatRef) }}
+      {% else %}
+        {{ appHabitatRefInput(habitatRefInput) }}
+      {% endif %}
+
+      {{ stackedField(sizeLabel, sizeDisplay) }}
+
+      {# An individual tree's size class and, for a legacy tree, its number
+         of trees, from which its size in hectares comes. A BNG Service
+         template tree is always one tree, so shows no number, and its
+         size class can be edited (BMD-1172) unless the page is locked. #}
+      {% if showTreeRows %}
+        {% if treeSizeOptions and not locked %}
+          {{ govukSelect({
+            id: "treeSize",
+            name: "treeSize",
+            label: { text: "Tree size", classes: "govuk-label--s" },
+            items: treeSizeOptions,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+        {% else %}
+          {{ stackedField("Tree size", treeSizeDisplay) }}
+        {% endif %}
+        {% if showTreeCountRow %}
+          {{ stackedField("Number of trees", treeCountDisplay) }}
+        {% endif %}
+      {% endif %}
+
+      {% if showBroadHabitatRow %}
+        {% if locked %}
+          {{ stackedField("Broad habitat", broadHabitatDisplay) }}
+        {% else %}
+          {{ govukSelect({
+            id: "broadHabitat",
+            name: "broadHabitat",
+            label: { text: "Broad habitat", classes: "govuk-label--s" },
+            items: broadHabitatOptions,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+        {% endif %}
+      {% endif %}
+
+      {# An individual tree is always Individual trees: shown, and sent
+         with the form under the broad habitat's id and name, so the client
+         JS reads it as it reads the dropdown, but not editable (BMD-1172). #}
+      {% if fixedBroadHabitat %}
+        {{ stackedField("Broad habitat", fixedBroadHabitat) }}
+        {% if not locked %}
+          <input type="hidden" id="broadHabitat" name="broadHabitat" value="{{ fixedBroadHabitat }}">
+        {% endif %}
+      {% endif %}
+
+      {% if locked %}
+        {{ stackedField("Habitat type", habitatTypeDisplay) }}
+      {% else %}
+        {{ govukSelect({
+          id: "habitatType",
+          name: "habitatType",
+          label: { text: "Habitat type", classes: "govuk-label--s" },
+          items: habitatTypeOptions,
+          formGroup: { classes: "app-stacked-fields__item" }
+        }) }}
+      {% endif %}
+
+      {{ stackedField("Distinctiveness", distinctivenessDisplay, "distinctivenessDisplay") }}
+
+      {% if locked %}
+        {{ stackedField("Condition", conditionDisplay) }}
+      {% else %}
+        {{ govukSelect({
+          id: "condition",
+          name: "condition",
+          label: { text: "Condition", classes: "govuk-label--s" },
+          items: conditionOptions,
+          formGroup: { classes: "app-stacked-fields__item" }
+        }) }}
+      {% endif %}
+
+      {# Watercourse-only fields: the riparian/watercourse encroachment
+         selections are stored on the feature and editable. Their option
+         lists are culvert-aware (culverts show only "N/A - Culvert"; every
+         other type excludes it), filtered server-side on load and by the
+         client JS on habitat-type change. Saving persists the selections
+         and recomputes units via the unified PUT (BMD-597). #}
+      {% if showWatercourseEncroachmentRows %}
+        {% if locked %}
+          {{ stackedField("Watercourse encroachment", watercourseEncroachmentDisplay) }}
+          {{ stackedField("Riparian encroachment", riparianEncroachmentDisplay) }}
+        {% else %}
+          {{ govukSelect({
+            id: "watercourseEncroachment",
+            name: "watercourseEncroachment",
+            label: { text: "Watercourse encroachment", classes: "govuk-label--s" },
+            items: watercourseEncroachmentOptions,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+          {{ govukSelect({
+            id: "riparianEncroachment",
+            name: "riparianEncroachment",
+            label: { text: "Riparian encroachment", classes: "govuk-label--s" },
+            items: riparianEncroachmentOptions,
+            formGroup: { classes: "app-stacked-fields__item" }
+          }) }}
+        {% endif %}
+      {% endif %}
+
+      {{ stackedField("Strategic significance", strategicSignificanceDisplay) }}
+
+      {{ stackedField("Required action to meet trading rules", tradingRule, "tradingRuleDisplay") }}
+    </div>
+
+    {{ govukSummaryList({
+      classes: "app-units-delivered govuk-!-margin-top-6",
+      rows: [
+        {
+          key: { text: "Units in this habitat" },
+          value: { text: habitatUnitsDisplay }
+        }
+      ]
+    }) }}
+
+    {# Every baseline feature type offers the box (BMD-1112): areas,
+       vertical area habitats, hedgerows, watercourses and individual
+       trees. A page that leaves showCommentRow unset submits no comment,
+       and buildSaveBody then leaves the stored one alone. Locked, the
+       comment is shown in full, line breaks kept, without the hint. #}
+    {% if showCommentRow %}
+      {% if locked %}
+        <h2 class="govuk-heading-m govuk-!-margin-top-6">Supporting information</h2>
+        {# The value sits flush against the tags: a multiline value shows
+           any whitespace here. #}
+        <p class="govuk-body app-stacked-fields__value--multiline">{{ commentDisplay }}</p>
+      {% else %}
+        {{ govukTextarea({
+          id: "comment",
+          name: "comment",
+          rows: 5,
+          label: {
+            text: "Supporting information",
+            classes: "govuk-label--m"
+          },
+          hint: {
+            text: "Add information to help the Local Planning Authority understand the baseline metric."
+          },
+          value: commentInput.value,
+          errorMessage: commentInput.error,
+          classes: "govuk-!-margin-top-6"
+        }) }}
+      {% endif %}
+    {% endif %}
+  {% endset %}
+
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
       <h2 class="govuk-heading-m">{{ detailsSectionHeading }}</h2>
 
-      {% call appForm({
-        action: formAction,
-        id: "habitat-details-form"
-      }) %}
-        <input type="hidden" name="projectId" value="{{ projectId }}">
-        <input type="hidden" name="featureId" value="{{ featureId }}">
-        <input type="hidden" name="returnUrl" value="{{ returnUrl }}">
+      {% if locked %}
+        {{ details | safe }}
 
-        <script type="application/json" id="bhd-reference-data">{{ referenceJson | safe }}</script>
-
-        <div class="app-stacked-fields">
-          {{ appHabitatRefInput(habitatRefInput) }}
-
-          {{ stackedField(sizeLabel, sizeDisplay) }}
-
-          {# An individual tree's size class and, for a legacy tree, its number
-             of trees, from which its size in hectares comes. A BNG Service
-             template tree is always one tree, so shows no number, and its
-             size class can be edited (BMD-1172). #}
-          {% if showTreeRows %}
-            {% if treeSizeOptions %}
-              {{ govukSelect({
-                id: "treeSize",
-                name: "treeSize",
-                label: { text: "Tree size", classes: "govuk-label--s" },
-                items: treeSizeOptions,
-                formGroup: { classes: "app-stacked-fields__item" }
-              }) }}
-            {% else %}
-              {{ stackedField("Tree size", treeSizeDisplay) }}
-            {% endif %}
-            {% if showTreeCountRow %}
-              {{ stackedField("Number of trees", treeCountDisplay) }}
-            {% endif %}
-          {% endif %}
-
-          {% if showBroadHabitatRow %}
-            {{ govukSelect({
-              id: "broadHabitat",
-              name: "broadHabitat",
-              label: { text: "Broad habitat", classes: "govuk-label--s" },
-              items: broadHabitatOptions,
-              formGroup: { classes: "app-stacked-fields__item" }
-            }) }}
-          {% endif %}
-
-          {# An individual tree is always Individual trees: shown, and sent
-             with the form under the broad habitat's id and name, so the client
-             JS reads it as it reads the dropdown, but not editable (BMD-1172). #}
-          {% if fixedBroadHabitat %}
-            {{ stackedField("Broad habitat", fixedBroadHabitat) }}
-            <input type="hidden" id="broadHabitat" name="broadHabitat" value="{{ fixedBroadHabitat }}">
-          {% endif %}
-
-          {{ govukSelect({
-            id: "habitatType",
-            name: "habitatType",
-            label: { text: "Habitat type", classes: "govuk-label--s" },
-            items: habitatTypeOptions,
-            formGroup: { classes: "app-stacked-fields__item" }
-          }) }}
-
-          {{ stackedField("Distinctiveness", distinctivenessDisplay, "distinctivenessDisplay") }}
-
-          {{ govukSelect({
-            id: "condition",
-            name: "condition",
-            label: { text: "Condition", classes: "govuk-label--s" },
-            items: conditionOptions,
-            formGroup: { classes: "app-stacked-fields__item" }
-          }) }}
-
-          {# Watercourse-only fields: the riparian/watercourse encroachment
-             selections are stored on the feature and editable. Their option
-             lists are culvert-aware (culverts show only "N/A - Culvert"; every
-             other type excludes it), filtered server-side on load and by the
-             client JS on habitat-type change. Saving persists the selections
-             and recomputes units via the unified PUT (BMD-597). #}
-          {% if showWatercourseEncroachmentRows %}
-            {{ govukSelect({
-              id: "watercourseEncroachment",
-              name: "watercourseEncroachment",
-              label: { text: "Watercourse encroachment", classes: "govuk-label--s" },
-              items: watercourseEncroachmentOptions,
-              formGroup: { classes: "app-stacked-fields__item" }
-            }) }}
-            {{ govukSelect({
-              id: "riparianEncroachment",
-              name: "riparianEncroachment",
-              label: { text: "Riparian encroachment", classes: "govuk-label--s" },
-              items: riparianEncroachmentOptions,
-              formGroup: { classes: "app-stacked-fields__item" }
-            }) }}
-          {% endif %}
-
-          {{ stackedField("Strategic significance", strategicSignificanceDisplay) }}
-
-          {{ stackedField("Required action to meet trading rules", tradingRule, "tradingRuleDisplay") }}
-        </div>
-
-        {{ govukSummaryList({
-          classes: "app-units-delivered govuk-!-margin-top-6",
-          rows: [
-            {
-              key: { text: "Units in this habitat" },
-              value: { text: habitatUnitsDisplay }
-            }
-          ]
-        }) }}
-
-        {# Every baseline feature type offers the box (BMD-1112): areas,
-           vertical area habitats, hedgerows, watercourses and individual
-           trees. A page that leaves showCommentRow unset submits no comment,
-           and buildSaveBody then leaves the stored one alone. #}
-        {% if showCommentRow %}
-          {{ govukTextarea({
-            id: "comment",
-            name: "comment",
-            rows: 5,
-            label: {
-              text: "Supporting information",
-              classes: "govuk-label--m"
-            },
-            hint: {
-              text: "Add information to help the Local Planning Authority understand the baseline metric."
-            },
-            value: commentInput.value,
-            errorMessage: commentInput.error,
-            classes: "govuk-!-margin-top-6"
-          }) }}
-        {% endif %}
-
-        <div class="govuk-button-group">
-          {{ govukButton({
-            text: "Save"
-          }) }}
-
+        <p class="govuk-body">
           <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>
-        </div>
-      {% endcall %}
+        </p>
+      {% else %}
+        {% call appForm({
+          action: formAction,
+          id: "habitat-details-form"
+        }) %}
+          {{ details | safe }}
+
+          <div class="govuk-button-group">
+            {{ govukButton({
+              text: "Save"
+            }) }}
+
+            <a class="govuk-link" href="{{ cancelHref }}">Cancel</a>
+          </div>
+        {% endcall %}
+      {% endif %}
     </div>
   </div>
 {% endblock %}

@@ -16,7 +16,10 @@ import { requireBngCompleterRole } from '../common/helpers/auth/verify-role.js'
  *       Renders the shared baseline-habitat-details page. The backend resolves
  *       the feature by featureId and reports its type (area habitat, hedgerow
  *       or watercourse); the page then renders the matching per-type layout,
- *       with the habitat reference as an editable input (BMD-1061).
+ *       with the habitat reference as an editable input (BMD-1061). Once
+ *       post-intervention data is uploaded the baseline is locked
+ *       (BMD-1194): every value, the comment included, is shown as text, and
+ *       there is no form or Save button.
  *     parameters:
  *       - in: query
  *         name: featureId
