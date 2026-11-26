@@ -75,6 +75,7 @@ const createdTree = {
   retentionCategory: 'Created',
   proposed: {
     type: 'Urban tree',
+    treeSize: 'Large',
     distinctiveness: 'Medium',
     distinctivenessScore: 4,
     condition: 'Good',
@@ -603,7 +604,7 @@ describe('area post intervention', () => {
     expect(summary.text()).toContain('2.80%')
   })
 
-  test('shows the Broad habitat column for both habitat and tree rows', async () => {
+  test('shows the Broad habitat column for both habitat and tree rows, and Tree size only on a tab with a tree (BMD-1172)', async () => {
     const { result } = await server.inject({
       method: 'GET',
       url: PAGE_PATH,
@@ -652,12 +653,14 @@ describe('area post intervention', () => {
       'Units',
       'Size',
       'Broad habitat',
+      'Tree size',
       'Habitat type',
       'Distinctiveness',
       ...targetAndTimeHeaders
     ])
     expect($('#retained tbody').text()).toContain('Grassland')
     expect($('#created tbody').text()).toContain('Individual trees')
+    expect($('#created tbody').text()).toContain('Large')
   })
 
   test("shows each row's status as a tag after Ref on every tab (BMD-1102)", async () => {

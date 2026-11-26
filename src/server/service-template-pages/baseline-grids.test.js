@@ -83,6 +83,19 @@ describe('baseline grids of a BNG Service template project', () => {
       }
     )
 
+    test("the area grid shows each tree's size class, and none for other area habitats (BMD-1172)", async () => {
+      const body = serviceTemplateProject(fixture)
+      const { trees } = body.project.baseline
+      const sizeOf = new Map(trees.map((tree) => [tree.ref, tree.treeSize]))
+
+      const rows = await renderGrid(body, 'area-baseline')
+
+      expect(trees.length).toBeGreaterThan(0)
+      for (const row of rows) {
+        expect(row.cells['Tree size'], row.ref).toBe(sizeOf.get(row.ref) ?? '')
+      }
+    })
+
     test.each(GRIDS)(
       'the %s grid shows every baseline feature at Low (1) strategic significance',
       async (_kind, page) => {

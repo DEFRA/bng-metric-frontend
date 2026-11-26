@@ -175,7 +175,8 @@ function sumFinite(features, readValue) {
 }
 
 /**
- * Assemble header, body and totals from column definitions.
+ * Assemble header, body and totals from column definitions. A column with a
+ * `showWhen(features)` is left out of the table when it returns false.
  *
  * @param {object} options
  * @param {object[]} options.columns
@@ -184,21 +185,22 @@ function sumFinite(features, readValue) {
  * @param {(feature: object) => number|null|undefined} options.readSize
  */
 function buildHabitatGrid({ columns, features, projectId, readSize }) {
+  const shown = columns.filter((column) => column.showWhen?.(features) ?? true)
   const totals = {
     units: sumFinite(features, (feature) => feature.units),
     size: sumFinite(features, readSize)
   }
 
   return {
-    columns: columns.map(({ text, numeric, attributes }) => ({
+    columns: shown.map(({ text, numeric, attributes }) => ({
       text,
       numeric,
       attributes
     })),
     habitatRows: features.map((feature) =>
-      columns.map((column) => column.cell(feature, projectId))
+      shown.map((column) => column.cell(feature, projectId))
     ),
-    totalsRow: columns.map((column) => column.total?.(totals) ?? textCell())
+    totalsRow: shown.map((column) => column.total?.(totals) ?? textCell())
   }
 }
 

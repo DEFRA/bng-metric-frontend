@@ -171,6 +171,23 @@ describe('post-intervention grids of a BNG Service template project', () => {
     }
   })
 
+  test("the area grid shows each tree's size class, its baseline tree's for a Retained or Enhanced one (BMD-1172)", async () => {
+    const body = serviceTemplateProject('twoStages')
+    const { trees } = body.project.postIntervention
+
+    const sections = await renderGrid(body, 'area-post-intervention')
+
+    expect(new Set(trees.map((tree) => tree.retentionCategory))).toEqual(
+      new Set(['Retained', 'Enhanced', 'Created'])
+    )
+    for (const tree of trees) {
+      const row = sections[tree.retentionCategory].find(
+        (r) => r.ref === tree.ref
+      )
+      expect(row.cells['Tree size'], tree.ref).toBe(tree.proposed.treeSize)
+    }
+  })
+
   test('the watercourse grid lists an Incomplete Created watercourse, rather than failing', async () => {
     const body = serviceTemplateProject('twoStages')
     const blank = body.project.postIntervention.watercourses.find(

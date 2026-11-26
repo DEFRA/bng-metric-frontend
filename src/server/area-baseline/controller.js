@@ -12,6 +12,7 @@ import {
 } from '../common/helpers/unit-summary.js'
 import { formatAreaHectares } from '../common/helpers/format-habitat-values.js'
 import { BROAD_HABITAT_COLUMN } from '../common/helpers/baseline-habitat-grid.js'
+import { TREE_SIZE_COLUMN } from '../common/helpers/tree-size-column.js'
 import { createHabitatBaselineController } from '../common/helpers/create-habitat-baseline-controller.js'
 import { areaTradingRulesStatus } from '../common/helpers/trading-rules-status.js'
 
@@ -44,5 +45,5 @@ export const getController = createHabitatBaselineController({
   readSize: (feature) => feature.sizeSquareMetres,
   formatSize: formatAreaHectares,
   formatSizeTotal: formatAreaHectares,
-  extraColumns: [BROAD_HABITAT_COLUMN]
+  extraColumns: [BROAD_HABITAT_COLUMN, TREE_SIZE_COLUMN]
 })
