@@ -153,6 +153,16 @@ describe('sheetCsvUrl', () => {
       'https://docs.google.com/spreadsheets/d/abc/export?format=csv&gid=7'
     expect(sheetCsvUrl(download)).toBe(download)
   })
+
+  test('reads a URL copied while more than one Google account is signed in', () => {
+    expect(
+      sheetCsvUrl(
+        'https://docs.google.com/spreadsheets/u/1/d/abc/edit?gid=42#gid=42'
+      )
+    ).toBe(
+      'https://docs.google.com/spreadsheets/d/abc/export?format=csv&gid=42'
+    )
+  })
 })
 
 describe('fetchSheet', () => {
@@ -247,6 +257,15 @@ describe('codesIn', () => {
   test('finds a shared page by its key, and nothing in a note', () => {
     expect(codesIn('upload.fileProblem', known)).toEqual(['upload.fileProblem'])
     expect(codesIn('BMD-1099 will implement this', known)).toEqual([])
+  })
+
+  test('finds a file check and a dotted key in full', () => {
+    expect(codesIn('fileCheck.serviceBusy', known)).toEqual([
+      'fileCheck.serviceBusy'
+    ])
+    expect(codesIn('upload.page.listHeading.', known)).toEqual([
+      'upload.page.listHeading'
+    ])
   })
 })
 
@@ -535,6 +554,61 @@ describe('sheetLayoutRecords', () => {
       status: STATUS.FINAL,
       shown: SHOWN.UPLOAD,
       source: ROWS.find((row) => row.id === 'NO_REDLINE').source
+    })
+  })
+
+  test('compares a file check the sheet names, and lists it once', () => {
+    const rows = [
+      ...ROWS,
+      row('fileCheck.serviceBusy', {
+        shown: SHOWN.FILE_CHECK,
+        body: 'The service is busy.'
+      })
+    ]
+    const found = compareWithSheet(
+      readSheet(
+        sheetCsv('Area,8,Busy,fileCheck.serviceBusy,On upload,,,Busy now,,N,')
+      ),
+      rows
+    ).filter((result) => result.id === 'fileCheck.serviceBusy')
+    expect(found).toMatchObject([{ ref: '8', check: CHECK.DIFFERS_FROM_FINAL }])
+    expect(sheetLayoutRecords(found, rows)).toMatchObject([
+      { body: 'The service is busy.' }
+    ])
+  })
+
+  test('finds the problems list’s heading by its full key', () => {
+    const [result] = compareWithSheet(
+      readSheet(
+        sheetCsv(
+          'Area,9,List,upload.page.listHeading,On upload,,,We couldn’t accept your {file} file,,N,'
+        )
+      ),
+      ROWS
+    )
+    expect(result).toMatchObject({
+      id: 'upload.page.listHeading',
+      check: CHECK.MATCHES
+    })
+  })
+
+  test('keeps the sheet’s words for a code cell that names a service row the comparison does not read', () => {
+    const results = compareWithSheet(
+      readSheet(
+        sheetCsv(
+          'Area,10,Name,forms.projectName.required,On save,,,Name it,,N,'
+        )
+      ),
+      ROWS
+    )
+    expect(results[0]).toMatchObject({
+      id: 'forms.projectName.required',
+      check: CHECK.NO_CODE
+    })
+    expect(sheetLayoutRecords(results, ROWS)[0]).toMatchObject({
+      body: 'Name it',
+      status: '',
+      shown: ''
     })
   })
 

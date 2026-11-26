@@ -156,6 +156,10 @@ jobs:
         (github.event_name == 'workflow_dispatch' && inputs.publish)
       )
     runs-on: ubuntu-latest
+    # The Confluence and sheet secrets belong to this environment, not to the
+    # repository, and only main may deploy to it: a branch with a changed
+    # workflow cannot read them.
+    environment: confluence
     # One publish at a time, as each page version is numbered after the last.
     # A newer run waiting replaces an older one waiting, and each publishes
     # main as it is when it starts, so the page always ends on main's latest

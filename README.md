@@ -249,7 +249,12 @@ time, such as after the sheet changes, run the workflow from the Actions tab
 on `main` with **publish** ticked: that publishes whatever the page shows. Any
 other branch leaves the page as it is.
 
-The workflow needs these repository secrets:
+The publish job runs in the `confluence` GitHub environment, so a branch with
+a changed workflow cannot read its secrets. In the repository's settings:
+
+1. Create a `confluence` environment.
+2. Set its deployment branches to `main` only.
+3. Add these as secrets of that environment, not as repository secrets:
 
 | Secret                     | What it is                                                                               |
 | -------------------------- | ---------------------------------------------------------------------------------------- |

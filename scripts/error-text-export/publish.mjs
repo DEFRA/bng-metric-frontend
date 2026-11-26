@@ -31,6 +31,7 @@ import {
   pageBody
 } from './confluence.mjs'
 import { checkErrorText, exportMeta } from './export.mjs'
+import { REPO_ROOT, SHORT_SHA_LENGTH, sourceAt } from './git.mjs'
 import { DEFAULT_GROUPS, buildRows } from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
 
@@ -68,9 +69,7 @@ import { toXlsx } from './xlsx.mjs'
 // origin/main too, and error-text.yaml is read from that commit, not from the
 // working tree.
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 const PUBLISHED_BRANCH = 'main'
-const SHORT_SHA_LENGTH = 7
 const CSV_TYPE = 'text/csv'
 const XLSX_TYPE =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -316,28 +315,6 @@ export function commitIsOnMain(
   } catch {
     return false
   }
-}
-
-// error-text.yaml's path from the repository's root, as git names it.
-const ERROR_TEXT_PATH = path
-  .relative(REPO_ROOT, ERROR_TEXT_FILE)
-  .split(path.sep)
-  .join('/')
-
-/**
- * error-text.yaml as it is at `commit`: what a publish shows, so the page
- * never shows wording a working tree has that the commit it names does not.
- *
- * @param {string} commit
- * @param {string} [repository] - the repository's folder
- * @returns {string}
- */
-export function sourceAt(commit, repository = REPO_ROOT) {
-  return execFileSync('git', ['show', `${commit}:${ERROR_TEXT_PATH}`], {
-    cwd: repository,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
-  })
 }
 
 /** Refuse to publish anything but main, or without the settings to. */

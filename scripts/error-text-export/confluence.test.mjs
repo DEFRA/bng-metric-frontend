@@ -49,6 +49,10 @@ describe('text', () => {
   test('escapes XHTML and turns each line break into <br />', () => {
     expect(text('a < b & "c"\nd')).toBe('a &lt; b &amp; &quot;c&quot;<br />d')
   })
+
+  test('removes the control characters XML forbids, and keeps tabs', () => {
+    expect(text('a\u0000b\u0008c\u000Bd\u000Ce\u001Ff\tg')).toBe('abcdef\tg')
+  })
 })
 
 describe('columnWidths', () => {

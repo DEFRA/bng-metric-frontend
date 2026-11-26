@@ -4,6 +4,7 @@ import {
   checkRecord,
   notCompared
 } from './content-design.mjs'
+import { SHORT_SHA_LENGTH } from './git.mjs'
 import { isUploadText, statusCounts } from './rows.mjs'
 
 // The export as a Confluence page, in Confluence's storage format (XHTML with
@@ -37,7 +38,6 @@ const CHECK_COLOURS = Object.freeze({
   [CHECK.NOT_COMPARED]: 'Grey'
 })
 
-const SHORT_SHA_LENGTH = 7
 const ESCAPES = {
   '&': '&amp;',
   '<': '&lt;',
@@ -60,9 +60,14 @@ export const PAGE_PROPERTIES = Object.freeze([
 
 // --- Storage format ---
 
-/** Text as XHTML: escaped, each line break a <br />. */
+// The control characters XML 1.0 does not allow, which a sheet's cell can hold.
+// eslint-disable-next-line no-control-regex
+const FORBIDDEN_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g
+
+/** Text as XHTML: escaped, without characters XML forbids, each line break a <br />. */
 export function text(value) {
   return String(value ?? '')
+    .replaceAll(FORBIDDEN_CHARS, '')
     .replaceAll(/[&<>"]/g, (char) => ESCAPES[char])
     .replaceAll('\n', '<br />')
 }

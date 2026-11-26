@@ -11,6 +11,12 @@ import { checkDropoutCopy } from '../../src/server/error-file/dropout-copy.js'
 import { toCsv } from './csv.mjs'
 import { warningAnnotations } from './annotations.mjs'
 import { compareWithBase, notCompared } from './diff.mjs'
+import {
+  ERROR_TEXT_PATH,
+  REPO_ROOT,
+  SHORT_SHA_LENGTH,
+  sourceAt
+} from './git.mjs'
 import { toHtml } from './html.mjs'
 import { DEFAULT_GROUPS, buildRows, statusCounts } from './rows.mjs'
 import { toXlsx } from './xlsx.mjs'
@@ -34,15 +40,8 @@ import { toXlsx } from './xlsx.mjs'
 // prints: for a pull request, the commit its branch left main at, and for a
 // push to main, main as it was before the push.
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
-// error-text.yaml's path from the repository's root, as git names it.
-const ERROR_TEXT_PATH = path
-  .relative(REPO_ROOT, ERROR_TEXT_FILE)
-  .split(path.sep)
-  .join('/')
 const DEFAULT_OUT = 'export'
 const DEFAULT_REPOSITORY = 'https://github.com/DEFRA/bng-metric-frontend'
-const SHORT_SHA_LENGTH = 7
 const DATE_LENGTH = 10
 // Where an ISO time's hours, minutes and seconds sit: 2026-11-10T14:30:05.000Z.
 const TIME_START = 11
@@ -197,9 +196,9 @@ export function summaryMarkdown(rows, meta, files) {
 }
 
 /** error-text.yaml's text at a commit, or null when it has no such file. */
-function sourceAt(commit) {
+function sourceOrNull(commit) {
   try {
-    return git('show', `${commit}:${ERROR_TEXT_PATH}`)
+    return sourceAt(commit)
   } catch {
     return null
   }
@@ -228,7 +227,7 @@ function compareWithRef(rows, ref, meta) {
   const short = commit.slice(0, SHORT_SHA_LENGTH)
   return compareWithBase(
     rows,
-    sourceAt(commit),
+    sourceOrNull(commit),
     {
       markdown: `[${short}](${meta.repository}/commit/${commit})`,
       text: short

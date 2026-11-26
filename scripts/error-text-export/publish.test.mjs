@@ -19,6 +19,7 @@ import {
   compareWithSheet,
   readSheet
 } from './content-design.mjs'
+import { sourceAt } from './git.mjs'
 import {
   checkLine,
   contentDesignCheck,
@@ -26,8 +27,7 @@ import {
   commitIsOnMain,
   contentFingerprint,
   publishPage,
-  run,
-  sourceAt
+  run
 } from './publish.mjs'
 import { STATUS } from './rows.mjs'
 
@@ -696,20 +696,45 @@ describe('run', () => {
     }
   })
 
-  test('publishes without the sheet’s comparison when forced', async () => {
-    const requests = []
+  /**
+   * A Confluence that has no page properties yet, and a sheet that sends
+   * HTML: each request in order, with the page's body and each property set.
+   */
+  function confluenceWithoutSheet() {
+    const sent = { requests: [], pageBody: undefined }
     const fetchImpl = async (url, init = {}) => {
-      requests.push(`${init.method ?? 'GET'} ${url}`)
+      // An attachment's body is a form, not JSON.
+      const body =
+        typeof init.body === 'string' ? JSON.parse(init.body) : undefined
+      sent.requests.push({ method: init.method ?? 'GET', url, body })
       if (url.startsWith('https://docs.google.com/')) {
         return new Response('<html>', {
           headers: { 'content-type': 'text/html' }
         })
+      }
+      if (url.endsWith('/wiki/api/v2/pages/1') && init.method === 'PUT') {
+        sent.pageBody = body.body.value
       }
       if (url.endsWith('/wiki/api/v2/pages/1') && !init.method) {
         return Response.json({ title: 'T', version: { number: 5 } })
       }
       return Response.json({ results: [], version: { number: 6 } })
     }
+    return { sent, fetchImpl }
+  }
+
+  /** The values the fingerprint property was set to, and after which request. */
+  function fingerprintsSet(requests) {
+    return requests.flatMap((request, index) =>
+      request.method === 'POST' &&
+      request.body?.key === 'bng-error-text-fingerprint'
+        ? [{ value: request.body.value, index }]
+        : []
+    )
+  }
+
+  test('publishes without the sheet’s comparison when forced', async () => {
+    const { sent, fetchImpl } = confluenceWithoutSheet()
     await run(['--branch', 'main', '--sha', SHA, '--force'], {
       env: {
         ...SETTINGS,
@@ -720,7 +745,67 @@ describe('run', () => {
       isOnMain: () => true,
       readCommit: () => WORKING_TREE
     })
-    expect(requests).toContain('PUT https://s/wiki/api/v2/pages/1')
+    expect(sent.pageBody).toContain(
+      'The content design sheet was not compared: Could not read the content design sheet'
+    )
+    expect(sent.pageBody).toContain('Sheet not read')
+    const pagePut = sent.requests.findIndex(
+      ({ method, url }) =>
+        method === 'PUT' && url === 'https://s/wiki/api/v2/pages/1'
+    )
+    const fingerprints = fingerprintsSet(sent.requests)
+    expect(fingerprints.map(({ value }) => value)).toEqual([
+      'incomplete',
+      expect.stringMatching(/^[0-9a-f]{64}$/)
+    ])
+    expect(fingerprints[0].index).toBeLessThan(pagePut)
+    expect(fingerprints[1].index).toBeGreaterThan(pagePut)
+  })
+
+  test('publishes without a sheet when CONTENT_DESIGN_SHEET_URL is not set', async () => {
+    const { sent, fetchImpl } = confluenceWithoutSheet()
+    await run(['--branch', 'main', '--sha', SHA], {
+      env: SETTINGS,
+      fetchImpl,
+      isOnMain: () => true,
+      readCommit: () => WORKING_TREE
+    })
+    expect(
+      sent.requests.some(({ url }) =>
+        url.startsWith('https://docs.google.com/')
+      )
+    ).toBe(false)
+    expect(sent.pageBody).toContain(
+      'The content design sheet was not compared: no sheet was given.'
+    )
+    expect(fingerprintsSet(sent.requests).at(-1).value).toMatch(
+      /^[0-9a-f]{64}$/
+    )
+  })
+
+  test('with --dry-run, writes the page though the sheet cannot be read', async () => {
+    const { sent, fetchImpl } = confluenceWithoutSheet()
+    const dir = mkdtempSync(path.join(tmpdir(), 'publish-'))
+    try {
+      await run(['--dry-run', dir, '--branch', 'feature', '--sha', SHA], {
+        env: {
+          CONTENT_DESIGN_SHEET_URL:
+            'https://docs.google.com/spreadsheets/d/a/edit'
+        },
+        fetchImpl,
+        isOnMain: () => false
+      })
+      expect(sent.requests.map(({ url }) => url)).toEqual([
+        'https://docs.google.com/spreadsheets/d/a/export?format=csv&gid=0'
+      ])
+      const page = readFileSync(path.join(dir, 'confluence-page.xml'), 'utf8')
+      expect(page).toContain(
+        'The content design sheet was not compared: Could not read the content design sheet'
+      )
+      expect(page).toContain('Sheet not read')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   test('refuses a commit whose error-text.yaml the service would refuse, and sends nothing', async () => {

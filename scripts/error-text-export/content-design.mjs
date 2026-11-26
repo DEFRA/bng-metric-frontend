@@ -90,9 +90,10 @@ const NO_WORDS = new Set(['', 'n/a', 'na', '-', 'none'])
 const NO_SERVICE_WORDS = '(none)'
 
 // An error code, as the backend names them, or a YAML key the sheet names a
-// shared page by. A code ending "_*" stands for every code it begins.
+// shared page or a file check by, in full. A code ending "_*" stands for every
+// code it begins.
 const CODE =
-  /\b[A-Z][A-Z0-9]*(?:(?:_[A-Z0-9]+)+(?:_\*)?|_\*)|\bupload\.[a-zA-Z]+/g
+  /\b[A-Z][A-Z0-9]*(?:(?:_[A-Z0-9]+)+(?:_\*)?|_\*)|\b(?:upload|fileCheck)(?:\.[a-zA-Z]+)+/g
 const WILDCARD = '_*'
 const ERROR_CODE = /^[A-Z][A-Z0-9_]+$/
 
@@ -110,6 +111,9 @@ const QUOTES = [
 ]
 const SPACES = /\s+/g
 const TRAILING_STOP = /\.$/
+
+// The checks of a sheet row the service has no code for.
+const SHEET_ONLY = new Set([CHECK.NO_CODE, CHECK.NOT_IN_SERVICE])
 
 const COLUMN_HEADERS = Object.fromEntries(
   COLUMNS.map(({ key, header }) => [key, header])
@@ -198,7 +202,8 @@ export function readSheet(csv) {
 
 /**
  * The URL a Google Sheet's tab downloads from as CSV, from the URL it is
- * opened at: .../d/<id>/edit?gid=<tab>#gid=<tab>. A URL that already
+ * opened at: .../d/<id>/edit?gid=<tab>#gid=<tab>, or .../u/<n>/d/<id>/...
+ * when more than one Google account is signed in. A URL that already
  * downloads it is kept.
  *
  * @param {string} url
@@ -206,7 +211,9 @@ export function readSheet(csv) {
  */
 export function sheetCsvUrl(url) {
   const parsed = new URL(url)
-  const id = /\/spreadsheets\/d\/([^/]+)/.exec(parsed.pathname)?.[1]
+  const id = /\/spreadsheets\/(?:u\/\d+\/)?d\/([^/]+)/.exec(
+    parsed.pathname
+  )?.[1]
   if (!id || parsed.pathname.endsWith('/export')) {
     return url
   }
@@ -438,7 +445,10 @@ export function compareWithSheet(sheetRows, rows) {
     .map((row) => unmatched(row, CHECK.NOT_IN_SHEET))
   // The drop-out page's building blocks are not errors, so are left out.
   const outside = rows
-    .filter((row) => !sheetCovers(row) && !isUploadText(row))
+    .filter(
+      (row) =>
+        !sheetCovers(row) && !isUploadText(row) && !context.firstRef.has(row.id)
+    )
     .map((row) => unmatched(row, CHECK.OUTSIDE_SHEET))
   return [...results, ...missing, ...outside]
 }
@@ -600,7 +610,7 @@ function serviceParts(row) {
 export function sheetLayoutRecords(results, rows) {
   const byId = new Map(rows.map((row) => [row.id, row]))
   return results.map((result) => {
-    const row = byId.get(result.id)
+    const row = SHEET_ONLY.has(result.check) ? undefined : byId.get(result.id)
     const own = row
       ? serviceParts(row)
       : Object.fromEntries(
