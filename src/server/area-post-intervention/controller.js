@@ -11,6 +11,7 @@ import {
   areaInterventionSummary,
   areaUnits
 } from '../common/helpers/unit-summary.js'
+import { collectAreaFeatures } from '../common/helpers/area-features.js'
 import { createHabitatPostInterventionController } from '../common/helpers/create-habitat-post-intervention-controller.js'
 import { buildAreaLeadingExtraColumns } from '../common/helpers/area-post-intervention-grid.js'
 import {
@@ -28,15 +29,6 @@ const POST_INTERVENTION_AREA_LABEL = 'Total post intervention habitat area'
 const SITE_AREA_LABEL =
   'Site Area (excluding areas of individual trees, green walls, intertidal hard structures)'
 const NOT_AVAILABLE = 'N/A'
-
-function collectAreaFeatures(project, phase) {
-  const source = project?.[phase]
-  return [
-    ...(source?.habitats ?? []),
-    ...(source?.verticalHabitats ?? []),
-    ...(source?.trees ?? [])
-  ]
-}
 
 function areaSizeTile(label, squareMetres) {
   return {

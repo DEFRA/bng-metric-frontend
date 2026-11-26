@@ -26,4 +26,15 @@ function visibleInterventionTabs(features) {
   )
 }
 
-export { featureMatchesCategory, visibleInterventionTabs }
+/**
+ * The id of an intervention type's tab, which is also the URL fragment that
+ * opens the post-intervention page on that tab.
+ *
+ * @param {string} category Retained, Enhanced or Created
+ * @returns {string | undefined}
+ */
+function interventionTabId(category) {
+  return INTERVENTION_TAB_ORDER.find(({ label }) => label === category)?.id
+}
+
+export { featureMatchesCategory, interventionTabId, visibleInterventionTabs }

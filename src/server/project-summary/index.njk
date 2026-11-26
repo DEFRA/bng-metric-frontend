@@ -37,6 +37,21 @@
         /
         <a class="govuk-link" href="{{ metricDownloads.xlsxHref }}" data-testid="metric-xlsx-link">Macro disabled (.xlsx)<span class="govuk-visually-hidden"> metric calculation spreadsheet</span></a>
       {% endset %}
+      {#- What is left to do (BMD-1111), then the download row, always last.
+          push() adds to the list in place: a list set again inside the loop
+          would not be seen outside it. #}
+      {% set actionTableRows = [] %}
+      {% for row in actionRows %}
+        {% set actionLink %}<a class="govuk-link" href="{{ row.href }}" data-testid="{{ row.testId }}">{{ row.linkText }}</a>{% endset %}
+        {% set _ = actionTableRows.push([
+          { text: row.description },
+          { html: actionLink }
+        ]) %}
+      {% endfor %}
+      {% set _ = actionTableRows.push([
+        { text: "Download metric calculation spreadsheet" },
+        { html: metricLinks }
+      ]) %}
       {{ govukTable({
         caption: "Actions",
         captionClasses: "govuk-table__caption--m",
@@ -45,12 +60,7 @@
           { text: "Description" },
           { text: "Link" }
         ],
-        rows: [
-          [
-            { text: "Download metric calculation spreadsheet" },
-            { html: metricLinks }
-          ]
-        ]
+        rows: actionTableRows
       }) }}
 
       {% for summary in unitSummaries %}

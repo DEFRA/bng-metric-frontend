@@ -74,6 +74,29 @@ function projectWithPostInterventionOnlyLinearHabitats() {
   }
 }
 
+// Every kind of row the Actions table can hold above the download row
+// (BMD-1111): incomplete baseline and post-intervention habitats, and
+// incomplete project details.
+function projectWithActionsToDo() {
+  const { project } = projectWithPostInterventionOnlyLinearHabitats()
+  return {
+    project: {
+      ...project,
+      baseline: {
+        ...project.baseline,
+        habitats: [{ status: 'Incomplete' }],
+        trees: [{ status: 'Incomplete' }]
+      },
+      postIntervention: {
+        ...project.postIntervention,
+        habitats: [{ status: 'Incomplete', retentionCategory: 'Enhanced' }],
+        hedgerows: [{ status: 'Incomplete', retentionCategory: 'Created' }],
+        watercourses: [{ status: 'Incomplete', retentionCategory: 'Created' }]
+      }
+    }
+  }
+}
+
 describe('Project summary page accessibility checks', () => {
   let server
 
@@ -96,7 +119,8 @@ describe('Project summary page accessibility checks', () => {
     [
       'post-intervention-only linear habitats',
       projectWithPostInterventionOnlyLinearHabitats
-    ]
+    ],
+    ['actions still to do', projectWithActionsToDo]
   ])('has no accessibility violations with %s', async (_, projectFactory) => {
     vi.mocked(wreck.get).mockResolvedValue({
       res: { statusCode: 200 },

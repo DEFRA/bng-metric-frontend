@@ -46,6 +46,7 @@ import {
   hedgerowTradingRulesStatus,
   watercourseTradingRulesStatus
 } from '../common/helpers/trading-rules-status.js'
+import { buildActionRows } from './action-rows.js'
 import {
   DEFAULT_PROJECT_NAME,
   HEDGEROWS_TOTAL_KEY,
@@ -159,6 +160,7 @@ function buildProjectSummary(project, projectId) {
   return {
     projectName: project?.name ?? DEFAULT_PROJECT_NAME,
     uploadHref,
+    actionRows: buildActionRows(project, projectId),
     metricDownloads: {
       xlsmHref: `/projects/${projectId}/metric.xlsm`,
       xlsxHref: `/projects/${projectId}/metric.xlsx`
