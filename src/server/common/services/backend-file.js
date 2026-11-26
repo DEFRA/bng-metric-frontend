@@ -16,7 +16,7 @@ const backendUrl = config.get('backend').url.replace(/\/$/, '')
  * throw on the first byte. Turning it off is what makes the payload arrive as
  * the Buffer this returns.
  *
- * Returns `{ statusCode, bytes }` for any HTTP response, or `null` when the
+ * Returns `{ statusCode, bytes, headers }` for any HTTP response, or `null` when the
  * backend could not be reached at all — the same shape the other services in
  * this directory use, so callers distinguish "the backend said no" from "there
  * was no backend".
@@ -26,7 +26,9 @@ const backendUrl = config.get('backend').url.replace(/\/$/, '')
  * @param {string} file.projectId
  * @param {string} file.path - backend path, starting with `/`
  * @param {string} file.what - what the file is, for the logs ("site report")
- * @returns {Promise<{statusCode: number, bytes: Buffer|null}|null>}
+ * The headers are the backend's, so a caller can honour its `Retry-After`.
+ *
+ * @returns {Promise<{statusCode: number, bytes: Buffer|null, headers: object}|null>}
  */
 async function fetchBackendFile(request, { projectId, path, what }) {
   try {
@@ -36,7 +38,11 @@ async function fetchBackendFile(request, { projectId, path, what }) {
       `${backendUrl}${path}`,
       { json: false }
     )
-    return { statusCode: res.statusCode, bytes: payload ?? null }
+    return {
+      statusCode: res.statusCode,
+      bytes: payload ?? null,
+      headers: res.headers ?? {}
+    }
   } catch (error) {
     // A dead, unrefreshable session must reach the global error handler so it
     // can redirect to /auth/session-expired rather than being reported here as
@@ -53,7 +59,11 @@ async function fetchBackendFile(request, { projectId, path, what }) {
       throw error
     }
     if (error?.data?.isResponseError) {
-      return { statusCode: error.data.res.statusCode, bytes: null }
+      return {
+        statusCode: error.data.res.statusCode,
+        bytes: null,
+        headers: error.data.res.headers ?? {}
+      }
     }
 
     logger.error(

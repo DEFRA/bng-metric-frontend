@@ -31,7 +31,8 @@ describe('#fetchMetricWorkbook', () => {
 
     expect(await fetchMetricWorkbook(request, PROJECT_ID, 'xlsm')).toEqual({
       statusCode: statusCodes.ok,
-      bytes: WORKBOOK
+      bytes: WORKBOOK,
+      headers: {}
     })
     expect(backendRequest).toHaveBeenCalledWith(
       request,
@@ -43,17 +44,21 @@ describe('#fetchMetricWorkbook', () => {
     )
   })
 
-  test('reports a backend error response as that status', async () => {
-    const error = new Error('Internal Server Error')
+  test('reports a backend error response as that status, with its headers', async () => {
+    const error = new Error('Service Unavailable')
     error.data = {
       isResponseError: true,
-      res: { statusCode: statusCodes.internalServerError }
+      res: {
+        statusCode: statusCodes.serviceUnavailable,
+        headers: { 'retry-after': '5' }
+      }
     }
     vi.mocked(backendRequest).mockRejectedValue(error)
 
     expect(await fetchMetricWorkbook(request, PROJECT_ID, 'xlsx')).toEqual({
-      statusCode: statusCodes.internalServerError,
-      bytes: null
+      statusCode: statusCodes.serviceUnavailable,
+      bytes: null,
+      headers: { 'retry-after': '5' }
     })
   })
 

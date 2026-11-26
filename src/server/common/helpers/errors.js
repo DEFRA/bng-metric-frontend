@@ -2,6 +2,7 @@ import { statusCodes } from '../constants.js'
 import { SESSION_EXPIRED_PATH } from './auth/session-expiry.js'
 import { pageErrorText } from '../error-text/error-text.js'
 import { shownWaitSeconds } from './rate-limited.js'
+import { isServiceBusy } from './service-busy.js'
 
 // The pages section's page for each status; any other is serverError. A 422,
 // a save the backend refused under one of the service's rules, shows the same
@@ -41,21 +42,38 @@ export function tooManyRequestsPage(seconds) {
 }
 
 /**
- * A backend rate limit refused the request (rate-limited.js). The page says
- * how long to wait, and so does the Retry-After header. It is not logged: the
- * service did what it should.
+ * The "Sorry, the service is busy" page for the wait the backend gave, in
+ * seconds, in the same forms as {@link tooManyRequestsPage}.
+ *
+ * @param {number | null | undefined} seconds
  */
-function renderTooManyRequests(response, h) {
+export function serviceBusyPage(seconds) {
+  if (!seconds) {
+    return pageErrorText('serviceBusyNoWait')
+  }
+  if (seconds === 1) {
+    return pageErrorText('serviceBusyOneSecond')
+  }
+  return pageErrorText('serviceBusy', { seconds })
+}
+
+/**
+ * A page asking the user to wait and try again: a backend rate limit refused
+ * the request (rate-limited.js), or the backend was too busy to start it
+ * (service-busy.js). The page says how long to wait, and so does the
+ * Retry-After header. It is not logged: the service did what it should.
+ */
+function renderWaitPage(response, h, { statusCode, pageFor }) {
   const seconds = response.data?.retryAfterSeconds
-  const page = tooManyRequestsPage(shownWaitSeconds(seconds))
+  const page = pageFor(shownWaitSeconds(seconds))
   const view = h
     .view('error/index', {
       pageTitle: page.title,
-      heading: statusCodes.tooManyRequests,
+      heading: statusCode,
       message: page.title,
       body: page.body
     })
-    .code(statusCodes.tooManyRequests)
+    .code(statusCode)
   if (seconds) {
     view.header('Retry-After', String(seconds))
   }
@@ -78,7 +96,13 @@ export function catchAll(request, h) {
 
   const statusCode = response.output.statusCode
   if (statusCode === statusCodes.tooManyRequests) {
-    return renderTooManyRequests(response, h)
+    return renderWaitPage(response, h, {
+      statusCode,
+      pageFor: tooManyRequestsPage
+    })
+  }
+  if (isServiceBusy(response)) {
+    return renderWaitPage(response, h, { statusCode, pageFor: serviceBusyPage })
   }
 
   const page = statusCodePage(statusCode)

@@ -3,6 +3,7 @@ import Boom from '@hapi/boom'
 import { HTTP_SUCCESS_MAX, statusCodes } from '../common/constants.js'
 import { fetchProjectOrThrow } from '../common/helpers/fetch-project.js'
 import { hasBaselineData } from '../common/helpers/project-state.js'
+import { serviceBusyError } from '../common/helpers/service-busy.js'
 import { fetchMetricWorkbook } from '../common/services/metric-workbook.js'
 
 const METRIC_ERROR = 'Failed to generate the metric workbook'
@@ -61,7 +62,8 @@ function metricFilename(projectName, format, now) {
  * also turns a project with no baseline into "Page not found" (AC11) without
  * asking the backend to build anything.
  *
- * A backend that cannot build the file is a 502 error page, and nothing is
+ * A backend too busy to start building is "Sorry, the service is busy", with
+ * its wait. A backend that cannot build the file is a 502 error page, and nothing is
  * sent until all of the bytes have arrived, so no partial file is downloaded
  * (AC13).
  */
@@ -78,6 +80,11 @@ const getController = {
 
     if (result?.statusCode === statusCodes.notFound) {
       throw Boom.notFound('Project not found')
+    }
+    // Every build slot stayed busy: the user is asked to wait and try
+    // again, with the backend's wait, rather than shown an error.
+    if (result?.statusCode === statusCodes.serviceUnavailable) {
+      throw serviceBusyError(result.headers)
     }
     if (
       !result?.bytes?.length ||

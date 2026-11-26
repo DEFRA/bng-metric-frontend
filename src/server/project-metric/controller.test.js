@@ -38,9 +38,9 @@ function respond(statusCode, payload) {
   return { res: { statusCode }, payload }
 }
 
-function backendError(statusCode) {
+function backendError(statusCode, headers = {}) {
   const error = new Error(`Response Error: ${statusCode}`)
-  error.data = { isResponseError: true, res: { statusCode } }
+  error.data = { isResponseError: true, res: { statusCode, headers } }
   return error
 }
 
@@ -178,6 +178,23 @@ describe('metric workbook download', () => {
       expect(response.headers['content-disposition']).toBeUndefined()
     }
   )
+
+  test('asks the user to wait and try again, with the backend’s wait, when every build slot is busy', async () => {
+    backendAnswers({
+      workbook: () =>
+        Promise.reject(
+          backendError(statusCodes.serviceUnavailable, { 'retry-after': '5' })
+        )
+    })
+
+    const response = await getMetric(server)
+
+    expect(response.statusCode).toBe(statusCodes.serviceUnavailable)
+    expect(response.headers['retry-after']).toBe('5')
+    expect(response.headers['content-disposition']).toBeUndefined()
+    expect(response.result).toContain('Sorry, the service is busy')
+    expect(response.result).toContain('Wait 5 seconds, then try again.')
+  })
 
   test('sends the user to the session-expired page, not a file, when the session cannot be refreshed (AC9)', async () => {
     const expired = new Error('session expired')
