@@ -211,6 +211,149 @@ describe('project summary', () => {
     expect(reportsNavLink.attr('href')).toBe(`/projects/${PROJECT_ID}/reports`)
   })
 
+  test('offers the metric in both formats from an Actions table (BMD-1141 AC1)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const actions = $('[data-testid="project-actions"]')
+    expect(actions.find('caption').text().trim()).toBe('Actions')
+    expect(
+      actions
+        .find('thead th')
+        .map((_, el) => $(el).text().trim())
+        .get()
+    ).toEqual(['Description', 'Link'])
+    // The download row is always the last one (BMD-1111 AC2).
+    const downloadRow = actions.find('tbody tr').last()
+    expect(downloadRow.children().first().text().trim()).toBe(
+      'Download metric calculation spreadsheet'
+    )
+    const xlsm = $('[data-testid="metric-xlsm-link"]')
+    const xlsx = $('[data-testid="metric-xlsx-link"]')
+    expect(xlsm.attr('href')).toBe(`/projects/${PROJECT_ID}/metric.xlsm`)
+    expect(xlsx.attr('href')).toBe(`/projects/${PROJECT_ID}/metric.xlsx`)
+    expect(xlsm.text()).toContain('Macro enabled (.xlsm)')
+    expect(xlsx.text()).toContain('Macro disabled (.xlsx)')
+    // The browser saves on content-disposition; a download attribute would
+    // turn an error page into a failed download.
+    expect(xlsm.attr('download')).toBeUndefined()
+  })
+
+  describe('actions still to do (BMD-1111)', () => {
+    const completeDetails = {
+      surveyCompleters: 'A Surveyor',
+      surveyCompletionDate: '01/06/2026',
+      applicant: 'An Applicant',
+      localPlanningAuthorityReference: 'E60000001'
+    }
+
+    async function actionRowsFor(projectData) {
+      vi.mocked(wreck.get).mockResolvedValue({
+        res: { statusCode: statusCodes.ok },
+        payload: { project: projectData }
+      })
+      const { result } = await server.inject({
+        method: 'GET',
+        url: `/projects/${PROJECT_ID}/project-summary`,
+        auth
+      })
+      const $ = load(result)
+      return $('[data-testid="project-actions"] tbody tr')
+        .map((_, row) => {
+          const cells = $(row).children()
+          const link = cells.eq(1).find('a').first()
+          return {
+            description: cells.eq(0).text().trim(),
+            linkText: link.text().trim(),
+            href: link.attr('href')
+          }
+        })
+        .get()
+    }
+
+    test('shows only the download row when nothing is left to do (AC2)', async () => {
+      const rows = await actionRowsFor({
+        ...project.project,
+        details: completeDetails
+      })
+
+      expect(rows.map(({ description }) => description)).toEqual([
+        'Download metric calculation spreadsheet'
+      ])
+    })
+
+    test('lists incomplete baseline habitats, then project details, above the download row (AC2, AC3, AC5)', async () => {
+      const rows = await actionRowsFor({
+        ...project.project,
+        baseline: {
+          ...project.project.baseline,
+          habitats: [{ status: 'Incomplete' }, { status: 'Complete' }],
+          trees: [{ status: 'Incomplete' }],
+          hedgerows: [{ status: 'Incomplete' }],
+          watercourses: [{ status: 'Complete' }]
+        }
+      })
+
+      expect(rows.slice(0, -1)).toEqual([
+        {
+          description:
+            '2 incomplete baseline area habitat records. (Entries may have been removed as part of the data validation process)',
+          linkText: 'View baseline area habitats list',
+          href: `/projects/${PROJECT_ID}/area-baseline`
+        },
+        {
+          description:
+            '1 incomplete baseline hedgerow habitat record. (Entries may have been removed as part of the data validation process)',
+          linkText: 'View baseline hedgerows list',
+          href: `/projects/${PROJECT_ID}/hedgerows-baseline`
+        },
+        {
+          description: 'Complete your project details',
+          linkText: 'View and update project details',
+          href: `/project-details/${PROJECT_ID}?returnUrl=%2Fprojects%2F${PROJECT_ID}%2Fproject-summary`
+        }
+      ])
+      expect(rows.at(-1).description).toBe(
+        'Download metric calculation spreadsheet'
+      )
+    })
+
+    test('links incomplete post-intervention habitats to their tab, Enhanced before Created (AC4, AC7)', async () => {
+      const rows = await actionRowsFor({
+        ...projectWithPostIntervention.project,
+        details: completeDetails,
+        postIntervention: {
+          ...projectWithPostIntervention.project.postIntervention,
+          habitats: [{ status: 'Incomplete', retentionCategory: 'Created' }],
+          hedgerows: [{ status: 'Incomplete', retentionCategory: 'Retained' }],
+          watercourses: [
+            { status: 'Incomplete', retentionCategory: 'Enhanced' },
+            { status: 'Incomplete', retentionCategory: 'Enhanced' }
+          ]
+        }
+      })
+
+      expect(rows.slice(0, -1)).toEqual([
+        {
+          description:
+            '2 incomplete enhanced watercourse habitat records. (Entries may have been removed as part of the data validation process)',
+          linkText: 'View enhanced watercourses list',
+          href: `/projects/${PROJECT_ID}/watercourses-post-intervention#enhanced`
+        },
+        {
+          description:
+            '1 incomplete created area habitat record. (Entries may have been removed as part of the data validation process)',
+          linkText: 'View created area habitats list',
+          href: `/projects/${PROJECT_ID}/area-post-intervention#created`
+        }
+      ])
+    })
+  })
+
   test('formats baseline, zero post-intervention and negative net units', async () => {
     const { result } = await server.inject({
       method: 'GET',
