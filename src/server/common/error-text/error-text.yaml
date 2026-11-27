@@ -1588,6 +1588,30 @@ pages:
       - *tooManyRequestsCause
       - Wait a few minutes, then try again.
 
+  # The backend could not start the work in time because it was busy with
+  # other people's (HTTP 503 with a Retry-After), such as building the metric
+  # spreadsheet for someone else. Not the user's doing, unlike
+  # tooManyRequests. One page for each form of the wait the backend gives.
+  # TODO(open point 1): UCD may want different words, as for tooManyRequests.
+  serviceBusy:
+    wording: interim
+    title: &serviceBusyTitle Sorry, the service is busy
+    body:
+      - &serviceBusyCause The service is busy with other requests.
+      - Wait {seconds} seconds, then try again.
+  serviceBusyOneSecond:
+    wording: interim
+    title: *serviceBusyTitle
+    body:
+      - *serviceBusyCause
+      - Wait 1 second, then try again.
+  serviceBusyNoWait:
+    wording: interim
+    title: *serviceBusyTitle
+    body:
+      - *serviceBusyCause
+      - Wait a few minutes, then try again.
+
   # Signed in, but without the role the service needs.
   accessDenied:
     title: Access denied

@@ -159,6 +159,10 @@ function buildProjectSummary(project, projectId) {
   return {
     projectName: project?.name ?? DEFAULT_PROJECT_NAME,
     uploadHref,
+    metricDownloads: {
+      xlsmHref: `/projects/${projectId}/metric.xlsm`,
+      xlsxHref: `/projects/${projectId}/metric.xlsx`
+    },
     navigationItems: buildUnitTypeNavigation(
       project,
       projectId,

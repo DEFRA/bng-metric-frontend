@@ -211,6 +211,37 @@ describe('project summary', () => {
     expect(reportsNavLink.attr('href')).toBe(`/projects/${PROJECT_ID}/reports`)
   })
 
+  test('offers the metric in both formats from an Actions table (BMD-1141 AC1)', async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/project-summary`,
+      auth
+    })
+
+    const $ = load(result)
+    const actions = $('[data-testid="project-actions"]')
+    expect(actions.find('caption').text().trim()).toBe('Actions')
+    expect(
+      actions
+        .find('thead th')
+        .map((_, el) => $(el).text().trim())
+        .get()
+    ).toEqual(['Description', 'Link'])
+    const cells = actions.find('tbody tr td, tbody tr th')
+    expect($(cells[0]).text().trim()).toBe(
+      'Download metric calculation spreadsheet'
+    )
+    const xlsm = $('[data-testid="metric-xlsm-link"]')
+    const xlsx = $('[data-testid="metric-xlsx-link"]')
+    expect(xlsm.attr('href')).toBe(`/projects/${PROJECT_ID}/metric.xlsm`)
+    expect(xlsx.attr('href')).toBe(`/projects/${PROJECT_ID}/metric.xlsx`)
+    expect(xlsm.text()).toContain('Macro enabled (.xlsm)')
+    expect(xlsx.text()).toContain('Macro disabled (.xlsx)')
+    // The browser saves on content-disposition; a download attribute would
+    // turn an error page into a failed download.
+    expect(xlsm.attr('download')).toBeUndefined()
+  })
+
   test('formats baseline, zero post-intervention and negative net units', async () => {
     const { result } = await server.inject({
       method: 'GET',
