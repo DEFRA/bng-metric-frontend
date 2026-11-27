@@ -60,7 +60,8 @@ const treeT1 = {
   distinctiveness: 'Medium',
   distinctivenessScore: 4,
   units: 0.2,
-  sizeSquareMetres: 163
+  sizeSquareMetres: 163,
+  treeSize: 'Medium'
 }
 
 const projectWithHabitats = {
@@ -257,6 +258,56 @@ describe('area baseline', () => {
     expect($('tfoot').text()).toContain('3.0163ha')
   })
 
+  test("shows each tree's size class after Broad habitat, blank for other area habitats (BMD-1172)", async () => {
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-baseline`,
+      auth
+    })
+
+    const $ = load(result)
+    const columns = $('thead th')
+      .map((_, heading) => $(heading).text().trim())
+      .get()
+    const cell = (ref, label) =>
+      $('tbody .govuk-table__row')
+        .filter((_, row) => $(row).find('td').eq(0).text().trim() === ref)
+        .find('td')
+        .eq(columns.indexOf(label))
+
+    expect(columns.slice(4, 7)).toEqual([
+      'Broad habitat',
+      'Tree size',
+      'Habitat type'
+    ])
+    expect(cell('T-1', 'Tree size').text().trim()).toBe('Medium')
+    expect(cell('T-1', 'Tree size').attr('data-sort-value')).toBe('1')
+    expect(cell('P-1', 'Tree size').text().trim()).toBe('')
+    expect($('tfoot td').eq(columns.indexOf('Tree size')).text()).toBe('')
+  })
+
+  test('leaves the Tree size column out when the baseline has no trees (BMD-1172)', async () => {
+    vi.mocked(wreck.get).mockResolvedValue({
+      res: { statusCode: statusCodes.ok },
+      payload: {
+        project: {
+          ...projectWithHabitats.project,
+          baseline: { ...projectWithHabitats.project.baseline, trees: [] }
+        }
+      }
+    })
+
+    const { result } = await server.inject({
+      method: 'GET',
+      url: `/projects/${PROJECT_ID}/area-baseline`,
+      auth
+    })
+
+    const $ = load(result)
+    expect($('thead').text()).not.toContain('Tree size')
+    expect($('thead th')).toHaveLength(9)
+  })
+
   test('lists vertical area habitats with the area habitats, sized in hectares and square metres, and counts them in the total area', async () => {
     const wall = {
       featureId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -373,7 +424,7 @@ describe('area baseline', () => {
       .map((_, row) => $(row).find('td').length)
       .get()
 
-    expect(headerCount).toBe(9)
+    expect(headerCount).toBe(10)
     expect(bodyRowWidths).toEqual([headerCount, headerCount, headerCount])
     expect($('tfoot td')).toHaveLength(headerCount)
   })
@@ -596,7 +647,7 @@ describe('area baseline', () => {
 
     expect($('table').attr('data-module')).toBe('moj-sortable-table')
     expect($('table').hasClass('app-habitat-details-table')).toBe(true)
-    expect($('th[aria-sort="none"]')).toHaveLength(9)
+    expect($('th[aria-sort="none"]')).toHaveLength(10)
     expect($('th[aria-sort="ascending"]')).toHaveLength(0)
     expect($('.moj-scrollable-pane').attr('aria-label')).toBe(
       'Area habitat details'
