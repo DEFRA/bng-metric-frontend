@@ -16,18 +16,17 @@ const backendUrl = config.get('backend').url.replace(/\/$/, '')
  * throw on the first byte. Turning it off is what makes the payload arrive as
  * the Buffer this returns.
  *
- * Returns `{ statusCode, bytes, headers }` for any HTTP response, or `null` when the
- * backend could not be reached at all — the same shape the other services in
- * this directory use, so callers distinguish "the backend said no" from "there
- * was no backend".
+ * Returns `{ statusCode, bytes, headers }` for any HTTP response, or `null`
+ * when the backend could not be reached at all — the same shape the other
+ * services in this directory use, so callers distinguish "the backend said
+ * no" from "there was no backend". The headers are the backend's, so a caller
+ * can honour its `Retry-After`.
  *
  * @param {import('@hapi/hapi').Request} request
  * @param {object} file
  * @param {string} file.projectId
  * @param {string} file.path - backend path, starting with `/`
  * @param {string} file.what - what the file is, for the logs ("site report")
- * The headers are the backend's, so a caller can honour its `Retry-After`.
- *
  * @returns {Promise<{statusCode: number, bytes: Buffer|null, headers: object}|null>}
  */
 async function fetchBackendFile(request, { projectId, path, what }) {

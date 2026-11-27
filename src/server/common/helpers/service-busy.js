@@ -1,5 +1,6 @@
 import Boom from '@hapi/boom'
 
+import { statusCodes } from '../constants.js'
 import { retryAfterSeconds } from './rate-limited.js'
 
 /**
@@ -19,6 +20,23 @@ export function serviceBusyError(headers) {
     serviceBusy: true,
     retryAfterSeconds: retryAfterSeconds(headers)
   })
+}
+
+/**
+ * {@link serviceBusyError} when the backend's response is a 503 with a
+ * usable `Retry-After`, else null.
+ *
+ * The wait is what marks a busy refusal: the backend always sends one when it
+ * is busy. A 503 without one is more likely a proxy in front of a backend that
+ * is down, which is an outage to log, not a page asking the user to wait.
+ *
+ * @param {{ statusCode?: number, headers?: object } | null | undefined} res
+ */
+export function serviceBusyErrorFor(res) {
+  return res?.statusCode === statusCodes.serviceUnavailable &&
+    retryAfterSeconds(res.headers) !== null
+    ? serviceBusyError(res.headers)
+    : null
 }
 
 /**

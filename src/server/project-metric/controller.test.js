@@ -196,6 +196,25 @@ describe('metric workbook download', () => {
     expect(response.result).toContain('Wait 5 seconds, then try again.')
   })
 
+  test.each([
+    ['no Retry-After', {}],
+    ['a Retry-After it cannot read', { 'retry-after': 'soon' }]
+  ])(
+    'shows the error page, not the busy one, for a backend 503 with %s',
+    async (_, headers) => {
+      backendAnswers({
+        workbook: () =>
+          Promise.reject(backendError(statusCodes.serviceUnavailable, headers))
+      })
+
+      const response = await getMetric(server)
+
+      expect(response.statusCode).toBe(statusCodes.badGateway)
+      expect(response.result).not.toContain('Sorry, the service is busy')
+      expect(response.headers['content-disposition']).toBeUndefined()
+    }
+  )
+
   test('sends the user to the session-expired page, not a file, when the session cannot be refreshed (AC9)', async () => {
     const expired = new Error('session expired')
     expired.data = { sessionExpired: true }
